@@ -3,7 +3,7 @@ import { Game } from '../../src/core/Game';
 import { Enemy, EnemyType } from '../../src/entities/Enemy';
 import { ResourceManager, ResourceType } from '../../src/systems/ResourceManager';
 
-// Mock canvas and context
+// Simple canvas mock
 const mockCanvas = {
   width: 800,
   height: 608,
@@ -41,8 +41,14 @@ describe('Enemy Kill Reward Debug', () => {
     it('should increase currency when enemy is killed via enemyKilled method', () => {
       const initialCurrency = game.getCurrency();
       
+      // Create a mock enemy with appropriate reward values
+      const mockEnemy = {
+        reward: 10,
+        position: { x: 100, y: 100 }
+      } as Enemy;
+      
       // Manually trigger enemy killed (simulating what should happen)
-      game.enemyKilled(10, 50); // 10 currency, 50 score
+      game.enemyKilled(mockEnemy);
       
       expect(game.getCurrency()).toBe(initialCurrency + 10);
       expect(game.getScore()).toBe(50);

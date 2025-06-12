@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Renderer } from '../../src/systems/Renderer';
 import { Grid } from '../../src/systems/Grid';
+import { Camera } from '../../src/systems/Camera';
 import { TowerType } from '../../src/entities/Tower';
 
 // Mock canvas context
@@ -33,14 +34,30 @@ const mockCanvas = {
   getContext: vi.fn(() => mockContext)
 } as unknown as HTMLCanvasElement;
 
+// Mock camera
+const mockCamera = {
+  worldToScreen: vi.fn((pos) => pos), // Identity transform by default
+  screenToWorld: vi.fn((pos) => pos), // Identity transform by default
+  isVisible: vi.fn(() => true), // Everything visible by default
+  getVisibleBounds: vi.fn(() => ({
+    min: { x: 0, y: 0 },
+    max: { x: 800, y: 608 }
+  })),
+  update: vi.fn(),
+  getPosition: vi.fn(() => ({ x: 0, y: 0 })),
+  setPosition: vi.fn()
+} as any;
+
 describe('Renderer Ghost System', () => {
   let renderer: Renderer;
   let grid: Grid;
+  let camera: Camera;
 
   beforeEach(() => {
     vi.clearAllMocks();
     grid = new Grid(25, 19, 32);
-    renderer = new Renderer(mockCanvas, grid);
+    camera = new Camera(800, 608, 800, 608);
+    renderer = new Renderer(mockCanvas, grid, camera);
   });
 
   describe('renderTowerGhost', () => {

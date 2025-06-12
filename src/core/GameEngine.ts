@@ -30,7 +30,11 @@ export class GameEngine {
     this.state = GameState.MENU;
     
     if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
+      if (typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(this.animationId);
+      } else {
+        clearTimeout(this.animationId);
+      }
       this.animationId = null;
     }
   }
@@ -55,7 +59,11 @@ export class GameEngine {
     this.running = false;
     
     if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
+      if (typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(this.animationId);
+      } else {
+        clearTimeout(this.animationId);
+      }
       this.animationId = null;
     }
   }
@@ -65,7 +73,11 @@ export class GameEngine {
     this.running = false;
     
     if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
+      if (typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(this.animationId);
+      } else {
+        clearTimeout(this.animationId);
+      }
       this.animationId = null;
     }
   }
@@ -111,6 +123,11 @@ export class GameEngine {
     this.update(deltaTime);
     this.render(deltaTime);
 
-    this.animationId = requestAnimationFrame(this.gameLoop);
+    // Use requestAnimationFrame if available, otherwise use setTimeout
+    if (typeof requestAnimationFrame !== 'undefined') {
+      this.animationId = requestAnimationFrame(this.gameLoop);
+    } else {
+      this.animationId = setTimeout(() => this.gameLoop(Date.now()), 16) as any;
+    }
   };
 }

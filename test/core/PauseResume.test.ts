@@ -33,7 +33,8 @@ describe('Game Pause/Resume', () => {
   let game: Game;
 
   beforeEach(() => {
-    game = new Game(mockCanvas);
+    game = new Game(mockCanvas, undefined, false); // Disable auto-start for testing
+    game.start(); // Manually start for testing pause functionality
   });
 
   describe('pause functionality', () => {

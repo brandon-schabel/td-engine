@@ -1,8 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from '../../src/core/Game';
 import { Enemy, EnemyType } from '../../src/entities/Enemy';
+import { TowerType } from '../../src/entities/Tower';
 
-// Mock canvas and context
+// Document is mocked in setup.ts
+
+// Simple canvas mock
 const mockCanvas = {
   width: 800,
   height: 608,
@@ -33,33 +36,31 @@ describe('Player UI Integration', () => {
   let game: Game;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    vi.restoreAllMocks(); // Restore any spies from previous tests
     game = new Game(mockCanvas);
   });
 
   describe('player click detection', () => {
     it('should detect clicks on player', () => {
       const player = game.getPlayer();
-      const playerPos = player.position;
+      
+      // Ensure game is in PLAYING state
+      game.start();
       
       // Mock document.dispatchEvent
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       
-      // Simulate click on player
-      const mouseEvent = new MouseEvent('click', {
-        clientX: playerPos.x,
-        clientY: playerPos.y
-      });
+      // Get screen coordinates for player position using camera transformation
+      const camera = (game as any).camera; // Access camera
+      const playerScreenPos = camera.worldToScreen(player.position);
       
-      Object.defineProperty(mouseEvent, 'offsetX', {
-        value: playerPos.x,
-        writable: false
-      });
-      Object.defineProperty(mouseEvent, 'offsetY', {
-        value: playerPos.y,
-        writable: false
-      });
-
-      game.handleMouseClick(mouseEvent);
+      const mouseEvent = {
+        offsetX: playerScreenPos.x,
+        offsetY: playerScreenPos.y
+      } as MouseEvent;
+      
+      game.handleMouseDown(mouseEvent);
       
       // Should dispatch playerClicked event
       expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
@@ -69,20 +70,23 @@ describe('Player UI Integration', () => {
 
     it('should not trigger player click when clicking outside player area', () => {
       const player = game.getPlayer();
+      
+      // Ensure game is in PLAYING state
+      game.start();
+      
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       
-      // Click far from player
-      const mouseEvent = new MouseEvent('click');
-      Object.defineProperty(mouseEvent, 'offsetX', {
-        value: player.position.x + 100,
-        writable: false
-      });
-      Object.defineProperty(mouseEvent, 'offsetY', {
-        value: player.position.y + 100,
-        writable: false
-      });
+      // Click far from player - use a position definitely outside player radius
+      const farAwayWorldPos = { x: player.position.x + 100, y: player.position.y + 100 };
+      const camera = (game as any).camera; // Access camera
+      const farAwayScreenPos = camera.worldToScreen(farAwayWorldPos);
+      
+      const mouseEvent = {
+        offsetX: farAwayScreenPos.x,
+        offsetY: farAwayScreenPos.y
+      } as MouseEvent;
 
-      game.handleMouseClick(mouseEvent);
+      game.handleMouseDown(mouseEvent);
       
       // Should not dispatch playerClicked event
       expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({
@@ -92,37 +96,54 @@ describe('Player UI Integration', () => {
 
     it('should prioritize player clicks over tower placement', () => {
       const player = game.getPlayer();
+      
+      // Ensure game is in PLAYING state
+      game.start();
+      
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       
       // Set a tower type for placement
-      game.setSelectedTowerType('BASIC' as any);
+      game.setSelectedTowerType(TowerType.BASIC);
       
-      // Click on player
-      const mouseEvent = new MouseEvent('click');
-      Object.defineProperty(mouseEvent, 'offsetX', {
-        value: player.position.x,
-        writable: false
-      });
-      Object.defineProperty(mouseEvent, 'offsetY', {
-        value: player.position.y,
-        writable: false
-      });
+      // Get screen coordinates for player position using camera transformation
+      const camera = (game as any).camera; // Access camera
+      const playerScreenPos = camera.worldToScreen(player.position);
+      
+      const mouseEvent = {
+        offsetX: playerScreenPos.x,
+        offsetY: playerScreenPos.y
+      } as MouseEvent;
 
-      game.handleMouseClick(mouseEvent);
+      const towerCountBefore = game.getTowers().length;
+      game.handleMouseDown(mouseEvent);
+      const towerCountAfter = game.getTowers().length;
       
-      // Should dispatch playerClicked event, not place tower
+      // Should dispatch player event instead of placing tower
       expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
         type: 'playerClicked'
       }));
+      expect(towerCountAfter).toBe(towerCountBefore); // No new tower
     });
   });
 
   describe('player position and interactions', () => {
-    it('should place player at center of canvas', () => {
+    it('should place player at center of world', () => {
       const player = game.getPlayer();
+      const mapData = game.getCurrentMapData();
       
-      expect(player.position.x).toBe(400); // Half of 800
-      expect(player.position.y).toBe(304); // Half of 608
+      // Calculate expected center based on actual map size
+      const worldWidth = mapData.metadata.width * 32; // 32 pixels per cell
+      const worldHeight = mapData.metadata.height * 32;
+      const expectedX = Math.floor(worldWidth / 2);
+      const expectedY = Math.floor(worldHeight / 2);
+      
+      // Player should be near the center (within reasonable distance since map generation finds a suitable spot)
+      const distanceFromCenter = Math.sqrt(
+        Math.pow(player.position.x - expectedX, 2) + 
+        Math.pow(player.position.y - expectedY, 2)
+      );
+      
+      expect(distanceFromCenter).toBeLessThan(80); // Within about 2.5 cells of center
     });
 
     it('should allow player movement', () => {

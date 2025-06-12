@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Renderer } from '../../src/systems/Renderer';
 import { Grid } from '../../src/systems/Grid';
+import { Camera } from '../../src/systems/Camera';
 import { Tower, TowerType } from '../../src/entities/Tower';
 import { Player } from '../../src/entities/Player';
 import { UpgradeType } from '../../src/systems/TowerUpgradeManager';
@@ -35,14 +36,30 @@ const mockCanvas = {
   getContext: vi.fn(() => mockContext)
 } as unknown as HTMLCanvasElement;
 
+// Mock camera
+const mockCamera = {
+  worldToScreen: vi.fn((pos) => pos), // Identity transform by default
+  screenToWorld: vi.fn((pos) => pos), // Identity transform by default
+  isVisible: vi.fn(() => true), // Everything visible by default
+  getVisibleBounds: vi.fn(() => ({
+    min: { x: 0, y: 0 },
+    max: { x: 800, y: 608 }
+  })),
+  update: vi.fn(),
+  getPosition: vi.fn(() => ({ x: 0, y: 0 })),
+  setPosition: vi.fn()
+} as any;
+
 describe('Renderer Upgrade Dots System', () => {
   let renderer: Renderer;
   let grid: Grid;
+  let camera: Camera;
 
   beforeEach(() => {
     vi.clearAllMocks();
     grid = new Grid(25, 19, 32);
-    renderer = new Renderer(mockCanvas, grid);
+    camera = new Camera(800, 608, 800, 608);
+    renderer = new Renderer(mockCanvas, grid, camera);
   });
 
   describe('tower upgrade dots rendering', () => {
@@ -245,7 +262,7 @@ describe('Renderer Upgrade Dots System', () => {
       
       const playerSpy = vi.spyOn(renderer, 'renderPlayer');
       
-      renderer.renderScene(towers, enemies, projectiles, player);
+      renderer.renderScene(towers, enemies, projectiles, [], [], null, player);
 
       expect(playerSpy).toHaveBeenCalledWith(player);
     });
@@ -256,7 +273,7 @@ describe('Renderer Upgrade Dots System', () => {
       const projectiles: any[] = [];
       
       expect(() => {
-        renderer.renderScene(towers, enemies, projectiles);
+        renderer.renderScene(towers, enemies, projectiles, [], [], null);
       }).not.toThrow();
     });
 
@@ -267,7 +284,7 @@ describe('Renderer Upgrade Dots System', () => {
       const towerSpy = vi.spyOn(renderer, 'renderTower');
       const playerSpy = vi.spyOn(renderer, 'renderPlayer');
       
-      renderer.renderScene([tower], [], [], player);
+      renderer.renderScene([tower], [], [], [], [], null, player);
 
       // Both should be called
       expect(towerSpy).toHaveBeenCalled();

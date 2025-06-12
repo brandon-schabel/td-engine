@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+
+There is no need to start the server, I will run the server myself.
+
 ## Development Commands
 
 ```bash

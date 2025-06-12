@@ -8,7 +8,7 @@ describe('GameEngine', () => {
   let rafCallback: FrameRequestCallback | null = null;
 
   beforeEach(() => {
-    // Mock requestAnimationFrame
+    // Override global mocks with test-specific behavior
     mockRaf = 0;
     global.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
       rafCallback = callback;
@@ -38,7 +38,7 @@ describe('GameEngine', () => {
       
       expect(engine.isRunning()).toBe(true);
       expect(engine.getState()).toBe(GameState.PLAYING);
-      expect(requestAnimationFrame).toHaveBeenCalled();
+      expect(global.requestAnimationFrame).toHaveBeenCalled();
     });
 
     it('should stop the game loop when stop is called', () => {
@@ -47,7 +47,7 @@ describe('GameEngine', () => {
       
       expect(engine.isRunning()).toBe(false);
       expect(engine.getState()).toBe(GameState.MENU);
-      expect(cancelAnimationFrame).toHaveBeenCalled();
+      expect(global.cancelAnimationFrame).toHaveBeenCalled();
     });
 
     it('should update and render on each frame', () => {

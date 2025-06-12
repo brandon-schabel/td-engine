@@ -38,20 +38,14 @@ describe('Tower Ghost System', () => {
 
   describe('mouse position tracking', () => {
     it('should update mouse position on mouse move', () => {
-      const mouseEvent = new MouseEvent('mousemove', {
+      // Create mock mouse event object
+      const mouseEvent = {
+        type: 'mousemove',
         clientX: 100,
-        clientY: 150
-      });
-      
-      // Mock offsetX and offsetY properties
-      Object.defineProperty(mouseEvent, 'offsetX', {
-        value: 100,
-        writable: false
-      });
-      Object.defineProperty(mouseEvent, 'offsetY', {
-        value: 150,
-        writable: false
-      });
+        clientY: 150,
+        offsetX: 100,
+        offsetY: 150
+      } as MouseEvent;
 
       game.handleMouseMove(mouseEvent);
       
@@ -121,18 +115,13 @@ describe('Tower Ghost System', () => {
       game.setSelectedTowerType(TowerType.BASIC);
       
       // Simulate mouse movement
-      const mouseEvent = new MouseEvent('mousemove', {
+      const mouseEvent = {
+        type: 'mousemove',
         clientX: 200,
-        clientY: 200
-      });
-      Object.defineProperty(mouseEvent, 'offsetX', {
-        value: 200,
-        writable: false
-      });
-      Object.defineProperty(mouseEvent, 'offsetY', {
-        value: 200,
-        writable: false
-      });
+        clientY: 200,
+        offsetX: 200,
+        offsetY: 200
+      } as MouseEvent;
       
       game.handleMouseMove(mouseEvent);
       

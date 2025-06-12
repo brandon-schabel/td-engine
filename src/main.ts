@@ -2,6 +2,10 @@ import { Game } from './core/Game';
 import { TowerType } from './entities/Tower';
 import { UpgradeType } from './systems/TowerUpgradeManager';
 import { PlayerUpgradeType } from './entities/Player';
+import { AudioManager, SoundType } from './audio/AudioManager';
+import { ConfigurationMenu } from './ui/ConfigurationMenu';
+import type { GameConfiguration, MapConfiguration } from './config/GameConfiguration';
+import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty } from './types/MapData';
 
 // Get canvas element
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -9,24 +13,94 @@ if (!canvas) {
   throw new Error('Canvas element not found');
 }
 
-// Set canvas size
-canvas.width = 800;
-canvas.height = 608; // 19 cells * 32px
+// Set canvas size - viewport window into larger world
+canvas.width = 1200;
+canvas.height = 800;
 
-// Create game instance
-const game = new Game(canvas);
+// Global variables for game initialization
+let game: Game;
+let gameInitialized = false;
+const audioManager = new AudioManager();
 
-// Add mouse event handlers
-canvas.addEventListener('click', (e) => {
-  game.handleMouseClick(e);
-});
+// Convert MapConfiguration to MapGenerationConfig
+function convertMapConfiguration(mapConfig: MapConfiguration): MapGenerationConfig {
+  const preset = MAP_SIZE_PRESETS[mapConfig.size];
+  if (!preset) {
+    throw new Error(`Invalid map size: ${mapConfig.size}`);
+  }
 
-canvas.addEventListener('mousemove', (e) => {
-  game.handleMouseMove(e);
-});
+  // Use custom size if provided, otherwise use preset
+  const width = mapConfig.customSize?.width ?? preset.width;
+  const height = mapConfig.customSize?.height ?? preset.height;
+
+  // Convert biome (handle 'RANDOM' case)
+  let biome: BiomeType;
+  if (mapConfig.biome === 'RANDOM') {
+    const biomes = [BiomeType.FOREST, BiomeType.DESERT, BiomeType.ARCTIC, BiomeType.VOLCANIC, BiomeType.GRASSLAND];
+    biome = biomes[Math.floor(Math.random() * biomes.length)] ?? BiomeType.FOREST;
+  } else {
+    biome = mapConfig.biome;
+  }
+
+  return {
+    width,
+    height,
+    cellSize: 20, // Standard cell size
+    biome,
+    difficulty: MapDifficulty.MEDIUM, // Default difficulty
+    seed: mapConfig.seed,
+    pathComplexity: mapConfig.pathComplexity,
+    obstacleCount: Math.floor(width * height * mapConfig.obstacleCountMultiplier * 0.1),
+    decorationLevel: mapConfig.decorationLevel,
+    enableWater: mapConfig.enableWater,
+    enableAnimations: mapConfig.enableAnimations,
+    chokePointCount: Math.floor(mapConfig.chokePointMultiplier * 3),
+    openAreaCount: Math.floor(mapConfig.openAreaMultiplier * 2),
+    playerAdvantageSpots: Math.floor(mapConfig.advantageSpotMultiplier * 2)
+  };
+}
+
+// Initialize configuration menu first
+function initializeGame(config: GameConfiguration) {
+  // Convert MapConfiguration to MapGenerationConfig
+  const mapGenConfig = convertMapConfiguration(config.mapSettings);
+  
+  // Create game instance with configuration
+  game = new Game(canvas, mapGenConfig);
+  gameInitialized = true;
+  
+  // Start the main game setup
+  setupGameUI();
+}
+
+// Show configuration menu on startup
+const configMenu = new ConfigurationMenu(initializeGame);
+configMenu.show();
+
+// Global variables for UI state
+let selectedTowerButton: HTMLButtonElement | null = null;
+let playerUpgradeContainer: HTMLDivElement;
+let updatePlayerUpgradePanel: () => void;
+
+function setupGameHandlers() {
+  // Add mouse event handlers
+  canvas.addEventListener('mousedown', (e) => {
+    if (gameInitialized) game.handleMouseDown(e);
+  });
+
+  canvas.addEventListener('mouseup', (e) => {
+    if (gameInitialized) game.handleMouseUp(e);
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (gameInitialized) game.handleMouseMove(e);
+  });
+}
 
 // Add keyboard controls
 document.addEventListener('keydown', (e) => {
+  if (!gameInitialized) return;
+  
   // Forward movement keys to game
   game.handleKeyDown(e.key);
   
@@ -47,20 +121,35 @@ document.addEventListener('keydown', (e) => {
       }
       break;
     case '1':
+      audioManager.playUISound(SoundType.SELECT);
       game.setSelectedTowerType(TowerType.BASIC);
       break;
     case '2':
+      audioManager.playUISound(SoundType.SELECT);
       game.setSelectedTowerType(TowerType.SNIPER);
       break;
     case '3':
+      audioManager.playUISound(SoundType.SELECT);
       game.setSelectedTowerType(TowerType.RAPID);
       break;
     case 'Escape':
+      audioManager.playUISound(SoundType.DESELECT);
+      if (selectedTowerButton) {
+        selectedTowerButton.classList.remove('selected');
+        selectedTowerButton = null;
+      }
       game.setSelectedTowerType(null);
+      break;
+    case 'q':
+    case 'Q':
+      // Emergency audio stop
+      audioManager.stopAllSounds();
+      game.getAudioManager().stopAllSounds();
       break;
     case 'u':
     case 'U':
       // Toggle player upgrade panel
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
       if (playerUpgradeContainer.style.display === 'block') {
         playerUpgradeContainer.style.display = 'none';
       } else {
@@ -72,19 +161,25 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('keyup', (e) => {
+  if (!gameInitialized) return;
+  
   // Forward movement keys to game
   game.handleKeyUp(e.key);
 });
 
-// Listen for player clicks
-document.addEventListener('playerClicked', () => {
-  playerUpgradeContainer.style.display = 'block';
-  updatePlayerUpgradePanel();
-});
+// Listen for player clicks (temporarily disabled)
+// document.addEventListener('playerClicked', () => {
+//   playerUpgradeContainer.style.display = 'block';
+//   updatePlayerUpgradePanel();
+// });
 
-// Create UI elements
-const gameContainer = document.getElementById('game-container');
-if (gameContainer) {
+function setupGameUI() {
+  // Setup game handlers
+  setupGameHandlers();
+  
+  // Create UI elements
+  const gameContainer = document.getElementById('game-container');
+  if (gameContainer) {
   // Add control instructions
   const instructions = document.createElement('div');
   instructions.style.cssText = `
@@ -97,133 +192,186 @@ if (gameContainer) {
     border-radius: 5px;
     font-family: Arial, sans-serif;
     font-size: 14px;
+    z-index: 1000;
+    pointer-events: none;
   `;
   instructions.innerHTML = `
     <div><strong>Controls:</strong></div>
     <div>WASD/Arrows - Move Player</div>
-    <div>U - Player Upgrades</div>
+    <div>U - Toggle Player Upgrades</div>
     <div>1 - Basic Tower ($20)</div>
     <div>2 - Sniper Tower ($50)</div>
     <div>3 - Rapid Tower ($30)</div>
     <div>Enter - Start Next Wave</div>
     <div>Space - Pause/Resume</div>
     <div>ESC - Cancel Selection</div>
+    <div>Q - Stop All Audio</div>
+    <div style="margin-top: 8px; font-size: 12px; color: #FFD700;">
+      <strong>🔊 8-bit Audio Enabled!</strong>
+    </div>
   `;
   gameContainer.appendChild(instructions);
 
-  // Add tower selection buttons
-  const buttonContainer = document.createElement('div');
-  buttonContainer.style.cssText = `
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    display: flex;
-    gap: 10px;
+  // Create main menu panel
+  const mainMenuPanel = document.createElement('div');
+  mainMenuPanel.className = 'ui-panel';
+  mainMenuPanel.style.cssText = `
+    bottom: 12px;
+    left: 12px;
+    min-width: 200px;
   `;
+
+  // Tower building section
+  const towerSectionTitle = document.createElement('div');
+  towerSectionTitle.textContent = 'Build Towers';
+  towerSectionTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #4CAF50;';
+  mainMenuPanel.appendChild(towerSectionTitle);
+
+  const towerButtonRow = document.createElement('div');
+  towerButtonRow.className = 'button-row';
 
   const createTowerButton = (name: string, type: TowerType, cost: number) => {
     const button = document.createElement('button');
-    button.textContent = `${name} ($${cost})`;
-    button.style.cssText = `
-      padding: 10px 15px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
+    button.className = 'ui-button tower-button';
+    button.textContent = `${name}\n$${cost}`;
+    button.style.minWidth = '60px';
+    button.style.height = '45px';
+    button.style.whiteSpace = 'pre-line';
+    button.style.fontSize = '10px';
+    
     button.addEventListener('click', () => {
-      game.setSelectedTowerType(type);
-      button.style.background = '#45a049';
-      setTimeout(() => {
-        button.style.background = '#4CAF50';
-      }, 200);
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+      
+      // Update selection state
+      if (selectedTowerButton) {
+        selectedTowerButton.classList.remove('selected');
+      }
+      
+      if (selectedTowerButton === button) {
+        // Deselect if clicking the same button
+        selectedTowerButton = null;
+        game.setSelectedTowerType(null);
+        audioManager.playUISound(SoundType.DESELECT);
+      } else {
+        // Select new tower type
+        selectedTowerButton = button;
+        button.classList.add('selected');
+        game.setSelectedTowerType(type);
+        audioManager.playUISound(SoundType.SELECT);
+      }
     });
+    
     return button;
   };
 
-  buttonContainer.appendChild(createTowerButton('Basic', TowerType.BASIC, 20));
-  buttonContainer.appendChild(createTowerButton('Sniper', TowerType.SNIPER, 50));
-  buttonContainer.appendChild(createTowerButton('Rapid', TowerType.RAPID, 30));
+  const basicTowerBtn = createTowerButton('Basic', TowerType.BASIC, 20);
+  const sniperTowerBtn = createTowerButton('Sniper', TowerType.SNIPER, 50);
+  const rapidTowerBtn = createTowerButton('Rapid', TowerType.RAPID, 30);
 
-  // Player upgrades button
-  const playerUpgradeButton = document.createElement('button');
-  playerUpgradeButton.textContent = 'Player Upgrades';
-  playerUpgradeButton.style.cssText = `
-    padding: 10px 15px;
-    background: #9C27B0;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  playerUpgradeButton.addEventListener('click', () => {
-    playerUpgradeContainer.style.display = 'block';
-    updatePlayerUpgradePanel(); // Refresh the panel when opened
+  towerButtonRow.appendChild(basicTowerBtn);
+  towerButtonRow.appendChild(sniperTowerBtn);
+  towerButtonRow.appendChild(rapidTowerBtn);
+  mainMenuPanel.appendChild(towerButtonRow);
+
+  // Cancel selection button
+  const cancelButton = document.createElement('button');
+  cancelButton.className = 'ui-button close-button';
+  cancelButton.textContent = 'Cancel (ESC)';
+  cancelButton.style.width = '100%';
+  cancelButton.style.marginBottom = '8px';
+  cancelButton.addEventListener('click', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
+    if (selectedTowerButton) {
+      selectedTowerButton.classList.remove('selected');
+      selectedTowerButton = null;
+    }
+    game.setSelectedTowerType(null);
+    audioManager.playUISound(SoundType.DESELECT);
   });
-  buttonContainer.appendChild(playerUpgradeButton);
+  mainMenuPanel.appendChild(cancelButton);
+
+  // Game actions section
+  const actionSectionTitle = document.createElement('div');
+  actionSectionTitle.textContent = 'Game Actions';
+  actionSectionTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #2196F3; margin-top: 12px;';
+  mainMenuPanel.appendChild(actionSectionTitle);
+
+  const actionButtonRow = document.createElement('div');
+  actionButtonRow.className = 'button-row';
 
   // Start wave button
   const startWaveButton = document.createElement('button');
-  startWaveButton.textContent = 'Start Wave';
-  startWaveButton.style.cssText = `
-    padding: 10px 15px;
-    background: #2196F3;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
+  startWaveButton.className = 'ui-button action-button';
+  startWaveButton.textContent = 'Start\nWave';
+  startWaveButton.style.flex = '1';
+  startWaveButton.style.whiteSpace = 'pre-line';
+  startWaveButton.style.height = '45px';
+  startWaveButton.style.fontSize = '10px';
   startWaveButton.addEventListener('click', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
     if (game.isWaveComplete() && !game.isGameOver()) {
       game.startNextWave();
     }
   });
-  buttonContainer.appendChild(startWaveButton);
+  actionButtonRow.appendChild(startWaveButton);
 
-  gameContainer.appendChild(buttonContainer);
+  // Player upgrades button
+  const playerUpgradeButton = document.createElement('button');
+  playerUpgradeButton.className = 'ui-button upgrade-button';
+  playerUpgradeButton.textContent = 'Player\nUpgrades';
+  playerUpgradeButton.style.flex = '1';
+  playerUpgradeButton.style.whiteSpace = 'pre-line';
+  playerUpgradeButton.style.height = '45px';
+  playerUpgradeButton.style.fontSize = '10px';
+  playerUpgradeButton.addEventListener('click', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
+    playerUpgradeContainer.style.display = 'block';
+    updatePlayerUpgradePanel();
+  });
+  actionButtonRow.appendChild(playerUpgradeButton);
+
+  mainMenuPanel.appendChild(actionButtonRow);
+
+  gameContainer.appendChild(mainMenuPanel);
+
+  // Update tower button affordability
+  const updateTowerButtons = () => {
+    basicTowerBtn.disabled = !game.canAffordTower(TowerType.BASIC);
+    sniperTowerBtn.disabled = !game.canAffordTower(TowerType.SNIPER);
+    rapidTowerBtn.disabled = !game.canAffordTower(TowerType.RAPID);
+    
+    startWaveButton.disabled = !game.isWaveComplete() || game.isGameOver();
+  };
 
   // Add upgrade panel
   const upgradeContainer = document.createElement('div');
+  upgradeContainer.className = 'ui-panel';
   upgradeContainer.style.cssText = `
-    position: absolute;
     top: 150px;
-    right: 10px;
+    right: 12px;
     display: none;
-    background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #666;
-    border-radius: 5px;
-    padding: 10px;
-    color: white;
-    font-family: Arial, sans-serif;
     min-width: 200px;
   `;
   upgradeContainer.id = 'upgrade-panel';
 
-  const createUpgradeButton = (name: string, type: UpgradeType) => {
+  const createUpgradeButton = (_name: string, type: UpgradeType) => {
     const button = document.createElement('button');
+    button.className = 'ui-button tower-button';
     button.style.cssText = `
       display: block;
       width: 100%;
       margin: 5px 0;
-      padding: 8px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
     `;
     
     let upgrading = false; // Prevent double-clicks
     button.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
       
       if (upgrading || button.disabled) {
+        audioManager.playUISound(SoundType.ERROR);
         return;
       }
       
@@ -234,6 +382,8 @@ if (gameContainer) {
         
         if (success) {
           updateUpgradePanel(); // Refresh the panel
+        } else {
+          audioManager.playUISound(SoundType.ERROR);
         }
         
         // Reset flag after a short delay
@@ -254,20 +404,16 @@ if (gameContainer) {
   upgradeContainer.appendChild(fireRateUpgradeBtn);
 
   const closeUpgradeBtn = document.createElement('button');
+  closeUpgradeBtn.className = 'ui-button close-button';
   closeUpgradeBtn.textContent = 'Close';
   closeUpgradeBtn.style.cssText = `
     display: block;
     width: 100%;
     margin: 10px 0 5px 0;
-    padding: 8px;
-    background: #666;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
   `;
   closeUpgradeBtn.addEventListener('click', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
     upgradeContainer.style.display = 'none';
   });
   upgradeContainer.appendChild(closeUpgradeBtn);
@@ -275,43 +421,34 @@ if (gameContainer) {
   gameContainer.appendChild(upgradeContainer);
 
   // Add player upgrade panel (initially hidden)
-  const playerUpgradeContainer = document.createElement('div');
+  playerUpgradeContainer = document.createElement('div');
+  playerUpgradeContainer.className = 'ui-panel';
   playerUpgradeContainer.style.cssText = `
-    position: absolute;
     top: 200px;
-    left: 10px;
+    left: 12px;
     display: none;
-    background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #666;
-    border-radius: 5px;
-    padding: 10px;
-    color: white;
-    font-family: Arial, sans-serif;
     min-width: 180px;
   `;
   playerUpgradeContainer.id = 'player-upgrade-panel';
 
-  const createPlayerUpgradeButton = (name: string, type: PlayerUpgradeType) => {
+  const createPlayerUpgradeButton = (_name: string, type: PlayerUpgradeType) => {
     const button = document.createElement('button');
+    button.className = 'ui-button action-button';
     button.style.cssText = `
       display: block;
       width: 100%;
       margin: 3px 0;
-      padding: 6px;
-      background: #2196F3;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
+      font-size: 10px;
     `;
     
     let upgrading = false; // Prevent double-clicks
     button.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
       
       if (upgrading || button.disabled) {
+        audioManager.playUISound(SoundType.ERROR);
         return;
       }
       
@@ -320,6 +457,8 @@ if (gameContainer) {
       
       if (success) {
         updatePlayerUpgradePanel(); // Refresh the panel
+      } else {
+        audioManager.playUISound(SoundType.ERROR);
       }
       
       // Reset flag after a short delay
@@ -340,20 +479,16 @@ if (gameContainer) {
   playerTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #4CAF50;';
 
   const closePlayerUpgradeBtn = document.createElement('button');
+  closePlayerUpgradeBtn.className = 'ui-button close-button';
   closePlayerUpgradeBtn.textContent = 'Close';
   closePlayerUpgradeBtn.style.cssText = `
     display: block;
     width: 100%;
     margin: 10px 0 5px 0;
-    padding: 6px;
-    background: #666;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
+    font-size: 10px;
   `;
   closePlayerUpgradeBtn.addEventListener('click', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
     playerUpgradeContainer.style.display = 'none';
   });
 
@@ -365,6 +500,66 @@ if (gameContainer) {
   playerUpgradeContainer.appendChild(closePlayerUpgradeBtn);
 
   gameContainer.appendChild(playerUpgradeContainer);
+
+  // Add audio controls panel
+  const audioControlsPanel = document.createElement('div');
+  audioControlsPanel.className = 'ui-panel';
+  audioControlsPanel.style.cssText = `
+    top: 12px;
+    left: 12px;
+    min-width: 150px;
+    font-size: 12px;
+  `;
+
+  const audioTitle = document.createElement('div');
+  audioTitle.textContent = 'Audio Settings';
+  audioTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #FFD700;';
+  audioControlsPanel.appendChild(audioTitle);
+
+  // Volume slider
+  const volumeContainer = document.createElement('div');
+  volumeContainer.style.marginBottom = '8px';
+  
+  const volumeLabel = document.createElement('label');
+  volumeLabel.textContent = 'Volume: ';
+  volumeLabel.style.display = 'block';
+  volumeLabel.style.marginBottom = '4px';
+
+  const volumeSlider = document.createElement('input');
+  volumeSlider.type = 'range';
+  volumeSlider.min = '0';
+  volumeSlider.max = '100';
+  volumeSlider.value = '30';
+  volumeSlider.style.width = '100%';
+  
+  volumeSlider.addEventListener('input', (e) => {
+    const volume = parseInt((e.target as HTMLInputElement).value) / 100;
+    audioManager.setMasterVolume(volume);
+    game.getAudioManager().setMasterVolume(volume);
+  });
+
+  volumeContainer.appendChild(volumeLabel);
+  volumeContainer.appendChild(volumeSlider);
+  audioControlsPanel.appendChild(volumeContainer);
+
+  // Mute toggle
+  const muteButton = document.createElement('button');
+  muteButton.className = 'ui-button close-button';
+  muteButton.textContent = 'Mute';
+  muteButton.style.width = '100%';
+  muteButton.style.fontSize = '10px';
+  
+  let isMuted = false;
+  muteButton.addEventListener('click', () => {
+    isMuted = !isMuted;
+    audioManager.setEnabled(!isMuted);
+    game.getAudioManager().setEnabled(!isMuted);
+    muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
+    volumeSlider.disabled = isMuted;
+  });
+
+  audioControlsPanel.appendChild(muteButton);
+  gameContainer.appendChild(audioControlsPanel);
 
   // Function to update upgrade panel
   function updateUpgradePanel() {
@@ -404,7 +599,7 @@ if (gameContainer) {
   }
 
   // Function to update player upgrade panel
-  function updatePlayerUpgradePanel() {
+  updatePlayerUpgradePanel = function() {
     // Only update if panel is visible
     if (playerUpgradeContainer.style.display !== 'block') {
       return;
@@ -447,19 +642,21 @@ if (gameContainer) {
     playerHealthUpgradeBtn.textContent = `Health Lv.${healthLevel}/5 (${healthCost > 0 ? `$${healthCost}` : 'MAX'})`;
     playerHealthUpgradeBtn.style.background = canUpgradeHealth ? '#2196F3' : '#666';
     playerHealthUpgradeBtn.disabled = !canUpgradeHealth;
-  }
+  };
 
-  // Update upgrade panels periodically
+  // Update upgrade panels and buttons periodically
   setInterval(() => {
     updateUpgradePanel();
     updatePlayerUpgradePanel();
+    updateTowerButtons();
   }, 100);
+  }
+  
+  console.log('Tower Defense Game Loaded!');
+  console.log('Use WASD or Arrow keys to move your character.');
+  console.log('Press U or click on your character to open player upgrades.');
+  console.log('Press 1, 2, or 3 to select towers, then click to place them.');
+  console.log('Click on towers to upgrade them.');
+  console.log('Your character automatically shoots at nearby enemies!');
+  console.log('Press Enter to start the first wave.');
 }
-
-console.log('Tower Defense Game Loaded!');
-console.log('Use WASD or Arrow keys to move your character.');
-console.log('Press U or click on your character to open player upgrades.');
-console.log('Press 1, 2, or 3 to select towers, then click to place them.');
-console.log('Click on towers to upgrade them.');
-console.log('Your character automatically shoots at nearby enemies!');
-console.log('Press Enter to start the first wave.');

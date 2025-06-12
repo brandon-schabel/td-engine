@@ -4,6 +4,7 @@ import { Tower, TowerType } from '../../src/entities/Tower';
 import { Enemy, EnemyType } from '../../src/entities/Enemy';
 import { Projectile } from '../../src/entities/Projectile';
 import { Grid, CellType } from '../../src/systems/Grid';
+import { Camera } from '../../src/systems/Camera';
 
 // Mock canvas and context
 const mockCanvas = {
@@ -36,16 +37,32 @@ const mockContext = {
   textBaseline: ''
 } as any;
 
+// Mock camera
+const mockCamera = {
+  worldToScreen: vi.fn((pos) => pos), // Identity transform by default
+  screenToWorld: vi.fn((pos) => pos), // Identity transform by default
+  isVisible: vi.fn(() => true), // Everything visible by default
+  getVisibleBounds: vi.fn(() => ({
+    min: { x: 0, y: 0 },
+    max: { x: 800, y: 600 }
+  })),
+  update: vi.fn(),
+  getPosition: vi.fn(() => ({ x: 0, y: 0 })),
+  setPosition: vi.fn()
+} as any;
+
 describe('Renderer', () => {
   let renderer: Renderer;
   let grid: Grid;
+  let camera: Camera;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockCanvas.getContext.mockReturnValue(mockContext);
     
     grid = new Grid(25, 19, 32); // 800x608 at 32px per cell
-    renderer = new Renderer(mockCanvas, grid);
+    camera = new Camera(800, 600, 800, 608);
+    renderer = new Renderer(mockCanvas, grid, camera);
   });
 
   describe('initialization', () => {
@@ -57,7 +74,7 @@ describe('Renderer', () => {
     it('should throw error if context is not available', () => {
       mockCanvas.getContext.mockReturnValue(null);
       
-      expect(() => new Renderer(mockCanvas, grid)).toThrow('Could not get 2D context');
+      expect(() => new Renderer(mockCanvas, grid, camera)).toThrow('Could not get 2D context');
     });
   });
 
@@ -142,7 +159,7 @@ describe('Renderer', () => {
       const enemy = new Enemy({ x: 200, y: 200 }, 50);
       const projectile = new Projectile({ x: 150, y: 150 }, enemy, 10);
       
-      renderer.renderEntities([tower], [enemy], [projectile]);
+      renderer.renderEntities([tower], [enemy], [projectile], [], [], null);
       
       // Should render all entity types
       expect(mockContext.arc).toHaveBeenCalledTimes(3);
@@ -214,7 +231,7 @@ describe('Renderer', () => {
       const enemies = [new Enemy({ x: 200, y: 200 }, 50)];
       const projectiles = [new Projectile({ x: 150, y: 150 }, enemies[0], 10)];
       
-      renderer.renderScene(towers, enemies, projectiles);
+      renderer.renderScene(towers, enemies, projectiles, [], [], null);
       
       // Should clear and render everything (uses fillRect for background)
       expect(mockContext.fillRect).toHaveBeenCalled();
@@ -224,7 +241,7 @@ describe('Renderer', () => {
     });
 
     it('should handle empty entity arrays', () => {
-      renderer.renderScene([], [], []);
+      renderer.renderScene([], [], [], [], [], null);
       
       // Should still clear and render grid (uses fillRect for background)
       expect(mockContext.fillRect).toHaveBeenCalled();

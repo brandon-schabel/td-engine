@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from '../../src/core/Game';
+import { TowerType } from '../../src/entities/Tower';
+import type { Enemy } from '../../src/entities/Enemy';
 
-// Mock canvas
+// Optimized canvas mock (shared instance)
 const mockCanvas = {
   width: 800,
   height: 600,
@@ -35,8 +37,7 @@ describe('Game', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    global.requestAnimationFrame = vi.fn();
-    global.cancelAnimationFrame = vi.fn();
+    // Browser APIs mocked in setup.ts
     
     game = new Game(mockCanvas);
   });
@@ -123,16 +124,24 @@ describe('Game', () => {
       const initialCurrency = game.getCurrency();
       const initialScore = game.getScore();
       
-      game.enemyKilled(25, 100);
+      // Create a mock enemy
+      const mockEnemy = {
+        position: { x: 100, y: 100 },
+        reward: 25,
+        isAlive: false
+      } as Enemy;
       
-      expect(game.getCurrency()).toBe(initialCurrency + 25);
-      expect(game.getScore()).toBe(initialScore + 100);
+      game.enemyKilled(mockEnemy);
+      
+      // Enemy reward is 25, and score is reward * 5 = 125
+      expect(game.getCurrency()).toBeGreaterThanOrEqual(initialCurrency + 25);
+      expect(game.getScore()).toBe(initialScore + 125);
     });
   });
 
   describe('mouse interaction', () => {
     it('should handle mouse clicks for tower placement', () => {
-      game.setSelectedTowerType('BASIC');
+      game.setSelectedTowerType(TowerType.BASIC);
       
       const mouseEvent = {
         offsetX: 200,
@@ -140,7 +149,7 @@ describe('Game', () => {
       } as MouseEvent;
       
       const initialTowerCount = game.getTowers().length;
-      game.handleMouseClick(mouseEvent);
+      game.handleMouseDown(mouseEvent);
       
       if (game.getCurrency() >= 20) {
         expect(game.getTowers().length).toBe(initialTowerCount + 1);

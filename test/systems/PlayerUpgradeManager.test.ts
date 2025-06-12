@@ -140,7 +140,7 @@ describe('PlayerUpgradeManager', () => {
     it('should return complete upgrade info for all types', () => {
       const upgradeInfo = upgradeManager.getAllUpgradeInfo(player);
       
-      expect(upgradeInfo).toHaveLength(4); // 4 upgrade types
+      expect(upgradeInfo).toHaveLength(5); // 5 upgrade types (DAMAGE, SPEED, FIRE_RATE, HEALTH, REGENERATION)
       
       upgradeInfo.forEach(info => {
         expect(info).toHaveProperty('type');

@@ -70,7 +70,7 @@ export class Tower extends Entity {
     this.upgradeLevels.set(UpgradeType.FIRE_RATE, 0);
   }
 
-  update(deltaTime: number): void {
+  override update(deltaTime: number): void {
     super.update(deltaTime);
     
     // Update cooldown
@@ -158,6 +158,9 @@ export class Tower extends Entity {
     // Update visual level
     this.level = 1 + Math.floor(this.getTotalUpgrades() / 3);
     
+    // Update radius based on new level
+    this.radius = this.getVisualRadius();
+    
     return true;
   }
 
@@ -204,7 +207,7 @@ export class Tower extends Entity {
     return this.baseFireRate * (1 + fireRateLevel * 0.2);
   }
 
-  get radius(): number {
+  getVisualRadius(): number {
     // Increase visual size slightly with upgrades
     const baseRadius = TOWER_STATS[this.towerType].radius;
     const sizeIncrease = Math.min(this.level - 1, 3) * 2; // Max 6 pixel increase

@@ -96,7 +96,7 @@ describe('Player Entity', () => {
     });
 
     it('should create projectile when shooting', () => {
-      const target = new Enemy(EnemyType.BASIC, { x: 200, y: 200 });
+      const target = new Enemy({ x: 200, y: 200 }, 50, EnemyType.BASIC);
       const projectile = player.shoot(target);
       
       expect(projectile).toBeTruthy();
@@ -105,14 +105,14 @@ describe('Player Entity', () => {
     });
 
     it('should have cooldown after shooting', () => {
-      const target = new Enemy(EnemyType.BASIC, { x: 200, y: 200 });
+      const target = new Enemy({ x: 200, y: 200 }, 50, EnemyType.BASIC);
       player.shoot(target);
       
       expect(player.canShoot()).toBe(false);
     });
 
     it('should recover from cooldown', () => {
-      const target = new Enemy(EnemyType.BASIC, { x: 200, y: 200 });
+      const target = new Enemy({ x: 200, y: 200 }, 50, EnemyType.BASIC);
       player.shoot(target);
       
       // Simulate time passing
@@ -121,13 +121,13 @@ describe('Player Entity', () => {
       expect(player.canShoot()).toBe(true);
     });
 
-    it('should auto-shoot at nearest enemy', () => {
-      const enemy1 = new Enemy(EnemyType.BASIC, { x: 150, y: 100 }); // Closer
-      const enemy2 = new Enemy(EnemyType.BASIC, { x: 300, y: 100 }); // Farther
-      const enemies = [enemy1, enemy2];
+    it('should shoot at specific enemy target', () => {
+      const enemy1 = new Enemy({ x: 150, y: 100 }, 50, EnemyType.BASIC); // Closer
+      const enemy2 = new Enemy({ x: 300, y: 100 }, 50, EnemyType.BASIC); // Farther
       
-      const projectile = player.autoShoot(enemies);
+      const projectile = player.shoot(enemy1);
       expect(projectile).toBeTruthy();
+      expect(projectile!.target).toBe(enemy1);
     });
 
     it('should not auto-shoot if no enemies', () => {
@@ -136,7 +136,7 @@ describe('Player Entity', () => {
     });
 
     it('should not auto-shoot dead enemies', () => {
-      const enemy = new Enemy(EnemyType.BASIC, { x: 150, y: 100 });
+      const enemy = new Enemy({ x: 150, y: 100 }, 50, EnemyType.BASIC);
       enemy.isAlive = false;
       
       const projectile = player.autoShoot([enemy]);
@@ -234,7 +234,7 @@ describe('Player Entity', () => {
     });
 
     it('should return null if no alive enemies', () => {
-      const enemy = new Enemy(EnemyType.BASIC, { x: 150, y: 100 });
+      const enemy = new Enemy({ x: 150, y: 100 }, 50, EnemyType.BASIC);
       enemy.isAlive = false;
       
       const nearest = player.findNearestEnemy([enemy]);

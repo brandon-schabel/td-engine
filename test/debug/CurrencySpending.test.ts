@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from '../../src/core/Game';
 import { TowerType } from '../../src/entities/Tower';
 import { PlayerUpgradeType } from '../../src/entities/Player';
+import { Enemy } from '../../src/entities/Enemy';
 import { UpgradeType } from '../../src/systems/TowerUpgradeManager';
 
-// Mock canvas and context
+// Simple canvas mock
 const mockCanvas = {
   width: 800,
   height: 608,
@@ -168,8 +169,14 @@ describe('Currency Spending Debug', () => {
     it('should track currency changes through enemy rewards', () => {
       const initialCurrency = game.getCurrency();
       
+      // Create a mock enemy with appropriate reward values
+      const mockEnemy = {
+        reward: 10,
+        position: { x: 100, y: 100 }
+      } as Enemy;
+      
       // Manually give enemy rewards (simulating kills)
-      game.enemyKilled(10, 50); // 10 currency, 50 score
+      game.enemyKilled(mockEnemy);
       
       expect(game.getCurrency()).toBe(initialCurrency + 10);
     });

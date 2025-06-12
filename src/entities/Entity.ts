@@ -5,7 +5,9 @@ export enum EntityType {
   TOWER = 'TOWER',
   ENEMY = 'ENEMY',
   PROJECTILE = 'PROJECTILE',
-  PLAYER = 'PLAYER'
+  PLAYER = 'PLAYER',
+  HEALTH_PICKUP = 'HEALTH_PICKUP',
+  POWER_UP = 'POWER_UP'
 }
 
 let nextId = 1;
