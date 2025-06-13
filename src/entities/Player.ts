@@ -2,6 +2,9 @@ import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
 import type { Vector2 } from '../utils/Vector2';
+import { BASE_PLAYER_STATS, GAME_MECHANICS, UPGRADE_CONFIG } from '../config/GameConfig';
+import { CooldownManager } from '../utils/CooldownManager';
+import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 
 export enum PlayerUpgradeType {
   DAMAGE = 'DAMAGE',
@@ -11,23 +14,7 @@ export enum PlayerUpgradeType {
   REGENERATION = 'REGENERATION'
 }
 
-interface PlayerStats {
-  damage: number;
-  speed: number;
-  fireRate: number;
-  health: number;
-  radius: number;
-}
-
-const BASE_PLAYER_STATS: PlayerStats = {
-  damage: 15,
-  speed: 150, // pixels per second
-  fireRate: 2, // shots per second
-  health: 100,
-  radius: 12
-};
-
-export class Player extends Entity {
+export class Player extends Entity implements ShootingCapable {
   private baseDamage: number;
   private baseSpeed: number;
   private baseFireRate: number;
@@ -46,7 +33,7 @@ export class Player extends Entity {
   private regenerationTimer: number = 0;
   private damageCooldown: number = 0;
   private healAbilityCooldown: number = 5000; // Start on cooldown
-  private maxHealAbilityCooldown: number = 20000; // 20 seconds
+  private maxHealAbilityCooldown: number = GAME_MECHANICS.healAbilityCooldown;
   private healthPickupsCollected: number = 0;
   private totalHealingReceived: number = 0;
   private onHealthPickupCallback?: () => void;
@@ -82,27 +69,18 @@ export class Player extends Entity {
   override update(deltaTime: number): void {
     super.update(deltaTime);
     
-    // Update cooldowns
-    if (this.currentCooldown > 0) {
-      this.currentCooldown = Math.max(0, this.currentCooldown - deltaTime);
-    }
-    
-    if (this.healAbilityCooldown > 0) {
-      this.healAbilityCooldown = Math.max(0, this.healAbilityCooldown - deltaTime);
-    }
-    
-    if (this.damageCooldown > 0) {
-      this.damageCooldown = Math.max(0, this.damageCooldown - deltaTime);
-    }
+    // Update cooldowns using CooldownManager
+    this.currentCooldown = CooldownManager.updateCooldown(this.currentCooldown, deltaTime);
+    this.healAbilityCooldown = CooldownManager.updateCooldown(this.healAbilityCooldown, deltaTime);
+    this.damageCooldown = CooldownManager.updateCooldown(this.damageCooldown, deltaTime);
     
     // Update regeneration
     if (this.hasRegeneration() && this.isAlive && this.health < this.maxHealth && this.damageCooldown <= 0) {
       this.regenerationTimer += deltaTime;
       
       const regenRate = this.getRegenerationRate();
-      const regenInterval = 1000; // Regenerate every second
       
-      if (this.regenerationTimer >= regenInterval) {
+      if (this.regenerationTimer >= GAME_MECHANICS.regenInterval) {
         const healAmount = Math.min(regenRate, this.maxHealth - this.health);
         if (healAmount > 0) {
           this.heal(healAmount);
@@ -162,38 +140,15 @@ export class Player extends Entity {
   }
 
   findNearestEnemy(enemies: Enemy[]): Enemy | null {
-    const aliveEnemies = enemies.filter(enemy => enemy.isAlive);
-    
-    if (aliveEnemies.length === 0) {
-      return null;
-    }
-    
-    return aliveEnemies.reduce((nearest, enemy) => {
-      const distToEnemy = this.distanceTo(enemy);
-      const distToNearest = this.distanceTo(nearest);
-      return distToEnemy < distToNearest ? enemy : nearest;
-    });
+    return ShootingUtils.findNearestEnemy(this.position, enemies);
   }
 
   canShoot(): boolean {
-    return this.currentCooldown <= 0;
+    return ShootingUtils.canShoot(this.currentCooldown);
   }
 
   shoot(target: Enemy): Projectile | null {
-    if (!this.canShoot()) {
-      return null;
-    }
-
-    // Reset cooldown
-    this.currentCooldown = this.cooldownTime;
-
-    // Create projectile toward target enemy
-    return new Projectile(
-      { ...this.position },
-      target,
-      this.damage,
-      400 // Player projectile speed
-    );
+    return ShootingUtils.performShoot(this, target, GAME_MECHANICS.projectileSpeed);
   }
 
   autoShoot(enemies: Enemy[]): Projectile | null {
@@ -219,7 +174,7 @@ export class Player extends Entity {
   // Upgrade system
   upgrade(upgradeType: PlayerUpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    const maxLevel = 5; // Max upgrade level
+    const maxLevel = UPGRADE_CONFIG.maxLevel;
     
     if (currentLevel >= maxLevel) {
       return false;
@@ -240,14 +195,14 @@ export class Player extends Entity {
     }
     
     // Update level
-    this.level = 1 + Math.floor(this.getTotalUpgrades() / 4);
+    this.level = 1 + Math.floor(this.getTotalUpgrades() / UPGRADE_CONFIG.levelCalculationDivisor.player);
     
     return true;
   }
 
   canUpgrade(upgradeType: PlayerUpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    return currentLevel < 5;
+    return currentLevel < UPGRADE_CONFIG.maxLevel;
   }
 
   getUpgradeLevel(upgradeType: PlayerUpgradeType): number {
@@ -262,6 +217,48 @@ export class Player extends Entity {
     let total = 0;
     this.upgradeLevels.forEach(level => total += level);
     return total;
+  }
+
+  // Upgrade cost and management (replaces PlayerUpgradeManager)
+  getUpgradeCost(upgradeType: PlayerUpgradeType): number {
+    const configs = {
+      [PlayerUpgradeType.DAMAGE]: { baseCost: 25, costMultiplier: 1.5, maxLevel: 5 },
+      [PlayerUpgradeType.SPEED]: { baseCost: 20, costMultiplier: 1.5, maxLevel: 5 },
+      [PlayerUpgradeType.FIRE_RATE]: { baseCost: 30, costMultiplier: 1.5, maxLevel: 5 },
+      [PlayerUpgradeType.HEALTH]: { baseCost: 35, costMultiplier: 1.5, maxLevel: 5 },
+      [PlayerUpgradeType.REGENERATION]: { baseCost: 40, costMultiplier: 1.5, maxLevel: 5 }
+    };
+    
+    const config = configs[upgradeType];
+    const currentLevel = this.getUpgradeLevel(upgradeType);
+    
+    if (currentLevel >= config.maxLevel) {
+      return 0; // Max level reached
+    }
+    
+    return Math.floor(config.baseCost * Math.pow(config.costMultiplier, currentLevel));
+  }
+
+  canAffordUpgrade(upgradeType: PlayerUpgradeType, availableCurrency: number): boolean {
+    const cost = this.getUpgradeCost(upgradeType);
+    return cost > 0 && availableCurrency >= cost && this.canUpgrade(upgradeType);
+  }
+
+  getUpgradeDescription(upgradeType: PlayerUpgradeType): string {
+    switch (upgradeType) {
+      case PlayerUpgradeType.DAMAGE:
+        return 'Increase damage by 40%';
+      case PlayerUpgradeType.SPEED:
+        return 'Increase movement speed by 30%';
+      case PlayerUpgradeType.FIRE_RATE:
+        return 'Increase fire rate by 25%';
+      case PlayerUpgradeType.HEALTH:
+        return 'Increase max health by 50%';
+      case PlayerUpgradeType.REGENERATION:
+        return 'Increase regeneration by 1.5 HP/s';
+      default:
+        return 'Unknown upgrade';
+    }
   }
 
   // Computed properties based on upgrades and power-ups
@@ -399,12 +396,12 @@ export class Player extends Entity {
       return null;
     }
 
-    // Reset cooldown
-    this.currentCooldown = this.cooldownTime;
+    // Start shooting cooldown
+    this.currentCooldown = CooldownManager.startCooldown(this.cooldownTime);
 
     // Create projectile in aim direction
     const angle = this.getAimAngle();
-    const speed = 400;
+    const speed = GAME_MECHANICS.projectileSpeed;
     const velocity = {
       x: Math.cos(angle) * speed,
       y: Math.sin(angle) * speed
@@ -541,7 +538,7 @@ export class Player extends Entity {
     }
     
     super.takeDamage(amount);
-    this.damageCooldown = 3000; // 3 seconds before regeneration can start
+    this.damageCooldown = GAME_MECHANICS.damageRegenCooldown;
   }
 
   getActivePowerUps(): Map<string, number> {

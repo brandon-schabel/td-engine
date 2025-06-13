@@ -3,6 +3,8 @@ import { CONFIGURATION_PRESETS, PRESET_METADATA } from '../config/ConfigurationP
 import { configurationValidator } from '../config/ConfigurationValidator';
 import { configurationPersistence } from '../config/ConfigurationPersistence';
 import { ConfigurationState } from './ConfigurationState';
+import { TabManager, type TabManagerEvents } from './components/TabManager';
+import { PresetSelector, type PresetSelectorEvents } from './components/PresetSelector';
 import { MapSize, MAP_SIZE_PRESETS, BiomeType, DecorationLevel, type MapData } from '../types/MapData';
 import { GameDifficulty, VictoryCondition, DefeatCondition, WaveScaling, AIDifficulty, AudioQuality, VisualQuality } from '../config/GameConfiguration';
 import { EnemyType } from '../entities/Enemy';
@@ -15,6 +17,8 @@ export class ConfigurationMenu {
   private activeTab: string = 'presets';
   private tabs: Map<string, HTMLDivElement> = new Map();
   private configState: ConfigurationState;
+  private tabManager: TabManager | null = null;
+  private presetSelector: PresetSelector | null = null;
   
   constructor(onComplete: (config: GameConfiguration) => void) {
     this.onConfigurationComplete = onComplete;
@@ -59,47 +63,11 @@ export class ConfigurationMenu {
   }
   
   private setupTabs(): void {
-    const tabContainer = document.createElement('div');
-    tabContainer.className = 'tab-container';
-    tabContainer.style.cssText = `
-      display: flex;
-      background: #1a1a1a;
-      border-bottom: 2px solid #333;
-      overflow-x: auto;
-      flex-shrink: 0;
-    `;
+    const events: TabManagerEvents = {
+      onTabChange: (tabId: string) => this.switchTab(tabId)
+    };
     
-    const tabs = [
-      { id: 'presets', label: 'Quick Start', icon: '🚀' },
-      { id: 'map', label: 'Map Settings', icon: '🗺️' },
-      { id: 'gameplay', label: 'Gameplay', icon: '🎮' },
-      { id: 'enemies', label: 'Enemies & Waves', icon: '👾' },
-      { id: 'player', label: 'Player', icon: '👤' },
-      { id: 'audiovisual', label: 'Audio & Visual', icon: '🎨' },
-      { id: 'advanced', label: 'Advanced', icon: '⚙️' }
-    ];
-    
-    tabs.forEach(tab => {
-      const tabButton = document.createElement('button');
-      tabButton.className = 'tab-button';
-      tabButton.innerHTML = `${tab.icon} ${tab.label}`;
-      tabButton.style.cssText = `
-        padding: 12px 20px;
-        background: ${tab.id === this.activeTab ? '#333' : 'transparent'};
-        border: none;
-        color: ${tab.id === this.activeTab ? '#4CAF50' : '#ccc'};
-        cursor: pointer;
-        transition: all 0.2s;
-        border-bottom: 3px solid ${tab.id === this.activeTab ? '#4CAF50' : 'transparent'};
-        white-space: nowrap;
-        font-size: 14px;
-      `;
-      
-      tabButton.addEventListener('click', () => this.switchTab(tab.id));
-      tabContainer.appendChild(tabButton);
-    });
-    
-    this.container.appendChild(tabContainer);
+    this.tabManager = new TabManager(this.container, events, this.activeTab);
   }
   
   private setupContent(): void {
@@ -219,16 +187,6 @@ export class ConfigurationMenu {
     if (this.activeTab === tabId) return;
     
     this.activeTab = tabId;
-    
-    // Update tab buttons
-    const tabButtons = this.container.querySelectorAll('.tab-button');
-    tabButtons.forEach((button, index) => {
-      const isActive = ['presets', 'map', 'gameplay', 'enemies', 'player', 'audiovisual', 'advanced'][index] === tabId;
-      (button as HTMLElement).style.background = isActive ? '#333' : 'transparent';
-      (button as HTMLElement).style.color = isActive ? '#4CAF50' : '#ccc';
-      (button as HTMLElement).style.borderBottomColor = isActive ? '#4CAF50' : 'transparent';
-    });
-    
     this.renderCurrentTab();
   }
   
@@ -262,128 +220,25 @@ export class ConfigurationMenu {
   }
   
   private renderPresetsTab(container: HTMLDivElement): void {
-    const title = document.createElement('h2');
-    title.textContent = 'Quick Start Presets';
-    title.style.cssText = 'margin: 0 0 20px 0; color: #4CAF50;';
-    container.appendChild(title);
+    const events: PresetSelectorEvents = {
+      onPresetSelected: (preset: ConfigurationPreset) => {
+        this.currentConfig = CONFIGURATION_PRESETS[preset]();
+        this.configState.setConfiguration(this.currentConfig);
+        this.updateValidationStatus();
+      },
+      onConfigurationSaved: () => {
+        this.saveCurrentConfiguration();
+      },
+      onConfigurationLoaded: (config: GameConfiguration) => {
+        this.currentConfig = config;
+        this.configState.setConfiguration(config);
+        this.updateValidationStatus();
+        // Update preset selector if this matches a known preset
+        this.presetSelector?.setSelectedPreset(null); // Reset selection for custom config
+      }
+    };
     
-    const description = document.createElement('p');
-    description.textContent = 'Choose a preset configuration to get started quickly, or customize your own settings using the other tabs.';
-    description.style.cssText = 'margin: 0 0 30px 0; color: #ccc; font-size: 14px; line-height: 1.4;';
-    container.appendChild(description);
-    
-    const presetsGrid = document.createElement('div');
-    presetsGrid.style.cssText = `
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    `;
-    
-    Object.entries(PRESET_METADATA).forEach(([key, meta]) => {
-      const presetCard = document.createElement('div');
-      presetCard.className = 'preset-card';
-      presetCard.style.cssText = `
-        background: #1a1a1a;
-        border: 2px solid #333;
-        border-radius: 8px;
-        padding: 20px;
-        cursor: pointer;
-        transition: all 0.2s;
-        position: relative;
-      `;
-      
-      presetCard.addEventListener('mouseenter', () => {
-        presetCard.style.borderColor = meta.color;
-        presetCard.style.background = '#222';
-      });
-      
-      presetCard.addEventListener('mouseleave', () => {
-        presetCard.style.borderColor = '#333';
-        presetCard.style.background = '#1a1a1a';
-      });
-      
-      presetCard.addEventListener('click', () => {
-        this.selectPreset(key as ConfigurationPreset);
-      });
-      
-      const header = document.createElement('div');
-      header.style.cssText = 'display: flex; align-items: center; margin-bottom: 10px;';
-      
-      const icon = document.createElement('span');
-      icon.textContent = meta.icon;
-      icon.style.cssText = 'font-size: 24px; margin-right: 10px;';
-      
-      const name = document.createElement('h3');
-      name.textContent = meta.name;
-      name.style.cssText = `margin: 0; color: ${meta.color}; font-size: 18px;`;
-      
-      const difficulty = document.createElement('div');
-      difficulty.style.cssText = `
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: ${meta.color};
-        color: white;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: bold;
-      `;
-      difficulty.textContent = `Difficulty: ${meta.difficulty}/5`;
-      
-      const desc = document.createElement('p');
-      desc.textContent = meta.description;
-      desc.style.cssText = 'margin: 0; color: #ccc; font-size: 14px; line-height: 1.4;';
-      
-      header.appendChild(icon);
-      header.appendChild(name);
-      presetCard.appendChild(difficulty);
-      presetCard.appendChild(header);
-      presetCard.appendChild(desc);
-      
-      presetsGrid.appendChild(presetCard);
-    });
-    
-    container.appendChild(presetsGrid);
-    
-    // Custom configuration section
-    const customSection = document.createElement('div');
-    customSection.style.cssText = `
-      background: #1a1a1a;
-      border: 2px solid #333;
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 20px;
-    `;
-    
-    const customTitle = document.createElement('h3');
-    customTitle.textContent = '🛠️ Custom Configuration';
-    customTitle.style.cssText = 'margin: 0 0 10px 0; color: #FF9800;';
-    
-    const customDesc = document.createElement('p');
-    customDesc.textContent = 'Create your own custom configuration by modifying settings in the other tabs. Your changes will be automatically saved.';
-    customDesc.style.cssText = 'margin: 0 0 15px 0; color: #ccc; font-size: 14px;';
-    
-    const customButtons = document.createElement('div');
-    customButtons.style.cssText = 'display: flex; gap: 10px; flex-wrap: wrap;';
-    
-    const saveButton = this.createButton('Save Current Config', 'primary', () => {
-      this.saveCurrentConfiguration();
-    });
-    
-    const loadButton = this.createButton('Load Saved Config', 'secondary', () => {
-      this.showLoadDialog();
-    });
-    
-    customButtons.appendChild(saveButton);
-    customButtons.appendChild(loadButton);
-    
-    customSection.appendChild(customTitle);
-    customSection.appendChild(customDesc);
-    customSection.appendChild(customButtons);
-    
-    container.appendChild(customSection);
+    this.presetSelector = new PresetSelector(container, events);
   }
   
   private renderMapTab(container: HTMLDivElement): void {
@@ -2583,19 +2438,6 @@ export class ConfigurationMenu {
     container.appendChild(actionsSection);
   }
   
-  private selectPreset(preset: ConfigurationPreset): void {
-    this.currentConfig = CONFIGURATION_PRESETS[preset]();
-    this.updateValidationStatus();
-    
-    // Show visual feedback
-    const presetCards = this.container.querySelectorAll('.preset-card');
-    presetCards.forEach((card, index) => {
-      const presetKeys = Object.keys(PRESET_METADATA);
-      const isSelected = presetKeys[index] === preset;
-      (card as HTMLElement).style.borderColor = isSelected ? '#4CAF50' : '#333';
-      (card as HTMLElement).style.background = isSelected ? '#0a2a0a' : '#1a1a1a';
-    });
-  }
   
   private updateValidationStatus(): void {
     const validation = configurationValidator.validate(this.currentConfig);
@@ -2907,6 +2749,10 @@ export class ConfigurationMenu {
   }
   
   private close(): void {
+    // Cleanup components
+    this.tabManager?.destroy();
+    this.presetSelector?.destroy();
+    
     if (this.container.parentNode) {
       this.container.parentNode.removeChild(this.container);
     }

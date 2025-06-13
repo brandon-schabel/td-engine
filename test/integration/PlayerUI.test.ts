@@ -23,6 +23,17 @@ const mockCanvas = {
     save: vi.fn(),
     restore: vi.fn(),
     fillText: vi.fn(),
+    translate: vi.fn(),
+    rotate: vi.fn(),
+    scale: vi.fn(),
+    closePath: vi.fn(),
+    quadraticCurveTo: vi.fn(),
+    drawImage: vi.fn(),
+    createRadialGradient: vi.fn(() => ({
+      addColorStop: vi.fn()
+    })),
+    measureText: vi.fn(() => ({ width: 10 })),
+    setTransform: vi.fn(),
     set fillStyle(value: string) {},
     set strokeStyle(value: string) {},
     set lineWidth(value: number) {},

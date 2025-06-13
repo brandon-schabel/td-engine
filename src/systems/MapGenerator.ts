@@ -214,7 +214,8 @@ export class MapGenerator {
     
     // Enhanced decoration formula for more visual richness
     const sizeMultiplier = Math.min(grid.width * grid.height / 400, 2.0); // Scale with map size
-    const targetCount = Math.floor(grid.width * grid.height * baseDensity * levelMultiplier * 0.15 * sizeMultiplier);
+    // Increased base multiplier from 0.3 to 0.6 for much richer decoration density
+    const targetCount = Math.floor(grid.width * grid.height * baseDensity * levelMultiplier * 0.6 * sizeMultiplier);
     
     // Generate decorations
     for (let i = 0; i < targetCount; i++) {
@@ -247,7 +248,9 @@ export class MapGenerator {
         // Determine if blocking based on decoration type
         const blocking = decorationType.includes('tree') || 
                         decorationType.includes('boulder') ||
-                        decorationType.includes('rock_formation');
+                        decorationType.includes('rock_formation') ||
+                        decorationType.includes('ice_formation') ||
+                        decorationType.includes('lava_rock');
         
         return {
           type: decorationType,
@@ -322,19 +325,48 @@ export class MapGenerator {
   private generateDesertEffects(grid: Grid): EnvironmentalEffect[] {
     const effects: EnvironmentalEffect[] = [];
     
-    // Sand particles and heat shimmer
-    effects.push({
-      type: 'PARTICLES',
-      position: grid.gridToWorld(Math.floor(grid.width / 2), Math.floor(grid.height / 2)),
-      radius: Math.min(grid.width, grid.height) * grid.cellSize * 0.3,
-      intensity: 0.2,
-      properties: {
-        particleType: 'sand',
-        direction: { x: 1, y: 0 },
-        speed: 10,
-        color: '#D2B48C'
-      }
-    });
+    // Multiple sand particle effects across the map
+    const sandCount = 3 + Math.floor(this.random() * 4);
+    for (let i = 0; i < sandCount; i++) {
+      const worldPos = grid.gridToWorld(
+        Math.floor(this.random() * grid.width),
+        Math.floor(this.random() * grid.height)
+      );
+      
+      effects.push({
+        type: 'PARTICLES',
+        position: worldPos,
+        radius: 60 + this.random() * 80,
+        intensity: 0.15 + this.random() * 0.2,
+        properties: {
+          particleType: 'sand',
+          direction: { x: 0.7 + this.random() * 0.6, y: 0.1 },
+          speed: 8 + this.random() * 12,
+          color: '#D2B48C'
+        }
+      });
+    }
+    
+    // Heat shimmer effects
+    const shimmerCount = 2 + Math.floor(this.random() * 2);
+    for (let i = 0; i < shimmerCount; i++) {
+      const worldPos = grid.gridToWorld(
+        Math.floor(this.random() * grid.width),
+        Math.floor(this.random() * grid.height)
+      );
+      
+      effects.push({
+        type: 'ANIMATION',
+        position: worldPos,
+        radius: 40 + this.random() * 60,
+        intensity: 0.3 + this.random() * 0.3,
+        properties: {
+          animationType: 'heat_shimmer',
+          speed: 1.5 + this.random() * 1.0,
+          color: '#F4A460'
+        }
+      });
+    }
     
     return effects;
   }
@@ -403,18 +435,49 @@ export class MapGenerator {
   private generateGrasslandEffects(grid: Grid): EnvironmentalEffect[] {
     const effects: EnvironmentalEffect[] = [];
     
-    // Gentle wind effect on grass
-    effects.push({
-      type: 'ANIMATION',
-      position: grid.gridToWorld(Math.floor(grid.width / 2), Math.floor(grid.height / 2)),
-      radius: Math.min(grid.width, grid.height) * grid.cellSize * 0.6,
-      intensity: 0.3,
-      properties: {
-        animationType: 'sway',
-        direction: { x: 1, y: 0 },
-        frequency: 0.5
-      }
-    });
+    // Multiple gentle wind effects across the grassland
+    const windCount = 3 + Math.floor(this.random() * 3);
+    for (let i = 0; i < windCount; i++) {
+      const worldPos = grid.gridToWorld(
+        Math.floor(this.random() * grid.width),
+        Math.floor(this.random() * grid.height)
+      );
+      
+      effects.push({
+        type: 'ANIMATION',
+        position: worldPos,
+        radius: 80 + this.random() * 120,
+        intensity: 0.2 + this.random() * 0.3,
+        properties: {
+          animationType: 'sway',
+          direction: { x: 0.8 + this.random() * 0.4, y: 0.1 },
+          frequency: 0.3 + this.random() * 0.4,
+          color: '#32CD32'
+        }
+      });
+    }
+    
+    // Butterfly or pollen particle effects
+    const pollenCount = 2 + Math.floor(this.random() * 3);
+    for (let i = 0; i < pollenCount; i++) {
+      const worldPos = grid.gridToWorld(
+        Math.floor(this.random() * grid.width),
+        Math.floor(this.random() * grid.height)
+      );
+      
+      effects.push({
+        type: 'PARTICLES',
+        position: worldPos,
+        radius: 30 + this.random() * 50,
+        intensity: 0.2 + this.random() * 0.2,
+        properties: {
+          particleType: 'pollen',
+          direction: { x: 0.3, y: -0.1 },
+          speed: 5 + this.random() * 10,
+          color: '#FFFF99'
+        }
+      });
+    }
     
     return effects;
   }

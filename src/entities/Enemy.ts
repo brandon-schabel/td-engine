@@ -2,6 +2,7 @@ import { Entity, EntityType } from './Entity';
 import { Player } from './Player';
 import { Tower } from './Tower';
 import type { Vector2 } from '../utils/Vector2';
+import { CooldownManager } from '../utils/CooldownManager';
 
 export enum EnemyType {
   BASIC = 'BASIC',
@@ -151,10 +152,8 @@ export class Enemy extends Entity {
       return;
     }
 
-    // Update attack cooldown
-    if (this.currentAttackCooldown > 0) {
-      this.currentAttackCooldown = Math.max(0, this.currentAttackCooldown - deltaTime);
-    }
+    // Update attack cooldown using CooldownManager
+    this.currentAttackCooldown = CooldownManager.updateCooldown(this.currentAttackCooldown, deltaTime);
 
     // Select best target based on behavior and proximity
     this.target = this.selectTarget();
@@ -232,13 +231,13 @@ export class Enemy extends Entity {
       return false;
     }
 
-    if (this.currentAttackCooldown > 0) {
+    if (!CooldownManager.isReady(this.currentAttackCooldown)) {
       return false;
     }
 
     // Perform attack on current target (player or tower)
     this.target.takeDamage(this.damage);
-    this.currentAttackCooldown = this.attackCooldownTime;
+    this.currentAttackCooldown = CooldownManager.startCooldown(this.attackCooldownTime);
     return true;
   }
 
@@ -251,5 +250,74 @@ export class Enemy extends Entity {
 
   getAttackCooldown(): number {
     return this.attackCooldownTime;
+  }
+
+  // Rendering method (moved from Renderer class)
+  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any): void {
+    // Try to render with texture first
+    const textureId = `enemy_${this.enemyType.toLowerCase()}`;
+    const texture = textureManager?.getTexture(textureId);
+    
+    if (texture && texture.loaded && textureManager) {
+      ctx.drawImage(texture.image, screenPos.x - this.radius, screenPos.y - this.radius, this.radius * 2, this.radius * 2);
+    } else {
+      // Fallback to primitive rendering
+      ctx.beginPath();
+      ctx.arc(screenPos.x, screenPos.y, this.radius, 0, Math.PI * 2);
+      
+      // Different colors for different enemy types
+      switch (this.enemyType) {
+        case EnemyType.BASIC:
+          ctx.fillStyle = '#F44336';
+          break;
+        case EnemyType.FAST:
+          ctx.fillStyle = '#FF5722';
+          break;
+        case EnemyType.TANK:
+          ctx.fillStyle = '#9C27B0';
+          break;
+        default:
+          ctx.fillStyle = '#F44336';
+      }
+      
+      ctx.fill();
+    }
+    
+    // Enemy outline - different color based on target
+    const targetType = this.getTargetType();
+    if (targetType === 'tower') {
+      ctx.strokeStyle = '#FFD700'; // Gold outline for tower attackers
+      ctx.lineWidth = 2;
+    } else if (targetType === 'player') {
+      ctx.strokeStyle = '#FF4444'; // Red outline for player attackers  
+      ctx.lineWidth = 2;
+    } else {
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+    }
+    ctx.strokeRect(
+      screenPos.x - this.radius,
+      screenPos.y - this.radius,
+      this.radius * 2,
+      this.radius * 2
+    );
+  }
+
+  // Render target indicator line
+  renderTargetLine(ctx: CanvasRenderingContext2D, screenPos: Vector2, getScreenPosition: (entity: any) => Vector2, camera: any): void {
+    const target = this.getTarget();
+    if (target && camera.isVisible(target.position, 10)) {
+      const targetScreenPos = getScreenPosition(target);
+      const targetType = this.getTargetType();
+      
+      ctx.beginPath();
+      ctx.moveTo(screenPos.x, screenPos.y);
+      ctx.lineTo(targetScreenPos.x, targetScreenPos.y);
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = targetType === 'tower' ? 'rgba(255, 215, 0, 0.5)' : 'rgba(255, 68, 68, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
   }
 }

@@ -4,41 +4,37 @@ import { Grid, CellType } from '../systems/Grid';
 import { Pathfinder } from '../systems/Pathfinder';
 import { WaveManager } from '../systems/WaveManager';
 import type { WaveConfig } from '../systems/WaveManager';
-import { ResourceManager, ResourceType } from '../systems/ResourceManager';
 import { Renderer } from '../systems/Renderer';
 import { Camera } from '../systems/Camera';
-import { Tower, TowerType } from '../entities/Tower';
+import { Tower, TowerType, UpgradeType } from '../entities/Tower';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { Player, PlayerUpgradeType } from '../entities/Player';
-import { HealthPickup } from '../entities/HealthPickup';
-import { PowerUp, PowerUpType } from '../entities/PowerUp';
+import { Collectible, CollectibleType } from '../entities/Collectible';
 import type { Vector2 } from '../utils/Vector2';
-import { TowerUpgradeManager, UpgradeType } from '../systems/TowerUpgradeManager';
-import { PlayerUpgradeManager } from '../systems/PlayerUpgradeManager';
 import { AudioManager, SoundType } from '../audio/AudioManager';
 import { MapGenerator } from '../systems/MapGenerator';
 import { TextureManager } from '../systems/TextureManager';
 import { BiomeType, MapDifficulty, DecorationLevel, MapSize, MAP_SIZE_PRESETS } from '../types/MapData';
 import type { MapData, MapGenerationConfig, MapSizePreset } from '../types/MapData';
-
-const TOWER_COSTS = {
-  [TowerType.BASIC]: 20,
-  [TowerType.SNIPER]: 50,
-  [TowerType.RAPID]: 30
-};
+import { TOWER_COSTS, SPAWN_CHANCES, CURRENCY_CONFIG, AUDIO_CONFIG } from '../config/GameConfig';
+import { GameInitializer } from './GameInitializer';
+import { GameAudioHandler } from '../systems/GameAudioHandler';
 
 export class Game {
   private engine: GameEngine;
   private grid: Grid;
   private pathfinder: Pathfinder;
   private waveManager: WaveManager;
-  private resourceManager: ResourceManager;
+  
+  // Inlined resource management for better performance
+  private currency: number = 100;
+  private lives: number = 10;
+  private score: number = 0;
   private renderer: Renderer;
-  private upgradeManager: TowerUpgradeManager;
-  private playerUpgradeManager: PlayerUpgradeManager;
   private camera: Camera;
   private audioManager: AudioManager;
+  private audioHandler: GameAudioHandler;
   private mapGenerator: MapGenerator;
   private textureManager: TextureManager;
   private currentMapData: MapData;
@@ -47,16 +43,13 @@ export class Game {
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
   private player: Player;
-  private healthPickups: HealthPickup[] = [];
-  private powerUps: PowerUp[] = [];
+  private collectibles: Collectible[] = [];
   
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
   private selectedTower: Tower | null = null;
   private mousePosition: Vector2 = { x: 0, y: 0 };
   private isMouseDown: boolean = false;
-  private waveCompleteSoundPlayed: boolean = false;
-  private victorySoundPlayed: boolean = false;
   
   constructor(canvas: HTMLCanvasElement, mapConfig?: MapGenerationConfig, autoStart: boolean = true) {
     // Initialize map generation systems
@@ -90,11 +83,10 @@ export class Game {
     const spawnWorldPos = this.grid.gridToWorld(spawnZone.x, spawnZone.y);
     this.waveManager = new WaveManager(spawnWorldPos);
     
-    this.resourceManager = new ResourceManager();
     this.renderer = new Renderer(canvas, this.grid, this.camera, this.textureManager);
-    this.upgradeManager = new TowerUpgradeManager();
-    this.playerUpgradeManager = new PlayerUpgradeManager();
+    this.renderer.setEnvironmentalEffects(this.currentMapData.effects);
     this.audioManager = new AudioManager();
+    this.audioHandler = new GameAudioHandler(this.audioManager, this.camera);
     this.engine = new GameEngine();
     
     // Create player at generated start position
@@ -151,6 +143,7 @@ export class Game {
   }
 
   private loadWaveConfigurations(): void {
+    // Use inline wave configuration to avoid circular imports
     const waves: WaveConfig[] = [
       {
         waveNumber: 1,
@@ -201,7 +194,7 @@ export class Game {
     }
 
     // Check for game over
-    if (this.resourceManager.isGameOver()) {
+    if (this.isGameOver()) {
       this.engine.gameOver();
       return;
     }
@@ -234,16 +227,12 @@ export class Game {
     const playerProjectile = this.player.updateShooting();
     if (playerProjectile) {
       this.projectiles.push(playerProjectile);
-      this.audioManager.playSoundAtPosition(
-        SoundType.PLAYER_SHOOT, 
-        this.player.position, 
-        { x: this.camera.getPosition().x + 600, y: this.camera.getPosition().y + 400 }
-      );
+      this.audioHandler.playPlayerShoot(this.player.position);
     }
     
     // Check if player died
     if (!this.player.isAlive) {
-      this.audioManager.playGameStateSound(SoundType.GAME_OVER);
+      this.audioHandler.playGameOver();
       this.engine.gameOver();
       return;
     }
@@ -252,12 +241,7 @@ export class Game {
     this.towers.forEach(tower => {
       const newProjectiles = tower.updateAndShoot(this.enemies, deltaTime);
       if (newProjectiles.length > 0) {
-        // Play tower shooting sound
-        this.audioManager.playSoundAtPosition(
-          SoundType.TOWER_SHOOT, 
-          tower.position, 
-          { x: this.camera.getPosition().x + 600, y: this.camera.getPosition().y + 400 }
-        );
+        this.audioHandler.playTowerShoot(tower.position);
       }
       this.projectiles.push(...newProjectiles);
     });
@@ -271,21 +255,10 @@ export class Game {
         const hitEnemy = projectile.checkCollisionWithEnemies(this.enemies);
         if (hitEnemy && !projectile.hitSoundPlayed) {
           projectile.hitSoundPlayed = true;
-          if (!hitEnemy.isAlive) {
-            // Enemy was killed
-            this.audioManager.playSoundAtPosition(
-              SoundType.ENEMY_DEATH, 
-              hitEnemy.position, 
-              { x: this.camera.getPosition().x + 600, y: this.camera.getPosition().y + 400 }
-            );
+          const wasKilled = !hitEnemy.isAlive;
+          this.audioHandler.handleEnemyDamage(hitEnemy, wasKilled);
+          if (wasKilled) {
             this.enemyKilled(hitEnemy);
-          } else {
-            // Enemy was hit but not killed
-            this.audioManager.playSoundAtPosition(
-              SoundType.ENEMY_HIT, 
-              hitEnemy.position, 
-              { x: this.camera.getPosition().x + 600, y: this.camera.getPosition().y + 400 }
-            );
           }
         }
       }
@@ -293,66 +266,43 @@ export class Game {
       // Check if homing projectile hit target
       if (!projectile.isAlive && projectile.target && !projectile.hitSoundPlayed) {
         projectile.hitSoundPlayed = true;
-        if (!projectile.target.isAlive) {
-          // Enemy was killed, give rewards
-          this.audioManager.playSoundAtPosition(
-            SoundType.ENEMY_DEATH, 
-            projectile.target.position, 
-            { x: this.camera.getPosition().x + 600, y: this.camera.getPosition().y + 400 }
-          );
+        const wasKilled = !projectile.target.isAlive;
+        this.audioHandler.handleEnemyDamage(projectile.target, wasKilled);
+        if (wasKilled) {
           this.enemyKilled(projectile.target);
-        } else {
-          // Enemy was hit but not killed
-          this.audioManager.playSoundAtPosition(
-            SoundType.ENEMY_HIT, 
-            projectile.target.position, 
-            { x: this.camera.getPosition().x + 600, y: this.camera.getPosition().y + 400 }
-          );
         }
       }
     });
     
-    // Update health pickups
-    this.healthPickups.forEach(pickup => {
-      pickup.update(deltaTime);
-      if (pickup.tryHealPlayer(this.player)) {
-        this.audioManager.playSound(SoundType.HEALTH_PICKUP);
-      }
-    });
-
-    // Update power-ups
-    this.powerUps.forEach(powerUp => {
-      powerUp.update(deltaTime);
-      if (powerUp.applyToPlayer(this.player)) {
-        // Play power-up pickup sound
-        this.audioManager.playSound(SoundType.POWERUP_PICKUP);
-        
-        // Handle specific power-up effects
-        if (powerUp.powerUpType === PowerUpType.EXTRA_CURRENCY) {
-          this.resourceManager.addResource(ResourceType.CURRENCY, 50); // Bonus currency
+    // Update collectibles
+    this.collectibles.forEach(collectible => {
+      collectible.update(deltaTime);
+      if (collectible.tryCollectByPlayer(this.player)) {
+        // Handle different collectible types
+        if (collectible.isHealthPickup()) {
+          this.audioHandler.playHealthPickup();
+        } else if (collectible.collectibleType === CollectibleType.EXTRA_CURRENCY) {
+          this.audioHandler.playPowerUpPickup();
+          this.addCurrency(CURRENCY_CONFIG.powerUpBonus);
+        } else {
+          this.audioHandler.playPowerUpPickup();
         }
       }
     });
 
-    // Clean up dead entities
+    // Clean up dead entities (inlined from EntityCleaner)
     this.enemies = this.enemies.filter(enemy => enemy.isAlive);
     this.projectiles = this.projectiles.filter(projectile => projectile.isAlive);
-    this.healthPickups = this.healthPickups.filter(pickup => pickup.isActive);
-    this.powerUps = this.powerUps.filter(powerUp => powerUp.isActive);
+    this.collectibles = this.collectibles.filter(collectible => collectible.isActive);
+    this.towers = this.towers.filter(tower => tower.isAlive);
 
     // Check for wave completion and victory
     if (this.waveManager.isWaveComplete()) {
       if (!this.waveManager.hasNextWave()) {
-        if (!this.victorySoundPlayed) {
-          this.audioManager.playGameStateSound(SoundType.VICTORY);
-          this.victorySoundPlayed = true;
-        }
+        this.audioHandler.playVictory();
         this.engine.victory();
       } else {
-        if (!this.waveCompleteSoundPlayed) {
-          this.audioManager.playGameStateSound(SoundType.WAVE_COMPLETE);
-          this.waveCompleteSoundPlayed = true;
-        }
+        this.audioHandler.playWaveComplete();
       }
     }
   };
@@ -363,8 +313,7 @@ export class Game {
       this.towers, 
       this.enemies, 
       this.projectiles, 
-      this.healthPickups,
-      this.powerUps,
+      this.collectibles,
       this.getPlayerAimerLine(),
       this.player
     );
@@ -380,8 +329,7 @@ export class Game {
       this.renderer.renderTowerUpgradePanel(
         this.selectedTower,
         10,
-        150,
-        this.upgradeManager
+        150
       );
     }
     
@@ -400,9 +348,9 @@ export class Game {
     
     // Render UI
     this.renderer.renderUI(
-      this.resourceManager.getCurrency(),
-      this.resourceManager.getLives(),
-      this.resourceManager.getScore(),
+      this.currency,
+      this.lives,
+      this.score,
       this.waveManager.currentWave
     );
     
@@ -418,9 +366,9 @@ export class Game {
 
   // Tower placement
   placeTower(towerType: TowerType, worldPosition: Vector2): boolean {
-    const cost = TOWER_COSTS[towerType];
+    const cost = TOWER_COSTS[towerType as keyof typeof TOWER_COSTS];
     
-    if (!this.resourceManager.canAfford(ResourceType.CURRENCY, cost)) {
+    if (!this.canAffordCurrency(cost)) {
       return false;
     }
     
@@ -438,10 +386,10 @@ export class Game {
     this.grid.setCellType(gridPos.x, gridPos.y, CellType.TOWER);
     
     // Spend currency
-    this.resourceManager.spendResource(ResourceType.CURRENCY, cost);
+    this.spendCurrency(cost);
     
     // Play tower placement sound
-    this.audioManager.playSound(SoundType.TOWER_PLACE);
+    this.audioHandler.playTowerPlace();
     
     return true;
   }
@@ -455,18 +403,17 @@ export class Game {
     const nextWave = this.waveManager.getNextWaveNumber();
     const started = this.waveManager.startWave(nextWave);
     if (started) {
-      this.audioManager.playGameStateSound(SoundType.WAVE_START);
-      // Reset wave complete sound flag for new wave
-      this.waveCompleteSoundPlayed = false;
+      this.audioHandler.playWaveStart();
+      this.audioHandler.resetWaveAudioFlags();
     }
     return started;
   }
 
   // Tower upgrades
   upgradeTower(tower: Tower, upgradeType: UpgradeType): boolean {
-    const cost = this.upgradeManager.getUpgradeCost(tower, upgradeType);
+    const cost = tower.getUpgradeCost(upgradeType);
     
-    if (!this.resourceManager.canAfford(ResourceType.CURRENCY, cost)) {
+    if (!this.canAffordCurrency(cost)) {
       return false;
     }
     
@@ -474,10 +421,9 @@ export class Game {
       return false;
     }
     
-    const actualCost = this.upgradeManager.applyUpgrade(tower, upgradeType);
-    if (actualCost > 0) {
-      this.resourceManager.spendResource(ResourceType.CURRENCY, actualCost);
-      this.audioManager.playSound(SoundType.TOWER_UPGRADE);
+    if (tower.upgrade(upgradeType)) {
+      this.spendCurrency(cost);
+      this.audioHandler.playTowerUpgrade();
       return true;
     }
     
@@ -566,17 +512,42 @@ export class Game {
     }
   }
 
-  // Getters for game state
+  // Getters for game state (inlined for performance)
   getCurrency(): number {
-    return this.resourceManager.getCurrency();
+    return this.currency;
   }
 
   getLives(): number {
-    return this.resourceManager.getLives();
+    return this.lives;
   }
 
   getScore(): number {
-    return this.resourceManager.getScore();
+    return this.score;
+  }
+
+  // Inlined resource management methods
+  private canAffordCurrency(cost: number): boolean {
+    return this.currency >= cost;
+  }
+
+  private spendCurrency(amount: number): void {
+    this.currency = Math.max(0, this.currency - amount);
+  }
+
+  private addCurrency(amount: number): void {
+    this.currency += amount;
+  }
+
+  private loseLife(): void {
+    this.lives = Math.max(0, this.lives - 1);
+  }
+
+  private addScore(points: number): void {
+    this.score += points;
+  }
+
+  private isGameOver(): boolean {
+    return this.lives <= 0;
   }
 
   getCurrentWave(): number {
@@ -595,12 +566,17 @@ export class Game {
     return [...this.projectiles];
   }
 
-  getHealthPickups(): HealthPickup[] {
-    return [...this.healthPickups];
+  getCollectibles(): Collectible[] {
+    return [...this.collectibles];
   }
 
-  getPowerUps(): PowerUp[] {
-    return [...this.powerUps];
+  // Backward compatibility methods
+  getHealthPickups(): Collectible[] {
+    return this.collectibles.filter(c => c.isHealthPickup());
+  }
+
+  getPowerUps(): Collectible[] {
+    return this.collectibles.filter(c => c.isPowerUp());
   }
 
   getPlayerAimerLine(): { start: Vector2; end: Vector2 } | null {
@@ -614,39 +590,31 @@ export class Game {
     return this.waveManager.isWaveComplete();
   }
 
-  isGameOver(): boolean {
-    return this.resourceManager.isGameOver();
+  isGameOverPublic(): boolean {
+    return this.isGameOver();
   }
 
   enemyReachedEnd(): void {
-    this.resourceManager.enemyReachedEnd();
+    this.loseLife();
   }
 
   enemyKilled(enemy: Enemy): void {
-    this.resourceManager.enemyKilled(enemy.reward, enemy.reward * 5);
+    this.addCurrency(enemy.reward);
+    this.addScore(enemy.reward * CURRENCY_CONFIG.baseRewardMultiplier);
     
-    // Chance to spawn health pickup
-    if (HealthPickup.shouldSpawnFromEnemy()) {
-      const healthPickup = new HealthPickup(
+    // Chance to spawn collectible
+    if (Collectible.shouldSpawnFromEnemy()) {
+      const collectibleType = Collectible.getRandomType();
+      const collectible = new Collectible(
         { ...enemy.position },
-        25 // Standard heal amount
+        collectibleType
       );
-      this.healthPickups.push(healthPickup);
+      this.collectibles.push(collectible);
     }
     
-    // Chance to spawn power-up
-    if (PowerUp.shouldSpawnFromEnemy()) {
-      const powerUpType = PowerUp.getRandomType();
-      const powerUp = new PowerUp(
-        { ...enemy.position },
-        powerUpType
-      );
-      this.powerUps.push(powerUp);
-    }
-    
-    // Extra currency drop chance (10%)
-    if (Math.random() < 0.1) {
-      this.resourceManager.addResource(ResourceType.CURRENCY, enemy.reward * 2);
+    // Extra currency drop chance
+    if (Math.random() < SPAWN_CHANCES.extraCurrencyDrop) {
+      this.addCurrency(enemy.reward * CURRENCY_CONFIG.extraDropMultiplier);
     }
   }
 
@@ -663,11 +631,11 @@ export class Game {
   }
 
   getTowerCost(towerType: TowerType): number {
-    return TOWER_COSTS[towerType];
+    return TOWER_COSTS[towerType as keyof typeof TOWER_COSTS];
   }
 
   canAffordTower(towerType: TowerType): boolean {
-    return this.resourceManager.canAfford(ResourceType.CURRENCY, TOWER_COSTS[towerType]);
+    return this.canAffordCurrency(TOWER_COSTS[towerType as keyof typeof TOWER_COSTS]);
   }
 
   // Game engine control
@@ -696,24 +664,20 @@ export class Game {
     return this.selectedTower;
   }
 
-  getUpgradeManager(): TowerUpgradeManager {
-    return this.upgradeManager;
-  }
-
   getUpgradeCost(tower: Tower, upgradeType: UpgradeType): number {
-    return this.upgradeManager.getUpgradeCost(tower, upgradeType);
+    return tower.getUpgradeCost(upgradeType);
   }
 
   canAffordUpgrade(tower: Tower, upgradeType: UpgradeType): boolean {
-    const cost = this.upgradeManager.getUpgradeCost(tower, upgradeType);
-    return this.resourceManager.canAfford(ResourceType.CURRENCY, cost);
+    const cost = tower.getUpgradeCost(upgradeType);
+    return this.canAffordCurrency(cost);
   }
 
   // Player upgrade methods
   upgradePlayer(upgradeType: PlayerUpgradeType): boolean {
-    const cost = this.playerUpgradeManager.getUpgradeCost(this.player, upgradeType);
+    const cost = this.player.getUpgradeCost(upgradeType);
     
-    if (!this.resourceManager.canAfford(ResourceType.CURRENCY, cost)) {
+    if (!this.canAffordCurrency(cost)) {
       return false;
     }
     
@@ -721,10 +685,9 @@ export class Game {
       return false;
     }
     
-    const actualCost = this.playerUpgradeManager.applyUpgrade(this.player, upgradeType);
-    if (actualCost > 0) {
-      this.resourceManager.spendResource(ResourceType.CURRENCY, actualCost);
-      this.audioManager.playSound(SoundType.PLAYER_LEVEL_UP);
+    if (this.player.upgrade(upgradeType)) {
+      this.spendCurrency(cost);
+      this.audioHandler.playPlayerLevelUp();
       return true;
     }
     
@@ -732,24 +695,25 @@ export class Game {
   }
 
   getPlayerUpgradeCost(upgradeType: PlayerUpgradeType): number {
-    return this.playerUpgradeManager.getUpgradeCost(this.player, upgradeType);
+    return this.player.getUpgradeCost(upgradeType);
   }
 
   canAffordPlayerUpgrade(upgradeType: PlayerUpgradeType): boolean {
-    const cost = this.playerUpgradeManager.getUpgradeCost(this.player, upgradeType);
-    return this.resourceManager.canAfford(ResourceType.CURRENCY, cost);
+    const cost = this.player.getUpgradeCost(upgradeType);
+    return this.canAffordCurrency(cost);
   }
 
   getPlayer(): Player {
     return this.player;
   }
 
-  getPlayerUpgradeManager(): PlayerUpgradeManager {
-    return this.playerUpgradeManager;
-  }
 
   getAudioManager(): AudioManager {
     return this.audioManager;
+  }
+
+  getAudioHandler(): GameAudioHandler {
+    return this.audioHandler;
   }
 
   // Map generation methods
@@ -775,8 +739,7 @@ export class Game {
     this.towers = [];
     this.enemies = [];
     this.projectiles = [];
-    this.healthPickups = [];
-    this.powerUps = [];
+    this.collectibles = [];
     
     // Reset grid
     this.grid = new Grid(newConfig.width, newConfig.height, newConfig.cellSize);
@@ -802,11 +765,16 @@ export class Game {
     // Camera bounds should be updated through existing update method
     this.camera.update(this.player.position);
     
+    // Update renderer with new environmental effects
+    this.renderer.setEnvironmentalEffects(this.currentMapData.effects);
+    
     // Reset game state
-    this.resourceManager = new ResourceManager();
     this.selectedTowerType = null;
     this.selectedTower = null;
     this.hoverTower = null;
+    
+    // Reset audio flags
+    this.audioHandler.resetAllAudioFlags();
   }
 
   generateMapVariants(count: number): MapData[] {
@@ -816,7 +784,7 @@ export class Game {
 
   // Enhanced default configuration with more interesting parameters
   private generateEnhancedDefaultConfig(): MapGenerationConfig {
-    const mapSize = MapSize.MEDIUM; // Default to medium size for good balance
+    const mapSize = MapSize.LARGE; // Default to large size for rich gameplay
     const preset = MAP_SIZE_PRESETS[mapSize];
     
     if (!preset) {
@@ -826,12 +794,12 @@ export class Game {
     // Random biome selection with weighted distribution
     const biomes = [
       BiomeType.FOREST,   // 25%
-      BiomeType.DESERT,   // 20%
+      BiomeType.DESERT,   // 25%
       BiomeType.ARCTIC,   // 20%
       BiomeType.VOLCANIC, // 20%
-      BiomeType.GRASSLAND // 15%
+      BiomeType.GRASSLAND // 10%
     ];
-    const biomeWeights = [0.25, 0.45, 0.65, 0.85, 1.0];
+    const biomeWeights = [0.25, 0.50, 0.70, 0.90, 1.0];
     const randomValue = Math.random();
     let selectedBiome: BiomeType = BiomeType.FOREST;
     
@@ -852,14 +820,14 @@ export class Game {
       biome: selectedBiome,
       difficulty,
       seed: Date.now(),
-      pathComplexity: 0.75, // More winding paths for strategy
-      obstacleCount: Math.floor(preset.baseObstacles * difficultyMultiplier),
+      pathComplexity: 0.85, // More winding paths for strategy (increased from 0.75)
+      obstacleCount: Math.floor(preset.baseObstacles * difficultyMultiplier * 1.2), // 20% more obstacles
       decorationLevel: DecorationLevel.DENSE, // Rich visual environment
       enableWater: true,
       enableAnimations: true,
-      chokePointCount: Math.floor(preset.baseChokePoints * difficultyMultiplier),
-      openAreaCount: preset.baseOpenAreas,
-      playerAdvantageSpots: preset.baseAdvantageSpots
+      chokePointCount: Math.floor(preset.baseChokePoints * difficultyMultiplier * 1.3), // 30% more choke points
+      openAreaCount: Math.floor(preset.baseOpenAreas * 1.2), // 20% more open areas
+      playerAdvantageSpots: Math.floor(preset.baseAdvantageSpots * 1.5) // 50% more advantage spots
     };
   }
 

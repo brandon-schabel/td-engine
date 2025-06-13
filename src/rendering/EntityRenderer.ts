@@ -1,0 +1,476 @@
+/**
+ * Entity Renderer
+ * Specialized renderer for game entities (towers, enemies, projectiles, player, pickups)
+ */
+
+import { BaseRenderer } from './BaseRenderer';
+import { Tower } from '../entities/Tower';
+import { Enemy } from '../entities/Enemy';
+import { Projectile } from '../entities/Projectile';
+import { Player } from '../entities/Player';
+import { HealthPickup } from '../entities/HealthPickup';
+import { PowerUp } from '../entities/PowerUp';
+import { Entity } from '../entities/Entity';
+import { UpgradeType } from '../entities/Tower';
+import { COLOR_CONFIG, RENDER_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
+import type { Vector2 } from '../utils/Vector2';
+
+export class EntityRenderer extends BaseRenderer {
+  
+  renderTower(tower: Tower): void {
+    if (!this.isVisible(tower.position, tower.radius)) return;
+    
+    const screenPos = this.getScreenPosition(tower);
+    
+    // Try to render with texture first
+    const textureId = `tower_${tower.towerType.toLowerCase()}`;
+    const texture = this.textureManager.getTexture(textureId);
+    
+    if (texture && texture.loaded) {
+      this.renderTextureAt(texture, screenPos, tower.radius * 2, tower.radius * 2);
+    } else {
+      this.renderTowerPrimitive(tower, screenPos);
+    }
+    
+    // Render upgrade indicators
+    this.renderTowerUpgradeDots(tower, screenPos);
+  }
+
+  private renderTowerPrimitive(tower: Tower, screenPos: Vector2): void {
+    const upgradeLevel = tower.getVisualLevel();
+    const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONFIG.visualUpgradeMultiplier, UPGRADE_CONFIG.visualIntensityMultiplier);
+    
+    let color: string;
+    switch (tower.towerType) {
+      case 'BASIC':
+        color = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+        break;
+      case 'SNIPER':
+        color = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+        break;
+      case 'RAPID':
+        color = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+        break;
+      default:
+        color = COLOR_CONFIG.health.high;
+    }
+    
+    this.fillCircle(screenPos, tower.radius, color);
+    
+    // Tower outline - thicker for upgraded towers
+    const strokeColor = upgradeLevel > 1 ? '#222222' : '#333333';
+    const lineWidth = upgradeLevel > 1 ? RENDER_CONFIG.upgradeOutlineThickness.upgraded : RENDER_CONFIG.upgradeOutlineThickness.normal;
+    this.strokeCircle(screenPos, tower.radius, strokeColor, lineWidth);
+  }
+
+  private renderTowerUpgradeDots(tower: Tower, screenPos: Vector2): void {
+    const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
+    const colors = COLOR_CONFIG.upgradeDots;
+    const dotRadius = RENDER_CONFIG.upgradeDotRadius;
+    
+    upgradeTypes.forEach((upgradeType, index) => {
+      const level = tower.getUpgradeLevel(upgradeType);
+      
+      if (level > 0) {
+        const angle = (index * 120) * (Math.PI / 180); // 120 degrees apart
+        const distance = tower.radius + 8;
+        
+        for (let i = 0; i < level; i++) {
+          const dotDistance = distance + (i * 4);
+          const x = screenPos.x + Math.cos(angle) * dotDistance;
+          const y = screenPos.y + Math.sin(angle) * dotDistance;
+          
+          this.fillCircle({ x, y }, dotRadius, colors[index] || colors[0]);
+          this.strokeCircle({ x, y }, dotRadius, '#000000', 1);
+        }
+      }
+    });
+  }
+
+  renderEnemy(enemy: Enemy): void {
+    if (!this.isVisible(enemy.position, enemy.radius)) return;
+    
+    const screenPos = this.getScreenPosition(enemy);
+    
+    // Try to render with texture first
+    const textureId = `enemy_${enemy.enemyType.toLowerCase()}`;
+    const texture = this.textureManager.getTexture(textureId);
+    
+    if (texture && texture.loaded) {
+      this.renderTextureAt(texture, screenPos, enemy.radius * 2, enemy.radius * 2);
+    } else {
+      this.renderEnemyPrimitive(enemy, screenPos);
+    }
+    
+    // Render targeting indicators
+    this.renderEnemyTargeting(enemy, screenPos);
+  }
+
+  private renderEnemyPrimitive(enemy: Enemy, screenPos: Vector2): void {
+    let color: string;
+    switch (enemy.enemyType) {
+      case 'BASIC':
+        color = '#F44336';
+        break;
+      case 'FAST':
+        color = '#FF5722';
+        break;
+      case 'TANK':
+        color = '#9C27B0';
+        break;
+      default:
+        color = '#F44336';
+    }
+    
+    this.fillCircle(screenPos, enemy.radius, color);
+  }
+
+  private renderEnemyTargeting(enemy: Enemy, screenPos: Vector2): void {
+    const targetType = enemy.getTargetType();
+    let strokeColor: string;
+    let lineWidth: number;
+
+    if (targetType === 'tower') {
+      strokeColor = '#FFD700'; // Gold outline for tower attackers
+      lineWidth = 2;
+    } else if (targetType === 'player') {
+      strokeColor = '#FF4444'; // Red outline for player attackers  
+      lineWidth = 2;
+    } else {
+      strokeColor = '#000000';
+      lineWidth = 1;
+    }
+
+    this.ctx.strokeStyle = strokeColor;
+    this.ctx.lineWidth = lineWidth;
+    this.ctx.strokeRect(
+      screenPos.x - enemy.radius,
+      screenPos.y - enemy.radius,
+      enemy.radius * 2,
+      enemy.radius * 2
+    );
+    
+    // Draw target indicator line if enemy has a target
+    const target = enemy.getTarget();
+    if (target && this.isVisible(target.position, 10)) {
+      const targetScreenPos = this.getScreenPosition(target);
+      const lineColor = targetType === 'tower' ? 'rgba(255, 215, 0, 0.5)' : 'rgba(255, 68, 68, 0.5)';
+      this.renderDashedLine(screenPos, targetScreenPos, lineColor, 1, [3, 3]);
+    }
+  }
+
+  renderProjectile(projectile: Projectile): void {
+    if (!this.isVisible(projectile.position, projectile.radius)) return;
+    
+    const screenPos = this.getScreenPosition(projectile);
+    
+    // Try to render with texture first
+    const texture = this.textureManager.getTexture('projectile');
+    
+    if (texture && texture.loaded) {
+      this.renderTextureAt(texture, screenPos, projectile.radius * 2, projectile.radius * 2);
+    } else {
+      this.fillCircle(screenPos, projectile.radius, '#FFEB3B');
+      this.strokeCircle(screenPos, projectile.radius, '#FFC107', 1);
+    }
+  }
+
+  renderPlayer(player: Player): void {
+    if (!this.isVisible(player.position, player.radius)) return;
+    
+    const screenPos = this.getScreenPosition(player);
+    
+    // Try to render with texture first
+    const texture = this.textureManager.getTexture('player');
+    
+    if (texture && texture.loaded) {
+      this.renderTextureAt(texture, screenPos, player.radius * 2, player.radius * 2);
+    } else {
+      this.renderPlayerPrimitive(player, screenPos);
+    }
+    
+    // Render player-specific indicators
+    this.renderPlayerIndicators(player, screenPos);
+  }
+
+  private renderPlayerPrimitive(player: Player, screenPos: Vector2): void {
+    const level = player.getLevel();
+    const hue = Math.min(180 + level * 20, 280); // Blue to purple progression
+    const color = `hsl(${hue}, 70%, 60%)`;
+    
+    this.fillCircle(screenPos, player.radius, color);
+    this.strokeCircle(screenPos, player.radius, '#FFFFFF', 2);
+  }
+
+  private renderPlayerIndicators(player: Player, screenPos: Vector2): void {
+    // Movement indicator
+    if (player.isMoving()) {
+      const velocity = player.getVelocity();
+      const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+      
+      if (speed > 0) {
+        this.strokeCircle(screenPos, player.radius + 3, 'rgba(255, 255, 255, 0.3)', 1);
+      }
+    }
+    
+    // Level indicator
+    const level = player.getLevel();
+    if (level > 1) {
+      this.renderText(
+        level.toString(),
+        screenPos.x,
+        screenPos.y + 4,
+        '#FFFFFF',
+        'bold 10px Arial',
+        'center'
+      );
+    }
+  }
+
+  renderHealthPickup(pickup: HealthPickup): void {
+    if (!pickup.isActive || !this.isVisible(pickup.position, pickup.radius)) return;
+    
+    const screenPos = this.getScreenPosition(pickup);
+    const visualY = pickup.getVisualY() - pickup.position.y + screenPos.y;
+    const rotation = pickup.getRotation();
+    
+    this.saveContext();
+    this.ctx.translate(screenPos.x, visualY);
+    this.ctx.rotate(rotation);
+    
+    // Try texture first
+    const texture = this.textureManager.getTexture('health_pickup');
+    
+    if (texture && texture.loaded) {
+      this.ctx.drawImage(
+        texture.image,
+        -pickup.radius,
+        -pickup.radius,
+        pickup.radius * 2,
+        pickup.radius * 2
+      );
+    } else {
+      this.renderHealthPickupPrimitive();
+    }
+    
+    // Glow effect
+    this.renderWithGlow(() => {
+      this.strokeCircle({ x: 0, y: 0 }, pickup.radius, 'rgba(0, 255, 0, 0.3)', 1);
+    }, '#00FF00', 10);
+    
+    this.restoreContext();
+  }
+
+  private renderHealthPickupPrimitive(): void {
+    this.ctx.strokeStyle = '#00FF00';
+    this.ctx.lineWidth = 3;
+    this.ctx.lineCap = 'round';
+    
+    // Vertical line
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, -6);
+    this.ctx.lineTo(0, 6);
+    this.ctx.stroke();
+    
+    // Horizontal line  
+    this.ctx.beginPath();
+    this.ctx.moveTo(-6, 0);
+    this.ctx.lineTo(6, 0);
+    this.ctx.stroke();
+  }
+
+  renderPowerUp(powerUp: PowerUp): void {
+    if (!powerUp.isActive || !this.isVisible(powerUp.position, powerUp.radius)) return;
+
+    const screenPos = this.getScreenPosition(powerUp);
+    const visualY = powerUp.getVisualY() - powerUp.position.y + screenPos.y;
+    const rotation = powerUp.getRotation();
+    const scale = powerUp.getPulseScale();
+    const config = powerUp.getConfig();
+    
+    this.saveContext();
+    this.ctx.translate(screenPos.x, visualY);
+    this.ctx.rotate(rotation);
+    this.ctx.scale(scale, scale);
+    
+    // Try texture first
+    const texture = this.textureManager.getTexture('power_up');
+    
+    if (texture && texture.loaded) {
+      this.ctx.drawImage(
+        texture.image,
+        -powerUp.radius,
+        -powerUp.radius,
+        powerUp.radius * 2,
+        powerUp.radius * 2
+      );
+    } else {
+      this.renderPowerUpPrimitive(powerUp);
+    }
+    
+    // Glow effect
+    this.renderWithGlow(() => {
+      this.strokeCircle({ x: 0, y: 0 }, powerUp.radius, this.hexToRgba(config.color, 0.3), 2);
+    }, config.color, 15);
+    
+    this.restoreContext();
+  }
+
+  private renderPowerUpPrimitive(powerUp: PowerUp): void {
+    const config = powerUp.getConfig();
+    
+    this.ctx.fillStyle = config.color;
+    this.ctx.strokeStyle = '#FFFFFF';
+    this.ctx.lineWidth = 2;
+    
+    switch (powerUp.powerUpType) {
+      case 'EXTRA_DAMAGE':
+        this.renderSwordIcon();
+        break;
+      case 'FASTER_SHOOTING':
+        this.renderArrowIcon();
+        break;
+      case 'EXTRA_CURRENCY':
+        this.renderCoinIcon();
+        break;
+      case 'SHIELD':
+        this.renderShieldIcon();
+        break;
+      case 'SPEED_BOOST':
+        this.renderSpeedIcon();
+        break;
+    }
+  }
+
+  private renderSwordIcon(): void {
+    this.ctx.beginPath();
+    this.ctx.moveTo(-8, 8);
+    this.ctx.lineTo(8, -8);
+    this.ctx.lineTo(6, -10);
+    this.ctx.lineTo(-10, 6);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+  }
+
+  private renderArrowIcon(): void {
+    this.ctx.beginPath();
+    this.ctx.moveTo(-8, 0);
+    this.ctx.lineTo(8, 0);
+    this.ctx.moveTo(4, -4);
+    this.ctx.lineTo(8, 0);
+    this.ctx.lineTo(4, 4);
+    this.ctx.stroke();
+  }
+
+  private renderCoinIcon(): void {
+    this.fillCircle({ x: 0, y: 0 }, 8, this.ctx.fillStyle as string);
+    this.strokeCircle({ x: 0, y: 0 }, 8, this.ctx.strokeStyle as string, 2);
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.font = 'bold 10px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('$', 0, 3);
+  }
+
+  private renderShieldIcon(): void {
+    this.ctx.beginPath();
+    this.ctx.arc(0, 0, 8, 0, Math.PI);
+    this.ctx.lineTo(-8, 8);
+    this.ctx.lineTo(8, 8);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+  }
+
+  private renderSpeedIcon(): void {
+    this.ctx.beginPath();
+    this.ctx.moveTo(-8, -4);
+    this.ctx.lineTo(8, -4);
+    this.ctx.moveTo(-6, 0);
+    this.ctx.lineTo(8, 0);
+    this.ctx.moveTo(-8, 4);
+    this.ctx.lineTo(8, 4);
+    this.ctx.stroke();
+  }
+
+  renderHealthBar(entity: Entity, alwaysShow: boolean = false): void {
+    if (!alwaysShow && entity.health >= entity.maxHealth) return;
+    if (!this.isVisible(entity.position, entity.radius + 10)) return;
+
+    const screenPos = this.getScreenPosition(entity);
+    const barWidth = RENDER_CONFIG.healthBarWidth;
+    const barHeight = RENDER_CONFIG.healthBarHeight;
+    const x = screenPos.x - barWidth / 2;
+    const y = screenPos.y - entity.radius - 10;
+    
+    // Background
+    this.ctx.fillStyle = '#222222';
+    this.ctx.fillRect(x, y, barWidth, barHeight);
+    
+    // Health bar
+    const healthPercentage = entity.health / entity.maxHealth;
+    const healthWidth = barWidth * healthPercentage;
+    
+    let barColor: string;
+    if (healthPercentage > 0.6) {
+      barColor = COLOR_CONFIG.health.high;
+    } else if (healthPercentage > 0.3) {
+      barColor = COLOR_CONFIG.health.medium;
+    } else {
+      barColor = COLOR_CONFIG.health.low;
+    }
+    
+    this.ctx.fillStyle = barColor;
+    this.ctx.fillRect(x, y, healthWidth, barHeight);
+    
+    // Health bar outline
+    this.ctx.strokeStyle = '#666666';
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeRect(x, y, barWidth, barHeight);
+  }
+
+  renderAimerLine(aimerLine: { start: Vector2; end: Vector2 }): void {
+    const screenStart = this.getScreenPosition(aimerLine.start);
+    const screenEnd = this.getScreenPosition(aimerLine.end);
+    
+    this.renderDashedLine(screenStart, screenEnd, 'rgba(255, 255, 255, 0.7)', 2, RENDER_CONFIG.dashPattern);
+    
+    // Aim point
+    this.fillCircle(screenEnd, 3, 'rgba(255, 255, 255, 0.8)');
+  }
+
+  // Batch rendering methods for performance
+  renderAllTowers(towers: Tower[], showHealthBars: boolean = true): void {
+    towers.forEach(tower => {
+      this.renderTower(tower);
+      if (showHealthBars) {
+        this.renderHealthBar(tower, true);
+      }
+    });
+  }
+
+  renderAllEnemies(enemies: Enemy[], showHealthBars: boolean = true): void {
+    enemies.forEach(enemy => {
+      this.renderEnemy(enemy);
+      if (showHealthBars) {
+        this.renderHealthBar(enemy, true);
+      }
+    });
+  }
+
+  renderAllProjectiles(projectiles: Projectile[]): void {
+    projectiles.forEach(projectile => {
+      this.renderProjectile(projectile);
+    });
+  }
+
+  renderAllPickups(healthPickups: HealthPickup[], powerUps: PowerUp[]): void {
+    healthPickups.forEach(pickup => {
+      this.renderHealthPickup(pickup);
+    });
+    
+    powerUps.forEach(powerUp => {
+      this.renderPowerUp(powerUp);
+    });
+  }
+}

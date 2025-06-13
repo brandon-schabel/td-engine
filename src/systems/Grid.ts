@@ -226,7 +226,9 @@ export class Grid {
       if (this.isInBounds(gridPos.x, gridPos.y)) {
         const cellData = this.getCellData(gridPos.x, gridPos.y) || { type: CellType.EMPTY };
         cellData.decoration = decoration;
-        if (!decoration.blocking) {
+        if (decoration.blocking) {
+          cellData.type = CellType.OBSTACLE;
+        } else {
           cellData.type = CellType.DECORATIVE;
         }
         this.setCellData(gridPos.x, gridPos.y, cellData);

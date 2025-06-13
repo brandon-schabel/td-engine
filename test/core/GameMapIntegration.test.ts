@@ -32,7 +32,12 @@ const mockCanvas = {
     setLineDash: vi.fn(),
     rotate: vi.fn(),
     scale: vi.fn(),
-    closePath: vi.fn()
+    closePath: vi.fn(),
+    quadraticCurveTo: vi.fn(),
+    createRadialGradient: vi.fn(() => ({
+      addColorStop: vi.fn()
+    })),
+    globalAlpha: 1
   }))
 };
 
@@ -52,7 +57,7 @@ describe('Game Map Integration', () => {
   });
 
   it('should initialize with default map generation', () => {
-    game = new Game(getMockCanvas() as any, undefined, false); // Disable auto-start
+    game = new Game(mockCanvas as any, undefined, false); // Disable auto-start
     
     expect(game).toBeDefined();
     expect(game.getCurrentMapData()).toBeDefined();
@@ -78,7 +83,7 @@ describe('Game Map Integration', () => {
       playerAdvantageSpots: 1
     };
 
-    game = new Game(getMockCanvas() as any, customConfig, false); // Disable auto-start
+    game = new Game(mockCanvas as any, customConfig, false); // Disable auto-start
     
     const mapData = game.getCurrentMapData();
     expect(mapData.metadata.biome).toBe(BiomeType.DESERT);
@@ -88,7 +93,7 @@ describe('Game Map Integration', () => {
   });
 
   it('should have generated map with required components', () => {
-    game = new Game(getMockCanvas() as any, undefined, false);
+    game = new Game(mockCanvas as any, undefined, false);
     const mapData = game.getCurrentMapData();
     
     // Check required map components
@@ -102,7 +107,7 @@ describe('Game Map Integration', () => {
   });
 
   it('should allow map regeneration', () => {
-    game = new Game(getMockCanvas() as any, undefined, false);
+    game = new Game(mockCanvas as any, undefined, false);
     const originalMapData = game.getCurrentMapData();
     
     // Regenerate with different seed
@@ -136,7 +141,7 @@ describe('Game Map Integration', () => {
   });
 
   it('should generate map variants', () => {
-    game = new Game(getMockCanvas() as any, undefined, false);
+    game = new Game(mockCanvas as any, undefined, false);
     
     const variants = game.generateMapVariants(3);
     
@@ -154,7 +159,7 @@ describe('Game Map Integration', () => {
   });
 
   it('should have player positioned at generated start position', () => {
-    game = new Game(getMockCanvas() as any, undefined, false);
+    game = new Game(mockCanvas as any, undefined, false);
     const mapData = game.getCurrentMapData();
     const player = game.getPlayer();
     
@@ -165,7 +170,7 @@ describe('Game Map Integration', () => {
   });
 
   it('should validate generated maps', () => {
-    game = new Game(getMockCanvas() as any, undefined, false);
+    game = new Game(mockCanvas as any, undefined, false);
     const mapData = game.getCurrentMapData();
     const mapGenerator = game.getMapGenerator();
     

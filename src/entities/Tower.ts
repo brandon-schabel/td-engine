@@ -2,7 +2,14 @@ import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
 import type { Vector2 } from '../utils/Vector2';
-import { UpgradeType } from '../systems/TowerUpgradeManager';
+export enum UpgradeType {
+  DAMAGE = 'DAMAGE',
+  RANGE = 'RANGE',
+  FIRE_RATE = 'FIRE_RATE'
+}
+import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, RENDER_CONFIG } from '../config/GameConfig';
+import { CooldownManager } from '../utils/CooldownManager';
+import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 
 export enum TowerType {
   BASIC = 'BASIC',
@@ -42,7 +49,7 @@ const TOWER_STATS: Record<TowerType, TowerStats> = {
   }
 };
 
-export class Tower extends Entity {
+export class Tower extends Entity implements ShootingCapable {
   public readonly towerType: TowerType;
   private baseDamage: number;
   private baseRange: number;
@@ -73,52 +80,25 @@ export class Tower extends Entity {
   override update(deltaTime: number): void {
     super.update(deltaTime);
     
-    // Update cooldown
-    if (this.currentCooldown > 0) {
-      this.currentCooldown = Math.max(0, this.currentCooldown - deltaTime);
-    }
+    // Update cooldown using CooldownManager
+    this.currentCooldown = CooldownManager.updateCooldown(this.currentCooldown, deltaTime);
   }
 
   findEnemiesInRange(enemies: Enemy[]): Enemy[] {
-    return enemies.filter(enemy => 
-      enemy.isAlive && this.isInRange(enemy, this.range)
-    );
+    return ShootingUtils.findEnemiesInRange(this.position, enemies, this.range);
   }
 
   findTarget(enemies: Enemy[]): Enemy | null {
     const inRange = this.findEnemiesInRange(enemies);
-    
-    if (inRange.length === 0) {
-      return null;
-    }
-
-    // Target the closest enemy
-    return inRange.reduce((closest, enemy) => {
-      const distToEnemy = this.distanceTo(enemy);
-      const distToClosest = this.distanceTo(closest);
-      return distToEnemy < distToClosest ? enemy : closest;
-    });
+    return ShootingUtils.findNearestEnemy(this.position, inRange);
   }
 
   canShoot(): boolean {
-    return this.currentCooldown <= 0;
+    return ShootingUtils.canShoot(this.currentCooldown);
   }
 
   shoot(target: Enemy): Projectile | null {
-    if (!this.canShoot()) {
-      return null;
-    }
-
-    // Reset cooldown
-    this.currentCooldown = this.cooldownTime;
-
-    // Create projectile
-    return new Projectile(
-      { ...this.position },
-      target,
-      this.damage,
-      300 // Projectile speed
-    );
+    return ShootingUtils.performShoot(this, target, GAME_MECHANICS.towerProjectileSpeed);
   }
 
   updateAndShoot(enemies: Enemy[], deltaTime: number): Projectile[] {
@@ -142,7 +122,7 @@ export class Tower extends Entity {
   // Upgrade system methods
   upgrade(upgradeType: UpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    const maxLevel = 5; // Max upgrade level
+    const maxLevel = UPGRADE_CONFIG.maxLevel;
     
     if (currentLevel >= maxLevel) {
       return false;
@@ -156,7 +136,7 @@ export class Tower extends Entity {
     }
     
     // Update visual level
-    this.level = 1 + Math.floor(this.getTotalUpgrades() / 3);
+    this.level = 1 + Math.floor(this.getTotalUpgrades() / UPGRADE_CONFIG.levelCalculationDivisor.tower);
     
     // Update radius based on new level
     this.radius = this.getVisualRadius();
@@ -166,7 +146,7 @@ export class Tower extends Entity {
 
   canUpgrade(upgradeType: UpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    return currentLevel < 5;
+    return currentLevel < UPGRADE_CONFIG.maxLevel;
   }
 
   getUpgradeLevel(upgradeType: UpgradeType): number {
@@ -185,6 +165,29 @@ export class Tower extends Entity {
     let total = 0;
     this.upgradeLevels.forEach(level => total += level);
     return total;
+  }
+
+  // Upgrade cost and management (replaces TowerUpgradeManager)
+  getUpgradeCost(upgradeType: UpgradeType): number {
+    const configs = {
+      [UpgradeType.DAMAGE]: { baseCost: 15, costMultiplier: 1.5, maxLevel: 5 },
+      [UpgradeType.RANGE]: { baseCost: 20, costMultiplier: 1.5, maxLevel: 5 },
+      [UpgradeType.FIRE_RATE]: { baseCost: 25, costMultiplier: 1.5, maxLevel: 5 }
+    };
+    
+    const config = configs[upgradeType];
+    const currentLevel = this.getUpgradeLevel(upgradeType);
+    
+    if (currentLevel >= config.maxLevel) {
+      return 0; // Max level reached
+    }
+    
+    return Math.floor(config.baseCost * Math.pow(config.costMultiplier, currentLevel));
+  }
+
+  canAffordUpgrade(upgradeType: UpgradeType, availableCurrency: number): boolean {
+    const cost = this.getUpgradeCost(upgradeType);
+    return cost > 0 && availableCurrency >= cost && this.canUpgrade(upgradeType);
   }
 
   getCooldownTime(): number {
@@ -212,5 +215,81 @@ export class Tower extends Entity {
     const baseRadius = TOWER_STATS[this.towerType].radius;
     const sizeIncrease = Math.min(this.level - 1, 3) * 2; // Max 6 pixel increase
     return baseRadius + sizeIncrease;
+  }
+
+  // Rendering method (moved from Renderer class)
+  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any): void {
+    // Try to render with texture first
+    const textureId = `tower_${this.towerType.toLowerCase()}`;
+    const texture = textureManager?.getTexture(textureId);
+    
+    if (texture && texture.loaded && textureManager) {
+      // Texture rendering - would need renderTextureAt method, use fallback for now
+      ctx.drawImage(texture.image, screenPos.x - this.radius, screenPos.y - this.radius, this.radius * 2, this.radius * 2);
+    } else {
+      // Fallback to primitive rendering
+      ctx.beginPath();
+      ctx.arc(screenPos.x, screenPos.y, this.radius, 0, Math.PI * 2);
+      
+      // Different colors for different tower types with upgrade intensity
+      const upgradeLevel = this.getVisualLevel();
+      const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONFIG.visualUpgradeMultiplier, UPGRADE_CONFIG.visualIntensityMultiplier);
+      
+      switch (this.towerType) {
+        case TowerType.BASIC:
+          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          break;
+        case TowerType.SNIPER:
+          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          break;
+        case TowerType.RAPID:
+          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          break;
+        default:
+          ctx.fillStyle = COLOR_CONFIG.health.high;
+      }
+      
+      ctx.fill();
+      
+      // Tower outline - thicker for upgraded towers
+      ctx.strokeStyle = upgradeLevel > 1 ? '#222222' : '#333333';
+      ctx.lineWidth = upgradeLevel > 1 ? RENDER_CONFIG.upgradeOutlineThickness.upgraded : RENDER_CONFIG.upgradeOutlineThickness.normal;
+      ctx.stroke();
+    }
+    
+    // Render upgrade dots
+    this.renderUpgradeDots(ctx, screenPos);
+  }
+
+  private renderUpgradeDots(ctx: CanvasRenderingContext2D, screenPos: Vector2): void {
+    const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
+    const colors = COLOR_CONFIG.upgradeDots;
+    const dotRadius = RENDER_CONFIG.upgradeDotRadius;
+    
+    upgradeTypes.forEach((upgradeType, index) => {
+      const level = this.getUpgradeLevel(upgradeType);
+      
+      if (level > 0) {
+        // Position dots around the tower
+        const angle = (index * 120) * (Math.PI / 180); // 120 degrees apart
+        const distance = this.radius + 8;
+        
+        for (let i = 0; i < level; i++) {
+          const dotDistance = distance + (i * 4);
+          const x = screenPos.x + Math.cos(angle) * dotDistance;
+          const y = screenPos.y + Math.sin(angle) * dotDistance;
+          
+          ctx.beginPath();
+          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          ctx.fillStyle = colors[index] || COLOR_CONFIG.upgradeDots[0];
+          ctx.fill();
+          
+          // Dot outline
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    });
   }
 }

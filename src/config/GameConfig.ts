@@ -1,0 +1,157 @@
+import type { WaveConfig } from '../systems/WaveManager';
+
+// Tower costs - avoid circular dependency by using string keys
+export const TOWER_COSTS = {
+  'BASIC': 20,
+  'SNIPER': 50,
+  'RAPID': 30
+} as const;
+
+// Player stats
+export const BASE_PLAYER_STATS = {
+  damage: 15,
+  speed: 150, // pixels per second
+  fireRate: 2, // shots per second
+  health: 100,
+  radius: 12
+} as const;
+
+// Game mechanics constants
+export const GAME_MECHANICS = {
+  projectileSpeed: 400,
+  towerProjectileSpeed: 300,
+  healAbilityCooldown: 20000, // 20 seconds
+  damageRegenCooldown: 3000, // 3 seconds before regeneration
+  regenInterval: 1000, // Regenerate every second
+} as const;
+
+// Default wave configurations - avoid circular dependency by using string types
+export const DEFAULT_WAVES: WaveConfig[] = [
+  {
+    waveNumber: 1,
+    enemies: [
+      { type: 'BASIC' as any, count: 5, spawnDelay: 1000 }
+    ],
+    startDelay: 2000
+  },
+  {
+    waveNumber: 2,
+    enemies: [
+      { type: 'BASIC' as any, count: 8, spawnDelay: 800 }
+    ],
+    startDelay: 3000
+  },
+  {
+    waveNumber: 3,
+    enemies: [
+      { type: 'BASIC' as any, count: 5, spawnDelay: 1000 },
+      { type: 'FAST' as any, count: 3, spawnDelay: 600 }
+    ],
+    startDelay: 2000
+  },
+  {
+    waveNumber: 4,
+    enemies: [
+      { type: 'BASIC' as any, count: 10, spawnDelay: 600 },
+      { type: 'FAST' as any, count: 5, spawnDelay: 800 }
+    ],
+    startDelay: 2000
+  },
+  {
+    waveNumber: 5,
+    enemies: [
+      { type: 'TANK' as any, count: 3, spawnDelay: 2000 },
+      { type: 'FAST' as any, count: 8, spawnDelay: 400 }
+    ],
+    startDelay: 3000
+  }
+] as const;
+
+// Entity spawn chances
+export const SPAWN_CHANCES = {
+  healthPickup: 0.2, // 20% chance from enemies
+  powerUp: 0.3, // 30% chance from enemies
+  extraCurrencyDrop: 0.1, // 10% chance for extra currency
+} as const;
+
+// Visual/Animation constants
+export const ANIMATION_CONFIG = {
+  bobAmount: 5,
+  bobSpeed: 0.002, // radians per millisecond
+  rotationSpeed: 0.001, // radians per millisecond
+  pulseSpeed: 0.004,
+  cameraSmoothing: 0.25,
+  
+  // PowerUp-specific animations (more dramatic)
+  powerUp: {
+    bobAmount: 8,
+    bobSpeed: 0.003,
+    rotationSpeed: 0.002,
+  },
+} as const;
+
+// Audio positioning and effects
+export const AUDIO_CONFIG = {
+  listenerOffset: { x: 600, y: 400 },
+  spatialFalloff: 1.0,
+  defaultVolume: 0.7
+} as const;
+
+// Upgrade system constants
+export const UPGRADE_CONFIG = {
+  maxLevel: 5,
+  visualIntensityMultiplier: 1.8,
+  visualUpgradeMultiplier: 0.2,
+  levelCalculationDivisor: {
+    player: 4, // Every 4 upgrades = 1 level
+    tower: 3   // Every 3 upgrades = 1 level
+  }
+} as const;
+
+// Currency and rewards
+export const CURRENCY_CONFIG = {
+  powerUpBonus: 50,
+  extraDropMultiplier: 2,
+  baseRewardMultiplier: 5 // For score calculation
+} as const;
+
+// Visual and color constants
+export const COLOR_CONFIG = {
+  health: {
+    high: '#4CAF50',    // >60% health
+    medium: '#FF9800',  // 30-60% health
+    low: '#F44336'      // <30% health
+  },
+  towers: {
+    basic: { hue: 120, saturation: 60 },    // Green
+    sniper: { hue: 210, saturation: 60 },   // Blue
+    rapid: { hue: 35, saturation: 60 }      // Orange
+  },
+  upgradeDots: ['#FF4444', '#44FF44', '#4444FF'], // Red, Green, Blue
+  ui: {
+    currency: '#FFD700',
+    lives: '#FF4444',
+    score: '#4CAF50',
+    wave: '#2196F3'
+  }
+} as const;
+
+// Rendering constants
+export const RENDER_CONFIG = {
+  healthBarWidth: 28,
+  healthBarHeight: 5,
+  upgradeDotRadius: 3,
+  upgradeDotSpacing: 8,
+  aimerLength: 100,
+  gridLineColor: '#333333',
+  pathColor: '#654321',
+  blockedColor: '#444444',
+  obstacleColor: '#666666',
+  ghostOpacity: 0.6,
+  glowBlur: 10,
+  dashPattern: [5, 5],
+  upgradeOutlineThickness: {
+    normal: 2,
+    upgraded: 3
+  }
+} as const;

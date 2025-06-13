@@ -1,6 +1,6 @@
 import { Game } from './core/Game';
 import { TowerType } from './entities/Tower';
-import { UpgradeType } from './systems/TowerUpgradeManager';
+import { UpgradeType } from './entities/Tower';
 import { PlayerUpgradeType } from './entities/Player';
 import { AudioManager, SoundType } from './audio/AudioManager';
 import { ConfigurationMenu } from './ui/ConfigurationMenu';
