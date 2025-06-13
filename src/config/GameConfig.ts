@@ -4,7 +4,8 @@ import type { WaveConfig } from '../systems/WaveManager';
 export const TOWER_COSTS = {
   'BASIC': 20,
   'SNIPER': 50,
-  'RAPID': 30
+  'RAPID': 30,
+  'WALL': 10
 } as const;
 
 // Player stats

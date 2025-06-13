@@ -14,7 +14,8 @@ import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapab
 export enum TowerType {
   BASIC = 'BASIC',
   SNIPER = 'SNIPER',
-  RAPID = 'RAPID'
+  RAPID = 'RAPID',
+  WALL = 'WALL'
 }
 
 export interface TowerStats {
@@ -46,6 +47,13 @@ const TOWER_STATS: Record<TowerType, TowerStats> = {
     fireRate: 4,
     health: 60,
     radius: 15
+  },
+  [TowerType.WALL]: {
+    damage: 0,
+    range: 0,
+    fireRate: 0,
+    health: 200,
+    radius: 16
   }
 };
 
@@ -89,15 +97,27 @@ export class Tower extends Entity implements ShootingCapable {
   }
 
   findTarget(enemies: Enemy[]): Enemy | null {
+    // Walls don't target enemies
+    if (this.towerType === TowerType.WALL) {
+      return null;
+    }
     const inRange = this.findEnemiesInRange(enemies);
     return ShootingUtils.findNearestEnemy(this.position, inRange);
   }
 
   canShoot(): boolean {
+    // Walls can't shoot
+    if (this.towerType === TowerType.WALL) {
+      return false;
+    }
     return ShootingUtils.canShoot(this.currentCooldown);
   }
 
   shoot(target: Enemy): Projectile | null {
+    // Walls can't shoot
+    if (this.towerType === TowerType.WALL) {
+      return null;
+    }
     return ShootingUtils.performShoot(this, target, GAME_MECHANICS.towerProjectileSpeed);
   }
 
@@ -145,6 +165,10 @@ export class Tower extends Entity implements ShootingCapable {
   }
 
   canUpgrade(upgradeType: UpgradeType): boolean {
+    // Walls cannot be upgraded
+    if (this.towerType === TowerType.WALL) {
+      return false;
+    }
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
     return currentLevel < UPGRADE_CONFIG.maxLevel;
   }
@@ -245,6 +269,10 @@ export class Tower extends Entity implements ShootingCapable {
         case TowerType.RAPID:
           ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
           break;
+        case TowerType.WALL:
+          // Walls are gray/stone colored
+          ctx.fillStyle = '#666666';
+          break;
         default:
           ctx.fillStyle = COLOR_CONFIG.health.high;
       }
@@ -257,8 +285,10 @@ export class Tower extends Entity implements ShootingCapable {
       ctx.stroke();
     }
     
-    // Render upgrade dots
-    this.renderUpgradeDots(ctx, screenPos);
+    // Render upgrade dots (not for walls)
+    if (this.towerType !== TowerType.WALL) {
+      this.renderUpgradeDots(ctx, screenPos);
+    }
   }
 
   private renderUpgradeDots(ctx: CanvasRenderingContext2D, screenPos: Vector2): void {

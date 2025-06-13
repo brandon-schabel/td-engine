@@ -7,6 +7,7 @@ import { ConfigurationMenu } from './ui/ConfigurationMenu';
 import { TouchInputSystem } from './ui/core/TouchInputSystem';
 import type { GameConfiguration, MapConfiguration } from './config/GameConfiguration';
 import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty } from './types/MapData';
+import { createSvgIcon, IconType } from './ui/icons/SvgIcons';
 
 // Get canvas element
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -219,8 +220,12 @@ function addTouchUIIndicators() {
     pointer-events: none;
     text-align: center;
   `;
+  const touchIcon = createSvgIcon(IconType.TOUCH, { size: 20 });
   touchHints.innerHTML = `
-    <div>📱 Touch Controls Active</div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      ${touchIcon}
+      <span>Touch Controls Active</span>
+    </div>
     <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">
       Tap: Select • Double Tap: Pause • Long Press: Info
     </div>
@@ -271,6 +276,10 @@ document.addEventListener('keydown', (e) => {
     case '3':
       audioManager.playUISound(SoundType.SELECT);
       game.setSelectedTowerType(TowerType.RAPID);
+      break;
+    case '4':
+      audioManager.playUISound(SoundType.SELECT);
+      game.setSelectedTowerType(TowerType.WALL);
       break;
     case 'Escape':
       audioManager.playUISound(SoundType.DESELECT);
@@ -335,19 +344,26 @@ function setupGameUI() {
     z-index: 1000;
     pointer-events: none;
   `;
+  const keyboardIcon = createSvgIcon(IconType.KEYBOARD, { size: 16 });
+  const mouseIcon = createSvgIcon(IconType.MOUSE, { size: 16 });
   instructions.innerHTML = `
-    <div><strong>Controls:</strong></div>
+    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+      ${keyboardIcon}
+      <strong>Controls:</strong>
+    </div>
     <div>WASD/Arrows - Move Player</div>
     <div>U - Toggle Player Upgrades</div>
     <div>1 - Basic Tower ($20)</div>
     <div>2 - Sniper Tower ($50)</div>
     <div>3 - Rapid Tower ($30)</div>
+    <div>4 - Wall ($10)</div>
     <div>Enter - Start Next Wave</div>
     <div>Space - Pause/Resume</div>
     <div>ESC - Cancel Selection</div>
     <div>Q - Stop All Audio</div>
-    <div style="margin-top: 8px; font-size: 12px; color: #FFD700;">
-      <strong>🔊 Click audio icon for settings</strong>
+    <div style="margin-top: 8px; font-size: 12px; color: #FFD700; display: flex; align-items: center; gap: 6px;">
+      ${mouseIcon}
+      <strong>Click audio icon for settings</strong>
     </div>
   `;
   gameContainer.appendChild(instructions);
@@ -361,22 +377,68 @@ function setupGameUI() {
     min-width: 200px;
   `;
 
+  // Create collapsible header
+  const menuHeader = document.createElement('div');
+  menuHeader.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+    user-select: none;
+  `;
+
+  const menuTitle = document.createElement('div');
+  menuTitle.textContent = 'Build Menu';
+  menuTitle.style.cssText = 'font-weight: bold; color: #4CAF50;';
+
+  const collapseButton = document.createElement('button');
+  collapseButton.className = 'ui-button icon-only';
+  collapseButton.style.cssText = `
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #4CAF50;
+    color: #4CAF50;
+  `;
+  const collapseIcon = createSvgIcon(IconType.COLLAPSE, { size: 16 });
+  collapseButton.innerHTML = collapseIcon;
+
+  menuHeader.appendChild(menuTitle);
+  menuHeader.appendChild(collapseButton);
+  mainMenuPanel.appendChild(menuHeader);
+
+  // Create collapsible content container
+  const menuContent = document.createElement('div');
+  menuContent.style.cssText = 'overflow: hidden; transition: max-height 0.3s ease-out;';
+  menuContent.style.maxHeight = '500px';
+
   // Tower building section
   const towerSectionTitle = document.createElement('div');
   towerSectionTitle.textContent = 'Build Towers';
   towerSectionTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #4CAF50;';
-  mainMenuPanel.appendChild(towerSectionTitle);
+  menuContent.appendChild(towerSectionTitle);
 
   const towerButtonRow = document.createElement('div');
   towerButtonRow.className = 'button-row';
 
   const createTowerButton = (name: string, type: TowerType, cost: number) => {
     const button = document.createElement('button');
-    button.className = 'ui-button tower-button';
-    button.textContent = `${name}\n$${cost}`;
+    button.className = 'ui-button tower-button has-icon';
+    
+    // Map tower types to icons
+    const iconMap: Record<TowerType, IconType> = {
+      [TowerType.BASIC]: IconType.BASIC_TOWER,
+      [TowerType.SNIPER]: IconType.SNIPER_TOWER,
+      [TowerType.RAPID]: IconType.RAPID_TOWER,
+      [TowerType.WALL]: IconType.WALL
+    };
+    
+    const icon = createSvgIcon(iconMap[type], { size: 20 });
+    button.innerHTML = `${icon}<span class="button-text">${name}<br>$${cost}</span>`;
     button.style.minWidth = '60px';
     button.style.height = '45px';
-    button.style.whiteSpace = 'pre-line';
     button.style.fontSize = '10px';
     
     button.addEventListener('click', () => {
@@ -411,12 +473,13 @@ function setupGameUI() {
   towerButtonRow.appendChild(basicTowerBtn);
   towerButtonRow.appendChild(sniperTowerBtn);
   towerButtonRow.appendChild(rapidTowerBtn);
-  mainMenuPanel.appendChild(towerButtonRow);
+  menuContent.appendChild(towerButtonRow);
 
   // Cancel selection button
   const cancelButton = document.createElement('button');
-  cancelButton.className = 'ui-button close-button';
-  cancelButton.textContent = 'Cancel (ESC)';
+  cancelButton.className = 'ui-button close-button has-icon';
+  const cancelIcon = createSvgIcon(IconType.CANCEL, { size: 16 });
+  cancelButton.innerHTML = `${cancelIcon}<span class="button-text">Cancel (ESC)</span>`;
   cancelButton.style.width = '100%';
   cancelButton.style.marginBottom = '8px';
   cancelButton.addEventListener('click', () => {
@@ -428,23 +491,23 @@ function setupGameUI() {
     game.setSelectedTowerType(null);
     audioManager.playUISound(SoundType.DESELECT);
   });
-  mainMenuPanel.appendChild(cancelButton);
+  menuContent.appendChild(cancelButton);
 
   // Game actions section
   const actionSectionTitle = document.createElement('div');
   actionSectionTitle.textContent = 'Game Actions';
   actionSectionTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #2196F3; margin-top: 12px;';
-  mainMenuPanel.appendChild(actionSectionTitle);
+  menuContent.appendChild(actionSectionTitle);
 
   const actionButtonRow = document.createElement('div');
   actionButtonRow.className = 'button-row';
 
   // Start wave button
   const startWaveButton = document.createElement('button');
-  startWaveButton.className = 'ui-button action-button';
-  startWaveButton.textContent = 'Start\nWave';
+  startWaveButton.className = 'ui-button action-button has-icon';
+  const playIcon = createSvgIcon(IconType.PLAY, { size: 20 });
+  startWaveButton.innerHTML = `${playIcon}<span class="button-text">Start<br>Wave</span>`;
   startWaveButton.style.flex = '1';
-  startWaveButton.style.whiteSpace = 'pre-line';
   startWaveButton.style.height = '45px';
   startWaveButton.style.fontSize = '10px';
   startWaveButton.addEventListener('click', () => {
@@ -457,10 +520,10 @@ function setupGameUI() {
 
   // Player upgrades button
   const playerUpgradeButton = document.createElement('button');
-  playerUpgradeButton.className = 'ui-button upgrade-button';
-  playerUpgradeButton.textContent = 'Player\nUpgrades';
+  playerUpgradeButton.className = 'ui-button upgrade-button has-icon';
+  const playerIcon = createSvgIcon(IconType.PLAYER, { size: 20 });
+  playerUpgradeButton.innerHTML = `${playerIcon}<span class="button-text">Player<br>Upgrades</span>`;
   playerUpgradeButton.style.flex = '1';
-  playerUpgradeButton.style.whiteSpace = 'pre-line';
   playerUpgradeButton.style.height = '45px';
   playerUpgradeButton.style.fontSize = '10px';
   playerUpgradeButton.addEventListener('click', () => {
@@ -470,7 +533,30 @@ function setupGameUI() {
   });
   actionButtonRow.appendChild(playerUpgradeButton);
 
-  mainMenuPanel.appendChild(actionButtonRow);
+  menuContent.appendChild(actionButtonRow);
+  mainMenuPanel.appendChild(menuContent);
+
+  // Toggle collapse functionality
+  let isCollapsed = false;
+  const toggleCollapse = () => {
+    isCollapsed = !isCollapsed;
+    if (isCollapsed) {
+      menuContent.style.maxHeight = '0';
+      const expandIcon = createSvgIcon(IconType.EXPAND, { size: 16 });
+      collapseButton.innerHTML = expandIcon;
+      mainMenuPanel.style.minWidth = '120px';
+    } else {
+      menuContent.style.maxHeight = '500px';
+      const collapseIcon = createSvgIcon(IconType.COLLAPSE, { size: 16 });
+      collapseButton.innerHTML = collapseIcon;
+      mainMenuPanel.style.minWidth = '200px';
+    }
+  };
+
+  menuHeader.addEventListener('click', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
+    toggleCollapse();
+  });
 
   gameContainer.appendChild(mainMenuPanel);
 
@@ -496,7 +582,7 @@ function setupGameUI() {
 
   const createUpgradeButton = (_name: string, type: UpgradeType) => {
     const button = document.createElement('button');
-    button.className = 'ui-button tower-button';
+    button.className = 'ui-button tower-button has-icon';
     button.style.cssText = `
       display: block;
       width: 100%;
@@ -544,8 +630,9 @@ function setupGameUI() {
   upgradeContainer.appendChild(fireRateUpgradeBtn);
 
   const closeUpgradeBtn = document.createElement('button');
-  closeUpgradeBtn.className = 'ui-button close-button';
-  closeUpgradeBtn.textContent = 'Close';
+  closeUpgradeBtn.className = 'ui-button close-button has-icon';
+  const closeIcon = createSvgIcon(IconType.CLOSE, { size: 14 });
+  closeUpgradeBtn.innerHTML = `${closeIcon}<span class="button-text">Close</span>`;
   closeUpgradeBtn.style.cssText = `
     display: block;
     width: 100%;
@@ -573,7 +660,7 @@ function setupGameUI() {
 
   const createPlayerUpgradeButton = (_name: string, type: PlayerUpgradeType) => {
     const button = document.createElement('button');
-    button.className = 'ui-button action-button';
+    button.className = 'ui-button action-button has-icon';
     button.style.cssText = `
       display: block;
       width: 100%;
@@ -619,8 +706,9 @@ function setupGameUI() {
   playerTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #4CAF50;';
 
   const closePlayerUpgradeBtn = document.createElement('button');
-  closePlayerUpgradeBtn.className = 'ui-button close-button';
-  closePlayerUpgradeBtn.textContent = 'Close';
+  closePlayerUpgradeBtn.className = 'ui-button close-button has-icon';
+  const closePlayerIcon = createSvgIcon(IconType.CLOSE, { size: 14 });
+  closePlayerUpgradeBtn.innerHTML = `${closePlayerIcon}<span class="button-text">Close</span>`;
   closePlayerUpgradeBtn.style.cssText = `
     display: block;
     width: 100%;
@@ -643,15 +731,14 @@ function setupGameUI() {
 
   // Add compact audio button
   const audioButton = document.createElement('button');
-  audioButton.className = 'ui-button';
+  audioButton.className = 'ui-button icon-only';
   audioButton.style.cssText = `
     position: absolute;
-    top: 12px;
-    left: 12px;
+    bottom: 12px;
+    right: 12px;
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    font-size: 16px;
     background: rgba(0, 0, 0, 0.8);
     border: 2px solid #FFD700;
     color: #FFD700;
@@ -661,15 +748,16 @@ function setupGameUI() {
     cursor: pointer;
     z-index: 1001;
   `;
-  audioButton.textContent = '🔊';
+  const audioIcon = createSvgIcon(IconType.AUDIO_ON, { size: 20 });
+  audioButton.innerHTML = audioIcon;
   audioButton.title = 'Audio Settings';
 
   // Create expandable audio panel (initially hidden)
   const audioControlsPanel = document.createElement('div');
   audioControlsPanel.className = 'ui-panel';
   audioControlsPanel.style.cssText = `
-    top: 60px;
-    left: 12px;
+    bottom: 60px;
+    right: 12px;
     min-width: 150px;
     font-size: 12px;
     display: none;
@@ -722,13 +810,15 @@ function setupGameUI() {
     muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
     volumeSlider.disabled = isMuted;
     // Update audio button icon
-    audioButton.textContent = isMuted ? '🔇' : '🔊';
+    const newIcon = createSvgIcon(isMuted ? IconType.AUDIO_OFF : IconType.AUDIO_ON, { size: 20 });
+    audioButton.innerHTML = newIcon;
   });
 
   // Close button for audio panel
   const closeAudioPanelButton = document.createElement('button');
-  closeAudioPanelButton.className = 'ui-button close-button';
-  closeAudioPanelButton.textContent = 'Close';
+  closeAudioPanelButton.className = 'ui-button close-button has-icon';
+  const closeAudioIcon = createSvgIcon(IconType.CLOSE, { size: 14 });
+  closeAudioPanelButton.innerHTML = `${closeAudioIcon}<span class="button-text">Close</span>`;
   closeAudioPanelButton.style.cssText = `
     width: 100%;
     margin-top: 8px;
@@ -778,7 +868,8 @@ function setupGameUI() {
       const damageLevel = selectedTower.getUpgradeLevel(UpgradeType.DAMAGE);
       const canUpgradeDamage = selectedTower.canUpgrade(UpgradeType.DAMAGE) && game.canAffordUpgrade(selectedTower, UpgradeType.DAMAGE);
       
-      damageUpgradeBtn.textContent = `Damage Lv.${damageLevel}/5 (${damageCost > 0 ? `$${damageCost}` : 'MAX'})`;
+      const damageIcon = createSvgIcon(IconType.DAMAGE, { size: 16 });
+      damageUpgradeBtn.innerHTML = `${damageIcon}<span class="button-text">Damage Lv.${damageLevel}/5 (${damageCost > 0 ? `$${damageCost}` : 'MAX'})</span>`;
       damageUpgradeBtn.style.background = canUpgradeDamage ? '#4CAF50' : '#666';
       damageUpgradeBtn.disabled = !canUpgradeDamage;
       
@@ -787,7 +878,8 @@ function setupGameUI() {
       const rangeLevel = selectedTower.getUpgradeLevel(UpgradeType.RANGE);
       const canUpgradeRange = selectedTower.canUpgrade(UpgradeType.RANGE) && game.canAffordUpgrade(selectedTower, UpgradeType.RANGE);
       
-      rangeUpgradeBtn.textContent = `Range Lv.${rangeLevel}/5 (${rangeCost > 0 ? `$${rangeCost}` : 'MAX'})`;
+      const rangeIcon = createSvgIcon(IconType.RANGE, { size: 16 });
+      rangeUpgradeBtn.innerHTML = `${rangeIcon}<span class="button-text">Range Lv.${rangeLevel}/5 (${rangeCost > 0 ? `$${rangeCost}` : 'MAX'})</span>`;
       rangeUpgradeBtn.style.background = canUpgradeRange ? '#4CAF50' : '#666';
       rangeUpgradeBtn.disabled = !canUpgradeRange;
       
@@ -796,7 +888,8 @@ function setupGameUI() {
       const fireRateLevel = selectedTower.getUpgradeLevel(UpgradeType.FIRE_RATE);
       const canUpgradeFireRate = selectedTower.canUpgrade(UpgradeType.FIRE_RATE) && game.canAffordUpgrade(selectedTower, UpgradeType.FIRE_RATE);
       
-      fireRateUpgradeBtn.textContent = `Fire Rate Lv.${fireRateLevel}/5 (${fireRateCost > 0 ? `$${fireRateCost}` : 'MAX'})`;
+      const fireRateIcon = createSvgIcon(IconType.FIRE_RATE, { size: 16 });
+      fireRateUpgradeBtn.innerHTML = `${fireRateIcon}<span class="button-text">Fire Rate Lv.${fireRateLevel}/5 (${fireRateCost > 0 ? `$${fireRateCost}` : 'MAX'})</span>`;
       fireRateUpgradeBtn.style.background = canUpgradeFireRate ? '#4CAF50' : '#666';
       fireRateUpgradeBtn.disabled = !canUpgradeFireRate;
     } else {
@@ -818,7 +911,8 @@ function setupGameUI() {
     const damageLevel = player.getUpgradeLevel(PlayerUpgradeType.DAMAGE);
     const canUpgradeDamage = player.canUpgrade(PlayerUpgradeType.DAMAGE) && game.canAffordPlayerUpgrade(PlayerUpgradeType.DAMAGE);
     
-    playerDamageUpgradeBtn.textContent = `Damage Lv.${damageLevel}/5 (${damageCost > 0 ? `$${damageCost}` : 'MAX'})`;
+    const playerDamageIcon = createSvgIcon(IconType.DAMAGE, { size: 16 });
+    playerDamageUpgradeBtn.innerHTML = `${playerDamageIcon}<span class="button-text">Damage Lv.${damageLevel}/5 (${damageCost > 0 ? `$${damageCost}` : 'MAX'})</span>`;
     playerDamageUpgradeBtn.style.background = canUpgradeDamage ? '#2196F3' : '#666';
     playerDamageUpgradeBtn.disabled = !canUpgradeDamage;
     
@@ -827,7 +921,8 @@ function setupGameUI() {
     const speedLevel = player.getUpgradeLevel(PlayerUpgradeType.SPEED);
     const canUpgradeSpeed = player.canUpgrade(PlayerUpgradeType.SPEED) && game.canAffordPlayerUpgrade(PlayerUpgradeType.SPEED);
     
-    playerSpeedUpgradeBtn.textContent = `Speed Lv.${speedLevel}/5 (${speedCost > 0 ? `$${speedCost}` : 'MAX'})`;
+    const speedIcon = createSvgIcon(IconType.SPEED, { size: 16 });
+    playerSpeedUpgradeBtn.innerHTML = `${speedIcon}<span class="button-text">Speed Lv.${speedLevel}/5 (${speedCost > 0 ? `$${speedCost}` : 'MAX'})</span>`;
     playerSpeedUpgradeBtn.style.background = canUpgradeSpeed ? '#2196F3' : '#666';
     playerSpeedUpgradeBtn.disabled = !canUpgradeSpeed;
     
@@ -836,7 +931,8 @@ function setupGameUI() {
     const fireRateLevel = player.getUpgradeLevel(PlayerUpgradeType.FIRE_RATE);
     const canUpgradeFireRate = player.canUpgrade(PlayerUpgradeType.FIRE_RATE) && game.canAffordPlayerUpgrade(PlayerUpgradeType.FIRE_RATE);
     
-    playerFireRateUpgradeBtn.textContent = `Fire Rate Lv.${fireRateLevel}/5 (${fireRateCost > 0 ? `$${fireRateCost}` : 'MAX'})`;
+    const playerFireRateIcon = createSvgIcon(IconType.FIRE_RATE, { size: 16 });
+    playerFireRateUpgradeBtn.innerHTML = `${playerFireRateIcon}<span class="button-text">Fire Rate Lv.${fireRateLevel}/5 (${fireRateCost > 0 ? `$${fireRateCost}` : 'MAX'})</span>`;
     playerFireRateUpgradeBtn.style.background = canUpgradeFireRate ? '#2196F3' : '#666';
     playerFireRateUpgradeBtn.disabled = !canUpgradeFireRate;
     
@@ -845,7 +941,8 @@ function setupGameUI() {
     const healthLevel = player.getUpgradeLevel(PlayerUpgradeType.HEALTH);
     const canUpgradeHealth = player.canUpgrade(PlayerUpgradeType.HEALTH) && game.canAffordPlayerUpgrade(PlayerUpgradeType.HEALTH);
     
-    playerHealthUpgradeBtn.textContent = `Health Lv.${healthLevel}/5 (${healthCost > 0 ? `$${healthCost}` : 'MAX'})`;
+    const healthIcon = createSvgIcon(IconType.HEALTH, { size: 16 });
+    playerHealthUpgradeBtn.innerHTML = `${healthIcon}<span class="button-text">Health Lv.${healthLevel}/5 (${healthCost > 0 ? `$${healthCost}` : 'MAX'})</span>`;
     playerHealthUpgradeBtn.style.background = canUpgradeHealth ? '#2196F3' : '#666';
     playerHealthUpgradeBtn.disabled = !canUpgradeHealth;
   };

@@ -59,10 +59,10 @@ const COLLECTIBLE_CONFIGS: Record<CollectibleType, CollectibleConfig> = {
     color: '#2196F3',
     duration: 15000, // 15 seconds
     effect: (player: Player) => {
-      player.activateShield();
+      player.addShield();
     },
     cleanup: (player: Player) => {
-      player.deactivateShield();
+      player.removeShield();
     }
   },
   [CollectibleType.SPEED_BOOST]: {

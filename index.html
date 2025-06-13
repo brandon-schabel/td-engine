@@ -86,6 +86,61 @@
       color: white;
     }
     
+    /* SVG Icon Styles */
+    .svg-icon {
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    
+    .icon-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .button-icon {
+      margin-right: 6px;
+      vertical-align: middle;
+      transition: transform 0.2s ease;
+    }
+    
+    .button-text {
+      vertical-align: middle;
+    }
+    
+    .ui-button.has-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .ui-button.has-icon:hover .button-icon {
+      transform: scale(1.1);
+    }
+    
+    .ui-button.icon-only {
+      padding: 8px;
+    }
+    
+    .ui-button.icon-only .button-icon {
+      margin: 0;
+    }
+    
+    /* Color variants */
+    .tower-button .svg-icon,
+    .action-button .svg-icon,
+    .upgrade-button .svg-icon,
+    .close-button .svg-icon {
+      color: white;
+    }
+    
+    /* Disabled state */
+    .ui-button:disabled .svg-icon {
+      opacity: 0.5;
+    }
+    
     /* Configuration Menu Styles */
     .configuration-menu {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

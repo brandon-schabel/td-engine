@@ -1500,6 +1500,9 @@ export class Renderer {
         case TowerType.RAPID:
           this.ctx.fillStyle = '#FFB74D'; // Light orange
           break;
+        case TowerType.WALL:
+          this.ctx.fillStyle = '#9E9E9E'; // Light gray
+          break;
       }
     } else {
       // Red tint for invalid placement

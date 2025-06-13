@@ -27,7 +27,8 @@ interface TowerInfo {
 const TOWER_COSTS = {
   BASIC: 100,
   SNIPER: 200,
-  RAPID: 150
+  RAPID: 150,
+  WALL: 50
 };
 
 export class TowerSelectionPanel extends GameComponent<GameComponentProps, TowerSelectionState> {
@@ -57,6 +58,13 @@ export class TowerSelectionPanel extends GameComponent<GameComponentProps, Tower
       cost: TOWER_COSTS.RAPID,
       shortcut: '3',
       description: 'Fast fire rate, lower damage'
+    },
+    {
+      type: 'WALL' as TowerType,
+      name: 'Wall',
+      cost: TOWER_COSTS.WALL,
+      shortcut: '4',
+      description: 'Blocks enemy movement'
     }
   ];
   
@@ -144,7 +152,7 @@ export class TowerSelectionPanel extends GameComponent<GameComponentProps, Tower
     // Tower buttons container
     const TowerButtonsContainer = styled.div`
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: ${(props: { theme: any }) => props.theme.spacing.sm};
       margin-bottom: ${(props: { theme: any }) => props.theme.spacing.md};
     `;

@@ -473,8 +473,12 @@ export class Game {
     const tower = new Tower(towerType, worldPosition);
     this.towers.push(tower);
     
-    // Update grid
-    this.grid.setCellType(gridPos.x, gridPos.y, CellType.TOWER);
+    // Update grid - walls are obstacles, other towers are towers
+    if (towerType === TowerType.WALL) {
+      this.grid.setCellType(gridPos.x, gridPos.y, CellType.OBSTACLE);
+    } else {
+      this.grid.setCellType(gridPos.x, gridPos.y, CellType.TOWER);
+    }
     
     // Spend currency
     this.spendCurrency(cost);
