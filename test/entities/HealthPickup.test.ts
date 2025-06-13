@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { HealthPickup } from '../../src/entities/HealthPickup';
-import { Player } from '../../src/entities/Player';
-import { EntityType } from '../../src/entities/Entity';
+import { HealthPickup } from '@/entities/HealthPickup';
+import { Player } from '@/entities/Player';
+import { EntityType } from '@/entities/Entity';
 
 describe('HealthPickup Entity', () => {
   let healthPickup: HealthPickup;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { MapGenerator } from '../../src/systems/MapGenerator';
-import { BiomeType, MapDifficulty, DecorationLevel, MapSize, MAP_SIZE_PRESETS } from '../../src/types/MapData';
-import type { MapGenerationConfig } from '../../src/types/MapData';
+import { MapGenerator } from '@/systems/MapGenerator';
+import { BiomeType, MapDifficulty, DecorationLevel, MapSize, MAP_SIZE_PRESETS } from '@/types/MapData';
+import type { MapGenerationConfig } from '@/types/MapData';
 
 describe('Map Generation Comparison Demo', () => {
   it('should show improvement from old vs new default configuration', () => {

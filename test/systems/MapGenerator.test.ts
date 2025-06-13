@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MapGenerator } from '../../src/systems/MapGenerator';
-import { BiomeType, MapDifficulty, DecorationLevel } from '../../src/types/MapData';
-import type { MapGenerationConfig } from '../../src/types/MapData';
+import { MapGenerator } from '@/systems/MapGenerator';
+import { BiomeType, MapDifficulty, DecorationLevel } from '@/types/MapData';
+import type { MapGenerationConfig } from '@/types/MapData';
 
 describe('MapGenerator', () => {
   let mapGenerator: MapGenerator;

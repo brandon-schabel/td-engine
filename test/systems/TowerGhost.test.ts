@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Game } from '../../src/core/Game';
-import { TowerType } from '../../src/entities/Tower';
+import { Game } from '@/core/Game';
+import { TowerType } from '@/entities/Tower';
 
 // Mock canvas and context
 const mockCanvas = {
@@ -20,6 +20,7 @@ const mockCanvas = {
     save: vi.fn(),
     restore: vi.fn(),
     fillText: vi.fn(),
+    drawImage: vi.fn(),
     set fillStyle(value: string) {},
     set strokeStyle(value: string) {},
     set lineWidth(value: number) {},
@@ -99,13 +100,35 @@ describe('Tower Ghost System', () => {
       const initialCurrency = game.getCurrency();
       const basicTowerCost = game.getTowerCost(TowerType.BASIC);
       
-      // Place enough towers to drain currency
-      const towersToPlace = Math.floor(initialCurrency / basicTowerCost);
-      for (let i = 0; i < towersToPlace; i++) {
-        game.placeTower(TowerType.BASIC, { x: 100 + i * 50, y: 100 });
+      // Place towers until we can't afford any more
+      let placedTowers = 0;
+      // Generate many positions to ensure we can drain all currency
+      const positions: Array<{x: number, y: number}> = [];
+      for (let x = 50; x < 750; x += 100) {
+        for (let y = 50; y < 550; y += 100) {
+          positions.push({ x, y });
+        }
       }
       
-      // Should not be able to afford another tower
+      // Keep placing towers until we run out of money
+      for (const pos of positions) {
+        if (game.getCurrency() >= basicTowerCost) {
+          const placed = game.placeTower(TowerType.BASIC, pos);
+          if (placed) {
+            placedTowers++;
+          }
+        } else {
+          // We've run out of money
+          break;
+        }
+      }
+      
+      // Verify we placed at least one tower
+      expect(placedTowers).toBeGreaterThan(0);
+      
+      // Verify we can't afford another tower
+      const finalCurrency = game.getCurrency();
+      expect(finalCurrency).toBeLessThan(basicTowerCost);
       expect(game.canAffordTower(TowerType.BASIC)).toBe(false);
     });
   });

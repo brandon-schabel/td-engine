@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TabManager, type TabManagerEvents } from '../../../src/ui/components/TabManager';
+import { TabManager, type TabManagerEvents } from '@/ui/components/TabManager';
+import { setupMockDOM } from '../dom-test-utils';
 
 describe('TabManager', () => {
   let container: HTMLDivElement;
@@ -7,6 +8,7 @@ describe('TabManager', () => {
   let tabManager: TabManager;
 
   beforeEach(() => {
+    setupMockDOM();
     container = document.createElement('div');
     mockEvents = {
       onTabChange: vi.fn()
@@ -21,7 +23,7 @@ describe('TabManager', () => {
     // First tab (presets) should be active by default
     const firstTab = tabButtons[0] as HTMLButtonElement;
     expect(firstTab.innerHTML).toContain('🚀 Quick Start');
-    expect(firstTab.style.color).toBe('rgb(76, 175, 80)'); // #4CAF50
+    expect(firstTab.style.color).toBe('#4CAF50'); // Green color for active tab
   });
 
   it('should switch tabs when clicked', () => {
@@ -82,14 +84,24 @@ describe('TabManager', () => {
     const tabButtons = container.querySelectorAll('.tab-button');
     const inactiveTab = tabButtons[1] as HTMLButtonElement; // Map tab (inactive)
     
-    // Simulate mouse enter
-    const mouseEnterEvent = new MouseEvent('mouseenter');
+    // Simulate mouse enter using object literal
+    const mouseEnterEvent = {
+      type: 'mouseenter',
+      target: inactiveTab,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn()
+    };
     inactiveTab.dispatchEvent(mouseEnterEvent);
     
-    expect(inactiveTab.style.background).toBe('rgb(42, 42, 42)'); // #2a2a2a
+    expect(inactiveTab.style.background).toBe('#2a2a2a');
     
-    // Simulate mouse leave
-    const mouseLeaveEvent = new MouseEvent('mouseleave');
+    // Simulate mouse leave using object literal
+    const mouseLeaveEvent = {
+      type: 'mouseleave',
+      target: inactiveTab,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn()
+    };
     inactiveTab.dispatchEvent(mouseLeaveEvent);
     
     expect(inactiveTab.style.background).toBe('transparent');

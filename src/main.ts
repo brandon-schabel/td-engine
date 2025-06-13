@@ -4,6 +4,7 @@ import { UpgradeType } from './entities/Tower';
 import { PlayerUpgradeType } from './entities/Player';
 import { AudioManager, SoundType } from './audio/AudioManager';
 import { ConfigurationMenu } from './ui/ConfigurationMenu';
+import { TouchInputSystem } from './ui/core/TouchInputSystem';
 import type { GameConfiguration, MapConfiguration } from './config/GameConfiguration';
 import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty } from './types/MapData';
 
@@ -20,6 +21,7 @@ canvas.height = 800;
 // Global variables for game initialization
 let game: Game;
 let gameInitialized = false;
+let touchInputSystem: TouchInputSystem | null = null;
 const audioManager = new AudioManager();
 
 // Convert MapConfiguration to MapGenerationConfig
@@ -83,18 +85,156 @@ let playerUpgradeContainer: HTMLDivElement;
 let updatePlayerUpgradePanel: () => void;
 
 function setupGameHandlers() {
-  // Add mouse event handlers
-  canvas.addEventListener('mousedown', (e) => {
-    if (gameInitialized) game.handleMouseDown(e);
-  });
+  // Detect if device supports touch
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  if (isTouchDevice) {
+    // Initialize TouchInputSystem for touch devices
+    touchInputSystem = new TouchInputSystem({
+      canvas,
+      game,
+      enableVirtualControls: true,
+      enableGestures: true,
+      hapticFeedback: true
+    });
+    
+    // Handle virtual control events
+    touchInputSystem.on('virtualcontrol', (event) => {
+      handleVirtualControlEvent(event);
+    });
+    
+    // Handle touch gestures
+    touchInputSystem.on('tap', (event) => {
+      audioManager.playUISound(SoundType.SELECT);
+    });
+    
+    touchInputSystem.on('doubletap', (event) => {
+      // Double tap to pause/resume
+      if (game.isPaused()) {
+        game.resume();
+      } else {
+        game.pause();
+      }
+    });
+    
+    touchInputSystem.on('press', (event) => {
+      // Long press for special actions (e.g., tower info)
+      audioManager.playUISound(SoundType.HOVER);
+    });
+    
+    // Add touch-friendly UI indicators
+    addTouchUIIndicators();
+    
+  } else {
+    // Fallback to traditional mouse events for desktop
+    canvas.addEventListener('mousedown', (e) => {
+      if (gameInitialized) game.handleMouseDown(e);
+    });
 
-  canvas.addEventListener('mouseup', (e) => {
-    if (gameInitialized) game.handleMouseUp(e);
-  });
+    canvas.addEventListener('mouseup', (e) => {
+      if (gameInitialized) game.handleMouseUp(e);
+    });
 
-  canvas.addEventListener('mousemove', (e) => {
-    if (gameInitialized) game.handleMouseMove(e);
-  });
+    canvas.addEventListener('mousemove', (e) => {
+      if (gameInitialized) game.handleMouseMove(e);
+    });
+  }
+}
+
+function handleVirtualControlEvent(event: any) {
+  if (!gameInitialized) return;
+  
+  switch (event.type) {
+    case 'joystick':
+      if (event.action === 'move') {
+        // Convert joystick input to WASD keys
+        const { direction, magnitude } = event.data;
+        if (magnitude > 0.1) {
+          const angle = direction;
+          const threshold = Math.PI / 4; // 45 degrees
+          
+          // Determine primary direction
+          if (angle >= -threshold && angle <= threshold) {
+            game.handleKeyDown('d'); // Right
+          } else if (angle >= threshold && angle <= 3 * threshold) {
+            game.handleKeyDown('s'); // Down
+          } else if (angle >= 3 * threshold || angle <= -3 * threshold) {
+            game.handleKeyDown('a'); // Left
+          } else {
+            game.handleKeyDown('w'); // Up
+          }
+        }
+      }
+      break;
+      
+    case 'button':
+      switch (event.data.button) {
+        case 'shoot':
+          // Handle shooting button
+          if (event.action === 'start') {
+            // Simulate mouse down at center of screen for shooting
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const mouseEvent = new MouseEvent('mousedown', {
+              clientX: centerX,
+              clientY: centerY,
+              button: 0
+            });
+            Object.defineProperty(mouseEvent, 'offsetX', { value: centerX });
+            Object.defineProperty(mouseEvent, 'offsetY', { value: centerY });
+            game.handleMouseDown(mouseEvent);
+          } else if (event.action === 'end') {
+            const mouseEvent = new MouseEvent('mouseup', { button: 0 });
+            game.handleMouseUp(mouseEvent);
+          }
+          break;
+          
+        case 'pause':
+          if (game.isPaused()) {
+            game.resume();
+          } else {
+            game.pause();
+          }
+          break;
+      }
+      break;
+  }
+}
+
+function addTouchUIIndicators() {
+  // Add visual indicators for touch interactions
+  const touchHints = document.createElement('div');
+  touchHints.style.cssText = `
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    z-index: 1000;
+    pointer-events: none;
+    text-align: center;
+  `;
+  touchHints.innerHTML = `
+    <div>📱 Touch Controls Active</div>
+    <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">
+      Tap: Select • Double Tap: Pause • Long Press: Info
+    </div>
+  `;
+  document.body.appendChild(touchHints);
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    if (touchHints.parentNode) {
+      touchHints.style.opacity = '0';
+      touchHints.style.transition = 'opacity 1s ease';
+      setTimeout(() => touchHints.remove(), 1000);
+    }
+  }, 5000);
 }
 
 // Add keyboard controls

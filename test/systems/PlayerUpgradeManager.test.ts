@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Player, PlayerUpgradeType } from '../../src/entities/Player';
-import { PlayerUpgradeManager } from '../../src/systems/PlayerUpgradeManager';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
+import { PlayerUpgradeManager } from '@/systems/PlayerUpgradeManager';
 
 describe('PlayerUpgradeManager', () => {
   let player: Player;

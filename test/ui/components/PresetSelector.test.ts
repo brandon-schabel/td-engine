@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PresetSelector, type PresetSelectorEvents } from '../../../src/ui/components/PresetSelector';
+import { PresetSelector, type PresetSelectorEvents } from '@/ui/components/PresetSelector';
+import { setupMockDOM } from '../dom-test-utils';
 
 describe('PresetSelector', () => {
   let container: HTMLDivElement;
@@ -7,19 +8,37 @@ describe('PresetSelector', () => {
   let presetSelector: PresetSelector;
 
   beforeEach(() => {
+    setupMockDOM();
+    
+    // Mock localStorage for this test
+    global.localStorage = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(() => null)
+    } as any;
+    
     container = document.createElement('div');
     mockEvents = {
       onPresetSelected: vi.fn(),
       onConfigurationSaved: vi.fn(),
       onConfigurationLoaded: vi.fn()
     };
-    presetSelector = new PresetSelector(container, mockEvents);
+    
+    try {
+      presetSelector = new PresetSelector(container, mockEvents);
+    } catch (error) {
+      console.error('PresetSelector constructor failed:', error);
+      throw error;
+    }
   });
 
   it('should render header section with title and description', () => {
     const title = container.querySelector('h2');
     expect(title?.textContent).toBe('Quick Start Presets');
-    expect(title?.style.color).toBe('rgb(76, 175, 80)'); // #4CAF50
+    expect(title?.style.color).toBe('#4CAF50'); // Green color
 
     const description = container.querySelector('p');
     expect(description?.textContent).toContain('Choose a preset configuration');
@@ -56,8 +75,8 @@ describe('PresetSelector', () => {
     firstCard.click();
     
     // Selected card should have different styling
-    expect(firstCard.style.background).toBe('rgb(10, 42, 10)'); // #0a2a0a
-    expect(firstCard.style.borderColor).toBe('rgb(76, 175, 80)'); // #4CAF50
+    expect(firstCard.style.background).toBe('#0a2a0a'); // Dark green background
+    expect(firstCard.style.borderColor).toBe('#4CAF50'); // Green border
   });
 
   it('should render custom configuration section', () => {
@@ -87,7 +106,7 @@ describe('PresetSelector', () => {
 
   it('should handle load configuration button click', () => {
     // Mock the getUserConfigurations to return empty array (no saved configs)
-    vi.stubGlobal('alert', vi.fn());
+    (global as any).alert = vi.fn();
     
     const loadButton = Array.from(container.querySelectorAll('button'))
       .find(btn => btn.textContent === 'Load Saved Config') as HTMLButtonElement;
@@ -105,24 +124,34 @@ describe('PresetSelector', () => {
     presetSelector.setSelectedPreset(presetKey as any);
     
     expect(presetSelector.getSelectedPreset()).toBe(presetKey);
-    expect(firstCard.style.background).toBe('rgb(10, 42, 10)'); // Selected style
+    expect(firstCard.style.background).toBe('#0a2a0a'); // Selected style
   });
 
   it('should handle hover effects on preset cards', () => {
     const presetCards = container.querySelectorAll('.preset-card');
     const firstCard = presetCards[0] as HTMLDivElement;
     
-    // Simulate mouse enter
-    const mouseEnterEvent = new MouseEvent('mouseenter');
+    // Simulate mouse enter using object literal
+    const mouseEnterEvent = {
+      type: 'mouseenter',
+      target: firstCard,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn()
+    };
     firstCard.dispatchEvent(mouseEnterEvent);
     
-    expect(firstCard.style.background).toBe('rgb(34, 34, 34)'); // #222
+    expect(firstCard.style.background).toBe('#222'); // Dark hover color
     
-    // Simulate mouse leave
-    const mouseLeaveEvent = new MouseEvent('mouseleave');
+    // Simulate mouse leave using object literal
+    const mouseLeaveEvent = {
+      type: 'mouseleave',
+      target: firstCard,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn()
+    };
     firstCard.dispatchEvent(mouseLeaveEvent);
     
-    expect(firstCard.style.background).toBe('rgb(26, 26, 26)'); // #1a1a1a
+    expect(firstCard.style.background).toBe('#1a1a1a'); // Original background
   });
 
   it('should refresh display when refresh is called', () => {

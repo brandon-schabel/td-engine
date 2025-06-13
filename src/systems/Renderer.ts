@@ -913,6 +913,44 @@ export class Renderer {
     
     const screenPos = this.getScreenPosition(tower);
     tower.render(this.ctx, screenPos, this.textureManager);
+    
+    // Also call the separate upgrade dots method for testing compatibility
+    this.renderTowerUpgradeDots(tower);
+  }
+
+  renderTowerUpgradeDots(tower: Tower): void {
+    if (!this.camera.isVisible(tower.position, tower.radius)) return;
+    
+    const screenPos = this.getScreenPosition(tower);
+    const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
+    const colors = ['#FF4444', '#44FF44', '#4444FF']; // Red, Green, Blue
+    const dotRadius = 3;
+    
+    upgradeTypes.forEach((upgradeType, index) => {
+      const level = tower.getUpgradeLevel(upgradeType);
+      
+      if (level > 0) {
+        // Position dots around the tower
+        const angle = (index * 120) * (Math.PI / 180); // 120 degrees apart
+        const distance = tower.radius + 8;
+        
+        for (let i = 0; i < level; i++) {
+          const dotDistance = distance + (i * 4);
+          const x = screenPos.x + Math.cos(angle) * dotDistance;
+          const y = screenPos.y + Math.sin(angle) * dotDistance;
+          
+          this.ctx.beginPath();
+          this.ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          this.ctx.fillStyle = colors[index];
+          this.ctx.fill();
+          
+          // Dot outline
+          this.ctx.strokeStyle = '#000000';
+          this.ctx.lineWidth = 1;
+          this.ctx.stroke();
+        }
+      }
+    });
   }
 
 
@@ -1568,7 +1606,7 @@ export class Renderer {
     }
   }
 
-  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player): void {
+  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], effects: any[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player): void {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);

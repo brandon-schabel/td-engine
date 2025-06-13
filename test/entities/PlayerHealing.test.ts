@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Player, PlayerUpgradeType } from '../../src/entities/Player';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
 
 describe('Player Healing Mechanisms', () => {
   let player: Player;

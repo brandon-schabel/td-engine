@@ -17,7 +17,7 @@ export enum TowerType {
   RAPID = 'RAPID'
 }
 
-interface TowerStats {
+export interface TowerStats {
   damage: number;
   range: number;
   fireRate: number; // Shots per second

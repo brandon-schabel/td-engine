@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Renderer } from '../../src/systems/Renderer';
-import { Grid } from '../../src/systems/Grid';
-import { Camera } from '../../src/systems/Camera';
-import { Tower, TowerType } from '../../src/entities/Tower';
-import { Player } from '../../src/entities/Player';
-import { UpgradeType } from '../../src/systems/TowerUpgradeManager';
+import { Renderer } from '@/systems/Renderer';
+import { Grid } from '@/systems/Grid';
+import { Camera } from '@/systems/Camera';
+import { Tower, TowerType } from '@/entities/Tower';
+import { Player } from '@/entities/Player';
+import { UpgradeType } from '@/systems/TowerUpgradeManager';
 
 // Mock canvas context with upgrade dot specific methods
 const mockContext = {
@@ -21,6 +21,7 @@ const mockContext = {
   save: vi.fn(),
   restore: vi.fn(),
   fillText: vi.fn(),
+  drawImage: vi.fn(),
   set fillStyle(value: string) {},
   set strokeStyle(value: string) {},
   set lineWidth(value: number) {},
@@ -60,6 +61,18 @@ describe('Renderer Upgrade Dots System', () => {
     grid = new Grid(25, 19, 32);
     camera = new Camera(800, 608, 800, 608);
     renderer = new Renderer(mockCanvas, grid, camera);
+    
+    // For player rendering tests, ensure no player texture is available
+    // so we test the fallback rendering behavior
+    if (renderer.textureManager) {
+      const getTexture = renderer.textureManager.getTexture;
+      renderer.textureManager.getTexture = vi.fn((id: string) => {
+        if (id === 'player') {
+          return null; // Force fallback rendering for player
+        }
+        return getTexture.call(renderer.textureManager, id);
+      });
+    }
   });
 
   describe('tower upgrade dots rendering', () => {

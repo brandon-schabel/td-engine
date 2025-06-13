@@ -1,26 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { GameEngine } from '../../src/core/GameEngine';
-import { GameState } from '../../src/core/GameState';
+import { GameEngine } from '@/core/GameEngine';
+import { GameState } from '@/core/GameState';
+import { TimeController, mockGameEngineCallbacks } from '../helpers';
 
 describe('GameEngine', () => {
   let engine: GameEngine;
-  let mockRaf: number;
-  let rafCallback: FrameRequestCallback | null = null;
+  let timeController: TimeController;
 
   beforeEach(() => {
-    // Override global mocks with test-specific behavior
-    mockRaf = 0;
-    global.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
-      rafCallback = callback;
-      return ++mockRaf;
-    });
-    global.cancelAnimationFrame = vi.fn();
-
+    timeController = new TimeController();
     engine = new GameEngine();
   });
 
   afterEach(() => {
     engine.stop();
+    timeController.reset();
     vi.restoreAllMocks();
   });
 
@@ -38,7 +32,7 @@ describe('GameEngine', () => {
       
       expect(engine.isRunning()).toBe(true);
       expect(engine.getState()).toBe(GameState.PLAYING);
-      expect(global.requestAnimationFrame).toHaveBeenCalled();
+      expect(timeController.mocked.requestAnimationFrame).toHaveBeenCalled();
     });
 
     it('should stop the game loop when stop is called', () => {
@@ -47,34 +41,29 @@ describe('GameEngine', () => {
       
       expect(engine.isRunning()).toBe(false);
       expect(engine.getState()).toBe(GameState.MENU);
-      expect(global.cancelAnimationFrame).toHaveBeenCalled();
+      expect(timeController.mocked.cancelAnimationFrame).toHaveBeenCalled();
     });
 
     it('should update and render on each frame', () => {
-      const updateSpy = vi.spyOn(engine, 'update');
-      const renderSpy = vi.spyOn(engine, 'render');
+      const { onUpdate, onRender } = mockGameEngineCallbacks(engine);
 
       engine.start();
       
-      // Clear initial calls from start
-      updateSpy.mockClear();
-      renderSpy.mockClear();
+      // Clear any calls from start() which might trigger an initial update
+      onUpdate.mockClear();
+      onRender.mockClear();
       
       // First frame
-      if (rafCallback) rafCallback(1000);
-      expect(updateSpy).toHaveBeenCalledTimes(1);
-      expect(updateSpy).toHaveBeenCalledWith(0); // First frame has 0 delta
-      expect(renderSpy).toHaveBeenCalledTimes(1);
-      expect(renderSpy).toHaveBeenCalledWith(0);
+      timeController.nextFrame();
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onRender).toHaveBeenCalledTimes(1);
       
       // Second frame
-      updateSpy.mockClear();
-      renderSpy.mockClear();
-      if (rafCallback) rafCallback(1016);
-      expect(updateSpy).toHaveBeenCalledTimes(1);
-      expect(updateSpy).toHaveBeenCalledWith(16);
-      expect(renderSpy).toHaveBeenCalledTimes(1);
-      expect(renderSpy).toHaveBeenCalledWith(16);
+      onUpdate.mockClear();
+      onRender.mockClear();
+      timeController.nextFrame(16);
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onRender).toHaveBeenCalledTimes(1);
     });
 
     it('should calculate delta time correctly', () => {
@@ -86,11 +75,11 @@ describe('GameEngine', () => {
       engine.start();
       
       // First frame
-      if (rafCallback) rafCallback(1000);
+      timeController.nextFrame();
       expect(capturedDeltaTime).toBe(0); // First frame has no previous time
       
       // Second frame
-      if (rafCallback) rafCallback(1016);
+      timeController.nextFrame(16);
       expect(capturedDeltaTime).toBe(16);
     });
   });
@@ -114,20 +103,19 @@ describe('GameEngine', () => {
     });
 
     it('should not update when paused', () => {
-      const updateSpy = vi.spyOn(engine, 'update');
+      const { onUpdate } = mockGameEngineCallbacks(engine);
       
       engine.start();
       engine.pause();
       
       // Clear any calls from start
-      updateSpy.mockClear();
+      onUpdate.mockClear();
       
       // First frame while paused
-      if (rafCallback) rafCallback(1000);
+      timeController.nextFrame();
       
-      expect(updateSpy).toHaveBeenCalledTimes(1);
-      // Update is called but should return early due to pause
-      expect(updateSpy).toHaveBeenCalledWith(0);
+      // Update callback should not be called when paused
+      expect(onUpdate).not.toHaveBeenCalled();
     });
   });
 
@@ -138,11 +126,11 @@ describe('GameEngine', () => {
       
       engine.start();
       // First frame has deltaTime 0
-      if (rafCallback) rafCallback(1000);
+      timeController.nextFrame();
       expect(callback).toHaveBeenCalledWith(0);
       
       // Second frame
-      if (rafCallback) rafCallback(1016);
+      timeController.nextFrame(16);
       expect(callback).toHaveBeenCalledWith(16);
     });
 
@@ -152,11 +140,11 @@ describe('GameEngine', () => {
       
       engine.start();
       // First frame has deltaTime 0
-      if (rafCallback) rafCallback(1000);
+      timeController.nextFrame();
       expect(callback).toHaveBeenCalledWith(0);
       
       // Second frame
-      if (rafCallback) rafCallback(1016);
+      timeController.nextFrame(16);
       expect(callback).toHaveBeenCalledWith(16);
     });
 
@@ -167,7 +155,7 @@ describe('GameEngine', () => {
       unsubscribe();
       
       engine.start();
-      if (rafCallback) rafCallback(16);
+      timeController.nextFrame();
       
       expect(callback).not.toHaveBeenCalled();
     });

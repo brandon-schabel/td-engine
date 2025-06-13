@@ -1,9 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Game } from '../../src/core/Game';
-import { Enemy, EnemyType } from '../../src/entities/Enemy';
-import { TowerType } from '../../src/entities/Tower';
+import { Game } from '@/core/Game';
+import { Enemy, EnemyType } from '@/entities/Enemy';
+import { TowerType } from '@/entities/Tower';
 
 // Document is mocked in setup.ts
+
+// Ensure document is available for tests
+if (typeof document === 'undefined') {
+  global.document = {
+    dispatchEvent: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    createElement: vi.fn(),
+    body: { appendChild: vi.fn(), removeChild: vi.fn() }
+  } as any;
+}
 
 // Simple canvas mock
 const mockCanvas = {
@@ -58,6 +69,17 @@ describe('Player UI Integration', () => {
       
       // Ensure game is in PLAYING state
       game.start();
+
+      // Ensure document is available
+      if (typeof document === 'undefined') {
+        global.document = {
+          dispatchEvent: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          createElement: vi.fn(),
+          body: { appendChild: vi.fn(), removeChild: vi.fn() }
+        } as any;
+      }
       
       // Mock document.dispatchEvent
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
@@ -84,6 +106,17 @@ describe('Player UI Integration', () => {
       
       // Ensure game is in PLAYING state
       game.start();
+
+      // Ensure document is available
+      if (typeof document === 'undefined') {
+        global.document = {
+          dispatchEvent: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          createElement: vi.fn(),
+          body: { appendChild: vi.fn(), removeChild: vi.fn() }
+        } as any;
+      }
       
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       
@@ -110,6 +143,17 @@ describe('Player UI Integration', () => {
       
       // Ensure game is in PLAYING state
       game.start();
+
+      // Ensure document is available
+      if (typeof document === 'undefined') {
+        global.document = {
+          dispatchEvent: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          createElement: vi.fn(),
+          body: { appendChild: vi.fn(), removeChild: vi.fn() }
+        } as any;
+      }
       
       const dispatchSpy = vi.spyOn(document, 'dispatchEvent');
       

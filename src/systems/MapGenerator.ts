@@ -12,6 +12,7 @@ import type {
 import { BiomeType, BIOME_PRESETS, MapDifficulty, DecorationLevel } from '../types/MapData';
 import { Grid, CellType } from './Grid';
 import { PathGenerator } from './PathGenerator';
+import { EdgeType } from './SpawnZoneManager';
 
 export class MapGenerator {
   private pathGenerator: PathGenerator;
@@ -91,10 +92,14 @@ export class MapGenerator {
       decorations,
       effects,
       spawnZones,
+      spawnZonesWithMetadata: (this as any)._generatedSpawnZoneMetadata || undefined,
       playerStart,
       heightMap,
       customProperties: {}
     };
+    
+    // Clean up temporary storage
+    delete (this as any)._generatedSpawnZoneMetadata;
 
     return mapData;
   }
@@ -142,38 +147,140 @@ export class MapGenerator {
 
   private generateSpawnZones(grid: Grid, mainPath: MapData['paths'][0], config: MapGenerationConfig): Vector2[] {
     const spawnZones: Vector2[] = [];
+    const spawnZonesWithMetadata: MapData['spawnZonesWithMetadata'] = [];
+    
+    // Helper to determine edge type
+    const getEdgeType = (pos: Vector2): EdgeType => {
+      const isTop = pos.y === 0;
+      const isBottom = pos.y === grid.height - 1;
+      const isLeft = pos.x === 0;
+      const isRight = pos.x === grid.width - 1;
+      
+      if (isTop && isLeft) return EdgeType.TOP_LEFT;
+      if (isTop && isRight) return EdgeType.TOP_RIGHT;
+      if (isBottom && isLeft) return EdgeType.BOTTOM_LEFT;
+      if (isBottom && isRight) return EdgeType.BOTTOM_RIGHT;
+      if (isTop) return EdgeType.TOP;
+      if (isBottom) return EdgeType.BOTTOM;
+      if (isLeft) return EdgeType.LEFT;
+      if (isRight) return EdgeType.RIGHT;
+      
+      return EdgeType.TOP; // Default
+    };
     
     // Primary spawn at path start
     if (mainPath.waypoints.length > 0) {
       const firstWaypoint = mainPath.waypoints[0];
       if (firstWaypoint) {
         spawnZones.push({ ...firstWaypoint });
+        spawnZonesWithMetadata.push({
+          position: { ...firstWaypoint },
+          edgeType: getEdgeType(firstWaypoint),
+          priority: 2.0 // Higher priority for main spawn
+        });
       }
     }
 
-    // Additional spawns based on difficulty
-    const additionalSpawns = config.difficulty === MapDifficulty.EXTREME ? 2 :
-                            config.difficulty === MapDifficulty.HARD ? 1 : 0;
+    // Calculate total spawns based on difficulty and map size
+    const baseSpawns = config.difficulty === MapDifficulty.EXTREME ? 8 :
+                       config.difficulty === MapDifficulty.HARD ? 5 :
+                       config.difficulty === MapDifficulty.MEDIUM ? 3 : 2;
+    
+    // Add more spawns for larger maps
+    const sizeMultiplier = Math.min(1.5, (grid.width * grid.height) / 400);
+    const totalSpawns = Math.floor(baseSpawns * sizeMultiplier);
+    const additionalSpawns = Math.max(0, totalSpawns - spawnZones.length);
 
-    for (let i = 0; i < additionalSpawns; i++) {
-      const attempts = 20;
-      for (let attempt = 0; attempt < attempts; attempt++) {
-        const x = Math.floor(1 + this.random() * (grid.width - 2));
-        const y = Math.floor(1 + this.random() * (grid.height - 2));
-        
-        if (grid.getCellType(x, y) === CellType.EMPTY) {
-          // Ensure it's not too close to existing spawns
-          const tooClose = spawnZones.some(spawn => 
-            Math.abs(spawn.x - x) < 5 || Math.abs(spawn.y - y) < 5
-          );
+    // Define edge positions (excluding corners initially)
+    const edgePositions: Array<{pos: Vector2, edge: EdgeType}> = [];
+    
+    // Top edge (excluding corners)
+    for (let x = 2; x < grid.width - 2; x++) {
+      edgePositions.push({ pos: { x, y: 0 }, edge: EdgeType.TOP });
+    }
+    // Bottom edge (excluding corners)
+    for (let x = 2; x < grid.width - 2; x++) {
+      edgePositions.push({ pos: { x, y: grid.height - 1 }, edge: EdgeType.BOTTOM });
+    }
+    // Left edge (excluding corners)
+    for (let y = 2; y < grid.height - 2; y++) {
+      edgePositions.push({ pos: { x: 0, y }, edge: EdgeType.LEFT });
+    }
+    // Right edge (excluding corners)
+    for (let y = 2; y < grid.height - 2; y++) {
+      edgePositions.push({ pos: { x: grid.width - 1, y }, edge: EdgeType.RIGHT });
+    }
+    
+    // Add corner positions separately (prioritized)
+    const cornerPositions: Array<{pos: Vector2, edge: EdgeType}> = [
+      { pos: { x: 0, y: 0 }, edge: EdgeType.TOP_LEFT },
+      { pos: { x: grid.width - 1, y: 0 }, edge: EdgeType.TOP_RIGHT },
+      { pos: { x: 0, y: grid.height - 1 }, edge: EdgeType.BOTTOM_LEFT },
+      { pos: { x: grid.width - 1, y: grid.height - 1 }, edge: EdgeType.BOTTOM_RIGHT }
+    ];
+    
+    // Shuffle positions for randomness
+    const shuffleArray = <T>(array: T[]): T[] => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(this.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+    
+    const shuffledCorners = shuffleArray(cornerPositions);
+    const shuffledEdges = shuffleArray(edgePositions);
+    
+    // Prioritize corners for harder difficulties
+    const candidatePositions = config.difficulty === MapDifficulty.EXTREME || config.difficulty === MapDifficulty.HARD
+      ? [...shuffledCorners, ...shuffledEdges]
+      : [...shuffledEdges, ...shuffledCorners];
+
+    // Add additional spawn zones
+    let addedCount = 0;
+    for (let i = 0; i < candidatePositions.length && addedCount < additionalSpawns; i++) {
+      const candidate = candidatePositions[i];
+      
+      // Check if position is valid and not too close to existing spawns
+      const minDistance = config.difficulty === MapDifficulty.EXTREME ? 3 : 4;
+      const tooClose = spawnZones.some(spawn => {
+        const distance = Math.max(Math.abs(spawn.x - candidate.pos.x), Math.abs(spawn.y - candidate.pos.y));
+        return distance < minDistance;
+      });
+      
+      if (!tooClose) {
+        // Check if the position is accessible (not blocked)
+        const cellType = grid.getCellType(candidate.pos.x, candidate.pos.y);
+        if (cellType === CellType.EMPTY || cellType === CellType.PATH) {
+          spawnZones.push(candidate.pos);
           
-          if (!tooClose) {
-            spawnZones.push({ x, y });
-            break;
+          // Create metadata for enhanced spawn zones
+          const metadata: MapData['spawnZonesWithMetadata'][0] = {
+            position: candidate.pos,
+            edgeType: candidate.edge,
+            priority: candidate.edge.includes('CORNER') ? 1.5 : 1.0
+          };
+          
+          // Add conditional activation for some spawn zones
+          if (config.difficulty === MapDifficulty.EXTREME && addedCount > 3) {
+            metadata.conditional = {
+              minWave: 3 + Math.floor(addedCount / 2)
+            };
+          } else if (config.difficulty === MapDifficulty.HARD && addedCount > 2) {
+            metadata.conditional = {
+              minWave: 5 + addedCount
+            };
           }
+          
+          spawnZonesWithMetadata.push(metadata);
+          addedCount++;
         }
       }
     }
+    
+    // Store metadata in MapData (will be done in generate method)
+    (this as any)._generatedSpawnZoneMetadata = spawnZonesWithMetadata;
 
     return spawnZones;
   }

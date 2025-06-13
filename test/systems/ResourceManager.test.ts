@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ResourceManager, ResourceType } from '../../src/systems/ResourceManager';
+import { ResourceManager, ResourceType } from '@/systems/ResourceManager';
 
 describe('ResourceManager', () => {
   let resourceManager: ResourceManager;

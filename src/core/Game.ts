@@ -2,8 +2,10 @@ import { GameEngine } from './GameEngine';
 import { GameState } from './GameState';
 import { Grid, CellType } from '../systems/Grid';
 import { Pathfinder } from '../systems/Pathfinder';
-import { WaveManager } from '../systems/WaveManager';
+import { WaveManager, SpawnPattern } from '../systems/WaveManager';
 import type { WaveConfig } from '../systems/WaveManager';
+import { SpawnZoneManager } from '../systems/SpawnZoneManager';
+import type { GameStateSnapshot } from '../systems/SpawnZoneManager';
 import { Renderer } from '../systems/Renderer';
 import { Camera } from '../systems/Camera';
 import { Tower, TowerType, UpgradeType } from '../entities/Tower';
@@ -26,6 +28,7 @@ export class Game {
   private grid: Grid;
   private pathfinder: Pathfinder;
   private waveManager: WaveManager;
+  private spawnZoneManager: SpawnZoneManager;
   
   // Inlined resource management for better performance
   private currency: number = 100;
@@ -78,10 +81,33 @@ export class Game {
     // Initialize systems
     this.pathfinder = new Pathfinder(this.grid);
     
-    // Use generated spawn zone for wave manager (or fallback to first spawn zone)
-    const spawnZone = this.currentMapData.spawnZones[0] || { x: 1, y: Math.floor(config.height / 2) };
-    const spawnWorldPos = this.grid.gridToWorld(spawnZone.x, spawnZone.y);
-    this.waveManager = new WaveManager(spawnWorldPos);
+    // Convert all spawn zones to world positions for wave manager
+    const spawnWorldPositions = this.currentMapData.spawnZones.map(zone => 
+      this.grid.gridToWorld(zone.x, zone.y)
+    );
+    
+    // Fallback to default position if no spawn zones
+    if (spawnWorldPositions.length === 0) {
+      const defaultZone = { x: 1, y: Math.floor(config.height / 2) };
+      spawnWorldPositions.push(this.grid.gridToWorld(defaultZone.x, defaultZone.y));
+    }
+    
+    this.waveManager = new WaveManager(spawnWorldPositions);
+    
+    // Initialize SpawnZoneManager
+    const spawnZoneConfig = {
+      maxActiveZones: config.difficulty === MapDifficulty.EXTREME ? 5 :
+                       config.difficulty === MapDifficulty.HARD ? 4 : 3,
+      chaosMode: config.difficulty === MapDifficulty.EXTREME,
+      adaptiveWeighting: true,
+      dynamicZoneGeneration: config.difficulty !== MapDifficulty.EASY
+    };
+    
+    this.spawnZoneManager = new SpawnZoneManager(this.grid, spawnZoneConfig);
+    
+    // Connect SpawnZoneManager to WaveManager
+    this.waveManager.setSpawnZoneManager(this.spawnZoneManager);
+    this.waveManager.enableDynamicSpawning(true);
     
     this.renderer = new Renderer(canvas, this.grid, this.camera, this.textureManager);
     this.renderer.setEnvironmentalEffects(this.currentMapData.effects);
@@ -92,6 +118,9 @@ export class Game {
     // Create player at generated start position
     const playerWorldPos = this.grid.gridToWorld(this.currentMapData.playerStart.x, this.currentMapData.playerStart.y);
     this.player = new Player(playerWorldPos);
+    
+    // Center camera on player initially
+    this.camera.update(this.player.position);
     
     // Load wave configurations
     this.loadWaveConfigurations();
@@ -150,20 +179,22 @@ export class Game {
         enemies: [
           { type: EnemyType.BASIC, count: 5, spawnDelay: 1000 }
         ],
-        startDelay: 2000
+        startDelay: 2000,
+        spawnPattern: SpawnPattern.SINGLE_POINT // All from one spawn point
       },
       {
         waveNumber: 2,
         enemies: [
           { type: EnemyType.BASIC, count: 8, spawnDelay: 800 }
         ],
-        startDelay: 3000
+        startDelay: 3000,
+        spawnPattern: SpawnPattern.RANDOM // Random spawn points
       },
       {
         waveNumber: 3,
         enemies: [
-          { type: EnemyType.BASIC, count: 5, spawnDelay: 1000 },
-          { type: EnemyType.FAST, count: 3, spawnDelay: 600 }
+          { type: EnemyType.BASIC, count: 5, spawnDelay: 1000, spawnPattern: SpawnPattern.DISTRIBUTED },
+          { type: EnemyType.FAST, count: 3, spawnDelay: 600, spawnPattern: SpawnPattern.EDGE_FOCUSED }
         ],
         startDelay: 2000
       },
@@ -173,15 +204,63 @@ export class Game {
           { type: EnemyType.BASIC, count: 10, spawnDelay: 600 },
           { type: EnemyType.FAST, count: 5, spawnDelay: 800 }
         ],
-        startDelay: 2000
+        startDelay: 2000,
+        spawnPattern: SpawnPattern.ROUND_ROBIN // Cycle through spawn points
       },
       {
         waveNumber: 5,
         enemies: [
-          { type: EnemyType.TANK, count: 3, spawnDelay: 2000 },
-          { type: EnemyType.FAST, count: 8, spawnDelay: 400 }
+          { type: EnemyType.TANK, count: 3, spawnDelay: 2000, spawnPattern: SpawnPattern.CORNER_FOCUSED },
+          { type: EnemyType.FAST, count: 8, spawnDelay: 400, spawnPattern: SpawnPattern.RANDOM }
         ],
         startDelay: 3000
+      },
+      {
+        waveNumber: 6,
+        enemies: [
+          { type: EnemyType.BASIC, count: 15, spawnDelay: 500 },
+          { type: EnemyType.TANK, count: 2, spawnDelay: 2500 }
+        ],
+        startDelay: 2000,
+        spawnPattern: SpawnPattern.DISTRIBUTED
+      },
+      {
+        waveNumber: 7,
+        enemies: [
+          { type: EnemyType.FAST, count: 12, spawnDelay: 400, spawnPattern: SpawnPattern.RANDOM },
+          { type: EnemyType.BASIC, count: 8, spawnDelay: 700, spawnPattern: SpawnPattern.EDGE_FOCUSED },
+          { type: EnemyType.TANK, count: 4, spawnDelay: 1800, spawnPattern: SpawnPattern.CORNER_FOCUSED }
+        ],
+        startDelay: 3000
+      },
+      {
+        waveNumber: 8,
+        enemies: [
+          { type: EnemyType.BASIC, count: 20, spawnDelay: 400 },
+          { type: EnemyType.FAST, count: 10, spawnDelay: 500 },
+          { type: EnemyType.TANK, count: 5, spawnDelay: 1500 }
+        ],
+        startDelay: 2000,
+        spawnPattern: SpawnPattern.BURST_SPAWN // New pattern - enemies spawn from multiple edges simultaneously
+      },
+      {
+        waveNumber: 9,
+        enemies: [
+          { type: EnemyType.FAST, count: 15, spawnDelay: 300 },
+          { type: EnemyType.TANK, count: 6, spawnDelay: 1200 }
+        ],
+        startDelay: 2500,
+        spawnPattern: SpawnPattern.PINCER_MOVEMENT // New pattern - enemies spawn from opposite edges
+      },
+      {
+        waveNumber: 10,
+        enemies: [
+          { type: EnemyType.BASIC, count: 25, spawnDelay: 300 },
+          { type: EnemyType.FAST, count: 15, spawnDelay: 400 },
+          { type: EnemyType.TANK, count: 8, spawnDelay: 1000 }
+        ],
+        startDelay: 3000,
+        spawnPattern: SpawnPattern.CHAOS_MODE // New pattern - completely random spawning
       }
     ];
     
@@ -199,6 +278,17 @@ export class Game {
       return;
     }
 
+    // Update SpawnZoneManager
+    const gameStateSnapshot: GameStateSnapshot = {
+      lives: this.lives,
+      score: this.score,
+      waveNumber: this.waveManager.currentWave,
+      enemyCount: this.enemies.length,
+      towerCount: this.towers.length,
+      playerPosition: { ...this.player.position }
+    };
+    this.spawnZoneManager.update(deltaTime, gameStateSnapshot, this.towers, this.player);
+    
     // Update wave manager and spawn enemies
     const newEnemies = this.waveManager.update(deltaTime);
     newEnemies.forEach(enemy => {
@@ -314,6 +404,7 @@ export class Game {
       this.enemies, 
       this.projectiles, 
       this.collectibles,
+      [], // effects (empty for now)
       this.getPlayerAimerLine(),
       this.player
     );
@@ -748,10 +839,18 @@ export class Game {
     // Update systems
     this.pathfinder = new Pathfinder(this.grid);
     
-    // Update spawn position (recreate WaveManager with new spawn position)
-    const spawnZone = this.currentMapData.spawnZones[0] || { x: 1, y: Math.floor(newConfig.height / 2) };
-    const spawnWorldPos = this.grid.gridToWorld(spawnZone.x, spawnZone.y);
-    this.waveManager = new WaveManager(spawnWorldPos);
+    // Update spawn positions (recreate WaveManager with all spawn positions)
+    const spawnWorldPositions = this.currentMapData.spawnZones.map(zone => 
+      this.grid.gridToWorld(zone.x, zone.y)
+    );
+    
+    // Fallback to default position if no spawn zones
+    if (spawnWorldPositions.length === 0) {
+      const defaultZone = { x: 1, y: Math.floor(newConfig.height / 2) };
+      spawnWorldPositions.push(this.grid.gridToWorld(defaultZone.x, defaultZone.y));
+    }
+    
+    this.waveManager = new WaveManager(spawnWorldPositions);
     this.loadWaveConfigurations();
     
     // Reset player position

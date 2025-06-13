@@ -1,45 +1,32 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Game } from '../../src/core/Game';
-import { TowerType } from '../../src/entities/Tower';
-import type { Enemy } from '../../src/entities/Enemy';
-
-// Optimized canvas mock (shared instance)
-const mockCanvas = {
-  width: 800,
-  height: 600,
-  getContext: vi.fn().mockReturnValue({
-    clearRect: vi.fn(),
-    fillRect: vi.fn(),
-    strokeRect: vi.fn(),
-    arc: vi.fn(),
-    beginPath: vi.fn(),
-    fill: vi.fn(),
-    stroke: vi.fn(),
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
-    fillText: vi.fn(),
-    save: vi.fn(),
-    restore: vi.fn(),
-    translate: vi.fn(),
-    scale: vi.fn(),
-    setLineDash: vi.fn(),
-    fillStyle: '',
-    strokeStyle: '',
-    lineWidth: 1,
-    font: '',
-    textAlign: '',
-    textBaseline: ''
-  })
-} as any;
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Game } from '@/core/Game';
+import { TowerType } from '@/entities/Tower';
+import type { Enemy } from '@/entities/Enemy';
+import { 
+  createTestGame,
+  createTestGameWithWave,
+  createTestGameWithTowers,
+  createMockCanvas,
+  simulateGameFrames,
+  simulateWaveCompletion,
+  simulatePlayerDeath,
+  simulateClick,
+  TimeController,
+  expectResourcesChanged
+} from '../helpers';
 
 describe('Game', () => {
   let game: Game;
+  let timeController: TimeController;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Browser APIs mocked in setup.ts
-    
-    game = new Game(mockCanvas);
+    timeController = new TimeController();
+    game = createTestGame();
+  });
+
+  afterEach(() => {
+    timeController.reset();
   });
 
   describe('initialization', () => {
@@ -53,6 +40,18 @@ describe('Game', () => {
     it('should set up default path', () => {
       // Game should have a default path set up
       expect(game).toBeDefined();
+    });
+
+    it('should initialize with custom resources', () => {
+      const customGame = createTestGame({
+        initialCurrency: 200,
+        initialLives: 20,
+        initialScore: 1000
+      });
+      
+      expect(customGame.getCurrency()).toBe(200);
+      expect(customGame.getLives()).toBe(20);
+      expect(customGame.getScore()).toBe(1000);
     });
   });
 
@@ -73,13 +72,26 @@ describe('Game', () => {
     });
 
     it('should not place tower when insufficient funds', () => {
-      // Spend all money
-      while (game.getCurrency() >= 20) {
-        game.placeTower('BASIC', { x: Math.random() * 400 + 200, y: Math.random() * 300 + 150 });
-      }
+      // Create game with low funds
+      const poorGame = createTestGame({ initialCurrency: 10 });
       
-      const success = game.placeTower('BASIC', { x: 400, y: 200 });
+      const success = poorGame.placeTower('BASIC', { x: 400, y: 200 });
       expect(success).toBe(false);
+    });
+
+    it('should handle complex tower setup', () => {
+      const gameWithTowers = createTestGameWithTowers({
+        towers: [
+          { type: TowerType.BASIC, position: { x: 100, y: 100 }, level: 2 },
+          { type: TowerType.SNIPER, position: { x: 200, y: 200 } },
+          { type: TowerType.RAPID, position: { x: 300, y: 300 }, level: 3 }
+        ]
+      });
+      
+      const towers = gameWithTowers.getTowers();
+      expect(towers).toHaveLength(3);
+      expect(towers[0].getLevel()).toBe(2);
+      expect(towers[2].getLevel()).toBe(3);
     });
   });
 
@@ -92,37 +104,53 @@ describe('Game', () => {
     });
 
     it('should handle wave completion', () => {
-      game.startNextWave();
+      const gameWithWave = createTestGameWithWave({ waveNumber: 1 });
       
-      // Wait for wave to finish spawning (simulate enough time)
-      for (let i = 0; i < 10; i++) {
-        game.update(1000); // 1 second updates
-      }
+      // Simulate some game frames
+      simulateGameFrames(gameWithWave, 10, 1000);
       
-      // Kill all enemies
-      const enemies = game.getEnemies();
-      enemies.forEach(enemy => enemy.takeDamage(1000));
+      // Complete the wave
+      simulateWaveCompletion(gameWithWave);
       
-      // Update game to process dead enemies
-      game.update(16);
+      // Update once more to process completion
+      gameWithWave.update(16);
       
-      expect(game.isWaveComplete()).toBe(true);
+      expect(gameWithWave.isWaveComplete()).toBe(true);
+    });
+
+    it('should use custom wave configurations', () => {
+      const customWaves = [
+        {
+          waveNumber: 1,
+          enemies: [{ type: 'BASIC' as any, count: 10, spawnDelay: 500 }],
+          startDelay: 0
+        }
+      ];
+      
+      const gameWithCustomWaves = createTestGame({ waveConfigs: customWaves });
+      gameWithCustomWaves.startNextWave();
+      
+      expect(gameWithCustomWaves.getCurrentWave()).toBe(1);
     });
   });
 
   describe('game state', () => {
     it('should detect game over when lives reach zero', () => {
-      // Lose all lives
-      while (game.getLives() > 0) {
-        game.enemyReachedEnd();
-      }
+      simulatePlayerDeath(game);
       
       expect(game.isGameOver()).toBe(true);
     });
 
     it('should handle enemy rewards', () => {
-      const initialCurrency = game.getCurrency();
-      const initialScore = game.getScore();
+      // Mock Math.random to prevent extra currency drops (probability is 0.1)
+      const originalRandom = Math.random;
+      Math.random = vi.fn(() => 0.5); // Above 0.1 threshold, so no extra drop
+      
+      const initialResources = {
+        currency: game.getCurrency(),
+        lives: game.getLives(),
+        score: game.getScore()
+      };
       
       // Create a mock enemy
       const mockEnemy = {
@@ -133,9 +161,20 @@ describe('Game', () => {
       
       game.enemyKilled(mockEnemy);
       
+      const finalResources = {
+        currency: game.getCurrency(),
+        lives: game.getLives(),
+        score: game.getScore()
+      };
+      
       // Enemy reward is 25, and score is reward * 5 = 125
-      expect(game.getCurrency()).toBeGreaterThanOrEqual(initialCurrency + 25);
-      expect(game.getScore()).toBe(initialScore + 125);
+      expectResourcesChanged(initialResources, finalResources, {
+        currency: 25,
+        score: 125
+      });
+      
+      // Restore original Math.random
+      Math.random = originalRandom;
     });
   });
 
@@ -184,17 +223,22 @@ describe('Game', () => {
     });
 
     it('should clean up dead entities', () => {
-      game.startNextWave();
+      const gameWithWave = createTestGameWithWave({ waveNumber: 1 });
       
-      // Kill an enemy
-      const enemies = game.getEnemies();
+      // Wait for enemies to spawn
+      simulateGameFrames(gameWithWave, 5, 100);
+      
+      const enemies = gameWithWave.getEnemies();
       if (enemies.length > 0) {
+        const initialEnemyCount = enemies.length;
+        
+        // Kill first enemy
         enemies[0].takeDamage(1000);
         
-        const initialEnemyCount = enemies.length;
-        game.update(16);
+        // Update to process dead enemy
+        gameWithWave.update(16);
         
-        expect(game.getEnemies().length).toBeLessThan(initialEnemyCount);
+        expect(gameWithWave.getEnemies().length).toBeLessThan(initialEnemyCount);
       }
     });
   });
@@ -209,12 +253,35 @@ describe('Game', () => {
     it('should check if player can afford tower', () => {
       expect(game.canAffordTower('BASIC')).toBe(true);
       
-      // Spend all money
-      while (game.getCurrency() >= 20) {
-        game.placeTower('BASIC', { x: Math.random() * 400 + 200, y: Math.random() * 300 + 150 });
+      // Create game with limited funds
+      const poorGame = createTestGame({ initialCurrency: 25 });
+      
+      expect(poorGame.canAffordTower('BASIC')).toBe(true);
+      expect(poorGame.canAffordTower('SNIPER')).toBe(false);
+    });
+  });
+
+  describe('performance and timing', () => {
+    it('should handle rapid updates', () => {
+      const gameWithWave = createTestGameWithWave({ waveNumber: 1 });
+      
+      // Simulate 60 fps for 1 second
+      for (let i = 0; i < 60; i++) {
+        gameWithWave.update(16.67);
       }
       
-      expect(game.canAffordTower('SNIPER')).toBe(false);
+      // Game should still be functional
+      expect(gameWithWave).toBeDefined();
+    });
+
+    it('should handle long frame times gracefully', () => {
+      game.startNextWave();
+      
+      // Simulate a long frame (like tab switching)
+      game.update(1000);
+      
+      // Game should still be stable
+      expect(game).toBeDefined();
     });
   });
 });

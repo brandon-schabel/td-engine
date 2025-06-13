@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Game } from '../../src/core/Game';
-import { BiomeType, MapDifficulty, DecorationLevel } from '../../src/types/MapData';
-import type { MapGenerationConfig } from '../../src/types/MapData';
+import { Game } from '@/core/Game';
+import { BiomeType, MapDifficulty, DecorationLevel } from '@/types/MapData';
+import type { MapGenerationConfig } from '@/types/MapData';
 
 // Simple canvas mock
 const mockCanvas = {

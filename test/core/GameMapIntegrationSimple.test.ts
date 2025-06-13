@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { MapGenerator } from '../../src/systems/MapGenerator';
-import { TextureManager } from '../../src/systems/TextureManager';
-import { BiomeType, MapDifficulty, DecorationLevel } from '../../src/types/MapData';
-import type { MapGenerationConfig } from '../../src/types/MapData';
+import { MapGenerator } from '@/systems/MapGenerator';
+import { TextureManager } from '@/systems/TextureManager';
+import { BiomeType, MapDifficulty, DecorationLevel } from '@/types/MapData';
+import type { MapGenerationConfig } from '@/types/MapData';
 
 describe('Game Map Integration - Simple', () => {
   it('should successfully generate maps for game use', () => {

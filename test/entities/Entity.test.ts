@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Entity, EntityType } from '../../src/entities/Entity';
-import type { Vector2 } from '../../src/utils/Vector2';
+import { Entity, EntityType } from '@/entities/Entity';
+import type { Vector2 } from '@/utils/Vector2';
 
 describe('Entity', () => {
   describe('initialization', () => {

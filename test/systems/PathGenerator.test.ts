@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PathGenerator } from '../../src/systems/PathGenerator';
-import { Grid, CellType } from '../../src/systems/Grid';
-import { BiomeType, MapDifficulty } from '../../src/types/MapData';
-import type { MapGenerationConfig } from '../../src/types/MapData';
+import { PathGenerator } from '@/systems/PathGenerator';
+import { Grid, CellType } from '@/systems/Grid';
+import { BiomeType, MapDifficulty } from '@/types/MapData';
+import type { MapGenerationConfig } from '@/types/MapData';
 
 describe('PathGenerator', () => {
   let grid: Grid;

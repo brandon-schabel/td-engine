@@ -1,12 +1,29 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Player, PlayerUpgradeType } from '../../src/entities/Player';
-import { Enemy, EnemyType } from '../../src/entities/Enemy';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
+import { Enemy, EnemyType } from '@/entities/Enemy';
+import { 
+  createTestPlayer, 
+  createTestEnemy, 
+  createTestGrid,
+  TimeController,
+  simulateKeyPress,
+  simulateKeyHold,
+  expectEntityAlive,
+  expectEntityDead,
+  expectHealthPercentage
+} from '../helpers';
 
 describe('Player Entity', () => {
   let player: Player;
+  let timeController: TimeController;
 
   beforeEach(() => {
-    player = new Player({ x: 100, y: 100 });
+    timeController = new TimeController();
+    player = createTestPlayer({ position: { x: 100, y: 100 } });
+  });
+
+  afterEach(() => {
+    timeController.reset();
   });
 
   describe('initialization', () => {
@@ -96,7 +113,7 @@ describe('Player Entity', () => {
     });
 
     it('should create projectile when shooting', () => {
-      const target = new Enemy({ x: 200, y: 200 }, 50, EnemyType.BASIC);
+      const target = createTestEnemy({ position: { x: 200, y: 200 }, health: 50, type: EnemyType.BASIC });
       const projectile = player.shoot(target);
       
       expect(projectile).toBeTruthy();
@@ -105,14 +122,14 @@ describe('Player Entity', () => {
     });
 
     it('should have cooldown after shooting', () => {
-      const target = new Enemy({ x: 200, y: 200 }, 50, EnemyType.BASIC);
+      const target = createTestEnemy({ position: { x: 200, y: 200 }, health: 50, type: EnemyType.BASIC });
       player.shoot(target);
       
       expect(player.canShoot()).toBe(false);
     });
 
     it('should recover from cooldown', () => {
-      const target = new Enemy({ x: 200, y: 200 }, 50, EnemyType.BASIC);
+      const target = createTestEnemy({ position: { x: 200, y: 200 }, health: 50, type: EnemyType.BASIC });
       player.shoot(target);
       
       // Simulate time passing
@@ -122,8 +139,8 @@ describe('Player Entity', () => {
     });
 
     it('should shoot at specific enemy target', () => {
-      const enemy1 = new Enemy({ x: 150, y: 100 }, 50, EnemyType.BASIC); // Closer
-      const enemy2 = new Enemy({ x: 300, y: 100 }, 50, EnemyType.BASIC); // Farther
+      const enemy1 = createTestEnemy({ position: { x: 150, y: 100 }, health: 50, type: EnemyType.BASIC }); // Closer
+      const enemy2 = createTestEnemy({ position: { x: 300, y: 100 }, health: 50, type: EnemyType.BASIC }); // Farther
       
       const projectile = player.shoot(enemy1);
       expect(projectile).toBeTruthy();
@@ -136,7 +153,7 @@ describe('Player Entity', () => {
     });
 
     it('should not auto-shoot dead enemies', () => {
-      const enemy = new Enemy({ x: 150, y: 100 }, 50, EnemyType.BASIC);
+      const enemy = createTestEnemy({ position: { x: 150, y: 100 }, health: 50, type: EnemyType.BASIC });
       enemy.isAlive = false;
       
       const projectile = player.autoShoot([enemy]);
@@ -225,8 +242,8 @@ describe('Player Entity', () => {
 
   describe('enemy targeting', () => {
     it('should find nearest enemy', () => {
-      const enemy1 = new Enemy(EnemyType.BASIC, { x: 150, y: 100 }); // Distance: 50
-      const enemy2 = new Enemy(EnemyType.BASIC, { x: 200, y: 200 }); // Distance: ~141
+      const enemy1 = createTestEnemy({ position: { x: 150, y: 100 }, type: EnemyType.BASIC }); // Distance: 50
+      const enemy2 = createTestEnemy({ position: { x: 200, y: 200 }, type: EnemyType.BASIC }); // Distance: ~141
       const enemies = [enemy1, enemy2];
       
       const nearest = player.findNearestEnemy(enemies);
@@ -234,7 +251,7 @@ describe('Player Entity', () => {
     });
 
     it('should return null if no alive enemies', () => {
-      const enemy = new Enemy({ x: 150, y: 100 }, 50, EnemyType.BASIC);
+      const enemy = createTestEnemy({ position: { x: 150, y: 100 }, health: 50, type: EnemyType.BASIC });
       enemy.isAlive = false;
       
       const nearest = player.findNearestEnemy([enemy]);
@@ -246,13 +263,13 @@ describe('Player Entity', () => {
     it('should take damage correctly', () => {
       player.takeDamage(20);
       expect(player.health).toBe(80);
-      expect(player.isAlive).toBe(true);
+      expectEntityAlive(player);
     });
 
     it('should die when health reaches 0', () => {
       player.takeDamage(100);
       expect(player.health).toBe(0);
-      expect(player.isAlive).toBe(false);
+      expectEntityDead(player);
     });
 
     it('should heal correctly', () => {
@@ -264,6 +281,70 @@ describe('Player Entity', () => {
     it('should not heal above max health', () => {
       player.heal(50);
       expect(player.health).toBe(100); // Should stay at max
+    });
+
+    it('should maintain health percentage', () => {
+      player.takeDamage(25); // 75% health
+      expectHealthPercentage(player, 0.75);
+    });
+  });
+
+  describe('complex movement scenarios', () => {
+    it('should handle continuous key presses smoothly', async () => {
+      const startPos = { ...player.position };
+      
+      // Simulate holding W key for 200ms
+      player.handleKeyDown('w');
+      
+      // Simulate multiple frames
+      for (let i = 0; i < 10; i++) {
+        player.update(20);
+      }
+      
+      player.handleKeyUp('w');
+      
+      // Should have moved up (negative y)
+      expect(player.position.y).toBeLessThan(startPos.y);
+      expect(player.position.x).toBe(startPos.x);
+    });
+
+    it('should handle quick direction changes', () => {
+      // Move right
+      player.handleKeyDown('d');
+      player.update(16);
+      player.handleKeyUp('d');
+      
+      // Immediately move left
+      player.handleKeyDown('a');
+      player.update(16);
+      
+      const velocity = player.getVelocity();
+      expect(velocity.x).toBeLessThan(0); // Moving left
+    });
+
+    it('should handle all four directions', () => {
+      const directions = [
+        { key: 'w', expectedVel: { x: 0, y: -1 } },
+        { key: 's', expectedVel: { x: 0, y: 1 } },
+        { key: 'a', expectedVel: { x: -1, y: 0 } },
+        { key: 'd', expectedVel: { x: 1, y: 0 } }
+      ];
+
+      directions.forEach(({ key, expectedVel }) => {
+        player.handleKeyDown(key);
+        player.update(16);
+        
+        const velocity = player.getVelocity();
+        const normalized = {
+          x: Math.sign(velocity.x),
+          y: Math.sign(velocity.y)
+        };
+        
+        expect(normalized).toEqual(expectedVel);
+        
+        player.handleKeyUp(key);
+        player.update(16);
+      });
     });
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Game } from '../../src/core/Game';
-import { Enemy, EnemyType } from '../../src/entities/Enemy';
-import { ResourceManager, ResourceType } from '../../src/systems/ResourceManager';
+import { Game } from '@/core/Game';
+import { Enemy, EnemyType } from '@/entities/Enemy';
+import { ResourceManager, ResourceType } from '@/systems/ResourceManager';
 
 // Simple canvas mock
 const mockCanvas = {
@@ -21,6 +21,7 @@ const mockCanvas = {
     save: vi.fn(),
     restore: vi.fn(),
     fillText: vi.fn(),
+    drawImage: vi.fn(),
     set fillStyle(value: string) {},
     set strokeStyle(value: string) {},
     set lineWidth(value: number) {},
@@ -39,7 +40,9 @@ describe('Enemy Kill Reward Debug', () => {
 
   describe('enemy kill rewards', () => {
     it('should increase currency when enemy is killed via enemyKilled method', () => {
+      // Get initial state
       const initialCurrency = game.getCurrency();
+      const initialScore = game.getScore();
       
       // Create a mock enemy with appropriate reward values
       const mockEnemy = {
@@ -50,8 +53,9 @@ describe('Enemy Kill Reward Debug', () => {
       // Manually trigger enemy killed (simulating what should happen)
       game.enemyKilled(mockEnemy);
       
+      // Verify the changes
       expect(game.getCurrency()).toBe(initialCurrency + 10);
-      expect(game.getScore()).toBe(50);
+      expect(game.getScore()).toBe(initialScore + 50);
     });
 
     it('should track currency changes during projectile updates', () => {

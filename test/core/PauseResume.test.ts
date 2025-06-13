@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Game } from '../../src/core/Game';
-import { GameState } from '../../src/core/GameState';
+import { Game } from '@/core/Game';
+import { GameState } from '@/core/GameState';
 
 // Mock canvas and context
 const mockCanvas = {

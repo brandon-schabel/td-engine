@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MapGenerator } from '../../src/systems/MapGenerator';
-import { Grid, CellType } from '../../src/systems/Grid';
-import { BiomeType, MapDifficulty, DecorationLevel } from '../../src/types/MapData';
-import type { MapGenerationConfig, MapData } from '../../src/types/MapData';
+import { MapGenerator } from '@/systems/MapGenerator';
+import { Grid, CellType } from '@/systems/Grid';
+import { BiomeType, MapDifficulty, DecorationLevel } from '@/types/MapData';
+import type { MapGenerationConfig, MapData } from '@/types/MapData';
 
 describe('Map Generation Integration', () => {
   let mapGenerator: MapGenerator;

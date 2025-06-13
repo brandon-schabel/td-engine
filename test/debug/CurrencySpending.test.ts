@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Game } from '../../src/core/Game';
-import { TowerType } from '../../src/entities/Tower';
-import { PlayerUpgradeType } from '../../src/entities/Player';
-import { Enemy } from '../../src/entities/Enemy';
-import { UpgradeType } from '../../src/systems/TowerUpgradeManager';
+import { Game } from '@/core/Game';
+import { TowerType } from '@/entities/Tower';
+import { PlayerUpgradeType } from '@/entities/Player';
+import { Enemy } from '@/entities/Enemy';
+import { UpgradeType } from '@/systems/TowerUpgradeManager';
 
 // Simple canvas mock
 const mockCanvas = {
@@ -23,6 +23,7 @@ const mockCanvas = {
     save: vi.fn(),
     restore: vi.fn(),
     fillText: vi.fn(),
+    drawImage: vi.fn(),
     set fillStyle(value: string) {},
     set strokeStyle(value: string) {},
     set lineWidth(value: number) {},
@@ -72,16 +73,24 @@ describe('Currency Spending Debug', () => {
     it('should not lose currency from mouse movements or clicks on empty space', () => {
       const initialCurrency = game.getCurrency();
       
-      // Simulate mouse movements
-      const mouseMove = new MouseEvent('mousemove');
-      Object.defineProperty(mouseMove, 'offsetX', { value: 200, writable: false });
-      Object.defineProperty(mouseMove, 'offsetY', { value: 200, writable: false });
+      // Simulate mouse movements using object literal (simpler approach)
+      const mouseMove = {
+        offsetX: 200,
+        offsetY: 200,
+        clientX: 200,
+        clientY: 200,
+        type: 'mousemove'
+      } as MouseEvent;
       game.handleMouseMove(mouseMove);
       
       // Click on empty space
-      const mouseClick = new MouseEvent('click');
-      Object.defineProperty(mouseClick, 'offsetX', { value: 200, writable: false });
-      Object.defineProperty(mouseClick, 'offsetY', { value: 200, writable: false });
+      const mouseClick = {
+        offsetX: 200,
+        offsetY: 200,
+        clientX: 200,
+        clientY: 200,
+        type: 'click'
+      } as MouseEvent;
       game.handleMouseClick(mouseClick);
       
       // Currency should not decrease

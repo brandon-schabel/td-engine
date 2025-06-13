@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Tower, TowerType } from '../../src/entities/Tower';
-import { UpgradeType, TowerUpgradeManager } from '../../src/systems/TowerUpgradeManager';
+import { Tower, TowerType } from '@/entities/Tower';
+import { UpgradeType, TowerUpgradeManager } from '@/systems/TowerUpgradeManager';
 
 describe('Tower Upgrades', () => {
   let tower: Tower;

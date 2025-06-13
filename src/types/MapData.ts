@@ -77,13 +77,25 @@ export interface MapPath {
   connections: number[];     // Indices of connected paths
 }
 
+export interface SpawnZoneMetadata {
+  position: Vector2;         // Grid position
+  edgeType: string;         // EdgeType from SpawnZoneManager
+  priority: number;         // Base priority for this spawn zone
+  conditional?: {
+    minWave?: number;       // Only active after this wave
+    maxWave?: number;       // Only active until this wave
+    lowLivesThreshold?: number; // Activate when lives drop below this
+  };
+}
+
 export interface MapData {
   metadata: MapMetadata;
   biomeConfig: BiomeConfig;
   paths: MapPath[];
   decorations: MapDecoration[];
   effects: EnvironmentalEffect[];
-  spawnZones: Vector2[];     // Enemy spawn locations
+  spawnZones: Vector2[];     // Enemy spawn locations (backward compatibility)
+  spawnZonesWithMetadata?: SpawnZoneMetadata[]; // Enhanced spawn zones
   playerStart: Vector2;      // Player starting position
   
   // Terrain height map for 3D-like effects (optional)

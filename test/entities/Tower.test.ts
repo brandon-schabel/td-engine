@@ -1,12 +1,23 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Tower, TowerType } from '../../src/entities/Tower';
-import { Enemy } from '../../src/entities/Enemy';
-import { EntityType } from '../../src/entities/Entity';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Tower, TowerType } from '@/entities/Tower';
+import { Enemy } from '@/entities/Enemy';
+import { EntityType } from '@/entities/Entity';
+import { createTestTower, createTestEnemy, TimeController } from '../helpers';
 
 describe('Tower', () => {
+  let timeController: TimeController;
+
+  beforeEach(() => {
+    timeController = new TimeController();
+  });
+
+  afterEach(() => {
+    timeController.reset();
+  });
+
   describe('initialization', () => {
     it('should create a basic tower with default stats', () => {
-      const tower = new Tower(TowerType.BASIC, { x: 100, y: 100 });
+      const tower = createTestTower({ type: TowerType.BASIC, position: { x: 100, y: 100 } });
       
       expect(tower.type).toBe(EntityType.TOWER);
       expect(tower.towerType).toBe(TowerType.BASIC);
@@ -17,7 +28,7 @@ describe('Tower', () => {
     });
 
     it('should create a sniper tower with correct stats', () => {
-      const tower = new Tower(TowerType.SNIPER, { x: 0, y: 0 });
+      const tower = createTestTower({ type: TowerType.SNIPER, position: { x: 0, y: 0 } });
       
       expect(tower.damage).toBe(50);
       expect(tower.range).toBe(200);
@@ -25,7 +36,7 @@ describe('Tower', () => {
     });
 
     it('should create a rapid tower with correct stats', () => {
-      const tower = new Tower(TowerType.RAPID, { x: 0, y: 0 });
+      const tower = createTestTower({ type: TowerType.RAPID, position: { x: 0, y: 0 } });
       
       expect(tower.damage).toBe(5);
       expect(tower.range).toBe(80);
@@ -38,11 +49,11 @@ describe('Tower', () => {
     let enemies: Enemy[];
 
     beforeEach(() => {
-      tower = new Tower(TowerType.BASIC, { x: 100, y: 100 });
+      tower = createTestTower({ type: TowerType.BASIC, position: { x: 100, y: 100 } });
       enemies = [
-        new Enemy({ x: 150, y: 100 }, 50), // 50 units away
-        new Enemy({ x: 100, y: 180 }, 50), // 80 units away
-        new Enemy({ x: 250, y: 100 }, 50), // 150 units away (out of range)
+        createTestEnemy({ position: { x: 150, y: 100 }, health: 50 }), // 50 units away
+        createTestEnemy({ position: { x: 100, y: 180 }, health: 50 }), // 80 units away
+        createTestEnemy({ position: { x: 250, y: 100 }, health: 50 }), // 150 units away (out of range)
       ];
     });
 
@@ -70,7 +81,7 @@ describe('Tower', () => {
 
     it('should return null if no enemies in range', () => {
       const farEnemies = [
-        new Enemy({ x: 300, y: 300 }, 50)
+        createTestEnemy({ position: { x: 300, y: 300 }, health: 50 })
       ];
       
       const target = tower.findTarget(farEnemies);
@@ -83,8 +94,8 @@ describe('Tower', () => {
     let enemy: Enemy;
 
     beforeEach(() => {
-      tower = new Tower(TowerType.BASIC, { x: 100, y: 100 });
-      enemy = new Enemy({ x: 150, y: 100 }, 50);
+      tower = createTestTower({ type: TowerType.BASIC, position: { x: 100, y: 100 } });
+      enemy = createTestEnemy({ position: { x: 150, y: 100 }, health: 50 });
     });
 
     it('should shoot at target when cooldown is ready', () => {
@@ -130,10 +141,10 @@ describe('Tower', () => {
     let enemies: Enemy[];
 
     beforeEach(() => {
-      tower = new Tower(TowerType.RAPID, { x: 100, y: 100 });
+      tower = createTestTower({ type: TowerType.RAPID, position: { x: 100, y: 100 } });
       enemies = [
-        new Enemy({ x: 120, y: 100 }, 50),
-        new Enemy({ x: 100, y: 150 }, 50),
+        createTestEnemy({ position: { x: 120, y: 100 }, health: 50 }),
+        createTestEnemy({ position: { x: 100, y: 150 }, health: 50 }),
       ];
     });
 

@@ -1,49 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Renderer } from '../../src/systems/Renderer';
-import { Grid } from '../../src/systems/Grid';
-import { Camera } from '../../src/systems/Camera';
-import { TowerType } from '../../src/entities/Tower';
-
-// Mock canvas context
-const mockContext = {
-  clearRect: vi.fn(),
-  fillRect: vi.fn(),
-  strokeRect: vi.fn(),
-  beginPath: vi.fn(),
-  arc: vi.fn(),
-  fill: vi.fn(),
-  stroke: vi.fn(),
-  moveTo: vi.fn(),
-  lineTo: vi.fn(),
-  setLineDash: vi.fn(),
-  save: vi.fn(),
-  restore: vi.fn(),
-  fillText: vi.fn(),
-  translate: vi.fn(),
-  rotate: vi.fn(),
-  scale: vi.fn(),
-  closePath: vi.fn(),
-  quadraticCurveTo: vi.fn(),
-  drawImage: vi.fn(),
-  createRadialGradient: vi.fn(() => ({
-    addColorStop: vi.fn()
-  })),
-  measureText: vi.fn(() => ({ width: 10 })),
-  setTransform: vi.fn(),
-  set fillStyle(value: string) {},
-  set strokeStyle(value: string) {},
-  set lineWidth(value: number) {},
-  set globalAlpha(value: number) {},
-  set font(value: string) {},
-  set textAlign(value: string) {}
-};
-
-// Mock canvas
-const mockCanvas = {
-  width: 800,
-  height: 608,
-  getContext: vi.fn(() => mockContext)
-} as unknown as HTMLCanvasElement;
+import { Renderer } from '@/systems/Renderer';
+import { Grid } from '@/systems/Grid';
+import { Camera } from '@/systems/Camera';
+import { TowerType } from '@/entities/Tower';
+import { createMockCanvas, assertCanvasMethodCalled, resetCanvasMocks } from '../helpers';
 
 // Mock camera
 const mockCamera = {
@@ -63,9 +23,11 @@ describe('Renderer Ghost System', () => {
   let renderer: Renderer;
   let grid: Grid;
   let camera: Camera;
+  let mockCanvas: ReturnType<typeof createMockCanvas>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCanvas = createMockCanvas(800, 608);
     grid = new Grid(25, 19, 32);
     camera = new Camera(800, 608, 800, 608);
     renderer = new Renderer(mockCanvas, grid, camera);
@@ -79,12 +41,12 @@ describe('Renderer Ghost System', () => {
       renderer.renderTowerGhost(TowerType.BASIC, position, canPlace);
 
       // Verify basic rendering calls
-      expect(mockContext.save).toHaveBeenCalled();
-      expect(mockContext.restore).toHaveBeenCalled();
-      expect(mockContext.beginPath).toHaveBeenCalled();
-      expect(mockContext.arc).toHaveBeenCalled();
-      expect(mockContext.fill).toHaveBeenCalled();
-      expect(mockContext.stroke).toHaveBeenCalled();
+      assertCanvasMethodCalled(mockCanvas, 'save');
+      assertCanvasMethodCalled(mockCanvas, 'restore');
+      assertCanvasMethodCalled(mockCanvas, 'beginPath');
+      assertCanvasMethodCalled(mockCanvas, 'arc');
+      assertCanvasMethodCalled(mockCanvas, 'fill');
+      assertCanvasMethodCalled(mockCanvas, 'stroke');
     });
 
     it('should render ghost tower with invalid placement styling', () => {
@@ -94,12 +56,12 @@ describe('Renderer Ghost System', () => {
       renderer.renderTowerGhost(TowerType.BASIC, position, canPlace);
 
       // Verify rendering calls for invalid placement
-      expect(mockContext.save).toHaveBeenCalled();
-      expect(mockContext.restore).toHaveBeenCalled();
-      expect(mockContext.beginPath).toHaveBeenCalled();
-      expect(mockContext.arc).toHaveBeenCalled();
-      expect(mockContext.fill).toHaveBeenCalled();
-      expect(mockContext.stroke).toHaveBeenCalled();
+      assertCanvasMethodCalled(mockCanvas, 'save');
+      assertCanvasMethodCalled(mockCanvas, 'restore');
+      assertCanvasMethodCalled(mockCanvas, 'beginPath');
+      assertCanvasMethodCalled(mockCanvas, 'arc');
+      assertCanvasMethodCalled(mockCanvas, 'fill');
+      assertCanvasMethodCalled(mockCanvas, 'stroke');
     });
 
     it('should render different tower types correctly', () => {
@@ -110,16 +72,16 @@ describe('Renderer Ghost System', () => {
       const towerTypes = [TowerType.BASIC, TowerType.SNIPER, TowerType.RAPID];
 
       towerTypes.forEach(towerType => {
-        vi.clearAllMocks();
+        resetCanvasMocks(mockCanvas);
         
         renderer.renderTowerGhost(towerType, position, canPlace);
 
         // Each tower type should render
-        expect(mockContext.save).toHaveBeenCalled();
-        expect(mockContext.restore).toHaveBeenCalled();
-        expect(mockContext.arc).toHaveBeenCalled();
-        expect(mockContext.fill).toHaveBeenCalled();
-        expect(mockContext.stroke).toHaveBeenCalled();
+        assertCanvasMethodCalled(mockCanvas, 'save');
+        assertCanvasMethodCalled(mockCanvas, 'restore');
+        assertCanvasMethodCalled(mockCanvas, 'arc');
+        assertCanvasMethodCalled(mockCanvas, 'fill');
+        assertCanvasMethodCalled(mockCanvas, 'stroke');
       });
     });
 
@@ -127,17 +89,11 @@ describe('Renderer Ghost System', () => {
       const position = { x: 100, y: 100 };
       const canPlace = true;
       
-      // Mock the globalAlpha setter
-      const mockAlphaSetter = vi.fn();
-      Object.defineProperty(mockContext, 'globalAlpha', {
-        set: mockAlphaSetter,
-        configurable: true
-      });
-
       renderer.renderTowerGhost(TowerType.BASIC, position, canPlace);
 
       // Should set alpha for transparency
-      expect(mockAlphaSetter).toHaveBeenCalledWith(0.6);
+      const ctx = mockCanvas.getContext('2d');
+      expect(ctx.globalAlpha).toBe(0.6);
     });
 
     it('should render range preview with dashed line', () => {
@@ -147,8 +103,9 @@ describe('Renderer Ghost System', () => {
       renderer.renderTowerGhost(TowerType.BASIC, position, canPlace);
 
       // Should set line dash for range preview
-      expect(mockContext.setLineDash).toHaveBeenCalledWith([3, 3]);
-      expect(mockContext.setLineDash).toHaveBeenCalledWith([]); // Reset
+      const ctx = mockCanvas.getContext('2d');
+      expect(ctx.setLineDash).toHaveBeenCalledWith([3, 3]);
+      expect(ctx.setLineDash).toHaveBeenCalledWith([]); // Reset
     });
 
     it('should handle edge positions without crashing', () => {
@@ -172,12 +129,13 @@ describe('Renderer Ghost System', () => {
       renderer.renderTowerGhost(TowerType.BASIC, position, true);
 
       // Should save at start and restore at end
-      expect(mockContext.save).toHaveBeenCalled();
-      expect(mockContext.restore).toHaveBeenCalled();
+      assertCanvasMethodCalled(mockCanvas, 'save');
+      assertCanvasMethodCalled(mockCanvas, 'restore');
       
       // Verify save was called before restore
-      const saveCall = mockContext.save.mock.invocationCallOrder?.[0];
-      const restoreCall = mockContext.restore.mock.invocationCallOrder?.[0];
+      const ctx = mockCanvas.getContext('2d');
+      const saveCall = ctx.save.mock.invocationCallOrder?.[0];
+      const restoreCall = ctx.restore.mock.invocationCallOrder?.[0];
       if (saveCall !== undefined && restoreCall !== undefined) {
         expect(saveCall).toBeLessThan(restoreCall);
       }
@@ -192,8 +150,8 @@ describe('Renderer Ghost System', () => {
       renderer.renderTowerGhost(TowerType.BASIC, position, true);
 
       // Context should be properly restored
-      expect(mockContext.save).toHaveBeenCalled();
-      expect(mockContext.restore).toHaveBeenCalled();
+      assertCanvasMethodCalled(mockCanvas, 'save');
+      assertCanvasMethodCalled(mockCanvas, 'restore');
     });
 
     it('should handle multiple ghost renders in sequence', () => {
@@ -210,8 +168,8 @@ describe('Renderer Ghost System', () => {
       });
 
       // Should have called save/restore for each render
-      expect(mockContext.save).toHaveBeenCalledTimes(3);
-      expect(mockContext.restore).toHaveBeenCalledTimes(3);
+      assertCanvasMethodCalled(mockCanvas, 'save', 3);
+      assertCanvasMethodCalled(mockCanvas, 'restore', 3);
     });
   });
 });

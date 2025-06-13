@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Pathfinder } from '../../src/systems/Pathfinder';
-import { Grid, CellType } from '../../src/systems/Grid';
-import type { Vector2 } from '../../src/utils/Vector2';
+import { Pathfinder } from '@/systems/Pathfinder';
+import { Grid, CellType } from '@/systems/Grid';
+import type { Vector2 } from '@/utils/Vector2';
 
 describe('Pathfinder', () => {
   let grid: Grid;
