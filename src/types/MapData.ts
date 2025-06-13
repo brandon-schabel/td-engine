@@ -160,7 +160,7 @@ export const BIOME_PRESETS: Record<BiomeType, BiomeConfig> = {
       border: '#1C3A0D'
     },
     obstacleTypes: ['tree_oak', 'tree_pine', 'boulder', 'bush'],
-    decorationDensity: 0.7,
+    decorationDensity: 0.3,
     terrainVariation: 0.3,
     waterPresence: true,
     animatedElements: true
@@ -177,7 +177,7 @@ export const BIOME_PRESETS: Record<BiomeType, BiomeConfig> = {
       border: '#A0522D'
     },
     obstacleTypes: ['cactus', 'rock_formation', 'dead_tree', 'sand_dune'],
-    decorationDensity: 0.3,
+    decorationDensity: 0.15,
     terrainVariation: 0.4,
     waterPresence: false,
     animatedElements: true
@@ -194,7 +194,7 @@ export const BIOME_PRESETS: Record<BiomeType, BiomeConfig> = {
       border: '#4F94CD'
     },
     obstacleTypes: ['ice_formation', 'snow_pile', 'frozen_tree', 'ice_boulder'],
-    decorationDensity: 0.4,
+    decorationDensity: 0.2,
     terrainVariation: 0.2,
     waterPresence: true,
     animatedElements: true
@@ -211,7 +211,7 @@ export const BIOME_PRESETS: Record<BiomeType, BiomeConfig> = {
       border: '#800000'
     },
     obstacleTypes: ['lava_rock', 'volcanic_boulder', 'ash_pile', 'lava_flow'],
-    decorationDensity: 0.5,
+    decorationDensity: 0.25,
     terrainVariation: 0.6,
     waterPresence: false,
     animatedElements: true
@@ -228,7 +228,7 @@ export const BIOME_PRESETS: Record<BiomeType, BiomeConfig> = {
       border: '#228B22'
     },
     obstacleTypes: ['small_tree', 'rock', 'flower_patch', 'tall_grass'],
-    decorationDensity: 0.5,
+    decorationDensity: 0.25,
     terrainVariation: 0.1,
     waterPresence: true,
     animatedElements: true
@@ -238,38 +238,38 @@ export const BIOME_PRESETS: Record<BiomeType, BiomeConfig> = {
 // Map size presets for different gameplay experiences
 export const MAP_SIZE_PRESETS: Record<MapSize, MapSizePreset> = {
   [MapSize.SMALL]: {
-    width: 20,
-    height: 15,
-    baseObstacles: 20,
-    baseChokePoints: 2,
-    baseOpenAreas: 3,
-    baseAdvantageSpots: 2
+    width: 40,
+    height: 30,
+    baseObstacles: 40,
+    baseChokePoints: 4,
+    baseOpenAreas: 6,
+    baseAdvantageSpots: 4
   },
   
   [MapSize.MEDIUM]: {
-    width: 30,
-    height: 22,
-    baseObstacles: 35,
-    baseChokePoints: 4,
-    baseOpenAreas: 5,
-    baseAdvantageSpots: 3
+    width: 60,
+    height: 44,
+    baseObstacles: 70,
+    baseChokePoints: 8,
+    baseOpenAreas: 10,
+    baseAdvantageSpots: 6
   },
   
   [MapSize.LARGE]: {
-    width: 40,
-    height: 30,
-    baseObstacles: 55,
-    baseChokePoints: 6,
-    baseOpenAreas: 7,
-    baseAdvantageSpots: 5
+    width: 80,
+    height: 60,
+    baseObstacles: 110,
+    baseChokePoints: 12,
+    baseOpenAreas: 14,
+    baseAdvantageSpots: 10
   },
   
   [MapSize.HUGE]: {
-    width: 50,
-    height: 35,
-    baseObstacles: 75,
-    baseChokePoints: 8,
-    baseOpenAreas: 10,
-    baseAdvantageSpots: 7
+    width: 100,
+    height: 70,
+    baseObstacles: 150,
+    baseChokePoints: 16,
+    baseOpenAreas: 20,
+    baseAdvantageSpots: 14
   }
 };

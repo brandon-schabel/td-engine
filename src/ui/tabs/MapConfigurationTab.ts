@@ -41,10 +41,10 @@ export class MapConfigurationTab extends BaseTabRenderer {
     );
 
     const mapSizeOptions = [
-      { value: MapSize.SMALL, label: 'Small (20×15)', description: 'Quick matches, fast-paced action' },
-      { value: MapSize.MEDIUM, label: 'Medium (30×22)', description: 'Balanced gameplay experience' },
-      { value: MapSize.LARGE, label: 'Large (40×30)', description: 'Strategic depth, longer matches' },
-      { value: MapSize.HUGE, label: 'Huge (50×38)', description: 'Epic battles, maximum strategy' }
+      { value: MapSize.SMALL, label: 'Small (40×30)', description: 'Quick matches, fast-paced action' },
+      { value: MapSize.MEDIUM, label: 'Medium (60×44)', description: 'Balanced gameplay experience' },
+      { value: MapSize.LARGE, label: 'Large (80×60)', description: 'Strategic depth, longer matches' },
+      { value: MapSize.HUGE, label: 'Huge (100×70)', description: 'Epic battles, maximum strategy' }
     ];
 
     const sizeSelect = FormComponents.createSelectDropdown(

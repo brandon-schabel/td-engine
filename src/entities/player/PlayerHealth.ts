@@ -77,7 +77,7 @@ export class PlayerHealth {
     this.onDamageCallback?.(actualDamage);
     
     if (!this.isAlive()) {
-      this.onDeathCallback?();
+      this.onDeathCallback?.();
     }
     
     return actualDamage;

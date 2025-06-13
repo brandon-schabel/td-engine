@@ -27,9 +27,9 @@ describe('Enhanced Map Generation', () => {
 
     const mapData = mapGenerator.generate(config);
     
-    // Should have larger dimensions
-    expect(mapData.metadata.width).toBe(30);
-    expect(mapData.metadata.height).toBe(22);
+    // Should have larger dimensions (4x increase)
+    expect(mapData.metadata.width).toBe(60);
+    expect(mapData.metadata.height).toBe(44);
     
     // Should have more decorations due to DENSE level and enhanced formula
     expect(mapData.decorations.length).toBeGreaterThan(50);

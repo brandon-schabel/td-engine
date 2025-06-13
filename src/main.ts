@@ -207,7 +207,7 @@ function setupGameUI() {
     <div>ESC - Cancel Selection</div>
     <div>Q - Stop All Audio</div>
     <div style="margin-top: 8px; font-size: 12px; color: #FFD700;">
-      <strong>🔊 8-bit Audio Enabled!</strong>
+      <strong>🔊 Click audio icon for settings</strong>
     </div>
   `;
   gameContainer.appendChild(instructions);
@@ -501,14 +501,39 @@ function setupGameUI() {
 
   gameContainer.appendChild(playerUpgradeContainer);
 
-  // Add audio controls panel
+  // Add compact audio button
+  const audioButton = document.createElement('button');
+  audioButton.className = 'ui-button';
+  audioButton.style.cssText = `
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #FFD700;
+    color: #FFD700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+  `;
+  audioButton.textContent = '🔊';
+  audioButton.title = 'Audio Settings';
+
+  // Create expandable audio panel (initially hidden)
   const audioControlsPanel = document.createElement('div');
   audioControlsPanel.className = 'ui-panel';
   audioControlsPanel.style.cssText = `
-    top: 12px;
+    top: 60px;
     left: 12px;
     min-width: 150px;
     font-size: 12px;
+    display: none;
+    z-index: 1000;
   `;
 
   const audioTitle = document.createElement('div');
@@ -556,9 +581,50 @@ function setupGameUI() {
     game.getAudioManager().setEnabled(!isMuted);
     muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
     volumeSlider.disabled = isMuted;
+    // Update audio button icon
+    audioButton.textContent = isMuted ? '🔇' : '🔊';
+  });
+
+  // Close button for audio panel
+  const closeAudioPanelButton = document.createElement('button');
+  closeAudioPanelButton.className = 'ui-button close-button';
+  closeAudioPanelButton.textContent = 'Close';
+  closeAudioPanelButton.style.cssText = `
+    width: 100%;
+    margin-top: 8px;
+    font-size: 10px;
+  `;
+  closeAudioPanelButton.addEventListener('click', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
+    audioControlsPanel.style.display = 'none';
   });
 
   audioControlsPanel.appendChild(muteButton);
+  audioControlsPanel.appendChild(closeAudioPanelButton);
+
+  // Toggle audio panel when button is clicked
+  audioButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
+    const isVisible = audioControlsPanel.style.display === 'block';
+    audioControlsPanel.style.display = isVisible ? 'none' : 'block';
+  });
+
+  // Close audio panel when clicking outside
+  document.addEventListener('click', (e) => {
+    if (audioControlsPanel.style.display === 'block' && 
+        !audioControlsPanel.contains(e.target as Node) && 
+        !audioButton.contains(e.target as Node)) {
+      audioControlsPanel.style.display = 'none';
+    }
+  });
+
+  // Prevent clicks inside the panel from closing it
+  audioControlsPanel.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  gameContainer.appendChild(audioButton);
   gameContainer.appendChild(audioControlsPanel);
 
   // Function to update upgrade panel

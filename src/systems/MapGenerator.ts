@@ -214,8 +214,8 @@ export class MapGenerator {
     
     // Enhanced decoration formula for more visual richness
     const sizeMultiplier = Math.min(grid.width * grid.height / 400, 2.0); // Scale with map size
-    // Increased base multiplier from 0.3 to 0.6 for much richer decoration density
-    const targetCount = Math.floor(grid.width * grid.height * baseDensity * levelMultiplier * 0.6 * sizeMultiplier);
+    // Reduced base multiplier from 0.6 to 0.25 for less busy maps
+    const targetCount = Math.floor(grid.width * grid.height * baseDensity * levelMultiplier * 0.25 * sizeMultiplier);
     
     // Generate decorations
     for (let i = 0; i < targetCount; i++) {
