@@ -7,7 +7,7 @@ import type { WaveConfig } from '../systems/WaveManager';
 import { SpawnZoneManager } from '../systems/SpawnZoneManager';
 import type { GameStateSnapshot } from '../systems/SpawnZoneManager';
 import { Renderer } from '../systems/Renderer';
-import { Camera } from '../systems/Camera';
+import { Camera, type CameraOptions } from '../systems/Camera';
 import { Tower, TowerType, UpgradeType } from '../entities/Tower';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
@@ -22,6 +22,7 @@ import type { MapData, MapGenerationConfig, MapSizePreset } from '../types/MapDa
 import { TOWER_COSTS, SPAWN_CHANCES, CURRENCY_CONFIG, AUDIO_CONFIG } from '../config/GameConfig';
 import { GameInitializer } from './GameInitializer';
 import { GameAudioHandler } from '../systems/GameAudioHandler';
+import { ScoreManager, type GameStats } from '../systems/ScoreManager';
 
 export class Game {
   private engine: GameEngine;
@@ -34,6 +35,11 @@ export class Game {
   private currency: number = 100;
   private lives: number = 10;
   private score: number = 0;
+  
+  // Game statistics tracking
+  private gameStartTime: number = Date.now();
+  private enemiesKilled: number = 0;
+  private towersBuilt: number = 0;
   private renderer: Renderer;
   private camera: Camera;
   private audioManager: AudioManager;
@@ -75,8 +81,14 @@ export class Game {
     const worldWidth = this.grid.width * this.grid.cellSize;
     const worldHeight = this.grid.height * this.grid.cellSize;
     
-    // Initialize camera
-    this.camera = new Camera(canvas.width, canvas.height, worldWidth, worldHeight);
+    // Initialize camera with zoom options
+    const cameraOptions: CameraOptions = {
+      minZoom: 0.3,
+      maxZoom: 3.0,
+      zoomSpeed: 0.15,
+      zoomSmoothing: 0.12
+    };
+    this.camera = new Camera(canvas.width, canvas.height, worldWidth, worldHeight, cameraOptions);
     
     // Initialize systems
     this.pathfinder = new Pathfinder(this.grid);
@@ -274,7 +286,7 @@ export class Game {
 
     // Check for game over
     if (this.isGameOver()) {
-      this.engine.gameOver();
+      this.handleGameOver();
       return;
     }
 
@@ -323,7 +335,7 @@ export class Game {
     // Check if player died
     if (!this.player.isAlive) {
       this.audioHandler.playGameOver();
-      this.engine.gameOver();
+      this.handleGameOver();
       return;
     }
 
@@ -390,12 +402,64 @@ export class Game {
     if (this.waveManager.isWaveComplete()) {
       if (!this.waveManager.hasNextWave()) {
         this.audioHandler.playVictory();
-        this.engine.victory();
+        this.handleVictory();
       } else {
         this.audioHandler.playWaveComplete();
       }
     }
   };
+
+  private handleGameOver(): void {
+    this.saveGameStats(false);
+    this.engine.gameOver();
+  }
+
+  private handleVictory(): void {
+    this.saveGameStats(true);
+    this.engine.victory();
+  }
+
+  private saveGameStats(victory: boolean): void {
+    const gameTime = Math.floor((Date.now() - this.gameStartTime) / 1000);
+    const playerLevel = this.calculatePlayerLevel();
+    
+    const stats: GameStats = {
+      score: this.score,
+      wave: this.waveManager.currentWave,
+      currency: this.currency,
+      enemiesKilled: this.enemiesKilled,
+      towersBuilt: this.towersBuilt,
+      playerLevel,
+      gameTime,
+      date: Date.now(),
+      mapBiome: this.currentMapData.biomeConfig.type,
+      mapDifficulty: this.currentMapData.metadata.difficulty || 'MEDIUM'
+    };
+
+    ScoreManager.saveScore(stats);
+    
+    // Dispatch event for UI to handle
+    const gameEndEvent = new CustomEvent('gameEnd', { 
+      detail: { 
+        stats, 
+        victory,
+        scoreEntry: ScoreManager.saveScore(stats)
+      } 
+    });
+    document.dispatchEvent(gameEndEvent);
+  }
+
+  private calculatePlayerLevel(): number {
+    const player = this.player;
+    const totalUpgrades = [
+      player.getUpgradeLevel(PlayerUpgradeType.DAMAGE),
+      player.getUpgradeLevel(PlayerUpgradeType.SPEED), 
+      player.getUpgradeLevel(PlayerUpgradeType.FIRE_RATE),
+      player.getUpgradeLevel(PlayerUpgradeType.HEALTH)
+    ].reduce((sum, level) => sum + level, 0);
+    
+    return Math.max(1, totalUpgrades);
+  }
 
   render = (deltaTime: number): void => {
     // Render main scene including player
@@ -472,6 +536,9 @@ export class Game {
     // Place tower
     const tower = new Tower(towerType, worldPosition);
     this.towers.push(tower);
+    
+    // Track towers built
+    this.towersBuilt++;
     
     // Update grid - walls are obstacles, other towers are towers
     if (towerType === TowerType.WALL) {
@@ -598,6 +665,29 @@ export class Game {
     if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
       this.player.handleKeyDown(key);
     }
+    
+    // Handle zoom controls
+    switch (key) {
+      case '=':
+      case '+':
+        this.zoomIn();
+        break;
+      case '-':
+      case '_':
+        this.zoomOut();
+        break;
+      case '0':
+        this.setZoom(1.0); // Reset to default zoom
+        break;
+      case 'f':
+      case 'F':
+        this.zoomToFit();
+        break;
+      case 'c':
+      case 'C':
+        this.resetCameraToPlayer();
+        break;
+    }
   }
 
   handleKeyUp(key: string): void {
@@ -629,8 +719,13 @@ export class Game {
     this.currency = Math.max(0, this.currency - amount);
   }
 
-  private addCurrency(amount: number): void {
+  public addCurrency(amount: number): void {
     this.currency += amount;
+  }
+
+  // Public method for testing
+  public setCurrency(amount: number): void {
+    this.currency = amount;
   }
 
   private loseLife(): void {
@@ -697,6 +792,9 @@ export class Game {
     this.addCurrency(enemy.reward);
     this.addScore(enemy.reward * CURRENCY_CONFIG.baseRewardMultiplier);
     
+    // Track enemies killed
+    this.enemiesKilled++;
+    
     // Chance to spawn collectible
     if (Collectible.shouldSpawnFromEnemy()) {
       const collectibleType = Collectible.getRandomType();
@@ -723,6 +821,10 @@ export class Game {
 
   getHoverTower(): Tower | null {
     return this.hoverTower;
+  }
+
+  getGameState(): GameState {
+    return this.engine.getState();
   }
 
   getTowerCost(towerType: TowerType): number {
@@ -991,5 +1093,81 @@ export class Game {
       }
     }
     return MapSize.MEDIUM; // fallback
+  }
+
+  // Camera and zoom control methods
+  getCamera(): Camera {
+    return this.camera;
+  }
+
+  // Zoom controls
+  zoomIn(): void {
+    this.camera.zoomIn();
+  }
+
+  zoomOut(): void {
+    this.camera.zoomOut();
+  }
+
+  setZoom(zoom: number): void {
+    this.camera.setZoom(zoom);
+  }
+
+  getZoom(): number {
+    return this.camera.getZoom();
+  }
+
+  zoomToFit(): void {
+    this.camera.zoomToFit();
+  }
+
+  resetCameraToPlayer(): void {
+    this.camera.setFollowTarget(true);
+  }
+
+  toggleCameraFollow(): boolean {
+    const newFollowState = !this.camera.isFollowingTarget();
+    this.camera.setFollowTarget(newFollowState);
+    return newFollowState;
+  }
+
+  // Game statistics getters
+  getGameStats(): GameStats {
+    const gameTime = Math.floor((Date.now() - this.gameStartTime) / 1000);
+    const playerLevel = this.calculatePlayerLevel();
+    
+    return {
+      score: this.score,
+      wave: this.waveManager.currentWave,
+      currency: this.currency,
+      enemiesKilled: this.enemiesKilled,
+      towersBuilt: this.towersBuilt,
+      playerLevel,
+      gameTime,
+      date: Date.now(),
+      mapBiome: this.currentMapData.biomeConfig.type,
+      mapDifficulty: this.currentMapData.metadata.difficulty || 'MEDIUM'
+    };
+  }
+
+  // Handle mouse wheel for zooming
+  handleMouseWheel(event: WheelEvent): void {
+    event.preventDefault();
+    
+    // Determine zoom direction and factor
+    const zoomIn = event.deltaY < 0;
+    const zoomFactor = 0.15;
+    
+    // Simple zoom without center point for now (can be enhanced later)
+    if (zoomIn) {
+      this.camera.zoomIn(zoomFactor);
+    } else {
+      this.camera.zoomOut(zoomFactor);
+    }
+  }
+
+  // Handle camera panning (when not following player)
+  panCamera(deltaX: number, deltaY: number): void {
+    this.camera.pan(deltaX, deltaY);
   }
 }

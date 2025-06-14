@@ -1,4 +1,4 @@
-import { Game } from './core/Game';
+import { GameWithEvents } from './core/GameWithEvents';
 import { TowerType } from './entities/Tower';
 import { UpgradeType } from './entities/Tower';
 import { PlayerUpgradeType } from './entities/Player';
@@ -8,6 +8,8 @@ import { TouchInputSystem } from './ui/core/TouchInputSystem';
 import type { GameConfiguration, MapConfiguration } from './config/GameConfiguration';
 import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty } from './types/MapData';
 import { createSvgIcon, IconType } from './ui/icons/SvgIcons';
+import { setupGameUIRevamp } from './ui/GameUIRevamp';
+import { GameOverScreen } from './ui/components/GameOverScreen';
 
 // Get canvas element
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -15,15 +17,43 @@ if (!canvas) {
   throw new Error('Canvas element not found');
 }
 
-// Set canvas size - viewport window into larger world
-canvas.width = 1200;
-canvas.height = 800;
-
 // Global variables for game initialization
-let game: Game;
+let game: GameWithEvents;
 let gameInitialized = false;
+
+// Set initial canvas size - will be updated to fill container
+function resizeCanvas() {
+  const container = canvas.parentElement;
+  if (container) {
+    const rect = container.getBoundingClientRect();
+    // Ensure minimum reasonable size
+    const width = Math.max(rect.width, 800);
+    const height = Math.max(rect.height, 600);
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Update camera viewport if game exists
+    if (gameInitialized && game) {
+      const camera = game.getCamera();
+      camera.updateViewport(canvas.width, canvas.height);
+    }
+  }
+}
+
+// Initial size
+resizeCanvas();
+
+// Add window resize listener with debouncing
+let resizeTimeout: number;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = window.setTimeout(resizeCanvas, 100);
+});
 let touchInputSystem: TouchInputSystem | null = null;
 const audioManager = new AudioManager();
+let gameOverScreen: GameOverScreen;
+let configMenu: ConfigurationMenu;
 
 // Convert MapConfiguration to MapGenerationConfig
 function convertMapConfiguration(mapConfig: MapConfiguration): MapGenerationConfig {
@@ -69,15 +99,64 @@ function initializeGame(config: GameConfiguration) {
   const mapGenConfig = convertMapConfiguration(config.mapSettings);
   
   // Create game instance with configuration
-  game = new Game(canvas, mapGenConfig);
+  game = new GameWithEvents(canvas, mapGenConfig);
   gameInitialized = true;
+  
+  // Create game over screen if not exists
+  if (!gameOverScreen) {
+    gameOverScreen = new GameOverScreen();
+  }
+  
+  // Setup game end event listener
+  document.addEventListener('gameEnd', handleGameEnd);
   
   // Start the main game setup
   setupGameUI();
 }
 
+function handleGameEnd(event: CustomEvent) {
+  const { stats, victory, scoreEntry } = event.detail;
+  
+  gameOverScreen.show({
+    victory,
+    stats,
+    scoreEntry,
+    onRestart: () => {
+      // Restart with same configuration
+      if (configMenu) {
+        const lastConfig = configMenu.getLastConfiguration();
+        if (lastConfig) {
+          initializeGame(lastConfig);
+          return;
+        }
+      }
+      // Fallback: show config menu
+      showMainMenu();
+    },
+    onMainMenu: showMainMenu
+  });
+}
+
+function showMainMenu() {
+  // Clean up current game
+  if (gameInitialized) {
+    game.stop();
+    gameInitialized = false;
+  }
+  
+  // Hide game over screen if visible
+  if (gameOverScreen?.isVisible()) {
+    gameOverScreen.hide();
+  }
+  
+  // Show configuration menu
+  if (configMenu) {
+    configMenu.show();
+  }
+}
+
 // Show configuration menu on startup
-const configMenu = new ConfigurationMenu(initializeGame);
+configMenu = new ConfigurationMenu(initializeGame);
 configMenu.show();
 
 // Global variables for UI state
@@ -138,6 +217,10 @@ function setupGameHandlers() {
 
     canvas.addEventListener('mousemove', (e) => {
       if (gameInitialized) game.handleMouseMove(e);
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      if (gameInitialized) game.handleMouseWheel(e);
     });
   }
 }
@@ -306,6 +389,14 @@ document.addEventListener('keydown', (e) => {
         updatePlayerUpgradePanel();
       }
       break;
+    case 'm':
+    case 'M':
+      // Main menu (only when paused)
+      if (game.isPaused()) {
+        audioManager.playUISound(SoundType.BUTTON_CLICK);
+        showMainMenu();
+      }
+      break;
   }
 });
 
@@ -326,7 +417,36 @@ function setupGameUI() {
   // Setup game handlers
   setupGameHandlers();
   
-  // Create UI elements
+  // Use the new UI system
+  const ui = setupGameUIRevamp(game, audioManager);
+  
+  // Store references for keyboard shortcuts
+  const { buildPanel, playerUpgradePanel, settingsPanel } = ui;
+  
+  // Update keyboard shortcuts to work with new UI
+  document.addEventListener('keydown', (e) => {
+    if (!gameInitialized || game.isGameOver()) return;
+    
+    switch(e.key.toLowerCase()) {
+      case 'b':
+        // Toggle build panel
+        buildPanel.style.display = buildPanel.style.display === 'block' ? 'none' : 'block';
+        break;
+      case 'u':
+        // Toggle player upgrades
+        playerUpgradePanel.style.display = playerUpgradePanel.style.display === 'block' ? 'none' : 'block';
+        break;
+    }
+  });
+  
+  // Update control buttons periodically
+  setInterval(() => {
+    ui.updateControlButtons();
+  }, 100);
+  
+  return;
+  
+  // Legacy UI code below (disabled)
   const gameContainer = document.getElementById('game-container');
   if (gameContainer) {
   // Add control instructions
@@ -361,9 +481,16 @@ function setupGameUI() {
     <div>Space - Pause/Resume</div>
     <div>ESC - Cancel Selection</div>
     <div>Q - Stop All Audio</div>
+    <div style="margin-top: 6px; color: #4CAF50;">
+      <strong>Camera/Zoom:</strong>
+    </div>
+    <div>+/- - Zoom In/Out</div>
+    <div>0 - Reset Zoom</div>
+    <div>F - Fit to Screen</div>
+    <div>C - Toggle Follow Player</div>
     <div style="margin-top: 8px; font-size: 12px; color: #FFD700; display: flex; align-items: center; gap: 6px;">
       ${mouseIcon}
-      <strong>Click audio icon for settings</strong>
+      <strong>Mouse wheel to zoom • Click audio icon for settings</strong>
     </div>
   `;
   gameContainer.appendChild(instructions);

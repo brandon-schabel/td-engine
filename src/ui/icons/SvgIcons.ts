@@ -19,6 +19,8 @@ export enum IconType {
   MENU = 'MENU',
   COLLAPSE = 'COLLAPSE',
   EXPAND = 'EXPAND',
+  BUILD = 'BUILD',
+  SETTINGS = 'SETTINGS',
   
   // Upgrade Icons
   DAMAGE = 'DAMAGE',
@@ -39,6 +41,12 @@ export enum IconType {
   GAMEPAD = 'GAMEPAD',
   TOUCH = 'TOUCH',
   
+  // Camera/Zoom Icons
+  ZOOM_IN = 'ZOOM_IN',
+  ZOOM_OUT = 'ZOOM_OUT',
+  ZOOM_FIT = 'ZOOM_FIT',
+  CAMERA = 'CAMERA',
+  
   // UI Icons
   INFO = 'INFO',
   WARNING = 'WARNING',
@@ -46,7 +54,28 @@ export enum IconType {
   ERROR = 'ERROR',
   COINS = 'COINS',
   WAVE = 'WAVE',
-  STAR = 'STAR'
+  STAR = 'STAR',
+  
+  // Game state icons
+  VICTORY = 'VICTORY',
+  GAME_OVER = 'GAME_OVER',
+  TROPHY = 'TROPHY',
+  LEADERBOARD = 'LEADERBOARD',
+  SCORE = 'SCORE',
+  ENEMY = 'ENEMY',
+  CURRENCY = 'CURRENCY',
+  CLOCK = 'CLOCK',
+  RESTART = 'RESTART',
+  HOME = 'HOME',
+  MEDAL = 'MEDAL',
+  GAME_CONTROLLER = 'GAME_CONTROLLER',
+  
+  // PowerUp Icons
+  POWERUP_DAMAGE = 'POWERUP_DAMAGE',
+  POWERUP_SPEED = 'POWERUP_SPEED',
+  POWERUP_FIRE_RATE = 'POWERUP_FIRE_RATE',
+  POWERUP_SHIELD = 'POWERUP_SHIELD',
+  POWERUP_HEALTH_REGEN = 'POWERUP_HEALTH_REGEN'
 }
 
 interface SvgIconOptions {
@@ -137,6 +166,17 @@ const ICON_PATHS: Record<IconType, string> = {
     <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
   `,
   
+  [IconType.BUILD]: `
+    <path d="M14.7 6.3 C15.1 5.9 15.7 5.9 16.1 6.3 L17.7 7.9 C18.1 8.3 18.1 8.9 17.7 9.3 L9 18 L2 22 L6 15 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M11 13 L13 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M16 3 L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.SETTINGS]: `
+    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M12 1 L12 3 M12 21 L12 23 M4.22 4.22 L5.64 5.64 M18.36 18.36 L19.78 19.78 M1 12 L3 12 M21 12 L23 12 M4.22 19.78 L5.64 18.36 M18.36 5.64 L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
   // Upgrade Icons
   [IconType.DAMAGE]: `
     <path d="M7 2 L17 2 L22 7 L22 17 L17 22 L7 22 L2 17 L2 7 Z" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -212,6 +252,33 @@ const ICON_PATHS: Record<IconType, string> = {
     <circle cx="12" cy="12" r="2" fill="currentColor"/>
   `,
   
+  // Camera/Zoom Icons
+  [IconType.ZOOM_IN]: `
+    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.ZOOM_OUT]: `
+    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.ZOOM_FIT]: `
+    <rect x="2" y="2" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3,3"/>
+    <rect x="6" y="6" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M9 9 L15 15" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+    <path d="M15 9 L9 15" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+  `,
+  
+  [IconType.CAMERA]: `
+    <rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M7 6 L8 4 L16 4 L17 6" fill="none" stroke="currentColor" stroke-width="2"/>
+  `,
+  
   // UI Icons
   [IconType.INFO]: `
     <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -248,6 +315,109 @@ const ICON_PATHS: Record<IconType, string> = {
   
   [IconType.STAR]: `
     <path d="M12 2 L15 8 L22 9 L17 14 L18 21 L12 18 L6 21 L7 14 L2 9 L9 8 Z" fill="currentColor"/>
+  `,
+  
+  // PowerUp Icons
+  [IconType.POWERUP_DAMAGE]: `
+    <path d="M12 2 L16 8 L22 8 L18 14 L20 22 L12 18 L4 22 L6 14 L2 8 L8 8 Z" fill="currentColor"/>
+    <circle cx="12" cy="12" r="4" fill="none" stroke="white" stroke-width="1"/>
+  `,
+  
+  [IconType.POWERUP_SPEED]: `
+    <path d="M3 12 L7 7 L7 10 L21 10 L21 14 L7 14 L7 17 Z" fill="currentColor"/>
+    <path d="M8 8 L12 4 L12 6 L20 6 L20 8 Z" fill="currentColor" opacity="0.7"/>
+    <path d="M8 16 L12 20 L12 18 L20 18 L20 16 Z" fill="currentColor" opacity="0.7"/>
+  `,
+  
+  [IconType.POWERUP_FIRE_RATE]: `
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M8 12 L12 8 L16 12 L12 16 Z" fill="currentColor"/>
+    <circle cx="12" cy="12" r="2" fill="white"/>
+  `,
+  
+  [IconType.POWERUP_SHIELD]: `
+    <path d="M12 2 L4 6 L4 12 C4 18 12 22 12 22 C12 22 20 18 20 12 L20 6 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M9 12 L11 14 L16 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.POWERUP_HEALTH_REGEN]: `
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M12 7 L12 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M7 12 L17 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1"/>
+  `,
+  
+  // Game state icons
+  [IconType.VICTORY]: `
+    <path d="M12 2 L15.09 8.26 L22 9.27 L17 14.14 L18.18 21.02 L12 17.77 L5.82 21.02 L7 14.14 L2 9.27 L8.91 8.26 Z" fill="currentColor"/>
+  `,
+  
+  [IconType.GAME_OVER]: `
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+    <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+    <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+  `,
+  
+  [IconType.TROPHY]: `
+    <path d="M6 9H4.5A2.5 2.5 0 0 1 2 6.5V4A2 2 0 0 1 4 2H20A2 2 0 0 1 22 4V6.5A2.5 2.5 0 0 1 19.5 9H18" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M6 9H18V15A6 6 0 0 1 6 15V9Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M10 22H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M8 22H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.LEADERBOARD]: `
+    <path d="M3 13L12 4L21 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M5 11V20A1 1 0 0 0 6 21H18A1 1 0 0 0 19 20V11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="9" y="13" width="6" height="5" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="15" r="1" fill="currentColor"/>
+  `,
+  
+  [IconType.SCORE]: `
+    <path d="M12 2 L15.09 8.26 L22 9.27 L17 14.14 L18.18 21.02 L12 17.77 L5.82 21.02 L7 14.14 L2 9.27 L8.91 8.26 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="12" r="3" fill="currentColor"/>
+  `,
+  
+  [IconType.ENEMY]: `
+    <circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M12 14V22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M8 18L12 14L16 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 20H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.CURRENCY]: `
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M12 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M9 9A3 3 0 0 1 15 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M9 15A3 3 0 0 0 15 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.CLOCK]: `
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+    <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.RESTART]: `
+    <path d="M23 4V10H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20.49 15A9 9 0 1 1 5.64 5.64L23 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.HOME]: `
+    <path d="M3 9L12 2L21 9V20A2 2 0 0 1 19 22H5A2 2 0 0 1 3 20Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.MEDAL]: `
+    <circle cx="12" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M8.21 13.89L7 23L12 20L17 23L15.79 13.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="12" cy="8" r="2" fill="currentColor"/>
+  `,
+  
+  [IconType.GAME_CONTROLLER]: `
+    <path d="M6 10H4A4 4 0 0 0 0 14V18A4 4 0 0 0 4 22H6A2 2 0 0 0 8 20V12A2 2 0 0 0 6 10Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M18 10H20A4 4 0 0 1 24 14V18A4 4 0 0 1 20 22H18A2 2 0 0 1 16 20V12A2 2 0 0 1 18 10Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M8 12H16V20H8Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="10" cy="16" r="1" fill="currentColor"/>
+    <circle cx="14" cy="16" r="1" fill="currentColor"/>
   `
 };
 

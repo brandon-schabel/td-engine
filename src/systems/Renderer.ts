@@ -912,7 +912,17 @@ export class Renderer {
     if (!this.camera.isVisible(tower.position, tower.radius)) return;
     
     const screenPos = this.getScreenPosition(tower);
+    const zoom = this.camera.getZoom();
+    
+    // Apply zoom scaling to context
+    this.ctx.save();
+    this.ctx.translate(screenPos.x, screenPos.y);
+    this.ctx.scale(zoom, zoom);
+    this.ctx.translate(-screenPos.x, -screenPos.y);
+    
     tower.render(this.ctx, screenPos, this.textureManager);
+    
+    this.ctx.restore();
     
     // Also call the separate upgrade dots method for testing compatibility
     this.renderTowerUpgradeDots(tower);
@@ -922,9 +932,10 @@ export class Renderer {
     if (!this.camera.isVisible(tower.position, tower.radius)) return;
     
     const screenPos = this.getScreenPosition(tower);
+    const zoom = this.camera.getZoom();
     const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
     const colors = ['#FF4444', '#44FF44', '#4444FF']; // Red, Green, Blue
-    const dotRadius = 3;
+    const dotRadius = 3 * zoom; // Scale dot radius with zoom
     
     upgradeTypes.forEach((upgradeType, index) => {
       const level = tower.getUpgradeLevel(upgradeType);
@@ -932,10 +943,10 @@ export class Renderer {
       if (level > 0) {
         // Position dots around the tower
         const angle = (index * 120) * (Math.PI / 180); // 120 degrees apart
-        const distance = tower.radius + 8;
+        const distance = (tower.radius + 8) * zoom; // Scale distance with zoom
         
         for (let i = 0; i < level; i++) {
-          const dotDistance = distance + (i * 4);
+          const dotDistance = distance + (i * 4 * zoom); // Scale spacing with zoom
           const x = screenPos.x + Math.cos(angle) * dotDistance;
           const y = screenPos.y + Math.sin(angle) * dotDistance;
           
@@ -946,7 +957,7 @@ export class Renderer {
           
           // Dot outline
           this.ctx.strokeStyle = '#000000';
-          this.ctx.lineWidth = 1;
+          this.ctx.lineWidth = zoom; // Scale line width with zoom
           this.ctx.stroke();
         }
       }
@@ -957,27 +968,40 @@ export class Renderer {
   renderEnemy(enemy: Enemy): void {
     if (!this.camera.isVisible(enemy.position, enemy.radius)) return;
     const screenPos = this.getScreenPosition(enemy);
+    const zoom = this.camera.getZoom();
+    
+    // Apply zoom scaling to context
+    this.ctx.save();
+    this.ctx.translate(screenPos.x, screenPos.y);
+    this.ctx.scale(zoom, zoom);
+    this.ctx.translate(-screenPos.x, -screenPos.y);
     
     enemy.render(this.ctx, screenPos, this.textureManager);
+    
+    this.ctx.restore();
+    
+    // Render target line with proper scaling
     enemy.renderTargetLine(this.ctx, screenPos, this.getScreenPosition.bind(this), this.camera);
   }
 
   renderProjectile(projectile: Projectile): void {
     if (!this.camera.isVisible(projectile.position, projectile.radius)) return;
     const screenPos = this.getScreenPosition(projectile);
+    const zoom = this.camera.getZoom();
     
     // Try to render with texture first
     const texture = this.textureManager.getTexture('projectile');
     
     if (texture && texture.loaded) {
-      this.renderTextureAt(texture, screenPos, projectile.radius * 2, projectile.radius * 2);
+      const scaledSize = projectile.radius * 2 * zoom;
+      this.renderTextureAt(texture, screenPos, scaledSize, scaledSize);
     } else {
-      // Fallback to primitive rendering
+      // Fallback to primitive rendering with zoom scaling
       if (typeof this.ctx.beginPath === 'function') {
         this.ctx.beginPath();
       }
       if (typeof this.ctx.arc === 'function') {
-        this.ctx.arc(screenPos.x, screenPos.y, projectile.radius, 0, Math.PI * 2);
+        this.ctx.arc(screenPos.x, screenPos.y, projectile.radius * zoom, 0, Math.PI * 2);
       }
       this.ctx.fillStyle = '#FFEB3B';
       if (typeof this.ctx.fill === 'function') {
@@ -985,7 +1009,7 @@ export class Renderer {
       }
       
       this.ctx.strokeStyle = '#FFC107';
-      this.ctx.lineWidth = 1;
+      this.ctx.lineWidth = zoom;
       if (typeof this.ctx.stroke === 'function') {
         this.ctx.stroke();
       }
@@ -995,19 +1019,21 @@ export class Renderer {
   renderPlayer(player: Player): void {
     if (!this.camera.isVisible(player.position, player.radius)) return;
     const screenPos = this.getScreenPosition(player);
+    const zoom = this.camera.getZoom();
     
     // Try to render with texture first
     const texture = this.textureManager.getTexture('player');
     
     if (texture && texture.loaded) {
-      this.renderTextureAt(texture, screenPos, player.radius * 2, player.radius * 2);
+      const scaledSize = player.radius * 2 * zoom;
+      this.renderTextureAt(texture, screenPos, scaledSize, scaledSize);
     } else {
-      // Fallback to primitive rendering
+      // Fallback to primitive rendering with zoom scaling
       if (typeof this.ctx.beginPath === 'function') {
         this.ctx.beginPath();
       }
       if (typeof this.ctx.arc === 'function') {
-        this.ctx.arc(screenPos.x, screenPos.y, player.radius, 0, Math.PI * 2);
+        this.ctx.arc(screenPos.x, screenPos.y, player.radius * zoom, 0, Math.PI * 2);
       }
       
       // Player color based on level
@@ -1020,7 +1046,7 @@ export class Renderer {
       
       // Player outline
       this.ctx.strokeStyle = '#FFFFFF';
-      this.ctx.lineWidth = 2;
+      this.ctx.lineWidth = 2 * zoom;
       if (typeof this.ctx.stroke === 'function') {
         this.ctx.stroke();
       }
@@ -1032,30 +1058,31 @@ export class Renderer {
       const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
       
       if (speed > 0) {
-        // Draw movement trail
+        // Draw movement trail with zoom scaling
         if (typeof this.ctx.beginPath === 'function') {
           this.ctx.beginPath();
         }
         if (typeof this.ctx.arc === 'function') {
-          this.ctx.arc(screenPos.x, screenPos.y, player.radius + 3, 0, Math.PI * 2);
+          this.ctx.arc(screenPos.x, screenPos.y, (player.radius + 3) * zoom, 0, Math.PI * 2);
         }
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = zoom;
         if (typeof this.ctx.stroke === 'function') {
           this.ctx.stroke();
         }
       }
     }
     
-    // Level indicator
+    // Level indicator with zoom scaling
     const level = player.getLevel();
     if (level > 1) {
+      const fontSize = Math.max(8, 10 * zoom); // Minimum readable size
       this.renderText(
         level.toString(),
         screenPos.x,
-        screenPos.y + 4,
+        screenPos.y + 4 * zoom,
         '#FFFFFF',
-        'bold 10px Arial',
+        `bold ${fontSize}px Arial`,
         'center'
       );
     }
@@ -1407,10 +1434,11 @@ export class Renderer {
     if (!this.camera.isVisible(entity.position, entity.radius + 10)) return;
 
     const screenPos = this.getScreenPosition(entity);
-    const barWidth = RENDER_CONFIG.healthBarWidth;
-    const barHeight = RENDER_CONFIG.healthBarHeight;
+    const zoom = this.camera.getZoom();
+    const barWidth = RENDER_CONFIG.healthBarWidth * zoom;
+    const barHeight = RENDER_CONFIG.healthBarHeight * zoom;
     const x = screenPos.x - barWidth / 2;
-    const y = screenPos.y - entity.radius - 10;
+    const y = screenPos.y - (entity.radius * zoom) - (10 * zoom);
     
     // Background
     this.ctx.fillStyle = '#222222';
@@ -1436,7 +1464,7 @@ export class Renderer {
     
     // Health bar outline
     this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = 1;
+    this.ctx.lineWidth = zoom;
     if (typeof this.ctx.strokeRect === 'function') {
       this.ctx.strokeRect(x, y, barWidth, barHeight);
     }
@@ -1446,16 +1474,19 @@ export class Renderer {
     if (!this.camera.isVisible(tower.position, tower.range)) return;
     
     const screenPos = this.getScreenPosition(tower);
+    const zoom = this.camera.getZoom();
+    
     if (typeof this.ctx.beginPath === 'function') {
       this.ctx.beginPath();
     }
     if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(screenPos.x, screenPos.y, tower.range, 0, Math.PI * 2);
+      this.ctx.arc(screenPos.x, screenPos.y, tower.range * zoom, 0, Math.PI * 2);
     }
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = 2 * zoom;
     if (typeof this.ctx.setLineDash === 'function') {
-      this.ctx.setLineDash(RENDER_CONFIG.dashPattern);
+      const scaledPattern = RENDER_CONFIG.dashPattern.map(dash => dash * zoom);
+      this.ctx.setLineDash(scaledPattern);
     }
     if (typeof this.ctx.stroke === 'function') {
       this.ctx.stroke();
@@ -1699,6 +1730,15 @@ export class Renderer {
       this.canvas.height / 2 + 60,
       '#FFFFFF',
       '20px Arial',
+      'center'
+    );
+    
+    this.renderText(
+      'Press M for Main Menu',
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 90,
+      '#CCCCCC',
+      '16px Arial',
       'center'
     );
   }

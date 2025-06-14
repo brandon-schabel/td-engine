@@ -2748,6 +2748,10 @@ export class ConfigurationMenu {
     document.body.appendChild(this.container);
   }
   
+  getLastConfiguration(): GameConfiguration | null {
+    return this.currentConfig;
+  }
+  
   private close(): void {
     // Cleanup components
     this.tabManager?.destroy();

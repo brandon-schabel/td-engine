@@ -402,12 +402,38 @@ export class UpgradePanel extends GameComponent<GameComponentProps, UpgradePanel
       return;
     }
     
+    let success = false;
+    
     if (this.state.mode === 'tower' && this.state.targetTower) {
-      // For now, show placeholder message since tower upgrade system needs integration
-      this.uiManager.showNotification(`Tower ${type} upgrade coming soon!`, 'info');
+      // Connect to actual tower upgrade system
+      import('../../entities/Tower').then(({ UpgradeType }) => {
+        const upgradeType = UpgradeType[type as keyof typeof UpgradeType];
+        if (upgradeType && this.state.targetTower) {
+          success = this.game.upgradeTower(this.state.targetTower, upgradeType);
+          
+          if (success) {
+            this.uiManager.showNotification(`Tower ${type} upgraded successfully!`, 'success');
+            this.updateUpgradeStates();
+          } else {
+            this.uiManager.showNotification(`Failed to upgrade tower ${type}!`, 'error');
+          }
+        }
+      });
     } else if (this.state.mode === 'player') {
-      // For now, show placeholder message since player upgrade system needs integration
-      this.uiManager.showNotification(`Player ${type} upgrade coming soon!`, 'info');
+      // Connect to actual player upgrade system
+      import('../../entities/Player').then(({ PlayerUpgradeType }) => {
+        const upgradeType = PlayerUpgradeType[type as keyof typeof PlayerUpgradeType];
+        if (upgradeType) {
+          success = this.game.upgradePlayer(upgradeType);
+          
+          if (success) {
+            this.uiManager.showNotification(`Player ${type} upgraded successfully!`, 'success');
+            this.updateUpgradeStates();
+          } else {
+            this.uiManager.showNotification(`Failed to upgrade player ${type}!`, 'error');
+          }
+        }
+      });
     }
   }
   
@@ -453,11 +479,25 @@ export class UpgradePanel extends GameComponent<GameComponentProps, UpgradePanel
    */
   private getCurrentUpgradeLevel(type: string): number {
     if (this.state.mode === 'tower' && this.state.targetTower) {
-      // For now, return 0 - would need integration with tower upgrade system
-      return 0;
+      // Import UpgradeType dynamically to avoid circular dependencies
+      if (type === 'DAMAGE') {
+        return this.state.targetTower.getUpgradeLevel('DAMAGE' as any);
+      } else if (type === 'RANGE') {
+        return this.state.targetTower.getUpgradeLevel('RANGE' as any);
+      } else if (type === 'FIRE_RATE') {
+        return this.state.targetTower.getUpgradeLevel('FIRE_RATE' as any);
+      }
     } else if (this.state.mode === 'player') {
-      // For now, return 0 - would need integration with player upgrade system
-      return 0;
+      const player = this.game.getPlayer();
+      if (type === 'DAMAGE') {
+        return player.getUpgradeLevel('DAMAGE' as any);
+      } else if (type === 'SPEED') {
+        return player.getUpgradeLevel('SPEED' as any);
+      } else if (type === 'FIRE_RATE') {
+        return player.getUpgradeLevel('FIRE_RATE' as any);
+      } else if (type === 'HEALTH') {
+        return player.getUpgradeLevel('HEALTH' as any);
+      }
     }
     return 0;
   }
@@ -521,5 +561,19 @@ export class UpgradePanel extends GameComponent<GameComponentProps, UpgradePanel
     if (this.state.visible && this.state.mode) {
       this.updateUpgradeStates();
     }
+  }
+  
+  /**
+   * Check if player can afford the given cost
+   */
+  private canAfford(cost: number): boolean {
+    return this.state.currency >= cost;
+  }
+  
+  /**
+   * Format currency for display
+   */
+  private formatCurrency(amount: number): string {
+    return `$${amount}`;
   }
 }

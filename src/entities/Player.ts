@@ -5,6 +5,7 @@ import type { Vector2 } from '../utils/Vector2';
 import { BASE_PLAYER_STATS, GAME_MECHANICS, UPGRADE_CONFIG } from '../config/GameConfig';
 import { CooldownManager } from '../utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
+import { PlayerPowerUps } from './player/PlayerPowerUps';
 
 export enum PlayerUpgradeType {
   DAMAGE = 'DAMAGE',
@@ -44,11 +45,7 @@ export class Player extends Entity implements ShootingCapable {
   private shootingMode: 'manual' | 'auto' = 'manual';
   
   // Power-up system
-  private temporaryDamageBoost: number = 1.0;
-  private temporaryFireRateBoost: number = 1.0;
-  private temporarySpeedBoost: number = 1.0;
-  private hasShield: boolean = false;
-  private activePowerUps: Map<string, number> = new Map(); // powerUpType -> endTime
+  private powerUps: PlayerPowerUps;
 
   constructor(position: Vector2) {
     super(EntityType.PLAYER, position, BASE_PLAYER_STATS.health, BASE_PLAYER_STATS.radius);
@@ -64,6 +61,9 @@ export class Player extends Entity implements ShootingCapable {
     this.upgradeLevels.set(PlayerUpgradeType.FIRE_RATE, 0);
     this.upgradeLevels.set(PlayerUpgradeType.HEALTH, 0);
     this.upgradeLevels.set(PlayerUpgradeType.REGENERATION, 0);
+    
+    // Initialize power-up system
+    this.powerUps = new PlayerPowerUps();
   }
 
   override update(deltaTime: number): void {
@@ -91,7 +91,7 @@ export class Player extends Entity implements ShootingCapable {
     }
     
     // Update power-ups
-    this.updatePowerUps();
+    this.powerUps.update(deltaTime);
     
     // Update movement
     this.updateMovement(deltaTime);
@@ -265,19 +265,19 @@ export class Player extends Entity implements ShootingCapable {
   get damage(): number {
     const damageLevel = this.getUpgradeLevel(PlayerUpgradeType.DAMAGE);
     const baseDamage = Math.floor(this.baseDamage * (1 + damageLevel * 0.4));
-    return Math.floor(baseDamage * this.temporaryDamageBoost);
+    return Math.floor(baseDamage * this.powerUps.getDamageMultiplier());
   }
 
   get speed(): number {
     const speedLevel = this.getUpgradeLevel(PlayerUpgradeType.SPEED);
     const baseSpeed = Math.floor(this.baseSpeed * (1 + speedLevel * 0.3));
-    return Math.floor(baseSpeed * this.temporarySpeedBoost);
+    return Math.floor(baseSpeed * this.powerUps.getSpeedMultiplier());
   }
 
   get fireRate(): number {
     const fireRateLevel = this.getUpgradeLevel(PlayerUpgradeType.FIRE_RATE);
     const baseFireRate = this.baseFireRate * (1 + fireRateLevel * 0.25);
-    return baseFireRate * this.temporaryFireRateBoost;
+    return baseFireRate * this.powerUps.getFireRateMultiplier();
   }
 
   getMaxHealth(): number {
@@ -460,92 +460,58 @@ export class Player extends Entity implements ShootingCapable {
     };
   }
 
-  // Power-up system methods
-  private updatePowerUps(): void {
-    const currentTime = Date.now();
-    const expiredPowerUps: string[] = [];
-    
-    this.activePowerUps.forEach((endTime, powerUpType) => {
-      if (currentTime >= endTime) {
-        expiredPowerUps.push(powerUpType);
-      }
-    });
-    
-    // Remove expired power-ups
-    expiredPowerUps.forEach(powerUpType => {
-      this.activePowerUps.delete(powerUpType);
-      
-      // Apply cleanup effects
-      switch (powerUpType) {
-        case 'EXTRA_DAMAGE':
-          this.removeTemporaryDamageBoost();
-          break;
-        case 'FASTER_SHOOTING':
-          this.removeTemporaryFireRateBoost();
-          break;
-        case 'SHIELD':
-          this.removeShield();
-          break;
-        case 'SPEED_BOOST':
-          this.removeTemporarySpeedBoost();
-          break;
-      }
-    });
+  // Power-up system methods (delegated to PlayerPowerUps)
+  addTemporaryDamageBoost(multiplier: number, duration: number = 10000): void {
+    this.powerUps.addExtraDamage(multiplier, duration);
   }
 
-  addTemporaryDamageBoost(multiplier: number): void {
-    this.temporaryDamageBoost = multiplier;
-    this.activePowerUps.set('EXTRA_DAMAGE', Date.now() + 10000);
-  }
-
-  removeTemporaryDamageBoost(): void {
-    this.temporaryDamageBoost = 1.0;
-  }
-
-  addTemporaryFireRateBoost(multiplier: number): void {
-    this.temporaryFireRateBoost = multiplier;
-    this.cooldownTime = 1000 / this.fireRate; // Update cooldown
-    this.activePowerUps.set('FASTER_SHOOTING', Date.now() + 8000);
-  }
-
-  removeTemporaryFireRateBoost(): void {
-    this.temporaryFireRateBoost = 1.0;
+  addTemporaryFireRateBoost(multiplier: number, duration: number = 8000): void {
+    this.powerUps.addFasterShooting(multiplier, duration);
     this.cooldownTime = 1000 / this.fireRate; // Update cooldown
   }
 
-  addTemporarySpeedBoost(multiplier: number): void {
-    this.temporarySpeedBoost = multiplier;
-    this.activePowerUps.set('SPEED_BOOST', Date.now() + 12000);
+  addTemporarySpeedBoost(multiplier: number, duration: number = 12000): void {
+    this.powerUps.addSpeedBoost(multiplier, duration);
   }
 
-  removeTemporarySpeedBoost(): void {
-    this.temporarySpeedBoost = 1.0;
+  addShield(duration: number = 15000): void {
+    this.powerUps.addShield(duration);
   }
 
-  addShield(): void {
-    this.hasShield = true;
-    this.activePowerUps.set('SHIELD', Date.now() + 15000);
-  }
-
-  removeShield(): void {
-    this.hasShield = false;
+  addHealthRegenBoost(regenBoost: number, duration: number): void {
+    this.powerUps.addHealthRegenBoost(regenBoost, duration);
   }
 
   override takeDamage(amount: number): void {
-    if (this.hasShield) {
-      // Shield blocks damage
-      return;
-    }
+    const damageResult = this.powerUps.mitigateDamage(amount);
     
-    super.takeDamage(amount);
-    this.damageCooldown = GAME_MECHANICS.damageRegenCooldown;
+    if (damageResult.actualDamage > 0) {
+      super.takeDamage(damageResult.actualDamage);
+      this.damageCooldown = GAME_MECHANICS.damageRegenCooldown;
+    }
   }
 
   getActivePowerUps(): Map<string, number> {
-    return new Map(this.activePowerUps);
+    const result = new Map<string, number>();
+    const activePowerUps = this.powerUps.getActivePowerUps();
+    
+    activePowerUps.forEach((powerUp) => {
+      result.set(powerUp.type, powerUp.endTime);
+    });
+    
+    return result;
   }
 
   hasActivePowerUp(type: string): boolean {
-    return this.activePowerUps.has(type);
+    return this.powerUps.hasActivePowerUp(type);
+  }
+
+  // Additional methods to expose powerup system functionality
+  getPlayerPowerUps(): PlayerPowerUps {
+    return this.powerUps;
+  }
+
+  getShieldStatus(): boolean {
+    return this.powerUps.getShieldStatus();
   }
 }

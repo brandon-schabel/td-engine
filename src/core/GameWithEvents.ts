@@ -8,6 +8,7 @@ import { EventEmitter } from '../ui/core/EventEmitter';
 import { GameState } from './GameState';
 import { Tower, TowerType } from '../entities/Tower';
 import { Enemy } from '../entities/Enemy';
+import type { Vector2 } from '../utils/Vector2';
 import type { MapGenerationConfig } from '../types/MapData';
 
 // Game event types
@@ -65,7 +66,7 @@ export class GameWithEvents extends Game {
       currency: this.getCurrency(),
       lives: this.getLives(),
       score: this.getScore(),
-      gameState: this.engine.getState()
+      gameState: this.getGameState()
     };
   }
 
@@ -93,7 +94,7 @@ export class GameWithEvents extends Game {
   /**
    * Override update to check for state changes
    */
-  update = (deltaTime: number): void => {
+  override update = (deltaTime: number): void => {
     // Call parent update
     super.update(deltaTime);
     
@@ -136,7 +137,7 @@ export class GameWithEvents extends Game {
     }
     
     // Game state changes
-    const currentGameState = this.engine.getState();
+    const currentGameState = this.getGameState();
     if (currentGameState !== this.previousState.gameState) {
       this.emit('gameStateChanged', {
         state: currentGameState,
@@ -168,27 +169,26 @@ export class GameWithEvents extends Game {
   /**
    * Override tower methods to emit events
    */
-  placeTower(gridX: number, gridY: number): boolean {
-    const towerType = this.getSelectedTowerType();
-    if (!towerType) return false;
-    
+  override placeTower(towerType: TowerType, worldPosition: Vector2): boolean {
     const cost = this.getTowerCost(towerType);
     const towerCount = this.getTowers().length;
-    const result = super.placeTower(gridX, gridY);
+    const result = super.placeTower(towerType, worldPosition);
     
     if (result) {
       // Check if a new tower was added
       const newTowers = this.getTowers();
       if (newTowers.length > towerCount) {
         const tower = newTowers[newTowers.length - 1]; // Get the last tower (newly placed)
-        this.emit('towerPlaced', { tower, cost });
+        if (tower) {
+          this.emit('towerPlaced', { tower, cost });
+        }
       }
     }
     
     return result;
   }
 
-  setSelectedTowerType(type: TowerType | null): void {
+  override setSelectedTowerType(type: TowerType | null): void {
     super.setSelectedTowerType(type);
     this.emit('selectedTowerTypeChanged', { type });
   }
@@ -196,20 +196,22 @@ export class GameWithEvents extends Game {
   /**
    * Override wave management to emit events
    */
-  startNextWave(): void {
+  override startNextWave(): boolean {
     const currentWave = this.getCurrentWave();
-    super.startNextWave();
+    const result = super.startNextWave();
     const newWave = this.getCurrentWave();
     
-    if (newWave > currentWave) {
+    if (result && newWave > currentWave) {
       this.emit('waveStarted', { waveNumber: newWave });
     }
+    
+    return result;
   }
 
   /**
    * Override mouse handlers to emit events
    */
-  handleMouseMove(event: MouseEvent): void {
+  override handleMouseMove(event: MouseEvent): void {
     super.handleMouseMove(event);
     
     // Since camera and grid are private, we'll emit mouse position events
@@ -234,7 +236,7 @@ export class GameWithEvents extends Game {
   /**
    * Handle tower selection events
    */
-  handleMouseDown(event: MouseEvent): void {
+  override handleMouseDown(event: MouseEvent): void {
     const previousSelected = this.getSelectedTower();
     super.handleMouseDown(event);
     const currentSelected = this.getSelectedTower();
@@ -247,12 +249,12 @@ export class GameWithEvents extends Game {
   /**
    * Override pause/resume to emit events
    */
-  pause(): void {
+  override pause(): void {
     super.pause();
     this.emit('gamePaused', undefined);
   }
 
-  resume(): void {
+  override resume(): void {
     super.resume();
     this.emit('gameResumed', undefined);
   }

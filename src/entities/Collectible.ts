@@ -18,7 +18,6 @@ interface CollectibleConfig {
   duration?: number; // milliseconds for power-ups
   value?: number; // heal amount for health or currency amount
   effect?: (player: Player) => void;
-  cleanup?: (player: Player) => void;
 }
 
 const COLLECTIBLE_CONFIGS: Record<CollectibleType, CollectibleConfig> = {
@@ -32,10 +31,7 @@ const COLLECTIBLE_CONFIGS: Record<CollectibleType, CollectibleConfig> = {
     color: '#FF4444',
     duration: 10000, // 10 seconds
     effect: (player: Player) => {
-      player.addTemporaryDamageBoost(1.5); // 50% more damage
-    },
-    cleanup: (player: Player) => {
-      player.removeTemporaryDamageBoost();
+      player.addTemporaryDamageBoost(1.5, 10000); // 50% more damage for 10 seconds
     }
   },
   [CollectibleType.FASTER_SHOOTING]: {
@@ -43,10 +39,7 @@ const COLLECTIBLE_CONFIGS: Record<CollectibleType, CollectibleConfig> = {
     color: '#FFC107',
     duration: 8000, // 8 seconds
     effect: (player: Player) => {
-      player.addTemporaryFireRateBoost(2.0); // 100% faster shooting
-    },
-    cleanup: (player: Player) => {
-      player.removeTemporaryFireRateBoost();
+      player.addTemporaryFireRateBoost(2.0, 8000); // 100% faster shooting for 8 seconds
     }
   },
   [CollectibleType.EXTRA_CURRENCY]: {
@@ -59,10 +52,7 @@ const COLLECTIBLE_CONFIGS: Record<CollectibleType, CollectibleConfig> = {
     color: '#2196F3',
     duration: 15000, // 15 seconds
     effect: (player: Player) => {
-      player.addShield();
-    },
-    cleanup: (player: Player) => {
-      player.removeShield();
+      player.addShield(15000); // Shield for 15 seconds
     }
   },
   [CollectibleType.SPEED_BOOST]: {
@@ -70,10 +60,7 @@ const COLLECTIBLE_CONFIGS: Record<CollectibleType, CollectibleConfig> = {
     color: '#9C27B0',
     duration: 12000, // 12 seconds
     effect: (player: Player) => {
-      player.addTemporarySpeedBoost(1.5); // 50% speed increase
-    },
-    cleanup: (player: Player) => {
-      player.removeTemporarySpeedBoost();
+      player.addTemporarySpeedBoost(1.5, 12000); // 50% speed increase for 12 seconds
     }
   }
 };
