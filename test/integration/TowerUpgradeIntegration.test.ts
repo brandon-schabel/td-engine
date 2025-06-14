@@ -1,7 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameWithEvents } from '../../src/core/GameWithEvents';
 import { TowerType, UpgradeType } from '../../src/entities/Tower';
 import { createMockCanvas } from '../helpers';
+
+// Mock MouseEvent for test environment
+global.MouseEvent = vi.fn().mockImplementation((type, options = {}) => ({
+  type,
+  ...options,
+  preventDefault: vi.fn(),
+  stopPropagation: vi.fn(),
+})) as any;
 
 describe('Tower Upgrade Integration', () => {
   let game: GameWithEvents;
@@ -37,6 +45,7 @@ describe('Tower Upgrade Integration', () => {
     
     const towers = game.getTowers();
     expect(towers.length).toBe(1);
+    const tower = towers[0];
     
     // Set up event listener
     let selectedTower = null;
@@ -44,19 +53,24 @@ describe('Tower Upgrade Integration', () => {
       selectedTower = data.tower;
     });
     
-    // Simulate clicking on the tower
-    const clickEvent = new MouseEvent('mousedown', {
-      clientX: 100,
-      clientY: 100
-    });
-    Object.defineProperty(clickEvent, 'offsetX', { value: 100 });
-    Object.defineProperty(clickEvent, 'offsetY', { value: 100 });
+    // Clear any previous selection and tower type
+    game.setSelectedTowerType(null);
+    
+    // Make sure game is in PLAYING state (required for mouse interactions)
+    game.start();
+    
+    // Simulate clicking on the tower using screen coordinates
+    const camera = game.getCamera();
+    const screenPos = camera.worldToScreen(tower.position);
+    const clickEvent = new MouseEvent('mousedown', {});
+    Object.defineProperty(clickEvent, 'offsetX', { value: screenPos.x });
+    Object.defineProperty(clickEvent, 'offsetY', { value: screenPos.y });
     
     game.handleMouseDown(clickEvent);
     
-    // Should have selected the tower
-    expect(selectedTower).toBe(towers[0]);
-    expect(game.getSelectedTower()).toBe(towers[0]);
+    // Should have selected the tower and emitted event
+    expect(game.getSelectedTower()).toBe(tower);
+    expect(selectedTower).toBe(tower);
   });
 
   it('should upgrade tower and spend currency', () => {
@@ -118,31 +132,45 @@ describe('Tower Upgrade Integration', () => {
     // Place a tower and give lots of money
     const worldPos = { x: 100, y: 100 };
     game.setSelectedTowerType(TowerType.BASIC);
-    game.addCurrency(10000);
+    
+    // First set currency to a known amount (since game starts with 100)
+    game.setCurrency(10000);
+    const initialMoney = game.getCurrency();
+    
+    // Account for tower placement cost
+    const towerCost = game.getTowerCost(TowerType.BASIC);
     
     game.placeTower(TowerType.BASIC, worldPos);
     const tower = game.getTowers()[0]!;
     
+    const expectedAfterPlacement = initialMoney - towerCost;
+    const actualAfterPlacement = game.getCurrency();
+    expect(actualAfterPlacement).toBe(expectedAfterPlacement);
+    
     // Upgrade damage multiple times
-    let totalCost = 0;
     for (let i = 0; i < 3; i++) {
+      const currencyBefore = game.getCurrency();
       const cost = tower.getUpgradeCost(UpgradeType.DAMAGE);
-      totalCost += cost;
       const upgraded = game.upgradeTower(tower, UpgradeType.DAMAGE);
       expect(upgraded).toBe(true);
+      
+      const currencyAfter = game.getCurrency();
+      expect(currencyAfter).toBe(currencyBefore - cost);
     }
     
     expect(tower.getUpgradeLevel(UpgradeType.DAMAGE)).toBe(3);
     
     // Upgrade different types
+    const currencyBefore = game.getCurrency();
     const rangeCost = tower.getUpgradeCost(UpgradeType.RANGE);
-    totalCost += rangeCost;
     const rangeUpgraded = game.upgradeTower(tower, UpgradeType.RANGE);
     expect(rangeUpgraded).toBe(true);
     expect(tower.getUpgradeLevel(UpgradeType.RANGE)).toBe(1);
     
+    const currencyAfter = game.getCurrency();
+    expect(currencyAfter).toBe(currencyBefore - rangeCost);
+    
     // Check total upgrades
     expect(tower.getTotalUpgrades()).toBe(4);
-    expect(game.getCurrency()).toBe(10000 - totalCost);
   });
 });

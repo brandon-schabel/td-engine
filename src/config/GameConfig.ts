@@ -156,3 +156,25 @@ export const RENDER_CONFIG = {
     upgraded: 3
   }
 } as const;
+
+// Inventory system constants
+export const INVENTORY_CONFIG = {
+  defaultSlots: 20,
+  maxSlots: 40,
+  autoSortEnabled: false,
+  stackingEnabled: true,
+  quickSlots: 6, // Number of quick-use slots
+  tooltipDelay: 500, // ms
+  dragSensitivity: 5 // pixels
+} as const;
+
+// Item drop and generation constants
+export const ITEM_CONFIG = {
+  baseDropChance: 0.30, // 30% chance for items to drop from enemies
+  bossDropMultiplier: 2.0, // Bosses have 2x drop chance
+  rareDropBonus: 0.05, // Extra 5% chance for rare+ items from special enemies
+  qualityScaling: true, // Higher level enemies drop better items
+  contextualDrops: true, // Enemies drop thematically appropriate items
+  guaranteedDropWaves: [5, 10, 15, 20], // Waves that guarantee item drops
+  specialEventDrops: true // Enable special event-based drops
+} as const;

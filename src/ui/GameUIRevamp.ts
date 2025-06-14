@@ -781,6 +781,12 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
     updatePlayerUpgradePanel();
   });
 
+  const inventoryButton = createControlButton(IconType.GRID, 'Inventory (I)', () => {
+    audioManager.playUISound(SoundType.BUTTON_CLICK);
+    // TODO: Toggle inventory panel when implemented
+    console.log('Inventory button clicked - inventory system coming soon!');
+  });
+
   const startWaveButton = createControlButton(IconType.PLAY, 'Start Next Wave (Enter)', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
     if (game.isWaveComplete() && !game.isGameOver()) {
@@ -811,6 +817,7 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
   // Add buttons to control bar
   controlBar.appendChild(buildButton);
   controlBar.appendChild(playerUpgradeButton);
+  controlBar.appendChild(inventoryButton);
   controlBar.appendChild(startWaveButton);
   controlBar.appendChild(pauseButton);
   controlBar.appendChild(settingsButton);
@@ -1056,6 +1063,7 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
     towerUpgradePanel,
     powerUpDisplay,
     cameraControls,
-    pauseOverlay
+    pauseOverlay,
+    inventoryButton
   };
 }

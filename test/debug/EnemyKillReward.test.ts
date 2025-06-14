@@ -55,7 +55,7 @@ describe('Enemy Kill Reward Debug', () => {
       
       // Verify the changes
       expect(game.getCurrency()).toBe(initialCurrency + 10);
-      expect(game.getScore()).toBe(initialScore + 50);
+      expect(game.getScore()).toBe(initialScore + 50); // 10 * baseRewardMultiplier (5)
     });
 
     it('should track currency changes during projectile updates', () => {

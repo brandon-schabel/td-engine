@@ -2,6 +2,8 @@ import { Entity, EntityType } from './Entity';
 import { Player } from './Player';
 import type { Vector2 } from '../utils/Vector2';
 import { ANIMATION_CONFIG, CURRENCY_CONFIG } from '../config/GameConfig';
+import type { InventoryItem } from '../systems/Inventory';
+import { createItem, COLLECTIBLE_TO_ITEM_MAP, getRandomItemTemplate, RARITY_DROP_WEIGHTS, TYPE_DROP_WEIGHTS } from './items/ItemTypes';
 
 export enum CollectibleType {
   HEALTH = 'HEALTH',
@@ -172,6 +174,49 @@ export class Collectible extends Entity {
     }
     
     return CollectibleType.HEALTH;
+  }
+
+  // New inventory-based item generation
+  static shouldSpawnItem(spawnChance?: number): boolean {
+    const chance = spawnChance || this.getBaseSpawnChance();
+    return Math.random() < chance;
+  }
+
+  static generateRandomItem(): InventoryItem {
+    // First, determine item rarity
+    const rarityRoll = Math.random();
+    let selectedRarity: keyof typeof RARITY_DROP_WEIGHTS = 'COMMON';
+    
+    let cumulativeWeight = 0;
+    for (const [rarity, weight] of Object.entries(RARITY_DROP_WEIGHTS)) {
+      cumulativeWeight += weight;
+      if (rarityRoll <= cumulativeWeight) {
+        selectedRarity = rarity as keyof typeof RARITY_DROP_WEIGHTS;
+        break;
+      }
+    }
+
+    // Then, determine item type
+    const typeRoll = Math.random();
+    let selectedType: keyof typeof TYPE_DROP_WEIGHTS = 'CONSUMABLE';
+    
+    cumulativeWeight = 0;
+    for (const [type, weight] of Object.entries(TYPE_DROP_WEIGHTS)) {
+      cumulativeWeight += weight;
+      if (typeRoll <= cumulativeWeight) {
+        selectedType = type as keyof typeof TYPE_DROP_WEIGHTS;
+        break;
+      }
+    }
+
+    // Generate random item template with the selected rarity and type
+    const template = getRandomItemTemplate(selectedType, selectedRarity);
+    return createItem(template.id, 1);
+  }
+
+  static generateItemFromCollectible(collectibleType: CollectibleType): InventoryItem {
+    const itemId = COLLECTIBLE_TO_ITEM_MAP[collectibleType];
+    return createItem(itemId, 1);
   }
 
   // Helper to check if this is a power-up type
