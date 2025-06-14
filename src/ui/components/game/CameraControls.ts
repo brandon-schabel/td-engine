@@ -46,26 +46,28 @@ export class CameraControls extends Component<CameraControlsProps, CameraControl
     };
   }
 
-  protected render(): string {
-    const { position, showLabels, showZoomLevel, compact } = this.mergedProps;
+  protected render(): HTMLElement {
+    const { position, showLabels, showZoomLevel, compact } = this.props;
     const { currentZoom, isFollowing, expanded } = this.state;
     const styles = this.getStyles();
     
     const zoomPercentage = Math.round(currentZoom * 100);
     const followIcon = isFollowing ? IconType.CAMERA : IconType.SETTINGS;
     
+    const container = document.createElement('div');
+    container.className = `${styles.container} ${styles[position!]}`;
+    container.setAttribute('data-camera-controls', 'container');
+    
     if (compact && !expanded) {
-      return `
-        <div class="${styles.container} ${styles[position!]}" data-camera-controls="container">
-          <button class="${styles.expandButton}" data-action="expand" title="Camera Controls">
-            ${createSvgIcon(IconType.CAMERA, { size: 20 })}
-          </button>
-        </div>
+      container.innerHTML = `
+        <button class="${styles.expandButton}" data-action="expand" title="Camera Controls">
+          ${createSvgIcon(IconType.CAMERA, { size: 20 })}
+        </button>
       `;
+      return container;
     }
     
-    return `
-      <div class="${styles.container} ${styles[position!]}" data-camera-controls="container">
+    container.innerHTML = `
         ${compact ? `
           <button class="${styles.collapseButton}" data-action="collapse" title="Collapse">
             ${createSvgIcon(IconType.CLOSE, { size: 16 })}
@@ -108,14 +110,14 @@ export class CameraControls extends Component<CameraControlsProps, CameraControl
               ${showLabels ? `<span>${isFollowing ? 'Following' : 'Free'}</span>` : ''}
             </button>
           </div>
-        </div>
-      </div>
     `;
+    
+    return container;
   }
 
   private getStyles() {
     const theme = StyleSystem.getInstance().getTheme();
-    const { compact } = this.mergedProps;
+    const { compact } = this.props;
     
     return StyleSystem.getInstance().createStyles({
       container: {
@@ -369,7 +371,7 @@ export class CameraControls extends Component<CameraControlsProps, CameraControl
   }
   
   public toggle(): void {
-    if (this.mergedProps.compact) {
+    if (this.props.compact) {
       this.setState({ expanded: !this.state.expanded });
     }
   }

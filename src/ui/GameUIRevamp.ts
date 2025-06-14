@@ -5,6 +5,7 @@ import { createSvgIcon, IconType } from './icons/SvgIcons';
 import { AudioManager, SoundType } from '../audio/AudioManager';
 import { PowerUpDisplay } from './components/game/PowerUpDisplay';
 import { CameraControls } from './components/game/CameraControls';
+import { InventoryPanel } from './components/inventory/InventoryPanel';
 
 export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById('game-container');
@@ -781,10 +782,110 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
     updatePlayerUpgradePanel();
   });
 
-  const inventoryButton = createControlButton(IconType.GRID, 'Inventory (I)', () => {
+  // Create inventory panel container
+  const inventoryPanelContainer = document.createElement('div');
+  inventoryPanelContainer.id = 'inventory-panel-container';
+  inventoryPanelContainer.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 2000;
+  `;
+  gameContainer.appendChild(inventoryPanelContainer);
+
+  // Create a simple inventory panel for now
+  let inventoryPanel: any = null;
+  try {
+    // Try to create the complex InventoryPanel
+    inventoryPanel = new InventoryPanel({
+      game: game,
+      inventory: game.getInventory(),
+      audioManager: audioManager,
+      visible: false,
+      position: 'center'
+    });
+    inventoryPanel.mount(inventoryPanelContainer);
+    console.log('InventoryPanel created successfully');
+  } catch (error) {
+    console.error('Failed to create InventoryPanel, creating simple fallback:', error);
+    
+    // Create a simple fallback inventory display
+    inventoryPanel = {
+      isVisible: false,
+      toggle: function() {
+        this.isVisible = !this.isVisible;
+        const panel = document.getElementById('simple-inventory-panel');
+        if (panel) {
+          panel.style.display = this.isVisible ? 'block' : 'none';
+        }
+      },
+      show: function() {
+        this.isVisible = true;
+        const panel = document.getElementById('simple-inventory-panel');
+        if (panel) panel.style.display = 'block';
+      },
+      hide: function() {
+        this.isVisible = false;
+        const panel = document.getElementById('simple-inventory-panel');
+        if (panel) panel.style.display = 'none';
+      }
+    };
+    
+    // Create simple inventory panel HTML
+    const simplePanel = document.createElement('div');
+    simplePanel.id = 'simple-inventory-panel';
+    simplePanel.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 400px;
+      background: rgba(20, 20, 20, 0.95);
+      border: 2px solid #4CAF50;
+      border-radius: 8px;
+      display: none;
+      padding: 20px;
+      pointer-events: auto;
+      z-index: 2001;
+    `;
+    
+    simplePanel.innerHTML = `
+      <div style="color: #4CAF50; font-size: 18px; font-weight: bold; margin-bottom: 20px;">
+        Inventory System
+      </div>
+      <div style="color: #CCCCCC; margin-bottom: 20px;">
+        Inventory system is being implemented. Coming soon!
+      </div>
+      <button id="close-simple-inventory" style="
+        background: #F44336;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+      ">Close</button>
+    `;
+    
+    inventoryPanelContainer.appendChild(simplePanel);
+    
+    // Add close button functionality
+    const closeBtn = simplePanel.querySelector('#close-simple-inventory');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        inventoryPanel.hide();
+      });
+    }
+  }
+
+  const inventoryButton = createControlButton(IconType.INVENTORY, 'Inventory (E)', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
-    // TODO: Toggle inventory panel when implemented
-    console.log('Inventory button clicked - inventory system coming soon!');
+    if (inventoryPanel) {
+      inventoryPanel.toggle();
+    }
   });
 
   const startWaveButton = createControlButton(IconType.PLAY, 'Start Next Wave (Enter)', () => {
@@ -922,7 +1023,7 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
   document.body.appendChild(pauseOverlay);
   
 
-  // Add keyboard listener for unpause overlay
+  // Add keyboard listener for game controls
   document.addEventListener('keydown', (e) => {
     if (e.key === ' ') {
       e.preventDefault();
@@ -938,6 +1039,10 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
         pauseOverlay.style.visibility = 'visible';
         pauseOverlay.style.opacity = '1';
       }
+    } else if (e.key === 'e' || e.key === 'E') {
+      e.preventDefault();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+      inventoryPanel.toggle();
     }
   });
 
@@ -1064,6 +1169,7 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
     powerUpDisplay,
     cameraControls,
     pauseOverlay,
-    inventoryButton
+    inventoryButton,
+    inventoryPanel
   };
 }

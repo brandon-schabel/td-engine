@@ -8,7 +8,7 @@ import { TouchInputSystem } from './ui/core/TouchInputSystem';
 import type { GameConfiguration, MapConfiguration } from './config/GameConfiguration';
 import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty } from './types/MapData';
 import { createSvgIcon, IconType } from './ui/icons/SvgIcons';
-import { setupGameUIRevamp } from './ui/GameUIRevamp';
+import { setupGameUI } from './ui/setupGameUI';
 import { GameOverScreen } from './ui/components/GameOverScreen';
 
 // Get canvas element
@@ -111,7 +111,7 @@ function initializeGame(config: GameConfiguration) {
   document.addEventListener('gameEnd', handleGameEnd);
   
   // Start the main game setup
-  setupGameUI();
+  setupModernGameUI();
 }
 
 function handleGameEnd(event: CustomEvent) {
@@ -389,6 +389,22 @@ document.addEventListener('keydown', (e) => {
         updatePlayerUpgradePanel();
       }
       break;
+    case 'e':
+    case 'E':
+      // Toggle inventory
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+      // Access inventory through the modern UI manager
+      const uiManager = (window as any).gameUIManager;
+      if (uiManager) {
+        uiManager.toggleInventory();
+      } else {
+        // Fallback for legacy UI
+        const inventoryPanel = (window as any).gameUI?.inventoryPanel;
+        if (inventoryPanel) {
+          inventoryPanel.toggle();
+        }
+      }
+      break;
     case 'm':
     case 'M':
       // Main menu (only when paused)
@@ -413,38 +429,42 @@ document.addEventListener('keyup', (e) => {
 //   updatePlayerUpgradePanel();
 // });
 
-function setupGameUI() {
+async function setupModernGameUI() {
   // Setup game handlers
   setupGameHandlers();
   
-  // Use the new UI system
-  const ui = setupGameUIRevamp(game, audioManager);
-  
-  // Store references for keyboard shortcuts
-  const { buildPanel, playerUpgradePanel, settingsPanel } = ui;
-  
-  // Update keyboard shortcuts to work with new UI
-  document.addEventListener('keydown', (e) => {
-    if (!gameInitialized || game.isGameOver()) return;
+  try {
+    // Use the modern UI system
+    const uiManager = await setupGameUI({
+      game,
+      container: document.body,
+      canvas,
+      audioManager,
+      showInstructions: true,
+      enableTouch: 'ontouchstart' in window,
+      enableHapticFeedback: true,
+      debugMode: false
+    });
     
-    switch(e.key.toLowerCase()) {
-      case 'b':
-        // Toggle build panel
-        buildPanel.style.display = buildPanel.style.display === 'block' ? 'none' : 'block';
-        break;
-      case 'u':
-        // Toggle player upgrades
-        playerUpgradePanel.style.display = playerUpgradePanel.style.display === 'block' ? 'none' : 'block';
-        break;
-    }
-  });
-  
-  // Update control buttons periodically
-  setInterval(() => {
-    ui.updateControlButtons();
-  }, 100);
-  
-  return;
+    // Store UI manager reference globally for keyboard access
+    (window as any).gameUIManager = uiManager;
+    
+    console.log('Modern UI system initialized successfully');
+    return;
+  } catch (error) {
+    console.error('Failed to initialize modern UI system:', error);
+    
+    // Fallback to legacy UI if modern system fails
+    console.warn('Falling back to legacy UI system');
+    const { setupGameUIRevamp } = await import('./ui/GameUIRevamp');
+    const ui = setupGameUIRevamp(game, audioManager);
+    (window as any).gameUI = ui;
+    
+    // Update control buttons periodically
+    setInterval(() => {
+      ui.updateControlButtons();
+    }, 100);
+  }
   
   // Legacy UI code below (disabled)
   const gameContainer = document.getElementById('game-container');

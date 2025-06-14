@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Game } from '@/core/Game';
 import { TowerType } from '@/entities/Tower';
 import { PlayerUpgradeType } from '@/entities/Player';
-import { Enemy } from '@/entities/Enemy';
+import { Enemy, EnemyType } from '@/entities/Enemy';
 import { UpgradeType } from '@/systems/TowerUpgradeManager';
 
 // Simple canvas mock
@@ -24,6 +24,12 @@ const mockCanvas = {
     restore: vi.fn(),
     fillText: vi.fn(),
     drawImage: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    rotate: vi.fn(),
+    transform: vi.fn(),
+    setTransform: vi.fn(),
+    resetTransform: vi.fn(),
     set fillStyle(value: string) {},
     set strokeStyle(value: string) {},
     set lineWidth(value: number) {},
@@ -180,6 +186,7 @@ describe('Currency Spending Debug', () => {
       
       // Create a mock enemy with appropriate reward values
       const mockEnemy = {
+        enemyType: EnemyType.BASIC,
         reward: 10,
         position: { x: 100, y: 100 }
       } as Enemy;

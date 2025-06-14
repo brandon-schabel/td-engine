@@ -3,16 +3,7 @@ import { Player } from './Player';
 import type { Vector2 } from '../utils/Vector2';
 import { ANIMATION_CONFIG, CURRENCY_CONFIG } from '../config/GameConfig';
 import type { InventoryItem } from '../systems/Inventory';
-import { createItem, COLLECTIBLE_TO_ITEM_MAP, getRandomItemTemplate, RARITY_DROP_WEIGHTS, TYPE_DROP_WEIGHTS } from './items/ItemTypes';
-
-export enum CollectibleType {
-  HEALTH = 'HEALTH',
-  EXTRA_DAMAGE = 'EXTRA_DAMAGE',
-  FASTER_SHOOTING = 'FASTER_SHOOTING',
-  EXTRA_CURRENCY = 'EXTRA_CURRENCY',
-  SHIELD = 'SHIELD',
-  SPEED_BOOST = 'SPEED_BOOST'
-}
+import { createItem, COLLECTIBLE_TO_ITEM_MAP, getRandomItemTemplate, RARITY_DROP_WEIGHTS, TYPE_DROP_WEIGHTS, CollectibleType } from './items/ItemTypes';
 
 interface CollectibleConfig {
   name: string;

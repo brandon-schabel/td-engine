@@ -281,19 +281,29 @@ export class PathGenerator {
   private getLinePoints(start: Vector2, end: Vector2): Vector2[] {
     const points: Vector2[] = [];
     
-    const dx = Math.abs(end.x - start.x);
-    const dy = Math.abs(end.y - start.y);
-    const sx = start.x < end.x ? 1 : -1;
-    const sy = start.y < end.y ? 1 : -1;
+    // Ensure start and end are integers to prevent infinite loops
+    const startX = Math.round(start.x);
+    const startY = Math.round(start.y);
+    const endX = Math.round(end.x);
+    const endY = Math.round(end.y);
+    
+    const dx = Math.abs(endX - startX);
+    const dy = Math.abs(endY - startY);
+    const sx = startX < endX ? 1 : -1;
+    const sy = startY < endY ? 1 : -1;
     let err = dx - dy;
     
-    let x = start.x;
-    let y = start.y;
+    let x = startX;
+    let y = startY;
     
-    while (true) {
+    // Add safety counter to prevent infinite loops
+    let maxIterations = Math.max(dx, dy) * 2 + 10;
+    let iterations = 0;
+    
+    while (iterations < maxIterations) {
       points.push({ x, y });
       
-      if (x === end.x && y === end.y) break;
+      if (x === endX && y === endY) break;
       
       const e2 = 2 * err;
       if (e2 > -dy) {
@@ -304,6 +314,8 @@ export class PathGenerator {
         err += dx;
         y += sy;
       }
+      
+      iterations++;
     }
     
     return points;

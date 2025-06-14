@@ -7,6 +7,7 @@ import { Component } from '../core/Component';
 import type { ComponentProps, ComponentState } from '../core/types';
 import type { GameWithEvents } from '../../core/GameWithEvents';
 import type { GameUIManager } from '../GameUIManager';
+import type { UIStateManager } from '../core/UIStateManager';
 import { styled, extendStyled } from '../core/styled';
 
 export interface GameComponentProps extends ComponentProps {
@@ -32,6 +33,7 @@ export abstract class GameComponent<
 > extends Component<P, S> {
   protected game: GameWithEvents;
   protected uiManager: GameUIManager;
+  protected uiState: UIStateManager;
   protected isMobile: boolean;
 
   constructor(props: P) {
@@ -39,6 +41,7 @@ export abstract class GameComponent<
     
     this.game = props.game;
     this.uiManager = props.uiManager;
+    this.uiState = props.uiManager.getUIState();
     this.isMobile = props.isMobile || false;
   }
 
@@ -300,6 +303,26 @@ export abstract class GameComponent<
     }
     
     return element;
+  }
+
+  /**
+   * Subscribe to UI state changes
+   */
+  protected subscribeToUIState<K extends keyof any>(
+    key: K, 
+    callback: (value: any) => void
+  ): () => void {
+    return this.uiState.subscribe(key, callback);
+  }
+
+  /**
+   * Subscribe to multiple UI state keys
+   */
+  protected subscribeToMultipleUIState<K extends keyof any>(
+    keys: K[], 
+    callback: (state: any) => void
+  ): () => void {
+    return this.uiState.subscribeMultiple(keys, callback);
   }
 
   /**

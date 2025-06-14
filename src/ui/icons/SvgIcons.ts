@@ -55,6 +55,12 @@ export enum IconType {
   COINS = 'COINS',
   WAVE = 'WAVE',
   STAR = 'STAR',
+  INVENTORY = 'INVENTORY',
+  GRID = 'GRID',
+  SHIELD = 'SHIELD',
+  CROWN = 'CROWN',
+  UPGRADE = 'UPGRADE',
+  CHECKMARK = 'CHECKMARK',
   
   // Game state icons
   VICTORY = 'VICTORY',
@@ -418,6 +424,41 @@ const ICON_PATHS: Record<IconType, string> = {
     <path d="M8 12H16V20H8Z" fill="none" stroke="currentColor" stroke-width="2"/>
     <circle cx="10" cy="16" r="1" fill="currentColor"/>
     <circle cx="14" cy="16" r="1" fill="currentColor"/>
+  `,
+  
+  [IconType.INVENTORY]: `
+    <rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+  `,
+  
+  [IconType.GRID]: `
+    <rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+  `,
+  
+  [IconType.SHIELD]: `
+    <path d="M12 2 L4 6 L4 12 C4 18 12 22 12 22 C12 22 20 18 20 12 L20 6 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M9 12 L11 14 L16 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.CROWN]: `
+    <path d="M2 18 L22 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M12 2 L15 8 L22 6 L19 12 L5 12 L2 6 L9 8 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="12" cy="6" r="2" fill="currentColor"/>
+  `,
+  
+  [IconType.UPGRADE]: `
+    <path d="M7 10 L12 5 L17 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 5 L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M5 19 L19 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.CHECKMARK]: `
+    <path d="M20 6 L9 17 L4 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   `
 };
 

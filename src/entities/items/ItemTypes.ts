@@ -5,7 +5,16 @@
 
 import { ItemType, ItemRarity, EquipmentSlot, type InventoryItem, type ItemMetadata } from '../../systems/Inventory';
 import { IconType } from '../../ui/icons/SvgIcons';
-import { CollectibleType } from '../Collectible';
+
+// Collectible types moved here to avoid circular dependency
+export enum CollectibleType {
+  HEALTH = 'HEALTH',
+  EXTRA_DAMAGE = 'EXTRA_DAMAGE',
+  FASTER_SHOOTING = 'FASTER_SHOOTING',
+  EXTRA_CURRENCY = 'EXTRA_CURRENCY',
+  SHIELD = 'SHIELD',
+  SPEED_BOOST = 'SPEED_BOOST'
+}
 
 // Item template for creating new items
 export interface ItemTemplate {

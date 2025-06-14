@@ -70,7 +70,7 @@ export class GameInitializer {
     let selectedBiome: BiomeType = BiomeType.FOREST;
     
     for (let i = 0; i < biomeWeights.length; i++) {
-      if (randomValue < biomeWeights[i]) {
+      if (randomValue < biomeWeights[i]!) {
         selectedBiome = biomes[i] ?? BiomeType.FOREST;
         break;
       }

@@ -3,7 +3,6 @@
  * Displays items in a grid layout with tabs, search, and management features
  */
 
-import { Component } from '../../core/Component';
 import type { Game } from '../../../core/Game';
 import type { Inventory, InventoryItem, ItemType } from '../../../systems/Inventory';
 import { ItemSlot } from './ItemSlot';
@@ -30,7 +29,7 @@ export interface InventoryPanelState {
   draggedSlot: number | null;
 }
 
-export class InventoryPanel extends Component<InventoryPanelProps> {
+export class InventoryPanel {
   private state: InventoryPanelState;
   private container: HTMLElement | null = null;
   private itemSlots: ItemSlot[] = [];
@@ -43,8 +42,15 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
   private grid: HTMLElement | null = null;
   private footer: HTMLElement | null = null;
 
+  // Double-click detection
+  private lastClickTime: number = 0;
+  private lastClickSlot: number = -1;
+  private doubleClickDelay: number = 300; // milliseconds
+
+  private props: InventoryPanelProps;
+
   constructor(props: InventoryPanelProps) {
-    super(props);
+    this.props = props;
     
     this.state = {
       visible: props.visible ?? false,
@@ -187,10 +193,10 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
 
     const tabData = [
       { id: 'ALL', name: 'All', icon: IconType.BUILD },
-      { id: 'CONSUMABLE', name: 'Consumables', icon: IconType.HEALTH },
-      { id: 'EQUIPMENT', name: 'Equipment', icon: IconType.SHIELD },
-      { id: 'MATERIAL', name: 'Materials', icon: IconType.UPGRADE },
-      { id: 'SPECIAL', name: 'Special', icon: IconType.CROWN }
+      { id: ItemType.CONSUMABLE, name: 'Consumables', icon: IconType.HEALTH },
+      { id: ItemType.EQUIPMENT, name: 'Equipment', icon: IconType.SHIELD },
+      { id: ItemType.MATERIAL, name: 'Materials', icon: IconType.UPGRADE },
+      { id: ItemType.SPECIAL, name: 'Special', icon: IconType.CROWN }
     ];
 
     tabData.forEach(tab => {
@@ -307,7 +313,55 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
       this.props.audioManager.playUISound(SoundType.BUTTON_CLICK);
     });
 
+    // Create use button
+    const useButton = document.createElement('button');
+    useButton.className = 'ui-button inventory-action-button';
+    useButton.style.cssText = `
+      padding: 6px 12px;
+      font-size: 11px;
+      background: rgba(33, 150, 243, 0.2);
+      border: 1px solid #2196F3;
+      color: #2196F3;
+      margin-left: 8px;
+      opacity: 0.5;
+      cursor: not-allowed;
+    `;
+    
+    const useIcon = createSvgIcon(IconType.CHECKMARK, { size: 14 });
+    useButton.innerHTML = `${useIcon}<span>Use</span>`;
+    useButton.addEventListener('click', () => {
+      if (this.state.selectedSlot !== null && this.state.selectedItem) {
+        this.useItem(this.state.selectedSlot, this.state.selectedItem);
+      }
+    });
+
+    // Create upgrade button
+    const upgradeButton = document.createElement('button');
+    upgradeButton.className = 'ui-button inventory-action-button';
+    upgradeButton.style.cssText = `
+      padding: 6px 12px;
+      font-size: 11px;
+      background: rgba(255, 193, 7, 0.2);
+      border: 1px solid #FFC107;
+      color: #FFC107;
+      margin-left: 8px;
+    `;
+    
+    const upgradeIcon = createSvgIcon(IconType.UPGRADE, { size: 14 });
+    upgradeButton.innerHTML = `${upgradeIcon}<span>Upgrade (+5 slots)</span>`;
+    upgradeButton.addEventListener('click', () => {
+      const success = this.props.game.purchaseInventoryUpgrade();
+      if (success) {
+        this.props.audioManager.playUISound(SoundType.TOWER_UPGRADE);
+        this.updateUpgradeButton();
+      } else {
+        this.props.audioManager.playUISound(SoundType.ERROR);
+      }
+    });
+
     actions.appendChild(sortButton);
+    actions.appendChild(useButton);
+    actions.appendChild(upgradeButton);
 
     this.footer.appendChild(stats);
     this.footer.appendChild(actions);
@@ -319,17 +373,45 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
     const slots = inventory.getSlots();
     const stats = inventory.getStatistics();
 
+    // Check if we need to add more slots due to inventory expansion
+    while (this.itemSlots.length < slots.length) {
+      const slotIndex = this.itemSlots.length;
+      const slot = new ItemSlot({
+        slotIndex,
+        item: null,
+        game: this.props.game,
+        audioManager: this.props.audioManager,
+        onClick: this.handleSlotClick,
+        onHover: this.handleSlotHover,
+        onDragStart: this.handleSlotDragStart,
+        onDragEnd: this.handleSlotDragEnd
+      });
+
+      this.itemSlots.push(slot);
+      if (this.grid) {
+        slot.mount(this.grid);
+      }
+    }
+
     // Update each slot
     this.itemSlots.forEach((slot, index) => {
-      const inventorySlot = slots[index];
-      const item = inventorySlot?.item || null;
-      
-      // Apply tab filtering
-      const shouldShow = this.shouldShowItem(item);
-      slot.updateProps({ 
-        item: shouldShow ? item : null,
-        visible: shouldShow
-      });
+      if (index < slots.length) {
+        const inventorySlot = slots[index];
+        const item = inventorySlot?.item || null;
+        
+        // Apply tab filtering
+        const shouldShow = this.shouldShowItem(item);
+        slot.updateProps({ 
+          item: shouldShow ? item : null,
+          visible: shouldShow
+        });
+      } else {
+        // Hide slots that exceed the current inventory size
+        slot.updateProps({
+          item: null,
+          visible: false
+        });
+      }
     });
 
     // Update footer stats
@@ -339,6 +421,9 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
         statsElement.textContent = `${stats.usedSlots}/${stats.totalSlots} slots used`;
       }
     }
+
+    // Update upgrade button
+    this.updateUpgradeButton();
   }
 
   private shouldShowItem(item: InventoryItem | null): boolean {
@@ -349,6 +434,17 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
 
   // Event handlers
   private handleSlotClick(slotIndex: number, item: InventoryItem | null): void {
+    const currentTime = Date.now();
+    const isDoubleClick = (currentTime - this.lastClickTime) < this.doubleClickDelay && 
+                         this.lastClickSlot === slotIndex;
+
+    if (isDoubleClick && item) {
+      // Double-click detected - use the item
+      this.useItem(slotIndex, item);
+      return;
+    }
+
+    // Single click - handle selection
     this.props.audioManager.playUISound(SoundType.SELECT);
     
     if (this.state.selectedSlot === slotIndex) {
@@ -367,6 +463,10 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
 
     // Update visual selection
     this.updateSlotSelection();
+
+    // Update double-click tracking
+    this.lastClickTime = currentTime;
+    this.lastClickSlot = slotIndex;
   }
 
   private handleSlotHover(slotIndex: number, item: InventoryItem | null, event: MouseEvent): void {
@@ -419,7 +519,7 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
       case 'Tab':
         event.preventDefault();
         // Cycle through tabs
-        const tabs: (ItemType | 'ALL')[] = ['ALL', 'CONSUMABLE', 'EQUIPMENT', 'MATERIAL', 'SPECIAL'];
+        const tabs: (ItemType | 'ALL')[] = ['ALL', ItemType.CONSUMABLE, ItemType.EQUIPMENT, ItemType.MATERIAL, ItemType.SPECIAL];
         const currentIndex = tabs.indexOf(this.state.activeTab);
         const nextIndex = (currentIndex + 1) % tabs.length;
         this.handleTabClick(tabs[nextIndex]);
@@ -433,6 +533,64 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
         selected: index === this.state.selectedSlot 
       });
     });
+
+    // Update button states
+    this.updateUseButton();
+    this.updateUpgradeButton();
+  }
+
+  private updateUseButton(): void {
+    if (!this.footer) return;
+    
+    const useButton = this.footer.querySelectorAll('.inventory-action-button')[0] as HTMLButtonElement;
+    if (!useButton) return;
+    
+    const hasSelection = this.state.selectedSlot !== null && this.state.selectedItem !== null;
+    const canUse = hasSelection && (
+      this.state.selectedItem!.type === 'CONSUMABLE' || 
+      this.state.selectedItem!.type === 'EQUIPMENT'
+    );
+    
+    if (canUse) {
+      useButton.style.opacity = '1';
+      useButton.style.cursor = 'pointer';
+      useButton.disabled = false;
+    } else {
+      useButton.style.opacity = '0.5';
+      useButton.style.cursor = 'not-allowed';
+      useButton.disabled = true;
+    }
+  }
+
+  private updateUpgradeButton(): void {
+    if (!this.footer) return;
+    
+    const upgradeButton = this.footer.querySelectorAll('.inventory-action-button')[1] as HTMLButtonElement;
+    if (!upgradeButton) return;
+    
+    const upgradeInfo = this.props.game.getInventoryUpgradeInfo();
+    const canUpgrade = this.props.game.canUpgradeInventory();
+    
+    if (upgradeInfo.nextCost === -1) {
+      // Max upgrades reached
+      upgradeButton.innerHTML = `<span>Max Capacity</span>`;
+      upgradeButton.style.opacity = '0.5';
+      upgradeButton.style.cursor = 'not-allowed';
+      upgradeButton.disabled = true;
+    } else {
+      const upgradeIcon = createSvgIcon(IconType.UPGRADE, { size: 14 });
+      upgradeButton.innerHTML = `${upgradeIcon}<span>Upgrade (${upgradeInfo.nextCost}g)</span>`;
+      
+      if (canUpgrade) {
+        upgradeButton.style.opacity = '1';
+        upgradeButton.style.cursor = 'pointer';
+        upgradeButton.disabled = false;
+      } else {
+        upgradeButton.style.opacity = '0.5';
+        upgradeButton.style.cursor = 'not-allowed';
+        upgradeButton.disabled = true;
+      }
+    }
   }
 
   private updateTabs(): void {
@@ -440,7 +598,7 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
     
     const tabButtons = this.tabs.querySelectorAll('.inventory-tab');
     tabButtons.forEach((button, index) => {
-      const tabIds = ['ALL', 'CONSUMABLE', 'EQUIPMENT', 'MATERIAL', 'SPECIAL'];
+      const tabIds = ['ALL', ItemType.CONSUMABLE, ItemType.EQUIPMENT, ItemType.MATERIAL, ItemType.SPECIAL];
       const isActive = tabIds[index] === this.state.activeTab;
       
       (button as HTMLElement).style.background = isActive ? 'rgba(76, 175, 80, 0.2)' : 'transparent';
@@ -533,5 +691,25 @@ export class InventoryPanel extends Component<InventoryPanelProps> {
 
   setState(newState: Partial<InventoryPanelState>): void {
     Object.assign(this.state, newState);
+  }
+
+  // Item usage
+  private useItem(slotIndex: number, item: InventoryItem): void {
+    const success = this.props.game.useInventoryItem(slotIndex);
+    
+    if (success) {
+      this.props.audioManager.playUISound(SoundType.TOWER_UPGRADE);
+      
+      // Clear selection since item was used
+      this.setState({
+        selectedSlot: null,
+        selectedItem: null
+      });
+      
+      // Update slots display
+      this.updateSlots();
+    } else {
+      this.props.audioManager.playUISound(SoundType.ERROR);
+    }
   }
 }

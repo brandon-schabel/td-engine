@@ -26,6 +26,14 @@ export const GAME_MECHANICS = {
   regenInterval: 1000, // Regenerate every second
 } as const;
 
+// Inventory upgrade configuration
+export const INVENTORY_UPGRADES = {
+  baseCost: 50, // Base cost for first upgrade
+  costMultiplier: 1.5, // Cost increases by 50% each upgrade
+  slotsPerUpgrade: 5, // How many slots each upgrade adds
+  maxUpgrades: 8, // Maximum number of upgrades (20 + 8*5 = 60 max slots)
+} as const;
+
 // Default wave configurations - avoid circular dependency by using string types
 export const DEFAULT_WAVES: WaveConfig[] = [
   {

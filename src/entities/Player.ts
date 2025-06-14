@@ -118,8 +118,8 @@ export class Player extends Entity implements ShootingCapable {
     // Normalize diagonal movement
     const magnitude = Math.sqrt(movementX * movementX + movementY * movementY);
     if (magnitude > 0) {
-      this.velocity.x = (movementX / magnitude) * this.speed;
-      this.velocity.y = (movementY / magnitude) * this.speed;
+      this.velocity.x = (movementX / magnitude) * this.getCurrentSpeed();
+      this.velocity.y = (movementY / magnitude) * this.getCurrentSpeed();
     } else {
       this.velocity.x = 0;
       this.velocity.y = 0;
@@ -184,7 +184,7 @@ export class Player extends Entity implements ShootingCapable {
     
     // Recalculate stats if needed
     if (upgradeType === PlayerUpgradeType.FIRE_RATE) {
-      this.cooldownTime = 1000 / this.fireRate;
+      this.cooldownTime = 1000 / this.getCurrentFireRate();
     }
     
     if (upgradeType === PlayerUpgradeType.HEALTH) {
@@ -410,7 +410,7 @@ export class Player extends Entity implements ShootingCapable {
     return new Projectile(
       { ...this.position },
       null, // No specific target, just direction
-      this.damage,
+      this.getCurrentDamage(),
       speed,
       velocity
     );
@@ -467,7 +467,7 @@ export class Player extends Entity implements ShootingCapable {
 
   addTemporaryFireRateBoost(multiplier: number, duration: number = 8000): void {
     this.powerUps.addFasterShooting(multiplier, duration);
-    this.cooldownTime = 1000 / this.fireRate; // Update cooldown
+    this.cooldownTime = 1000 / this.getCurrentFireRate(); // Update cooldown
   }
 
   addTemporarySpeedBoost(multiplier: number, duration: number = 12000): void {
@@ -513,5 +513,45 @@ export class Player extends Entity implements ShootingCapable {
 
   getShieldStatus(): boolean {
     return this.powerUps.getShieldStatus();
+  }
+
+  // Equipment bonuses system
+  private equipmentBonuses = {
+    damageMultiplier: 1,
+    healthMultiplier: 1,
+    speedMultiplier: 1,
+    fireRateMultiplier: 1
+  };
+
+  applyEquipmentBonuses(bonuses: {
+    damageMultiplier: number;
+    healthMultiplier: number;
+    speedMultiplier: number;
+    fireRateMultiplier: number;
+  }): void {
+    this.equipmentBonuses = { ...bonuses };
+    // Recalculate cooldown time based on new fire rate
+    this.cooldownTime = 1000 / this.getCurrentFireRate();
+  }
+
+  getEquipmentBonuses() {
+    return { ...this.equipmentBonuses };
+  }
+
+  // Override stat calculations to include equipment bonuses
+  getCurrentDamage(): number {
+    return this.damage * this.equipmentBonuses.damageMultiplier;
+  }
+
+  getCurrentSpeed(): number {
+    return this.speed * this.equipmentBonuses.speedMultiplier;
+  }
+
+  getCurrentFireRate(): number {
+    return this.fireRate * this.equipmentBonuses.fireRateMultiplier;
+  }
+
+  getMaxHealthWithBonuses(): number {
+    return this.getMaxHealth() * this.equipmentBonuses.healthMultiplier;
   }
 }

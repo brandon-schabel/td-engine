@@ -12,17 +12,20 @@ import { Tower, TowerType, UpgradeType } from '../entities/Tower';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
 import { Player, PlayerUpgradeType } from '../entities/Player';
-import { Collectible, CollectibleType } from '../entities/Collectible';
+import { Collectible } from '../entities/Collectible';
+import { CollectibleType } from '../entities/items/ItemTypes';
 import type { Vector2 } from '../utils/Vector2';
 import { AudioManager, SoundType } from '../audio/AudioManager';
 import { MapGenerator } from '../systems/MapGenerator';
 import { TextureManager } from '../systems/TextureManager';
 import { BiomeType, MapDifficulty, DecorationLevel, MapSize, MAP_SIZE_PRESETS } from '../types/MapData';
 import type { MapData, MapGenerationConfig, MapSizePreset } from '../types/MapData';
-import { TOWER_COSTS, SPAWN_CHANCES, CURRENCY_CONFIG, AUDIO_CONFIG } from '../config/GameConfig';
+import { TOWER_COSTS, SPAWN_CHANCES, CURRENCY_CONFIG, AUDIO_CONFIG, INVENTORY_UPGRADES } from '../config/GameConfig';
 import { GameInitializer } from './GameInitializer';
 import { GameAudioHandler } from '../systems/GameAudioHandler';
 import { ScoreManager, type GameStats } from '../systems/ScoreManager';
+import { Inventory, type InventoryItem } from '../systems/Inventory';
+import { EquipmentManager } from '../entities/items/Equipment';
 
 export class Game {
   private engine: GameEngine;
@@ -40,6 +43,7 @@ export class Game {
   private gameStartTime: number = Date.now();
   private enemiesKilled: number = 0;
   private towersBuilt: number = 0;
+  private inventoryUpgradesPurchased: number = 0;
   private renderer: Renderer;
   private camera: Camera;
   private audioManager: AudioManager;
@@ -53,6 +57,8 @@ export class Game {
   private projectiles: Projectile[] = [];
   private player: Player;
   private collectibles: Collectible[] = [];
+  private inventory: Inventory;
+  private equipment: EquipmentManager;
   
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
@@ -130,6 +136,15 @@ export class Game {
     // Create player at generated start position
     const playerWorldPos = this.grid.gridToWorld(this.currentMapData.playerStart.x, this.currentMapData.playerStart.y);
     this.player = new Player(playerWorldPos);
+    
+    // Initialize inventory and equipment systems
+    this.inventory = new Inventory({ maxSlots: 20, autoSort: false, allowStacking: true });
+    this.equipment = new EquipmentManager();
+    
+    // Connect equipment to player for stat bonuses
+    this.equipment.on('statsChanged', () => {
+      this.applyEquipmentBonuses();
+    });
     
     // Center camera on player initially
     this.camera.update(this.player.position);
@@ -380,14 +395,25 @@ export class Game {
     this.collectibles.forEach(collectible => {
       collectible.update(deltaTime);
       if (collectible.tryCollectByPlayer(this.player)) {
-        // Handle different collectible types
-        if (collectible.isHealthPickup()) {
-          this.audioHandler.playHealthPickup();
-        } else if (collectible.collectibleType === CollectibleType.EXTRA_CURRENCY) {
+        // Generate item for inventory
+        const item = Collectible.generateItemFromCollectible(collectible.collectibleType);
+        
+        // Try to add to inventory first
+        if (this.inventory.addItem(item)) {
+          // Item added to inventory successfully
           this.audioHandler.playPowerUpPickup();
-          this.addCurrency(CURRENCY_CONFIG.powerUpBonus);
+          this.showItemPickupNotification(item);
         } else {
-          this.audioHandler.playPowerUpPickup();
+          // Inventory full, apply immediate effect instead
+          this.showInventoryFullNotification(item);
+          if (collectible.isHealthPickup()) {
+            this.audioHandler.playHealthPickup();
+          } else if (collectible.collectibleType === CollectibleType.EXTRA_CURRENCY) {
+            this.audioHandler.playPowerUpPickup();
+            this.addCurrency(CURRENCY_CONFIG.powerUpBonus);
+          } else {
+            this.audioHandler.playPowerUpPickup();
+          }
         }
       }
     });
@@ -769,6 +795,105 @@ export class Game {
     return this.collectibles.filter(c => c.isPowerUp());
   }
 
+  // Inventory and Equipment system accessors
+  getInventory(): Inventory {
+    return this.inventory;
+  }
+
+  getEquipment(): EquipmentManager {
+    return this.equipment;
+  }
+
+  // Item usage methods
+  useInventoryItem(slotIndex: number, quantity: number = 1): boolean {
+    const item = this.inventory.useItem(slotIndex, quantity);
+    if (!item) return false;
+
+    // Apply item effects based on type
+    switch (item.type) {
+      case 'CONSUMABLE':
+        return this.applyConsumableEffect(item);
+      case 'EQUIPMENT':
+        return this.equipItem(item);
+      default:
+        return false;
+    }
+  }
+
+  // Inventory upgrade system
+  getInventoryUpgradeCost(): number {
+    if (this.inventoryUpgradesPurchased >= INVENTORY_UPGRADES.maxUpgrades) {
+      return -1; // No more upgrades available
+    }
+    
+    return Math.floor(
+      INVENTORY_UPGRADES.baseCost * 
+      Math.pow(INVENTORY_UPGRADES.costMultiplier, this.inventoryUpgradesPurchased)
+    );
+  }
+
+  canUpgradeInventory(): boolean {
+    const cost = this.getInventoryUpgradeCost();
+    return cost > 0 && this.currency >= cost;
+  }
+
+  purchaseInventoryUpgrade(): boolean {
+    if (!this.canUpgradeInventory()) {
+      return false;
+    }
+
+    const cost = this.getInventoryUpgradeCost();
+    this.currency -= cost;
+    this.inventoryUpgradesPurchased++;
+
+    // Expand inventory
+    const newMaxSlots = 20 + (this.inventoryUpgradesPurchased * INVENTORY_UPGRADES.slotsPerUpgrade);
+    this.expandInventory(newMaxSlots);
+
+    this.audioManager.playSound(SoundType.TOWER_PLACE);
+    return true;
+  }
+
+  private expandInventory(newMaxSlots: number): void {
+    // Get current inventory state
+    const currentState = this.inventory.getState();
+    
+    // Create expanded slots array
+    const expandedSlots = Array.from({ length: newMaxSlots }, (_, index) => {
+      if (index < currentState.slots.length) {
+        return currentState.slots[index];
+      }
+      return { item: null, slotIndex: index };
+    });
+    
+    // Update inventory configuration and restore state with new capacity
+    this.inventory.setState({
+      ...currentState,
+      slots: expandedSlots,
+      config: { 
+        maxSlots: newMaxSlots, 
+        autoSort: false, 
+        allowStacking: true 
+      }
+    });
+  }
+
+  getInventoryUpgradeInfo(): {
+    purchased: number;
+    maxUpgrades: number;
+    nextCost: number;
+    currentSlots: number;
+    maxPossibleSlots: number;
+  } {
+    return {
+      purchased: this.inventoryUpgradesPurchased,
+      maxUpgrades: INVENTORY_UPGRADES.maxUpgrades,
+      nextCost: this.getInventoryUpgradeCost(),
+      currentSlots: this.inventory.getStatistics().totalSlots,
+      maxPossibleSlots: 20 + (INVENTORY_UPGRADES.maxUpgrades * INVENTORY_UPGRADES.slotsPerUpgrade)
+    };
+  }
+
   getPlayerAimerLine(): { start: Vector2; end: Vector2 } | null {
     if (this.player.shouldShowAimer()) {
       return this.player.getAimerLine();
@@ -795,14 +920,40 @@ export class Game {
     // Track enemies killed
     this.enemiesKilled++;
     
-    // Chance to spawn collectible
-    if (Collectible.shouldSpawnFromEnemy()) {
-      const collectibleType = Collectible.getRandomType();
-      const collectible = new Collectible(
-        { ...enemy.position },
-        collectibleType
-      );
-      this.collectibles.push(collectible);
+    // Enhanced item drop system
+    const dropRate = this.getEnemyDropRate(enemy);
+    const numDrops = this.getNumDropsForEnemy(enemy);
+    
+    for (let i = 0; i < numDrops; i++) {
+      if (Collectible.shouldSpawnItem(dropRate)) {
+        // 70% chance for new inventory items, 30% chance for traditional collectibles
+        if (Math.random() < 0.7) {
+          // Spawn new item types as collectibles
+          const randomItem = Collectible.generateRandomItem();
+          // Create a special collectible that represents the item
+          const position = { 
+            x: enemy.position.x + (Math.random() - 0.5) * 40, // Spread out multiple drops
+            y: enemy.position.y + (Math.random() - 0.5) * 40 
+          };
+          const collectible = new Collectible(
+            position,
+            this.getCollectibleTypeForItem(randomItem)
+          );
+          this.collectibles.push(collectible);
+        } else {
+          // Traditional collectible system
+          const collectibleType = Collectible.getRandomType();
+          const position = { 
+            x: enemy.position.x + (Math.random() - 0.5) * 40,
+            y: enemy.position.y + (Math.random() - 0.5) * 40 
+          };
+          const collectible = new Collectible(
+            position,
+            collectibleType
+          );
+          this.collectibles.push(collectible);
+        }
+      }
     }
     
     // Extra currency drop chance
@@ -1009,7 +1160,7 @@ export class Game {
     let selectedBiome: BiomeType = BiomeType.FOREST;
     
     for (let i = 0; i < biomeWeights.length; i++) {
-      if (randomValue < biomeWeights[i]) {
+      if (randomValue < biomeWeights[i]!) {
         selectedBiome = biomes[i] ?? BiomeType.FOREST;
         break;
       }
@@ -1150,6 +1301,119 @@ export class Game {
     };
   }
 
+  // Inventory and Equipment helper methods
+  private applyConsumableEffect(item: InventoryItem): boolean {
+    const metadata = item.metadata;
+    
+    switch (item.id) {
+      case 'health_potion_small':
+      case 'health_potion_large':
+        if (metadata.healAmount) {
+          this.player.heal(metadata.healAmount);
+          this.audioManager.playSound(SoundType.HEALTH_PICKUP);
+          return true;
+        }
+        break;
+        
+      case 'damage_elixir':
+        if (metadata.damageBonus && metadata.duration) {
+          this.player.addTemporaryDamageBoost(1 + metadata.damageBonus, metadata.duration);
+          this.audioManager.playSound(SoundType.POWERUP_PICKUP);
+          return true;
+        }
+        break;
+        
+      case 'speed_potion':
+        if (metadata.speedBonus && metadata.duration) {
+          this.player.addTemporarySpeedBoost(1 + metadata.speedBonus, metadata.duration);
+          this.audioManager.playSound(SoundType.POWERUP_PICKUP);
+          return true;
+        }
+        break;
+        
+      case 'shield_scroll':
+        if (metadata.duration) {
+          this.player.addShield(metadata.duration);
+          this.audioManager.playSound(SoundType.POWERUP_PICKUP);
+          return true;
+        }
+        break;
+    }
+    
+    return false;
+  }
+
+  private equipItem(item: InventoryItem): boolean {
+    if (item.metadata.equipmentSlot) {
+      const success = this.equipment.equipItem(item);
+      if (success) {
+        this.audioManager.playSound(SoundType.TOWER_PLACE);
+      }
+      return success;
+    }
+    return false;
+  }
+
+  private applyEquipmentBonuses(): void {
+    const bonuses = this.equipment.getTotalStats();
+    
+    // Apply bonuses to player
+    this.player.applyEquipmentBonuses({
+      damageMultiplier: 1 + (bonuses.damageBonus || 0),
+      healthMultiplier: 1 + (bonuses.healthBonus || 0),
+      speedMultiplier: 1 + (bonuses.speedBonus || 0),
+      fireRateMultiplier: 1 + (bonuses.fireRateBonus || 0)
+    });
+  }
+
+  // Enhanced item drop system helpers
+  private getEnemyDropRate(enemy: Enemy): number {
+    // Base drop rate varies by enemy type and wave
+    const baseRate = 0.25; // 25% base chance
+    const waveBonus = Math.min(this.waveManager.currentWave * 0.02, 0.15); // Up to +15% at wave 8+
+    
+    // Different enemy types have different drop rates
+    let enemyMultiplier = 1.0;
+    if (enemy.enemyType === EnemyType.FAST) {
+      enemyMultiplier = 0.8; // Fast enemies drop less
+    } else if (enemy.enemyType === EnemyType.TANK) {
+      enemyMultiplier = 1.5; // Tank enemies drop more
+    } else if (enemy.enemyType === EnemyType.BASIC) {
+      enemyMultiplier = 1.0; // Basic enemies have normal drop rate
+    }
+    
+    return Math.min(baseRate + waveBonus, 0.6) * enemyMultiplier;
+  }
+
+  private getNumDropsForEnemy(enemy: Enemy): number {
+    // Most enemies drop 1 item, but stronger enemies can drop more
+    if (enemy.enemyType === EnemyType.TANK) {
+      return Math.random() < 0.3 ? 2 : 1; // 30% chance for 2 items
+    } else if (enemy.enemyType === EnemyType.FAST) {
+      return 1; // Fast enemies always drop 1 item
+    } else {
+      return Math.random() < 0.1 ? 2 : 1; // Basic enemies have 10% chance for 2 items
+    }
+  }
+
+  private getCollectibleTypeForItem(item: InventoryItem): CollectibleType {
+    // Map item types to appropriate collectible types for visual representation
+    switch (item.type) {
+      case 'CONSUMABLE':
+        if (item.id.includes('health')) return CollectibleType.HEALTH;
+        if (item.id.includes('damage')) return CollectibleType.EXTRA_DAMAGE;
+        if (item.id.includes('speed')) return CollectibleType.SPEED_BOOST;
+        if (item.id.includes('shield')) return CollectibleType.SHIELD;
+        return CollectibleType.FASTER_SHOOTING;
+      case 'EQUIPMENT':
+        return CollectibleType.EXTRA_DAMAGE; // Equipment represented as damage boost visually
+      case 'SPECIAL':
+        return CollectibleType.EXTRA_CURRENCY;
+      default:
+        return CollectibleType.HEALTH;
+    }
+  }
+
   // Handle mouse wheel for zooming
   handleMouseWheel(event: WheelEvent): void {
     event.preventDefault();
@@ -1169,5 +1433,123 @@ export class Game {
   // Handle camera panning (when not following player)
   panCamera(deltaX: number, deltaY: number): void {
     this.camera.pan(deltaX, deltaY);
+  }
+
+  // Show item pickup notification
+  private showItemPickupNotification(item: InventoryItem): void {
+    // Create a simple notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(76, 175, 80, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 10000;
+      pointer-events: none;
+      animation: slideDown 0.3s ease-out;
+      border: 1px solid #4CAF50;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    `;
+
+    // Create icon based on item type
+    const getItemIcon = (item: InventoryItem): string => {
+      if (item.type === 'CONSUMABLE') {
+        if (item.id.includes('health')) return '❤️';
+        if (item.id.includes('damage')) return '⚔️';
+        if (item.id.includes('speed')) return '💨';
+        if (item.id.includes('shield')) return '🛡️';
+        return '✨';
+      }
+      if (item.type === 'EQUIPMENT') return '🗡️';
+      if (item.type === 'MATERIAL') return '🔧';
+      return '⭐';
+    };
+
+    const icon = getItemIcon(item);
+    notification.innerHTML = `${icon} ${item.name} added to inventory`;
+
+    // Add animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -20px);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+        to {
+          opacity: 0;
+          transform: translate(-50%, -20px);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Remove after delay
+    setTimeout(() => {
+      notification.style.animation = 'slideUp 0.3s ease-in';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+        if (style.parentNode) {
+          style.parentNode.removeChild(style);
+        }
+      }, 300);
+    }, 2000);
+  }
+
+  // Show inventory full notification
+  private showInventoryFullNotification(item: InventoryItem): void {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 193, 7, 0.9);
+      color: #000;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 10000;
+      pointer-events: none;
+      animation: slideDown 0.3s ease-out;
+      border: 1px solid #FFC107;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    `;
+
+    notification.innerHTML = `⚠️ Inventory full! ${item.name} used immediately`;
+
+    document.body.appendChild(notification);
+
+    // Remove after delay
+    setTimeout(() => {
+      notification.style.animation = 'slideUp 0.3s ease-in';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
   }
 }

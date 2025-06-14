@@ -8,15 +8,27 @@ import { TouchInputSystem } from './core/TouchInputSystem';
 import { ResponsiveUtils } from './components/Layout';
 import { Toast } from './components/Toast';
 import type { Component } from './core/Component';
+import { BuildPanel, type BuildPanelProps } from './components/game/BuildPanel';
+import { ActionPanel, type ActionPanelProps } from './components/game/ActionPanel';
+import { TowerUpgradePanel, type TowerUpgradePanelProps } from './components/game/TowerUpgradePanel';
+import { UIStateManager } from './core/UIStateManager';
+import { PanelManager, type PanelConfig } from './core/PanelManager';
+import { ModalSystem } from './core/ModalSystem';
+import { ButtonStateManager } from './core/ButtonStateManager';
+import { UIPerformanceManager } from './core/UIPerformanceManager';
 
 export interface UIComponents {
   hudOverlay?: Component<any>;
-  towerSelectionPanel?: Component<any>;
-  upgradePanel?: Component<any>;
+  buildPanel?: BuildPanel;
+  actionPanel?: ActionPanel;
+  towerUpgradePanel?: TowerUpgradePanel;
   touchControlsPanel?: Component<any>;
   instructionsPanel?: Component<any>;
   audioControlPanel?: Component<any>;
   gameStateOverlay?: Component<any>;
+  // Legacy components (to be phased out)
+  towerSelectionPanel?: Component<any>;
+  upgradePanel?: Component<any>;
 }
 
 export interface GameUIManagerOptions {
@@ -34,8 +46,13 @@ export class GameUIManager {
   private options: GameUIManagerOptions;
   private isInitialized: boolean = false;
   private isMobile: boolean;
+  private uiState: UIStateManager;
+  private panelManager: PanelManager;
+  private modalSystem: ModalSystem;
+  private buttonStateManager: ButtonStateManager;
+  private performanceManager: UIPerformanceManager;
   
-  // UI state
+  // Legacy UI state (to be phased out)
   private currentGameState: any = null;
   private selectedTowerType: any = null;
   private selectedTower: any = null;
@@ -52,9 +69,20 @@ export class GameUIManager {
     };
     
     this.isMobile = ResponsiveUtils.isMobile();
+    this.uiState = new UIStateManager();
+    this.panelManager = new PanelManager(this.game);
+    this.modalSystem = new ModalSystem(this.panelManager, this.game);
+    this.buttonStateManager = new ButtonStateManager(this.game, this.uiState);
+    this.performanceManager = new UIPerformanceManager();
     
     // Subscribe to all game events
     this.setupGameEventListeners();
+    
+    // Subscribe to UI state changes
+    this.setupUIStateHandlers();
+    
+    // Setup panel and modal event handlers
+    this.setupPanelEventHandlers();
   }
 
   /**
@@ -74,6 +102,9 @@ export class GameUIManager {
       
       // Setup global UI event listeners
       this.setupGlobalEventListeners();
+      
+      // Apply performance optimizations
+      this.optimizePerformance();
       
       this.isInitialized = true;
       
@@ -132,39 +163,38 @@ export class GameUIManager {
    */
   private async initializeComponents(): Promise<void> {
     // Import components dynamically to avoid circular dependencies
-    const { HUDOverlay } = await import('./components/game/HUDOverlay');
-    const { TowerSelectionPanel } = await import('./components/game/TowerSelectionPanel');
-    const { UpgradePanel } = await import('./components/game/UpgradePanel');
-    const { TouchControlsPanel } = await import('./components/game/TouchControlsPanel');
-    const { InstructionsPanel } = await import('./components/game/InstructionsPanel');
-    const { AudioControlPanel } = await import('./components/game/AudioControlPanel');
+    const { HUDOverlay } = await import('./components/HUDOverlay');
+    const { TouchControlsPanel } = await import('./components/TouchControlsPanel');
+    const { InstructionsPanel } = await import('./components/InstructionsPanel');
+    const { AudioControlPanel } = await import('./components/AudioControlPanel');
     const { GameStateOverlay } = await import('./components/game/GameStateOverlay');
     
-    // Create and mount components
-    await this.createComponent('hudOverlay', HUDOverlay, '#hud-container');
-    await this.createComponent('towerSelectionPanel', TowerSelectionPanel, '#tower-selection-container');
-    await this.createComponent('upgradePanel', UpgradePanel, '#upgrade-container');
+    // Create modern UI components
+    await this.createModernComponent('hudOverlay', HUDOverlay, '#hud-container');
+    await this.createBuildPanel();
+    await this.createActionPanel();
+    await this.createTowerUpgradePanel();
     
     // Touch controls only on mobile
     if (this.isMobile && this.options.enableTouchControls) {
-      await this.createComponent('touchControlsPanel', TouchControlsPanel, '#touch-controls-container');
+      await this.createModernComponent('touchControlsPanel', TouchControlsPanel, '#touch-controls-container');
     }
     
     // Optional components
     if (this.options.showInstructions) {
-      await this.createComponent('instructionsPanel', InstructionsPanel, '#instructions-container');
+      await this.createModernComponent('instructionsPanel', InstructionsPanel, '#instructions-container');
     }
     
-    await this.createComponent('audioControlPanel', AudioControlPanel, '#audio-container');
-    await this.createComponent('gameStateOverlay', GameStateOverlay, '#game-state-container');
+    await this.createModernComponent('audioControlPanel', AudioControlPanel, '#audio-container');
+    await this.createModernComponent('gameStateOverlay', GameStateOverlay, '#game-state-container');
     
     this.log(`Initialized ${Object.keys(this.components).length} UI components`);
   }
 
   /**
-   * Create and mount a UI component
+   * Create and mount a modern UI component (GameComponent-based)
    */
-  private async createComponent<T extends Component<any>>(
+  private async createModernComponent<T extends Component<any>>(
     key: keyof UIComponents,
     ComponentClass: new (...args: any[]) => T,
     containerSelector: string,
@@ -193,7 +223,7 @@ export class GameUIManager {
       // Store reference
       this.components[key] = component;
       
-      this.log(`Created component: ${key}`);
+      this.log(`Created modern component: ${key}`);
       
     } catch (error) {
       console.error(`Failed to create component ${key}:`, error);
@@ -201,17 +231,137 @@ export class GameUIManager {
   }
 
   /**
+   * Create BuildPanel with panel manager integration
+   */
+  private async createBuildPanel(): Promise<void> {
+    try {
+      const buildPanel = new BuildPanel({
+        game: this.game,
+        uiManager: this,
+        isMobile: this.isMobile,
+        visible: true,
+        initiallyMinimized: false,
+        position: 'bottom-left',
+        showShortcuts: true
+      } as BuildPanelProps);
+      
+      buildPanel.mount(document.body);
+      this.components.buildPanel = buildPanel;
+      
+      // Register with panel manager
+      this.panelManager.registerPanel({
+        id: 'buildPanel',
+        component: buildPanel,
+        zIndex: 1050,
+        modal: false,
+        pauseGame: false,
+        closable: false,
+        persistent: true,
+        position: 'bottom-left',
+        category: 'hud'
+      });
+      
+      this.log('Created BuildPanel');
+    } catch (error) {
+      console.error('Failed to create BuildPanel:', error);
+    }
+  }
+
+  /**
+   * Create ActionPanel with panel manager integration
+   */
+  private async createActionPanel(): Promise<void> {
+    try {
+      const actionPanel = new ActionPanel({
+        game: this.game,
+        uiManager: this,
+        isMobile: this.isMobile,
+        visible: true,
+        position: 'bottom-right',
+        showLabels: !this.isMobile,
+        compact: this.isMobile
+      } as ActionPanelProps);
+      
+      actionPanel.mount(document.body);
+      this.components.actionPanel = actionPanel;
+      
+      // Register with panel manager
+      this.panelManager.registerPanel({
+        id: 'actionPanel',
+        component: actionPanel,
+        zIndex: 1050,
+        modal: false,
+        pauseGame: false,
+        closable: false,
+        persistent: true,
+        position: 'bottom-right',
+        category: 'hud'
+      });
+      
+      // Listen for action panel events
+      actionPanel.on('toggleInventory', this.toggleInventory);
+      actionPanel.on('showSettings', this.toggleAudioControls);
+      
+      this.log('Created ActionPanel');
+    } catch (error) {
+      console.error('Failed to create ActionPanel:', error);
+    }
+  }
+
+  /**
+   * Create TowerUpgradePanel with panel manager integration
+   */
+  private async createTowerUpgradePanel(): Promise<void> {
+    try {
+      const towerUpgradePanel = new TowerUpgradePanel({
+        game: this.game,
+        uiManager: this,
+        isMobile: this.isMobile,
+        visible: false, // Starts hidden
+        autoPosition: true,
+        showTowerStats: true,
+        compactMode: this.isMobile
+      } as TowerUpgradePanelProps);
+      
+      towerUpgradePanel.mount(document.body);
+      this.components.towerUpgradePanel = towerUpgradePanel;
+      
+      // Register with panel manager
+      this.panelManager.registerPanel({
+        id: 'towerUpgradePanel',
+        component: towerUpgradePanel,
+        zIndex: 1150,
+        modal: false,
+        pauseGame: false,
+        closable: true,
+        persistent: false,
+        position: 'custom',
+        category: 'overlay'
+      });
+      
+      this.log('Created TowerUpgradePanel');
+    } catch (error) {
+      console.error('Failed to create TowerUpgradePanel:', error);
+    }
+  }
+
+  /**
    * Setup game event listeners
    */
   private setupGameEventListeners(): void {
-    // Resource changes
+    // Resource changes - update UI state
     this.game.on('currencyChanged', (data) => {
+      this.uiState.set('currency', data.amount);
+      
+      // Legacy component updates (to be phased out)
       this.updateComponentProp('hudOverlay', 'currency', data.amount);
-      this.updateComponentProp('towerSelectionPanel', 'currency', data.amount);
-      this.updateComponentProp('upgradePanel', 'currency', data.amount);
+      
+      // Update affordable states for all components
+      this.updateAffordabilityStates();
     });
     
     this.game.on('livesChanged', (data) => {
+      this.uiState.set('lives', data.amount);
       this.updateComponentProp('hudOverlay', 'lives', data.amount);
       
       // Show warning when lives are low
@@ -222,14 +372,25 @@ export class GameUIManager {
           duration: 3000
         });
       }
+      
+      // Critical warning at 1 life
+      if (data.amount === 1) {
+        Toast.show({
+          message: 'CRITICAL: Last life remaining!',
+          type: 'error',
+          duration: 5000
+        });
+      }
     });
     
     this.game.on('scoreChanged', (data) => {
+      this.uiState.set('score', data.amount);
       this.updateComponentProp('hudOverlay', 'score', data.amount);
     });
     
     // Wave events
     this.game.on('waveStarted', (data) => {
+      this.uiState.set('currentWave', data.waveNumber);
       this.updateComponentProp('hudOverlay', 'currentWave', data.waveNumber);
       Toast.show({
         message: `Wave ${data.waveNumber} started!`,
@@ -238,36 +399,133 @@ export class GameUIManager {
       });
     });
     
+    this.game.on('waveCompleted', (data) => {
+      Toast.show({
+        message: `Wave ${data.waveNumber} complete!`,
+        type: 'success',
+        duration: 2500
+      });
+      this.uiState.set('lastCompletedWave', data.waveNumber);
+    });
+    
+    // Enemy events
+    this.game.on('enemySpawned', (data) => {
+      this.uiState.increment('totalEnemiesSpawned');
+    });
+    
+    this.game.on('enemyKilled', (data) => {
+      this.uiState.increment('enemiesKilled');
+      this.uiState.increment('currency', data.reward);
+      
+      // Show reward notification for high-value enemies
+      if (data.reward >= 10) {
+        Toast.show({
+          message: `+$${data.reward}`,
+          type: 'success',
+          duration: 1000
+        });
+      }
+    });
+    
     // Tower events
     this.game.on('towerPlaced', (data) => {
       Toast.show({
-        message: `Tower placed! (-$${data.cost})`,
+        message: `${data.tower.towerType} Tower placed! (-$${data.cost})`,
         type: 'success',
         duration: 2000
       });
+      this.uiState.increment('towersBuilt');
+      this.updateAffordabilityStates();
+    });
+    
+    this.game.on('towerUpgraded', (data) => {
+      Toast.show({
+        message: `Tower upgraded! (-$${data.cost})`,
+        type: 'success',
+        duration: 1500
+      });
+      this.updateAffordabilityStates();
+    });
+    
+    this.game.on('towerSold', (data) => {
+      Toast.show({
+        message: `Tower sold! (+$${data.refund})`,
+        type: 'info',
+        duration: 1500
+      });
+      this.updateAffordabilityStates();
     });
     
     this.game.on('towerSelected', (data) => {
       this.selectedTower = data.tower;
-      this.updateComponentProp('upgradePanel', 'selectedTower', data.tower);
-      this.updateComponentProp('upgradePanel', 'visible', !!data.tower);
+      this.uiState.set('selectedTower', data.tower);
+      
+      // Show tower upgrade panel if tower is selected
+      if (data.tower && this.components.towerUpgradePanel) {
+        this.components.towerUpgradePanel.show();
+      } else if (!data.tower && this.components.towerUpgradePanel) {
+        this.components.towerUpgradePanel.hide();
+      }
     });
     
     this.game.on('selectedTowerTypeChanged', (data) => {
       this.selectedTowerType = data.type;
-      this.updateComponentProp('towerSelectionPanel', 'selectedType', data.type);
+      this.uiState.set('selectedTowerType', data.type);
+    });
+    
+    this.game.on('hoverTowerChanged', (data) => {
+      this.uiState.set('hoverTower', data.tower);
+    });
+    
+    // Player events
+    this.game.on('playerDamaged', (data) => {
+      this.uiState.set('playerHealth', data.remainingHealth);
+      if (data.remainingHealth <= 25) {
+        Toast.show({
+          message: `Low health: ${data.remainingHealth}%`,
+          type: 'warning',
+          duration: 2000
+        });
+      }
+    });
+    
+    this.game.on('playerHealed', (data) => {
+      this.uiState.set('playerHealth', data.currentHealth);
+      Toast.show({
+        message: `+${data.amount} Health`,
+        type: 'success',
+        duration: 1000
+      });
+    });
+    
+    this.game.on('playerUpgraded', (data) => {
+      Toast.show({
+        message: `Player upgraded: ${data.upgradeType} (-$${data.cost})`,
+        type: 'success',
+        duration: 2500
+      });
+      this.updateAffordabilityStates();
     });
     
     // Game state events
     this.game.on('gameStateChanged', (data) => {
       this.currentGameState = data.state;
+      this.uiState.set({
+        isGameRunning: data.state === 'PLAYING',
+        isGameOver: data.state === 'GAME_OVER' || data.state === 'VICTORY',
+        gameState: data.state
+      });
       this.updateComponentProp('gameStateOverlay', 'gameState', data.state);
       
       // Handle specific state changes
       this.handleGameStateChange(data.state, data.previous);
+      
+      // Notify panel manager of game state changes
+      this.panelManager.handleGameStateChange(data.state);
     });
     
     this.game.on('gamePaused', () => {
+      this.uiState.set('isPaused', true);
       Toast.show({
         message: 'Game Paused',
         type: 'info',
@@ -276,6 +534,7 @@ export class GameUIManager {
     });
     
     this.game.on('gameResumed', () => {
+      this.uiState.set('isPaused', false);
       Toast.show({
         message: 'Game Resumed',
         type: 'info',
@@ -284,7 +543,22 @@ export class GameUIManager {
     });
     
     this.game.on('gameOver', (data) => {
+      this.uiState.set({
+        isGameOver: true,
+        gameWon: data.won,
+        finalScore: data.score
+      });
       this.handleGameOver(data.won, data.score);
+    });
+    
+    // Mouse position tracking for cursor effects
+    this.game.on('mousePositionChanged', (data) => {
+      this.uiState.set('mousePosition', {
+        worldX: data.worldX,
+        worldY: data.worldY,
+        gridX: data.gridX,
+        gridY: data.gridY
+      });
     });
     
     this.log('Game event listeners setup complete');
@@ -397,7 +671,23 @@ export class GameUIManager {
     const isPlaying = newState === 'PLAYING';
     
     this.updateComponentProp('hudOverlay', 'visible', isPlaying);
-    this.updateComponentProp('towerSelectionPanel', 'visible', isPlaying);
+    
+    // Show/hide modern UI panels based on game state
+    if (this.components.buildPanel) {
+      if (isPlaying) {
+        this.components.buildPanel.show();
+      } else {
+        this.components.buildPanel.hide();
+      }
+    }
+    
+    if (this.components.actionPanel) {
+      if (isPlaying) {
+        this.components.actionPanel.show();
+      } else {
+        this.components.actionPanel.hide();
+      }
+    }
     
     // Auto-hide instructions after first wave
     if (this.options.autoHideInstructions && newState === 'PLAYING' && this.game.getCurrentWave() >= 1) {
@@ -432,12 +722,17 @@ export class GameUIManager {
   }
   
   togglePlayerUpgrades(): void {
-    const panel = this.components.upgradePanel;
-    if (panel) {
-      const isVisible = panel.getState?.()?.visible || false;
-      this.updateComponentProp('upgradePanel', 'visible', !isVisible);
-      this.updateComponentProp('upgradePanel', 'mode', 'player');
-    }
+    this.uiState.togglePanel('playerUpgrades');
+    this.showNotification('Player upgrades panel coming soon!', 'info', 2000);
+  }
+
+  toggleInventory(): void {
+    this.uiState.togglePanel('inventory');
+    this.showNotification('Inventory panel coming soon!', 'info', 2000);
+  }
+
+  toggleSettings(): void {
+    this.uiState.togglePanel('settings');
   }
   
   toggleAudioControls(): void {
@@ -448,9 +743,9 @@ export class GameUIManager {
   }
   
   handleEscapeKey(): void {
-    // Close any open panels
-    this.updateComponentProp('upgradePanel', 'visible', false);
+    // Close any open panels and deselect towers
     this.game.setSelectedTowerType(null);
+    this.game.setSelectedTower(null);
   }
 
   /**
@@ -462,6 +757,93 @@ export class GameUIManager {
     if (component && typeof component.updateProps === 'function') {
       component.updateProps({ [prop]: value });
     }
+  }
+
+  /**
+   * Update affordability states for all towers and upgrades (with performance optimization)
+   */
+  private updateAffordabilityStates(): void {
+    // Use performance manager to batch these expensive calculations
+    this.performanceManager.queueUpdate({
+      id: 'affordability_update',
+      type: 'state',
+      target: 'uiState',
+      data: () => {
+        // Get current currency
+        const currency = this.game.getCurrency();
+        
+        // Check tower affordability
+        const towerAffordability = {
+          BASIC: this.game.canAffordTower('BASIC'),
+          SNIPER: this.game.canAffordTower('SNIPER'),
+          RAPID: this.game.canAffordTower('RAPID'),
+          WALL: this.game.canAffordTower('WALL')
+        };
+        
+        // Batch all updates
+        const updates: any = {
+          canAffordTowers: towerAffordability,
+          canAffordPlayerUpgrades: {
+            damage: this.game.canAffordPlayerUpgrade('DAMAGE'),
+            speed: this.game.canAffordPlayerUpgrade('SPEED'),
+            fireRate: this.game.canAffordPlayerUpgrade('FIRE_RATE'),
+            health: this.game.canAffordPlayerUpgrade('HEALTH')
+          },
+          canAffordInventoryUpgrade: this.game.canUpgradeInventory()
+        };
+        
+        // Update selected tower upgrade affordability if applicable
+        const selectedTower = this.game.getSelectedTower();
+        if (selectedTower) {
+          updates.canAffordTowerUpgrades = {
+            damage: this.game.canAffordUpgrade(selectedTower, 'DAMAGE'),
+            range: this.game.canAffordUpgrade(selectedTower, 'RANGE'),
+            fireRate: this.game.canAffordUpgrade(selectedTower, 'FIRE_RATE'),
+            special: this.game.canAffordUpgrade(selectedTower, 'SPECIAL')
+          };
+        }
+        
+        // Apply all updates at once
+        this.uiState.set(updates);
+      },
+      priority: 'medium'
+    });
+  }
+
+  /**
+   * Get performance metrics
+   */
+  getPerformanceMetrics() {
+    return {
+      ui: this.performanceManager.getMetrics(),
+      components: Object.keys(this.components).length,
+      activePanels: this.panelManager.getVisiblePanels().length,
+      modalVisible: this.modalSystem.hasVisibleModal()
+    };
+  }
+
+  /**
+   * Optimize UI for better performance
+   */
+  optimizePerformance(): void {
+    // Create optimized updaters for frequently updated components
+    const currencyUpdater = this.performanceManager.createUpdateScheduler<number>(
+      'currency_display',
+      (amount) => this.updateComponentProp('hudOverlay', 'currency', amount),
+      { throttleMs: 100, priority: 'medium' }
+    );
+
+    const scoreUpdater = this.performanceManager.createUpdateScheduler<number>(
+      'score_display', 
+      (score) => this.updateComponentProp('hudOverlay', 'score', score),
+      { throttleMs: 200, priority: 'low' }
+    );
+
+    // Replace direct updates with optimized versions
+    this.game.on('currencyChanged', (data) => currencyUpdater(data.amount));
+    this.game.on('scoreChanged', (data) => scoreUpdater(data.amount));
+
+    this.log('Performance optimizations applied');
   }
   
   private reinitializeForDeviceChange(): void {
@@ -505,9 +887,155 @@ export class GameUIManager {
   }
 
   /**
+   * Setup UI state change handlers
+   */
+  private setupUIStateHandlers(): void {
+    // Subscribe to panel visibility changes
+    this.uiState.subscribe('showBuildPanel', (visible) => {
+      if (visible) {
+        this.panelManager.showPanel('buildPanel');
+      } else {
+        this.panelManager.hidePanel('buildPanel');
+      }
+    });
+    
+    this.uiState.subscribe('showTowerUpgradePanel', (visible) => {
+      if (visible) {
+        this.panelManager.showPanel('towerUpgradePanel');
+      } else {
+        this.panelManager.hidePanel('towerUpgradePanel');
+      }
+    });
+    
+    // Handle escape key to close all panels
+    this.uiState.subscribe('selectedTowerType', (type) => {
+      if (!type) {
+        // Clear any panel selections when tower type is deselected
+        this.handleEscapeKey();
+      }
+    });
+  }
+
+  /**
+   * Setup panel and modal event handlers
+   */
+  private setupPanelEventHandlers(): void {
+    // Panel manager events
+    this.panelManager.on('panelShown', (data) => {
+      this.log(`Panel shown: ${data.panelId}`);
+      this.uiState.set(`show${data.panelId.charAt(0).toUpperCase() + data.panelId.slice(1)}`, true);
+    });
+    
+    this.panelManager.on('panelHidden', (data) => {
+      this.log(`Panel hidden: ${data.panelId}`);
+      this.uiState.set(`show${data.panelId.charAt(0).toUpperCase() + data.panelId.slice(1)}`, false);
+    });
+    
+    this.panelManager.on('panelFocused', (data) => {
+      this.log(`Panel focused: ${data.panelId}`);
+    });
+    
+    // Modal system events
+    this.modalSystem.on('modalShown', (data) => {
+      this.log(`Modal shown: ${data.modalId}`);
+      this.uiState.set('hasVisibleModal', true);
+    });
+    
+    this.modalSystem.on('modalHidden', (data) => {
+      this.log(`Modal hidden: ${data.modalId}`);
+      this.uiState.set('hasVisibleModal', this.modalSystem.hasVisibleModal());
+    });
+  }
+
+  /**
+   * Get UI state manager for components
+   */
+  getUIState(): UIStateManager {
+    return this.uiState;
+  }
+
+  /**
+   * Get panel manager for advanced panel control
+   */
+  getPanelManager(): PanelManager {
+    return this.panelManager;
+  }
+
+  /**
+   * Get modal system for showing dialogs
+   */
+  getModalSystem(): ModalSystem {
+    return this.modalSystem;
+  }
+
+  /**
+   * Get button state manager for button integration
+   */
+  getButtonStateManager(): ButtonStateManager {
+    return this.buttonStateManager;
+  }
+
+  /**
+   * Get performance manager for optimization
+   */
+  getPerformanceManager(): UIPerformanceManager {
+    return this.performanceManager;
+  }
+
+  /**
+   * Show a confirmation dialog
+   */
+  async showConfirmation(message: string, title?: string): Promise<boolean> {
+    return this.modalSystem.confirm(message, title);
+  }
+
+  /**
+   * Show an alert dialog
+   */
+  async showAlert(message: string, title?: string): Promise<void> {
+    return this.modalSystem.alert(message, title);
+  }
+
+  /**
+   * Close all closable panels (like escape key behavior)
+   */
+  closeAllPanels(): void {
+    this.panelManager.closeAllClosablePanels();
+  }
+
+  /**
+   * Show/hide specific panels
+   */
+  showPanel(panelId: string, focus: boolean = true): boolean {
+    return this.panelManager.showPanel(panelId, focus);
+  }
+
+  hidePanel(panelId: string): boolean {
+    return this.panelManager.hidePanel(panelId);
+  }
+
+  togglePanelVisibility(panelId: string): boolean {
+    return this.panelManager.togglePanel(panelId);
+  }
+
+  /**
+   * Check if panel is visible
+   */
+  isPanelVisible(panelId: string): boolean {
+    return this.panelManager.isPanelVisible(panelId);
+  }
+
+  /**
    * Cleanup
    */
   destroy(): void {
+    // Destroy UI systems
+    this.uiState.destroy();
+    this.panelManager.destroy();
+    this.modalSystem.destroy();
+    this.buttonStateManager.destroy();
+    this.performanceManager.destroy();
+    
     // Remove game event listeners
     this.game.getEventEmitter().removeAllListeners();
     

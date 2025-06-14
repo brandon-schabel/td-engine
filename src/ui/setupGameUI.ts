@@ -20,7 +20,7 @@ export interface GameUIOptions {
 }
 
 /**
- * Initialize the complete game UI system
+ * Initialize the complete game UI system with modern architecture
  */
 export async function setupGameUI(options: GameUIOptions): Promise<GameUIManager> {
   const {
@@ -34,10 +34,12 @@ export async function setupGameUI(options: GameUIOptions): Promise<GameUIManager
     debugMode = false
   } = options;
   
+  console.log('Initializing modern UI system...');
+  
   // Ensure container has proper styling
   setupContainerStyles(container);
   
-  // Create UI manager
+  // Create UI manager with consolidated architecture
   const uiManager = new GameUIManager(game, {
     enableTouchControls: enableTouch,
     enableHapticFeedback,
@@ -48,6 +50,7 @@ export async function setupGameUI(options: GameUIOptions): Promise<GameUIManager
   
   // Initialize UI system
   try {
+    console.log('Initializing UI components...');
     await uiManager.initialize();
     
     // Set up responsive handling
@@ -403,62 +406,6 @@ export function cleanupGameUI(uiManager: GameUIManager): void {
   if (styleElement) {
     styleElement.remove();
   }
-}
-
-function connectUIEvents(uiManager: GameUIManager, game: GameWithEvents, audioManager: AudioManager): void {
-  // Tower selection
-  uiManager.on('tower-type-selected', (type) => {
-    audioManager.playUISound(type ? 'SELECT' : 'DESELECT');
-    game.setSelectedTowerType(type);
-  });
-  
-  // Tower selection (clicking on tower)
-  uiManager.on('tower-selected', (tower) => {
-    audioManager.playUISound('SELECT');
-    // Game already handles this internally
-  });
-  
-  // Start wave
-  uiManager.on('start-wave', () => {
-    audioManager.playUISound('BUTTON_CLICK');
-    game.startNextWave();
-  });
-  
-  // Pause toggle
-  uiManager.on('pause-toggle', () => {
-    audioManager.playUISound('BUTTON_CLICK');
-    if (game.isPaused()) {
-      game.resume();
-    } else {
-      game.pause();
-    }
-  });
-  
-  // Player upgrade
-  uiManager.on('player-upgrade', (type) => {
-    audioManager.playUISound('BUTTON_CLICK');
-    const success = game.upgradePlayer(type);
-    if (!success) {
-      audioManager.playUISound('ERROR');
-    }
-  });
-  
-  // Tower upgrade
-  uiManager.on('tower-upgrade', (tower, type) => {
-    audioManager.playUISound('BUTTON_CLICK');
-    const success = game.upgradeTower(tower, type);
-    if (!success) {
-      audioManager.playUISound('ERROR');
-    }
-  });
-  
-  // Audio settings
-  uiManager.on('audio-settings-changed', (settings) => {
-    audioManager.setMasterVolume(settings.volume);
-    audioManager.setEnabled(!settings.muted);
-    game.getAudioManager().setMasterVolume(settings.volume);
-    game.getAudioManager().setEnabled(!settings.muted);
-  });
 }
 
 function handleVirtualControlEvent(event: any, game: GameWithEvents, uiManager: GameUIManager): void {

@@ -107,17 +107,18 @@ export class GameScenarioBuilder {
       gameAny.grid.placeable = this.mapData.placeable;
     }
     
-    // Place towers
+    // Place towers without deducting currency
     this.towers.forEach(towerConfig => {
-      game.placeTower(towerConfig.type, towerConfig.position);
+      const tower = new Tower(towerConfig.type, towerConfig.position);
       
       // Apply upgrades if specified
       if (towerConfig.upgrades && towerConfig.upgrades.length > 0) {
-        const tower = gameAny.towers[gameAny.towers.length - 1];
         towerConfig.upgrades.forEach(upgrade => {
           tower.upgrade(upgrade);
         });
       }
+      
+      gameAny.towers.push(tower);
     });
     
     // Add enemies
@@ -222,10 +223,23 @@ export class TowerBuilder {
   build(): Tower {
     const tower = new Tower(this.type, this.position);
     
-    // Apply upgrades to reach desired level
-    for (let i = 1; i < this.level; i++) {
-      const upgrade = this.upgrades[i - 1] || UpgradeType.DAMAGE;
-      tower.upgrade(upgrade);
+    // If specific upgrades were provided, apply those
+    if (this.upgrades.length > 0) {
+      this.upgrades.forEach(upgrade => {
+        tower.upgrade(upgrade);
+      });
+    } else {
+      // Otherwise, apply upgrades to reach desired level
+      // Formula: level = 1 + Math.floor(totalUpgrades / 3)
+      // So for level L, we need totalUpgrades = (L-1) * 3
+      const upgradesNeeded = (this.level - 1) * 3;
+      
+      // Spread upgrades across different types to avoid hitting individual limits
+      const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
+      for (let i = 0; i < upgradesNeeded; i++) {
+        const upgradeType = upgradeTypes[i % upgradeTypes.length];
+        tower.upgrade(upgradeType);
+      }
     }
     
     // Set health if specified

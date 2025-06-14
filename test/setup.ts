@@ -369,6 +369,41 @@ global.CustomEvent = class MockCustomEvent {
   }
 } as any;
 
+// Mock KeyboardEvent
+global.KeyboardEvent = class MockKeyboardEvent {
+  type: string;
+  key: string;
+  code: string;
+  keyCode: number;
+  ctrlKey: boolean = false;
+  shiftKey: boolean = false;
+  altKey: boolean = false;
+  metaKey: boolean = false;
+  repeat: boolean = false;
+  bubbles: boolean = true;
+  cancelable: boolean = true;
+  
+  constructor(type: string, options: any = {}) {
+    this.type = type;
+    this.key = options.key || '';
+    this.code = options.code || '';
+    this.keyCode = options.keyCode || 0;
+    this.ctrlKey = options.ctrlKey || false;
+    this.shiftKey = options.shiftKey || false;
+    this.altKey = options.altKey || false;
+    this.metaKey = options.metaKey || false;
+    this.repeat = options.repeat || false;
+    this.bubbles = options.bubbles !== false;
+    this.cancelable = options.cancelable !== false;
+  }
+} as any;
+
+// Also set on globalThis and window
+(globalThis as any).KeyboardEvent = global.KeyboardEvent;
+if (typeof window !== 'undefined') {
+  (window as any).KeyboardEvent = global.KeyboardEvent;
+}
+
 // Mock localStorage for configuration persistence
 const localStorageData = new Map<string, string>();
 
