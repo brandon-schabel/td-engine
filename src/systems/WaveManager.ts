@@ -1,5 +1,5 @@
-import { Enemy, EnemyType } from '../entities/Enemy';
-import type { Vector2 } from '../utils/Vector2';
+import { Enemy, EnemyType } from '@/entities/Enemy';
+import type { Vector2 } from '@/utils/Vector2';
 import type { SpawnZoneManager, GameStateSnapshot } from './SpawnZoneManager';
 
 export type EnemySpawnConfig = {

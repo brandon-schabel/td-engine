@@ -9,8 +9,8 @@ import {
   type GameComponentState,
 } from "../GameComponent";
 import { Button } from "../Button";
-import { styled } from "../../core/styled";
-import { GameState } from "../../../core/GameState";
+import { styled } from "@/ui/core/styled";
+import { GameState } from "@/core/GameState";
 
 interface GameStateOverlayState extends GameComponentState {
   gameState: GameState;

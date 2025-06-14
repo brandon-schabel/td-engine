@@ -4,10 +4,10 @@
  */
 
 import { BaseRenderer } from './BaseRenderer';
-import { Grid, CellType } from '../systems/Grid';
-import { Tower, TowerType } from '../entities/Tower';
+import { Grid, CellType } from '@/systems/Grid';
+import { Tower, TowerType } from '@/entities/Tower';
 import { RENDER_CONFIG } from '../config/GameConfig';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export class EnvironmentRenderer extends BaseRenderer {
   private grid: Grid;

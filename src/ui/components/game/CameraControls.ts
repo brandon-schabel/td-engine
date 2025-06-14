@@ -3,11 +3,11 @@
  * UI controls for camera zoom and positioning
  */
 
-import { Component } from '../../core/Component';
-import type { ComponentProps, ComponentState } from '../../core/types';
-import { StyleSystem } from '../../core/StyleSystem';
+import { Component } from '@/core/Component';
+import type { ComponentProps, ComponentState } from '@/core/types';
+import { StyleSystem } from '@/core/StyleSystem';
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
-import type { Game } from '../../../core/Game';
+import type { Game } from '@/core/Game';
 
 export interface CameraControlsProps extends ComponentProps {
   game: Game;

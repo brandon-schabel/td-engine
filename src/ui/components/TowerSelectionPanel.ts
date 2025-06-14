@@ -7,7 +7,7 @@ import { GameComponent, type GameComponentProps, type GameComponentState } from 
 import { Button } from './Button';
 import { Card } from './Card';
 import { styled } from '../core/styled';
-import type { TowerType } from '../../entities/Tower';
+import type { TowerType } from '@/entities/Tower';
 
 interface TowerSelectionState extends GameComponentState {
   selectedType: TowerType | null;

@@ -4,11 +4,11 @@
  * Consolidates upgrade logic and provides a unified interface
  */
 
-import { TowerUpgradeManager, PlayerUpgradeManager } from '../systems/UnifiedUpgradeSystem';
-import { Tower } from '../entities/Tower';
-import { Player, PlayerUpgradeType } from '../entities/Player';
-import { UpgradeType as TowerUpgradeType } from '../systems/TowerUpgradeManager';
-import { ResourceManager, ResourceType } from '../systems/ResourceManager';
+import { TowerUpgradeManager, PlayerUpgradeManager } from '@/systems/UnifiedUpgradeSystem';
+import { Tower } from '@/entities/Tower';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
+import { UpgradeType as TowerUpgradeType } from '@/systems/TowerUpgradeManager';
+import { ResourceManager, ResourceType } from '@/systems/ResourceManager';
 
 export interface UpgradeResult {
   success: boolean;

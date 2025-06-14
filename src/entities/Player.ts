@@ -1,9 +1,9 @@
 import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 import { BASE_PLAYER_STATS, GAME_MECHANICS, UPGRADE_CONFIG } from '../config/GameConfig';
-import { CooldownManager } from '../utils/CooldownManager';
+import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 import { PlayerPowerUps } from './player/PlayerPowerUps';
 

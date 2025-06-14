@@ -1,4 +1,4 @@
-import { Player, PlayerUpgradeType } from '../entities/Player';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
 
 /**
  * PlayerUpgradeManager provides a centralized interface for managing player upgrades.

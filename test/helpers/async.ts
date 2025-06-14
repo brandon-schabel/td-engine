@@ -1,8 +1,8 @@
-import { vi } from 'vitest';
-import { Game } from '@/core/Game';
-import { Entity } from '@/entities/Entity';
-import { GameState } from '@/core/GameEngine';
-import { TimeController } from './time';
+import { vi } from "vitest";
+import { Game } from "@/core/Game";
+import { Entity } from "@/entities/Entity";
+import { TimeController } from "./time";
+import type { GameState } from "@/core/GameState";
 
 export interface AsyncTestOptions {
   timeout?: number;
@@ -18,12 +18,12 @@ export async function waitFor(
 ): Promise<void> {
   const { timeout = 5000, pollInterval = 10 } = options;
   const startTime = Date.now();
-  
+
   while (!condition()) {
     if (Date.now() - startTime > timeout) {
       throw new Error(`Timeout waiting for condition after ${timeout}ms`);
     }
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
 }
 
@@ -109,21 +109,21 @@ export async function simulateUntil(
 ): Promise<number> {
   const { maxFrames = 1000, deltaTime = 16 } = options;
   let frames = 0;
-  
+
   while (!condition() && frames < maxFrames) {
     game.update(deltaTime);
     frames++;
-    
+
     // Yield to event loop periodically
     if (frames % 10 === 0) {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
-  
+
   if (!condition()) {
     throw new Error(`Condition not met after ${frames} frames`);
   }
-  
+
   return frames;
 }
 
@@ -132,46 +132,45 @@ export async function simulateUntil(
  */
 export class AsyncGameSimulator {
   private timeController: TimeController;
-  
+
   constructor(private game: Game) {
     this.timeController = new TimeController();
   }
-  
+
   /**
    * Simulate game for a specific duration
    */
   async simulateTime(milliseconds: number, frameTime = 16): Promise<void> {
     const frames = Math.ceil(milliseconds / frameTime);
-    
+
     for (let i = 0; i < frames; i++) {
       this.timeController.advance(frameTime);
       this.game.update(frameTime);
-      
+
       // Yield to event loop every 10 frames
       if (i % 10 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
   }
-  
+
   /**
    * Simulate until wave completes
    */
   async simulateWave(waveNumber: number): Promise<void> {
     const gameAny = this.game as any;
-    
+
     // Start the wave if needed
     if (gameAny.waveManager.currentWave < waveNumber) {
       this.game.startNextWave();
     }
-    
+
     // Wait for wave to complete
-    await this.simulateUntil(() => 
-      !gameAny.waveManager.isWaveActive() && 
-      gameAny.enemies.length === 0
+    await this.simulateUntil(
+      () => !gameAny.waveManager.isWaveActive() && gameAny.enemies.length === 0
     );
   }
-  
+
   /**
    * Simulate until a certain score is reached
    */
@@ -179,7 +178,7 @@ export class AsyncGameSimulator {
     const gameAny = this.game as any;
     await this.simulateUntil(() => gameAny.score >= targetScore);
   }
-  
+
   /**
    * Simulate with condition
    */
@@ -189,20 +188,20 @@ export class AsyncGameSimulator {
   ): Promise<void> {
     const { timeout = 10000, frameTime = 16 } = options;
     const startTime = Date.now();
-    
+
     while (!condition()) {
       if (Date.now() - startTime > timeout) {
         throw new Error(`Simulation timeout after ${timeout}ms`);
       }
-      
+
       this.timeController.advance(frameTime);
       this.game.update(frameTime);
-      
+
       // Yield to event loop
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
-  
+
   /**
    * Reset time controller
    */
@@ -217,62 +216,62 @@ export class AsyncGameSimulator {
 export class GameEventPromise {
   private promises: Map<string, Promise<any>> = new Map();
   private resolvers: Map<string, (value: any) => void> = new Map();
-  
+
   constructor(private game: Game) {
     this.setupListeners();
   }
-  
+
   private setupListeners(): void {
     const gameAny = this.game as any;
-    
+
     // Listen for enemy deaths
-    this.createPromise('enemyKilled');
-    
+    this.createPromise("enemyKilled");
+
     // Listen for wave completion
-    this.createPromise('waveComplete');
-    
+    this.createPromise("waveComplete");
+
     // Listen for game over
-    this.createPromise('gameOver');
-    
+    this.createPromise("gameOver");
+
     // Listen for victory
-    this.createPromise('victory');
+    this.createPromise("victory");
   }
-  
+
   private createPromise(eventName: string): void {
-    const promise = new Promise(resolve => {
+    const promise = new Promise((resolve) => {
       this.resolvers.set(eventName, resolve);
     });
     this.promises.set(eventName, promise);
   }
-  
+
   /**
    * Wait for next enemy kill
    */
   async nextEnemyKill(): Promise<{ enemy: Entity; reward: number }> {
-    return this.promises.get('enemyKilled')!;
+    return this.promises.get("enemyKilled")!;
   }
-  
+
   /**
    * Wait for wave completion
    */
   async waveComplete(): Promise<number> {
-    return this.promises.get('waveComplete')!;
+    return this.promises.get("waveComplete")!;
   }
-  
+
   /**
    * Wait for game over
    */
   async gameOver(): Promise<void> {
-    return this.promises.get('gameOver')!;
+    return this.promises.get("gameOver")!;
   }
-  
+
   /**
    * Wait for victory
    */
   async victory(): Promise<void> {
-    return this.promises.get('victory')!;
+    return this.promises.get("victory")!;
   }
-  
+
   /**
    * Trigger an event (for testing)
    */
@@ -302,25 +301,25 @@ export async function retryAsync<T>(
     maxRetries = 3,
     initialDelay = 100,
     maxDelay = 2000,
-    backoffFactor = 2
+    backoffFactor = 2,
   } = options;
-  
+
   let lastError: Error;
   let delay = initialDelay;
-  
+
   for (let i = 0; i <= maxRetries; i++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
+
       if (i < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         delay = Math.min(delay * backoffFactor, maxDelay);
       }
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -343,8 +342,5 @@ export async function withTimeout<T>(
   ms: number,
   message?: string
 ): Promise<T> {
-  return Promise.race([
-    promise,
-    timeout(ms, message)
-  ]);
+  return Promise.race([promise, timeout(ms, message)]);
 }

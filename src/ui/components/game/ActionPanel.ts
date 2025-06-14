@@ -5,9 +5,7 @@
 
 import { GameComponent, type GameComponentProps, type GameComponentState } from '../GameComponent';
 import { Button } from '../Button';
-import { styled } from '../../core/styled';
-import { createSvgIcon, IconType } from '../../icons/SvgIcons';
-import type { UIState } from '../../core/UIStateManager';
+import { styled } from '@/ui/core/styled';
 
 export interface ActionPanelProps extends GameComponentProps {
   position?: 'bottom-right' | 'bottom-left' | 'bottom-center';

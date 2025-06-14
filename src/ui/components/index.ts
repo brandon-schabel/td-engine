@@ -23,7 +23,4 @@ export {
   LayoutFactory 
 } from './Layout';
 
-// Legacy Components
-export { FormComponents } from './FormComponents';
-export { TabManager } from './TabManager';
-export { PresetSelector } from './PresetSelector';
+// Legacy Components removed - replaced with SimpleSettingsMenu

@@ -5,11 +5,11 @@
 
 import { GameComponent, type GameComponentProps, type GameComponentState } from '../GameComponent';
 import { Button } from '../Button';
-import { styled } from '../../core/styled';
+import { styled } from '@/ui/core/styled';
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
-import type { TowerType } from '../../../entities/Tower';
+import type { TowerType } from '@/entities/Tower';
 import { TOWER_COSTS } from '../../../config/GameConfig';
-import type { UIState } from '../../core/UIStateManager';
+import type { UIState } from '@/core/UIStateManager';
 
 export interface BuildPanelProps extends GameComponentProps {
   initiallyMinimized?: boolean;

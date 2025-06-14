@@ -4,8 +4,8 @@
  */
 
 import { BaseRenderer } from './BaseRenderer';
-import { Tower } from '../entities/Tower';
-import { UpgradeType } from '../entities/Tower';
+import { Tower } from '@/entities/Tower';
+import { UpgradeType } from '@/entities/Tower';
 import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
 
 export class UIRenderer extends BaseRenderer {

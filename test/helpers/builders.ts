@@ -1,10 +1,9 @@
 import { Game } from '@/core/Game';
 import { Tower, TowerType, UpgradeType } from '@/entities/Tower';
 import { Enemy, EnemyType } from '@/entities/Enemy';
-import { Player } from '@/entities/Player';
-import { Vector2 } from '@/utils/Vector2';
-import { MapData, Path } from '@/types/map';
-import { WaveConfig } from '@/systems/WaveManager';
+import type { Vector2 } from '@/utils/Vector2';
+import type { MapData, Path } from '@/types/map';
+import type { WaveConfig } from '@/systems/WaveManager';
 import { createMockCanvas } from './canvas';
 import { Grid } from '@/systems/Grid';
 

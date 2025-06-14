@@ -5,7 +5,7 @@
 
 import { Component } from '../core/Component';
 import type { ComponentProps, ComponentState } from '../core/types';
-import type { GameWithEvents } from '../../core/GameWithEvents';
+import type { GameWithEvents } from '@/core/GameWithEvents';
 import type { GameUIManager } from '../GameUIManager';
 import type { UIStateManager } from '../core/UIStateManager';
 import { styled, extendStyled } from '../core/styled';

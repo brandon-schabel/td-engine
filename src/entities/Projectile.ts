@@ -1,6 +1,6 @@
 import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export class Projectile extends Entity {
   public readonly damage: number;

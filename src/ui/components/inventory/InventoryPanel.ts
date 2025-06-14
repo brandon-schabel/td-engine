@@ -3,12 +3,12 @@
  * Displays items in a grid layout with tabs, search, and management features
  */
 
-import type { Game } from '../../../core/Game';
-import type { Inventory, InventoryItem, ItemType } from '../../../systems/Inventory';
+import type { Game } from '@/core/Game';
+import type { Inventory, InventoryItem, ItemType } from '@/systems/Inventory';
 import { ItemSlot } from './ItemSlot';
 import { ItemTooltip } from './ItemTooltip';
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
-import { AudioManager, SoundType } from '../../../audio/AudioManager';
+import { AudioManager, SoundType } from '@/audio/AudioManager';
 
 export interface InventoryPanelProps {
   game: Game;

@@ -1,5 +1,5 @@
-import type { GameStats, ScoreboardEntry } from '../../systems/ScoreManager';
-import { ScoreManager } from '../../systems/ScoreManager';
+import type { GameStats, ScoreboardEntry } from '@/systems/ScoreManager';
+import { ScoreManager } from '@/systems/ScoreManager';
 import { createSvgIcon, IconType } from '../icons/SvgIcons';
 
 export interface GameOverScreenOptions {

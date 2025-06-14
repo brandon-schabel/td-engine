@@ -5,7 +5,7 @@
 
 import { GameComponent, type GameComponentProps, type GameComponentState } from '../GameComponent';
 import { Button } from '../Button';
-import { styled } from '../../core/styled';
+import { styled } from '@/ui/core/styled';
 
 interface AudioControlPanelState extends GameComponentState {
   expanded: boolean;

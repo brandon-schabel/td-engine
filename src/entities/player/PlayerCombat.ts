@@ -5,10 +5,10 @@
 
 import { Projectile } from '../Projectile';
 import { Enemy } from '../Enemy';
-import { CooldownManager } from '../../utils/CooldownManager';
+import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils } from '../../interfaces/ShootingCapable';
 import { GAME_MECHANICS } from '../../config/GameConfig';
-import type { Vector2 } from '../../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export enum ShootingMode {
   MANUAL = 'manual',

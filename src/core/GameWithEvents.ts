@@ -6,10 +6,10 @@
 import { Game } from './Game';
 import { EventEmitter } from '../ui/core/EventEmitter';
 import { GameState } from './GameState';
-import { Tower, TowerType } from '../entities/Tower';
-import { Enemy } from '../entities/Enemy';
-import type { Vector2 } from '../utils/Vector2';
-import type { MapGenerationConfig } from '../types/MapData';
+import { Tower, TowerType } from '@/entities/Tower';
+import { Enemy } from '@/entities/Enemy';
+import type { Vector2 } from '@/utils/Vector2';
+import type { MapGenerationConfig } from '@/types/MapData';
 
 // Game event types
 export interface GameEvents {

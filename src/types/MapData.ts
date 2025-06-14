@@ -1,4 +1,4 @@
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export enum BiomeType {
   FOREST = 'FOREST',

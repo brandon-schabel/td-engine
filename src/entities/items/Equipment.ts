@@ -3,7 +3,7 @@
  * Handles equipping, unequipping, and calculating stat modifications
  */
 
-import { EquipmentSlot, type InventoryItem, ItemType, type ItemMetadata } from '../../systems/Inventory';
+import { EquipmentSlot, type InventoryItem, ItemType, type ItemMetadata } from '@/systems/Inventory';
 
 export interface EquipmentStats {
   damageBonus: number;

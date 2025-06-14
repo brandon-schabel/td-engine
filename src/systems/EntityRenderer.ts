@@ -1,7 +1,7 @@
-import { Entity } from '../entities/Entity';
+import { Entity } from '@/entities/Entity';
 import { TextureManager, type Texture } from './TextureManager';
 import { Camera } from './Camera';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export interface RenderableEntity extends Entity {
   position: Vector2;

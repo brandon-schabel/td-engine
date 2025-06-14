@@ -1,4 +1,4 @@
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 import type { 
   MapData, 
   MapGenerationConfig, 
@@ -8,8 +8,8 @@ import type {
   BiomeConfig,
   MapMetadata,
   GenerationAlgorithm
-} from '../types/MapData';
-import { BiomeType, BIOME_PRESETS, MapDifficulty, DecorationLevel } from '../types/MapData';
+} from '@/types/MapData';
+import { BiomeType, BIOME_PRESETS, MapDifficulty, DecorationLevel } from '@/types/MapData';
 import { Grid, CellType } from './Grid';
 import { PathGenerator } from './PathGenerator';
 import { EdgeType } from './SpawnZoneManager';

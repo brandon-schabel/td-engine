@@ -1,5 +1,5 @@
-import type { Vector2 } from '../utils/Vector2';
-import type { MapPath, MapGenerationConfig } from '../types/MapData';
+import type { Vector2 } from '@/utils/Vector2';
+import type { MapPath, MapGenerationConfig } from '@/types/MapData';
 import { Grid, CellType } from './Grid';
 
 export interface PathGenerationOptions {

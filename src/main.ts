@@ -3,9 +3,9 @@ import { TowerType } from './entities/Tower';
 import { UpgradeType } from './entities/Tower';
 import { PlayerUpgradeType } from './entities/Player';
 import { AudioManager, SoundType } from './audio/AudioManager';
-import { ConfigurationMenu } from './ui/ConfigurationMenu';
+import { SimpleSettingsMenu } from './ui/SimpleSettingsMenu';
 import { TouchInputSystem } from './ui/core/TouchInputSystem';
-import type { GameConfiguration, MapConfiguration } from './config/GameConfiguration';
+import { applySettingsToGame } from './config/SettingsIntegration';
 import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty } from './types/MapData';
 import { createSvgIcon, IconType } from './ui/icons/SvgIcons';
 import { setupGameUI } from './ui/setupGameUI';
@@ -53,50 +53,39 @@ window.addEventListener('resize', () => {
 let touchInputSystem: TouchInputSystem | null = null;
 const audioManager = new AudioManager();
 let gameOverScreen: GameOverScreen;
-let configMenu: ConfigurationMenu;
+let settingsMenu: SimpleSettingsMenu;
 
-// Convert MapConfiguration to MapGenerationConfig
-function convertMapConfiguration(mapConfig: MapConfiguration): MapGenerationConfig {
-  const preset = MAP_SIZE_PRESETS[mapConfig.size];
-  if (!preset) {
-    throw new Error(`Invalid map size: ${mapConfig.size}`);
-  }
-
-  // Use custom size if provided, otherwise use preset
-  const width = mapConfig.customSize?.width ?? preset.width;
-  const height = mapConfig.customSize?.height ?? preset.height;
-
-  // Convert biome (handle 'RANDOM' case)
-  let biome: BiomeType;
-  if (mapConfig.biome === 'RANDOM') {
-    const biomes = [BiomeType.FOREST, BiomeType.DESERT, BiomeType.ARCTIC, BiomeType.VOLCANIC, BiomeType.GRASSLAND];
-    biome = biomes[Math.floor(Math.random() * biomes.length)] ?? BiomeType.FOREST;
-  } else {
-    biome = mapConfig.biome;
-  }
-
-  return {
-    width,
-    height,
-    cellSize: 20, // Standard cell size
-    biome,
-    difficulty: MapDifficulty.MEDIUM, // Default difficulty
-    seed: mapConfig.seed,
-    pathComplexity: mapConfig.pathComplexity,
-    obstacleCount: Math.floor(width * height * mapConfig.obstacleCountMultiplier * 0.1),
-    decorationLevel: mapConfig.decorationLevel,
-    enableWater: mapConfig.enableWater,
-    enableAnimations: mapConfig.enableAnimations,
-    chokePointCount: Math.floor(mapConfig.chokePointMultiplier * 3),
-    openAreaCount: Math.floor(mapConfig.openAreaMultiplier * 2),
-    playerAdvantageSpots: Math.floor(mapConfig.advantageSpotMultiplier * 2)
+// Initialize game with settings
+function initializeGame() {
+  // Get applied game configuration from settings
+  const gameConfig = applySettingsToGame((window as any).gameSettings || {
+    difficulty: 'NORMAL',
+    masterVolume: 0.7,
+    soundEnabled: true,
+    visualQuality: 'MEDIUM',
+    showFPS: false,
+    mapSize: 'MEDIUM',
+    terrain: 'FOREST',
+    pathComplexity: 'SIMPLE'
+  });
+  
+  // Convert to map generation config
+  const mapGenConfig: MapGenerationConfig = {
+    width: gameConfig.mapConfig.width,
+    height: gameConfig.mapConfig.height,
+    cellSize: gameConfig.mapConfig.cellSize,
+    biome: gameConfig.mapConfig.biome as BiomeType,
+    difficulty: MapDifficulty.MEDIUM,
+    seed: Date.now(),
+    pathComplexity: gameConfig.mapConfig.pathComplexity,
+    obstacleCount: Math.floor(gameConfig.mapConfig.width * gameConfig.mapConfig.height * 0.1),
+    decorationLevel: 3, // Dense
+    enableWater: true,
+    enableAnimations: true,
+    chokePointCount: 3,
+    openAreaCount: 2,
+    playerAdvantageSpots: 2
   };
-}
-
-// Initialize configuration menu first
-function initializeGame(config: GameConfiguration) {
-  // Convert MapConfiguration to MapGenerationConfig
-  const mapGenConfig = convertMapConfiguration(config.mapSettings);
   
   // Create game instance with configuration
   game = new GameWithEvents(canvas, mapGenConfig);
@@ -122,16 +111,8 @@ function handleGameEnd(event: CustomEvent) {
     stats,
     scoreEntry,
     onRestart: () => {
-      // Restart with same configuration
-      if (configMenu) {
-        const lastConfig = configMenu.getLastConfiguration();
-        if (lastConfig) {
-          initializeGame(lastConfig);
-          return;
-        }
-      }
-      // Fallback: show config menu
-      showMainMenu();
+      // Restart with same settings
+      initializeGame();
     },
     onMainMenu: showMainMenu
   });
@@ -149,15 +130,22 @@ function showMainMenu() {
     gameOverScreen.hide();
   }
   
-  // Show configuration menu
-  if (configMenu) {
-    configMenu.show();
+  // Show settings menu
+  if (settingsMenu) {
+    settingsMenu = new SimpleSettingsMenu(document.body, () => {
+      const settings = settingsMenu.getSettings();
+      (window as any).gameSettings = settings;
+      initializeGame();
+    });
   }
 }
 
-// Show configuration menu on startup
-configMenu = new ConfigurationMenu(initializeGame);
-configMenu.show();
+// Show settings menu on startup
+settingsMenu = new SimpleSettingsMenu(document.body, () => {
+  const settings = settingsMenu.getSettings();
+  (window as any).gameSettings = settings;
+  initializeGame();
+});
 
 // Global variables for UI state
 let selectedTowerButton: HTMLButtonElement | null = null;

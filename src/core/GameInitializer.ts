@@ -1,11 +1,11 @@
-import { Grid } from '../systems/Grid';
-import { Camera } from '../systems/Camera';
-import { Player } from '../entities/Player';
-import { WaveManager } from '../systems/WaveManager';
-import { EnemyType } from '../entities/Enemy';
-import type { WaveConfig } from '../systems/WaveManager';
-import { BiomeType, MapDifficulty, DecorationLevel, MapSize, MAP_SIZE_PRESETS } from '../types/MapData';
-import type { MapData, MapGenerationConfig } from '../types/MapData';
+import { Grid } from '@/systems/Grid';
+import { Camera } from '@/systems/Camera';
+import { Player } from '@/entities/Player';
+import { WaveManager } from '@/systems/WaveManager';
+import { EnemyType } from '@/entities/Enemy';
+import type { WaveConfig } from '@/systems/WaveManager';
+import { BiomeType, MapDifficulty, DecorationLevel, MapSize, MAP_SIZE_PRESETS } from '@/types/MapData';
+import type { MapData, MapGenerationConfig } from '@/types/MapData';
 
 const DEFAULT_WAVES: WaveConfig[] = [
   {

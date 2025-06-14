@@ -3,10 +3,10 @@ import { Enemy, EnemyType } from '@/entities/Enemy';
 import { Player } from '@/entities/Player';
 import { Projectile } from '@/entities/Projectile';
 import { Entity } from '@/entities/Entity';
-import { Vector2 } from '@/utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 import { Grid } from '@/systems/Grid';
 import type { TowerStats } from '@/entities/Tower';
-import { Path } from '@/types/map';
+import type { Path } from '@/types/map';
 
 export interface EntityFactoryOptions {
   position?: Vector2;

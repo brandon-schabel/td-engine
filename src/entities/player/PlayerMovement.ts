@@ -3,7 +3,7 @@
  * Extracted from Player.ts to handle movement-specific logic
  */
 
-import type { Vector2 } from '../../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export class PlayerMovement {
   public velocity: Vector2 = { x: 0, y: 0 };

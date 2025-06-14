@@ -6,7 +6,7 @@
 import { GameComponent, type GameComponentProps, type GameComponentState } from './GameComponent';
 import { Button } from './Button';
 import { styled } from '../core/styled';
-import type { Tower } from '../../entities/Tower';
+import type { Tower } from '@/entities/Tower';
 
 interface UpgradePanelState extends GameComponentState {
   mode: 'tower' | 'player' | null;
@@ -406,7 +406,7 @@ export class UpgradePanel extends GameComponent<GameComponentProps, UpgradePanel
     
     if (this.state.mode === 'tower' && this.state.targetTower) {
       // Connect to actual tower upgrade system
-      import('../../entities/Tower').then(({ UpgradeType }) => {
+      import('@/entities/Tower').then(({ UpgradeType }) => {
         const upgradeType = UpgradeType[type as keyof typeof UpgradeType];
         if (upgradeType && this.state.targetTower) {
           success = this.game.upgradeTower(this.state.targetTower, upgradeType);
@@ -421,7 +421,7 @@ export class UpgradePanel extends GameComponent<GameComponentProps, UpgradePanel
       });
     } else if (this.state.mode === 'player') {
       // Connect to actual player upgrade system
-      import('../../entities/Player').then(({ PlayerUpgradeType }) => {
+      import('@/entities/Player').then(({ PlayerUpgradeType }) => {
         const upgradeType = PlayerUpgradeType[type as keyof typeof PlayerUpgradeType];
         if (upgradeType) {
           success = this.game.upgradePlayer(upgradeType);

@@ -1,4 +1,4 @@
-import type { WaveConfig } from '../systems/WaveManager';
+import type { WaveConfig } from '@/systems/WaveManager';
 
 // Tower costs - avoid circular dependency by using string keys
 export const TOWER_COSTS = {

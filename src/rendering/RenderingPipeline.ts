@@ -7,16 +7,16 @@
 import { EntityRenderer } from './EntityRenderer';
 import { UIRenderer } from './UIRenderer';
 import { EnvironmentRenderer } from './EnvironmentRenderer';
-import { Camera } from '../systems/Camera';
-import { Grid } from '../systems/Grid';
-import { TextureManager } from '../systems/TextureManager';
-import { Tower } from '../entities/Tower';
-import { Enemy } from '../entities/Enemy';
-import { Projectile } from '../entities/Projectile';
-import { Player } from '../entities/Player';
-import { HealthPickup } from '../entities/HealthPickup';
-import { PowerUp } from '../entities/PowerUp';
-import type { Vector2 } from '../utils/Vector2';
+import { Camera } from '@/systems/Camera';
+import { Grid } from '@/systems/Grid';
+import { TextureManager } from '@/systems/TextureManager';
+import { Tower } from '@/entities/Tower';
+import { Enemy } from '@/entities/Enemy';
+import { Projectile } from '@/entities/Projectile';
+import { Player } from '@/entities/Player';
+import { HealthPickup } from '@/entities/HealthPickup';
+import { PowerUp } from '@/entities/PowerUp';
+import type { Vector2 } from '@/utils/Vector2';
 
 export interface RenderingOptions {
   showHealthBars?: boolean;

@@ -3,10 +3,10 @@
  * Shows active power-ups with timers and effects
  */
 
-import { styled } from '../../core/styled';
-import type { Game } from '../../../core/Game';
-import type { Player } from '../../../entities/Player';
-import type { ActivePowerUp } from '../../../entities/player/PlayerPowerUps';
+import { styled } from '@/ui/core/styled';
+import type { Game } from '@/core/Game';
+import type { Player } from '@/entities/Player';
+import type { ActivePowerUp } from '@/entities/player/PlayerPowerUps';
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
 
 interface PowerUpInfo {

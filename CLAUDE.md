@@ -2,10 +2,51 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## General Code Principles
+Write self-explanatory, modular, and functional code. Adhere to DRY (Don't Repeat Yourself), SRP (Single Responsibility Principle), and KISS (Keep It Simple, Stupid). Code should be easily unit-testable and read like a clear sentence, avoiding magic numbers. Include a comment at the top of each file detailing the 5 most recent changes to prevent repeated mistakes. Minimize file size by writing concise code and fitting more characters per line where readable.
+
+---
+## TypeScript Rules
+Apply these to all TypeScript files for a consistent, high-quality codebase.
+
+### 1. Strong Typing & Advanced TS Features
+- **No `any` Unless Absolutely Necessary**: Use strong typing. For unknown shapes, use or create a Zod schema and derive the TS type.
+- **Generics & Inference**: Leverage TypeScript’s generics and advanced inference to avoid wide or unknown types.
+- **Modern TS Constructs**: Use mapped types, intersection types, `satisfies` expressions, etc., for clarity or correctness.
+
+### 2. Functional & Readable Code
+- **Functional Programming Style**: Prefer pure functions; avoid side effects unless essential.
+- **No Bloated Functions**: Each function should have a single, small responsibility. Refactor large functions.
+- **Descriptive Naming**: Use clear names. Avoid abbreviations or single-letter variables (except in trivial loops).
+
+### 3. Error Handling & Logging
+- **Throw or Return**: On error, throw a typed error (`Error` subclass) or return a descriptive error object. Do not silently swallow errors.
+- **Logging**: Use a consistent logging approach (e.g., custom `logger` module). Prefer structured logs over `console.log` for production.
+
+### 4. Minimal External Dependencies
+- **Prefer Bun & Standard Lib**: Rely on Bun’s built-in features or TS/Node standard libraries. Verify necessary external libraries carefully.
+- **Tree Shaking & Dead Code**: Minimize imports and remove unused code. Don’t import entire libraries for small parts.
+
+### 5. File & Module Organization
+- **Single-Responsibility Files**: Each file should typically contain one main concept (class, service, or small group of related functions).
+- **Clear Imports & Exports**: Use named exports unless a file’s purpose is a single main export. Sort and group imports logically.
+
+### 6. Testing & Documentation
+- **Test-Driven Mindset**: Add/update tests when introducing new logic. Keep functions small and unit-testable.
+- **Inline Documentation**: Provide concise docstrings or inline comments for complex logic. Keep them accurate.
+
+* **Readability and Simplicity (KISS)**: Write clear, concise code.
+* **Modularity**: Organize code into logical modules/packages. Avoid circular dependencies.
+* **Error Handling**: Handle exceptions gracefully. Use specific exception types.
+* **Docstrings**: Write clear docstrings for modules, functions, and Pydantic models (e.g., Google style).
+* **Avoid Global Variables**: Minimize their use.
+* **Regularly Refactor**.
+
+
 ## Prerequisites & Environment Setup
 
 ### System Requirements
-- **Node.js**: Version 18+ or **Bun**: Version 1.2+ (recommended)
+- **Node.js**: **Bun**: Version 1.2+ (recommended) - always use bun 
 - **Browser**: Modern browser with Canvas2D and WebAudio API support
 - **Operating System**: Cross-platform (Windows, macOS, Linux)
 - **Memory**: Minimum 4GB RAM for development
@@ -19,10 +60,6 @@ cd claude-td
 
 # Install dependencies using Bun (recommended)
 bun install
-
-# Or using npm/yarn
-npm install
-# yarn install
 ```
 
 ### Browser Compatibility
@@ -395,6 +432,8 @@ Currently minimal environment configuration is needed:
 - **Null Checking**: Strict null checks enforced
 - **ES Modules**: Modern module system
 - **Path Mapping**: Use `@/` for src/ imports
+- **Type Imports**: import type { GameType } from '@/types'
+- **When importing use defined paths**: `@/entites`, `@/config`, `@/core` - `@/` is a reference to src/
 
 ### Naming Conventions
 

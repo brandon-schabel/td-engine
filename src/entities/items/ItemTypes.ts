@@ -3,8 +3,8 @@
  * Defines all available items in the game with their properties and effects
  */
 
-import { ItemType, ItemRarity, EquipmentSlot, type InventoryItem, type ItemMetadata } from '../../systems/Inventory';
-import { IconType } from '../../ui/icons/SvgIcons';
+import { ItemType, ItemRarity, EquipmentSlot, type InventoryItem, type ItemMetadata } from '@/systems/Inventory';
+import { IconType } from '@/ui/icons/SvgIcons';
 
 // Collectible types moved here to avoid circular dependency
 export enum CollectibleType {

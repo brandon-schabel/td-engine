@@ -4,7 +4,7 @@
  * Handles mouse and keyboard input with proper event delegation
  */
 
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 import { Camera } from './Camera';
 
 export interface InputEvents {

@@ -6,13 +6,15 @@ import {
   createTestGame,
   createTestGameWithWave,
   createTestGameWithTowers,
+  GameScenarioBuilder,
   createMockCanvas,
   simulateGameFrames,
   simulateWaveCompletion,
   simulatePlayerDeath,
   simulateClick,
   TimeController,
-  expectResourcesChanged
+  expectResourcesChanged,
+  expectEntityCount
 } from '../helpers';
 
 describe('Game', () => {
@@ -43,11 +45,11 @@ describe('Game', () => {
     });
 
     it('should initialize with custom resources', () => {
-      const customGame = createTestGame({
-        initialCurrency: 200,
-        initialLives: 20,
-        initialScore: 1000
-      });
+      const customGame = new GameScenarioBuilder()
+        .withCurrency(200)
+        .withLives(20)
+        .withScore(1000)
+        .build();
       
       expect(customGame.getCurrency()).toBe(200);
       expect(customGame.getLives()).toBe(20);
@@ -73,25 +75,26 @@ describe('Game', () => {
 
     it('should not place tower when insufficient funds', () => {
       // Create game with low funds
-      const poorGame = createTestGame({ initialCurrency: 10 });
+      const poorGame = new GameScenarioBuilder()
+        .withCurrency(10)
+        .build();
       
       const success = poorGame.placeTower('BASIC', { x: 400, y: 200 });
       expect(success).toBe(false);
     });
 
     it('should handle complex tower setup', () => {
-      const gameWithTowers = createTestGameWithTowers({
-        towers: [
-          { type: TowerType.BASIC, position: { x: 100, y: 100 }, level: 2 },
-          { type: TowerType.SNIPER, position: { x: 200, y: 200 } },
-          { type: TowerType.RAPID, position: { x: 300, y: 300 }, level: 3 }
-        ]
-      });
+      const gameWithTowers = new GameScenarioBuilder()
+        .withTower(TowerType.BASIC, 3, 3, [])
+        .withTower(TowerType.SNIPER, 6, 6, [])
+        .withTower(TowerType.RAPID, 9, 9, [])
+        .build();
       
       const towers = gameWithTowers.getTowers();
-      expect(towers).toHaveLength(3);
-      expect(towers[0].getLevel()).toBe(2);
-      expect(towers[2].getLevel()).toBe(3);
+      expectEntityCount(towers, 3);
+      expect(towers[0].towerType).toBe(TowerType.BASIC);
+      expect(towers[1].towerType).toBe(TowerType.SNIPER);
+      expect(towers[2].towerType).toBe(TowerType.RAPID);
     });
   });
 
@@ -127,9 +130,15 @@ describe('Game', () => {
         }
       ];
       
-      const gameWithCustomWaves = createTestGame({ waveConfigs: customWaves });
-      gameWithCustomWaves.startNextWave();
+      const gameWithCustomWaves = new GameScenarioBuilder()
+        .withSimplePath()
+        .build();
       
+      // Load custom waves
+      const gameAny = gameWithCustomWaves as any;
+      gameAny.waveManager.loadWaves(customWaves);
+      
+      gameWithCustomWaves.startNextWave();
       expect(gameWithCustomWaves.getCurrentWave()).toBe(1);
     });
   });
@@ -254,7 +263,9 @@ describe('Game', () => {
       expect(game.canAffordTower('BASIC')).toBe(true);
       
       // Create game with limited funds
-      const poorGame = createTestGame({ initialCurrency: 25 });
+      const poorGame = new GameScenarioBuilder()
+        .withCurrency(25)
+        .build();
       
       expect(poorGame.canAffordTower('BASIC')).toBe(true);
       expect(poorGame.canAffordTower('SNIPER')).toBe(false);

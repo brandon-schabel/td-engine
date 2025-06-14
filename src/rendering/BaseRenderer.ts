@@ -3,9 +3,9 @@
  * Shared functionality for all specialized renderers
  */
 
-import { Camera } from '../systems/Camera';
-import { TextureManager } from '../systems/TextureManager';
-import type { Vector2 } from '../utils/Vector2';
+import { Camera } from '@/systems/Camera';
+import { TextureManager } from '@/systems/TextureManager';
+import type { Vector2 } from '@/utils/Vector2';
 
 export abstract class BaseRenderer {
   protected ctx: CanvasRenderingContext2D;

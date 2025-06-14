@@ -10,7 +10,7 @@ import { TowerUpgradePanel } from '../components/game/TowerUpgradePanel';
 import { Modal } from '../components/Modal';
 import { Toast } from '../components/Toast';
 import { Button } from '../components/Button';
-import type { GameWithEvents } from '../../core/GameWithEvents';
+import type { GameWithEvents } from '@/core/GameWithEvents';
 
 export class ComponentShowcase {
   private uiManager: GameUIManager;

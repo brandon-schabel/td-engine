@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from './EventEmitter';
-import type { GameWithEvents } from '../../core/GameWithEvents';
+import type { GameWithEvents } from '@/core/GameWithEvents';
 import type { UIStateManager } from './UIStateManager';
 
 export interface ButtonState {

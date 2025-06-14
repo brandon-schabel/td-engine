@@ -1,5 +1,5 @@
-import type { Vector2 } from '../utils/Vector2';
-import { Vector2Utils } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
+import { Vector2Utils } from '@/utils/Vector2';
 
 export enum EntityType {
   TOWER = 'TOWER',

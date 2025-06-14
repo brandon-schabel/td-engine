@@ -7,7 +7,7 @@ import { GameComponent, type GameComponentProps } from './GameComponent';
 import { Button } from './Button';
 import { Card } from './Card';
 import { styleSystem } from '../core/StyleSystem';
-import type { AudioManager } from '../../audio/AudioManager';
+import type { AudioManager } from '@/audio/AudioManager';
 
 interface AudioControlProps extends GameComponentProps {
   audioManager: AudioManager;

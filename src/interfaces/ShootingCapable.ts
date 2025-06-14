@@ -3,10 +3,10 @@
  * Eliminates duplicate shooting logic between Player and Tower classes
  */
 
-import { Enemy } from '../entities/Enemy';
-import { Projectile } from '../entities/Projectile';
-import type { Vector2 } from '../utils/Vector2';
-import { CooldownManager } from '../utils/CooldownManager';
+import { Enemy } from '@/entities/Enemy';
+import { Projectile } from '@/entities/Projectile';
+import type { Vector2 } from '@/utils/Vector2';
+import { CooldownManager } from '@/utils/CooldownManager';
 
 /**
  * Interface for entities that can shoot projectiles

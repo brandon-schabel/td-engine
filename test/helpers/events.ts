@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
-import { Vector2 } from '@/utils/Vector2';
+import { vi } from "vitest";
+import type { Vector2 } from "@/utils/Vector2";
 
 export interface MouseEventOptions {
   bubbles?: boolean;
@@ -59,7 +59,7 @@ export function createMouseEvent(
     ctrlKey: options.ctrlKey ?? false,
     shiftKey: options.shiftKey ?? false,
     altKey: options.altKey ?? false,
-    metaKey: options.metaKey ?? false
+    metaKey: options.metaKey ?? false,
   });
 }
 
@@ -69,7 +69,7 @@ export function createKeyboardEvent(
   options: KeyboardEventOptions = {}
 ): KeyboardEvent {
   const keyCode = options.keyCode ?? key.charCodeAt(0);
-  
+
   return new KeyboardEvent(type, {
     bubbles: options.bubbles ?? true,
     cancelable: options.cancelable ?? true,
@@ -80,7 +80,7 @@ export function createKeyboardEvent(
     shiftKey: options.shiftKey ?? false,
     altKey: options.altKey ?? false,
     metaKey: options.metaKey ?? false,
-    repeat: options.repeat ?? false
+    repeat: options.repeat ?? false,
   });
 }
 
@@ -101,9 +101,9 @@ export function createTouchEvent(
     radiusX: 0,
     radiusY: 0,
     rotationAngle: 0,
-    force: 1
+    force: 1,
   })) as unknown as Touch[];
-  
+
   return new TouchEvent(type, {
     bubbles: options.bubbles ?? true,
     cancelable: options.cancelable ?? true,
@@ -113,12 +113,20 @@ export function createTouchEvent(
     ctrlKey: options.ctrlKey ?? false,
     shiftKey: options.shiftKey ?? false,
     altKey: options.altKey ?? false,
-    metaKey: options.metaKey ?? false
+    metaKey: options.metaKey ?? false,
   });
 }
 
 export interface UserAction {
-  type: 'click' | 'mousedown' | 'mouseup' | 'mousemove' | 'keydown' | 'keyup' | 'keypress' | 'touch';
+  type:
+    | "click"
+    | "mousedown"
+    | "mouseup"
+    | "mousemove"
+    | "keydown"
+    | "keyup"
+    | "keypress"
+    | "touch";
   position?: Vector2;
   key?: string;
   delay?: number;
@@ -132,14 +140,14 @@ export function simulateUserInput(
   return new Promise(async (resolve) => {
     for (const action of sequence) {
       if (action.delay) {
-        await new Promise(r => setTimeout(r, action.delay));
+        await new Promise((r) => setTimeout(r, action.delay));
       }
-      
+
       switch (action.type) {
-        case 'click':
-        case 'mousedown':
-        case 'mouseup':
-        case 'mousemove':
+        case "click":
+        case "mousedown":
+        case "mouseup":
+        case "mousemove":
           if (action.position) {
             const event = createMouseEvent(
               action.type,
@@ -150,10 +158,10 @@ export function simulateUserInput(
             element.dispatchEvent(event);
           }
           break;
-          
-        case 'keydown':
-        case 'keyup':
-        case 'keypress':
+
+        case "keydown":
+        case "keyup":
+        case "keypress":
           if (action.key) {
             const event = createKeyboardEvent(
               action.type,
@@ -163,11 +171,11 @@ export function simulateUserInput(
             element.dispatchEvent(event);
           }
           break;
-          
-        case 'touch':
+
+        case "touch":
           if (action.position) {
             const event = createTouchEvent(
-              'touchstart',
+              "touchstart",
               [{ x: action.position.x, y: action.position.y }],
               action.options as TouchEventOptions
             );
@@ -180,11 +188,15 @@ export function simulateUserInput(
   });
 }
 
-export function simulateClick(element: HTMLElement, x: number, y: number): void {
-  const mousedown = createMouseEvent('mousedown', x, y);
-  const mouseup = createMouseEvent('mouseup', x, y);
-  const click = createMouseEvent('click', x, y);
-  
+export function simulateClick(
+  element: HTMLElement,
+  x: number,
+  y: number
+): void {
+  const mousedown = createMouseEvent("mousedown", x, y);
+  const mouseup = createMouseEvent("mouseup", x, y);
+  const click = createMouseEvent("click", x, y);
+
   element.dispatchEvent(mousedown);
   element.dispatchEvent(mouseup);
   element.dispatchEvent(click);
@@ -196,26 +208,26 @@ export function simulateDrag(
   end: Vector2,
   steps = 10
 ): void {
-  const mousedown = createMouseEvent('mousedown', start.x, start.y);
+  const mousedown = createMouseEvent("mousedown", start.x, start.y);
   element.dispatchEvent(mousedown);
-  
+
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
     const x = start.x + (end.x - start.x) * t;
     const y = start.y + (end.y - start.y) * t;
-    const mousemove = createMouseEvent('mousemove', x, y);
+    const mousemove = createMouseEvent("mousemove", x, y);
     element.dispatchEvent(mousemove);
   }
-  
-  const mouseup = createMouseEvent('mouseup', end.x, end.y);
+
+  const mouseup = createMouseEvent("mouseup", end.x, end.y);
   element.dispatchEvent(mouseup);
 }
 
 export function simulateKeyPress(element: HTMLElement, key: string): void {
-  const keydown = createKeyboardEvent('keydown', key);
-  const keypress = createKeyboardEvent('keypress', key);
-  const keyup = createKeyboardEvent('keyup', key);
-  
+  const keydown = createKeyboardEvent("keydown", key);
+  const keypress = createKeyboardEvent("keypress", key);
+  const keyup = createKeyboardEvent("keyup", key);
+
   element.dispatchEvent(keydown);
   element.dispatchEvent(keypress);
   element.dispatchEvent(keyup);
@@ -227,17 +239,17 @@ export function simulateKeyHold(
   duration: number
 ): Promise<void> {
   return new Promise((resolve) => {
-    const keydown = createKeyboardEvent('keydown', key);
+    const keydown = createKeyboardEvent("keydown", key);
     element.dispatchEvent(keydown);
-    
+
     const interval = setInterval(() => {
-      const repeat = createKeyboardEvent('keydown', key, { repeat: true });
+      const repeat = createKeyboardEvent("keydown", key, { repeat: true });
       element.dispatchEvent(repeat);
     }, 50);
-    
+
     setTimeout(() => {
       clearInterval(interval);
-      const keyup = createKeyboardEvent('keyup', key);
+      const keyup = createKeyboardEvent("keyup", key);
       element.dispatchEvent(keyup);
       resolve();
     }, duration);
@@ -247,11 +259,11 @@ export function simulateKeyHold(
 export class EventRecorder {
   private events: Event[] = [];
   private listeners: Map<string, EventListener> = new Map();
-  
+
   constructor(private element: HTMLElement) {}
-  
+
   startRecording(eventTypes: string[]): void {
-    eventTypes.forEach(type => {
+    eventTypes.forEach((type) => {
       const listener = (event: Event) => {
         this.events.push(event);
       };
@@ -259,33 +271,33 @@ export class EventRecorder {
       this.element.addEventListener(type, listener);
     });
   }
-  
+
   stopRecording(): void {
     this.listeners.forEach((listener, type) => {
       this.element.removeEventListener(type, listener);
     });
     this.listeners.clear();
   }
-  
+
   getEvents(): Event[] {
     return [...this.events];
   }
-  
+
   getEventsByType(type: string): Event[] {
-    return this.events.filter(e => e.type === type);
+    return this.events.filter((e) => e.type === type);
   }
-  
+
   clear(): void {
     this.events = [];
   }
-  
+
   expectEventCount(type: string, count: number): void {
     const actualCount = this.getEventsByType(type).length;
     expect(actualCount).toBe(count);
   }
-  
+
   expectEventSequence(expectedTypes: string[]): void {
-    const actualTypes = this.events.map(e => e.type);
+    const actualTypes = this.events.map((e) => e.type);
     expect(actualTypes).toEqual(expectedTypes);
   }
 }
@@ -296,12 +308,12 @@ export function mockCanvasPointerEvents(canvas: HTMLCanvasElement): {
   simulateCanvasHover: (x: number, y: number) => void;
 } {
   const rect = canvas.getBoundingClientRect();
-  
+
   return {
     simulateCanvasClick: (x: number, y: number) => {
       simulateClick(canvas, x + rect.left, y + rect.top);
     },
-    
+
     simulateCanvasDrag: (start: Vector2, end: Vector2) => {
       simulateDrag(
         canvas,
@@ -309,10 +321,10 @@ export function mockCanvasPointerEvents(canvas: HTMLCanvasElement): {
         { x: end.x + rect.left, y: end.y + rect.top }
       );
     },
-    
+
     simulateCanvasHover: (x: number, y: number) => {
-      const event = createMouseEvent('mousemove', x + rect.left, y + rect.top);
+      const event = createMouseEvent("mousemove", x + rect.left, y + rect.top);
       canvas.dispatchEvent(event);
-    }
+    },
   };
 }

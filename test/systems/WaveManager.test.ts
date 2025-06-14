@@ -3,7 +3,13 @@ import { WaveManager, SpawnPattern } from '@/systems/WaveManager';
 import type { WaveConfig } from '@/systems/WaveManager';
 import { EnemyType } from '@/entities/Enemy';
 import type { Vector2 } from '@/utils/Vector2';
-import { TimeController, expectValidWaveConfig, expectEntityCount } from '../helpers';
+import { 
+  TimeController, 
+  expectValidWaveConfig, 
+  expectEntityCount,
+  WaveBuilder,
+  createEntityGroup
+} from '../helpers';
 
 describe('WaveManager', () => {
   let waveManager: WaveManager;
@@ -49,21 +55,17 @@ describe('WaveManager', () => {
   describe('wave configuration', () => {
     it('should load wave configurations', () => {
       const waves: WaveConfig[] = [
-        {
-          waveNumber: 1,
-          enemies: [
-            { type: EnemyType.BASIC, count: 5, spawnDelay: 1000 }
-          ],
-          startDelay: 2000
-        },
-        {
-          waveNumber: 2,
-          enemies: [
-            { type: EnemyType.BASIC, count: 3, spawnDelay: 800 },
-            { type: EnemyType.FAST, count: 2, spawnDelay: 600 }
-          ],
-          startDelay: 3000
-        }
+        new WaveBuilder()
+          .number(1)
+          .withEnemies(EnemyType.BASIC, 5, 1000)
+          .withStartDelay(2000)
+          .build(),
+        new WaveBuilder()
+          .number(2)
+          .withEnemies(EnemyType.BASIC, 3, 800)
+          .withEnemies(EnemyType.FAST, 2, 600)
+          .withStartDelay(3000)
+          .build()
       ];
 
       waveManager.loadWaves(waves);
@@ -79,13 +81,11 @@ describe('WaveManager', () => {
   describe('wave spawning', () => {
     beforeEach(() => {
       const waves: WaveConfig[] = [
-        {
-          waveNumber: 1,
-          enemies: [
-            { type: EnemyType.BASIC, count: 3, spawnDelay: 1000 }
-          ],
-          startDelay: 0
-        }
+        new WaveBuilder()
+          .number(1)
+          .withEnemies(EnemyType.BASIC, 3, 1000)
+          .withStartDelay(0)
+          .build()
       ];
       waveManager.loadWaves(waves);
     });

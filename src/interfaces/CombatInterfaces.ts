@@ -2,7 +2,7 @@
  * Combat-related interfaces for entities that can be targeted, take damage, or engage in combat
  */
 
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 /**
  * Interface for entities that can be targeted by attacks

@@ -5,17 +5,17 @@
  */
 
 import { Game } from './Game';
-import { InputManager, type InputEvents } from '../systems/InputManager';
-import { EntityManager, type EntityEvents } from '../systems/EntityManager';
+import { InputManager, type InputEvents } from '@/systems/InputManager';
+import { EntityManager, type EntityEvents } from '@/systems/EntityManager';
 import { RenderingPipeline } from '../rendering/RenderingPipeline';
 import { UpgradeService } from '../services/UpgradeService';
 import { GameState } from './GameState';
-import { TowerType } from '../entities/Tower';
-import { UpgradeType as TowerUpgradeType } from '../systems/TowerUpgradeManager';
-import { PlayerUpgradeType } from '../entities/Player';
-import { ResourceType } from '../systems/ResourceManager';
+import { TowerType } from '@/entities/Tower';
+import { UpgradeType as TowerUpgradeType } from '@/systems/TowerUpgradeManager';
+import { PlayerUpgradeType } from '@/entities/Player';
+import { ResourceType } from '@/systems/ResourceManager';
 import { TOWER_COSTS } from '../config/GameConfig';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 /**
  * This class demonstrates how Game.ts would look after extracting

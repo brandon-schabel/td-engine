@@ -1,5 +1,5 @@
 import { Grid } from './Grid';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 interface Node {
   position: Vector2;

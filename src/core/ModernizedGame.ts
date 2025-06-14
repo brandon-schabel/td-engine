@@ -6,11 +6,11 @@
 
 import { Game } from './Game';
 import { UpgradeService } from '../services/UpgradeService';
-import { TowerUpgradeManager, PlayerUpgradeManager } from '../systems/UnifiedUpgradeSystem';
-import { Tower } from '../entities/Tower';
-import { Player, PlayerUpgradeType } from '../entities/Player';
-import { UpgradeType as TowerUpgradeType } from '../systems/TowerUpgradeManager';
-import { ResourceManager } from '../systems/ResourceManager';
+import { TowerUpgradeManager, PlayerUpgradeManager } from '@/systems/UnifiedUpgradeSystem';
+import { Tower } from '@/entities/Tower';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
+import { UpgradeType as TowerUpgradeType } from '@/systems/TowerUpgradeManager';
+import { ResourceManager } from '@/systems/ResourceManager';
 
 /**
  * This class shows how the Game class would look after refactoring

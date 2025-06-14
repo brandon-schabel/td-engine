@@ -1,4 +1,4 @@
-import { Tower, UpgradeType } from '../entities/Tower';
+import { Tower, UpgradeType } from '@/entities/Tower';
 
 // Re-export UpgradeType for convenience
 export { UpgradeType };

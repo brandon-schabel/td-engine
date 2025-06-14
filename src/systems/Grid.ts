@@ -1,6 +1,6 @@
-import type { Vector2 } from '../utils/Vector2';
-import type { MapDecoration } from '../types/MapData';
-import { BiomeType } from '../types/MapData';
+import type { Vector2 } from '@/utils/Vector2';
+import type { MapDecoration } from '@/types/MapData';
+import { BiomeType } from '@/types/MapData';
 
 export enum CellType {
   EMPTY = 'EMPTY',

@@ -1,6 +1,6 @@
-import type { Vector2 } from '../utils/Vector2';
-import type { Tower } from '../entities/Tower';
-import type { Player } from '../entities/Player';
+import type { Vector2 } from '@/utils/Vector2';
+import type { Tower } from '@/entities/Tower';
+import type { Player } from '@/entities/Player';
 import type { Grid } from './Grid';
 
 export enum EdgeType {

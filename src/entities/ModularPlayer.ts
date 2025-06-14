@@ -13,9 +13,10 @@ import { PlayerProgression } from './player/PlayerProgression';
 import { PlayerHealth } from './player/PlayerHealth';
 import { PlayerPowerUps } from './player/PlayerPowerUps';
 import { BASE_PLAYER_STATS } from '../config/GameConfig';
-import { ShootingCapable } from '../interfaces/ShootingCapable';
-import { Upgradeable } from '../systems/BaseUpgradeManager';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
+import type { ShootingCapable } from '@/interfaces/ShootingCapable';
+import type { Upgradeable } from '@/systems/BaseUpgradeManager';
+
 
 export enum PlayerUpgradeType {
   DAMAGE = 'DAMAGE',
@@ -32,6 +33,10 @@ export class ModularPlayer extends Entity implements ShootingCapable, Upgradeabl
   private progression: PlayerProgression;
   private healthSystem: PlayerHealth;
   private powerUps: PlayerPowerUps;
+
+  // Required by ShootingCapable interface
+  readonly cooldownTime: number = BASE_PLAYER_STATS.fireRate;
+  currentCooldown: number = 0;
 
   constructor(position: Vector2) {
     super(EntityType.PLAYER, position, BASE_PLAYER_STATS.health, BASE_PLAYER_STATS.radius);
@@ -192,7 +197,7 @@ export class ModularPlayer extends Entity implements ShootingCapable, Upgradeabl
     }
   }
 
-  heal(amount: number): void {
+  override heal(amount: number): void {
     this.healthSystem.heal(amount);
     this.health = this.healthSystem.getHealth();
   }

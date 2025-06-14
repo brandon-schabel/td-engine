@@ -4,17 +4,17 @@
  * Handles creation, updates, cleanup, and collision detection for all game entities
  */
 
-import { Tower, TowerType } from '../entities/Tower';
-import { Enemy } from '../entities/Enemy';
-import { Projectile } from '../entities/Projectile';
-import { Player } from '../entities/Player';
-import { HealthPickup } from '../entities/HealthPickup';
-import { PowerUp, PowerUpType } from '../entities/PowerUp';
-import { Entity } from '../entities/Entity';
+import { Tower, TowerType } from '@/entities/Tower';
+import { Enemy } from '@/entities/Enemy';
+import { Projectile } from '@/entities/Projectile';
+import { Player } from '@/entities/Player';
+import { HealthPickup } from '@/entities/HealthPickup';
+import { PowerUp, PowerUpType } from '@/entities/PowerUp';
+import { Entity } from '@/entities/Entity';
 import { Grid, CellType } from './Grid';
-import { EntityCleaner } from '../utils/EntityCleaner';
+import { EntityCleaner } from '@/utils/EntityCleaner';
 import { SPAWN_CHANCES, CURRENCY_CONFIG } from '../config/GameConfig';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export interface EntityCollections {
   towers: Tower[];

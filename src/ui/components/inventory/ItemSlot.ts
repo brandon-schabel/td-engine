@@ -3,11 +3,11 @@
  * Handles displaying items, drag and drop, and user interactions
  */
 
-import { Component } from '../../core/Component';
-import type { Game } from '../../../core/Game';
-import type { InventoryItem, ItemRarity } from '../../../systems/Inventory';
+import type { Game } from '@/core/Game';
+import type { InventoryItem, ItemRarity } from '@/systems/Inventory';
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
-import { AudioManager, SoundType } from '../../../audio/AudioManager';
+import { AudioManager, SoundType } from '@/audio/AudioManager';
+import { Component } from '@/ui/core';
 
 export interface ItemSlotProps {
   slotIndex: number;

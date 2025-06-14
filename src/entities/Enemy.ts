@@ -1,8 +1,8 @@
 import { Entity, EntityType } from './Entity';
 import { Player } from './Player';
 import { Tower } from './Tower';
-import type { Vector2 } from '../utils/Vector2';
-import { CooldownManager } from '../utils/CooldownManager';
+import type { Vector2 } from '@/utils/Vector2';
+import { CooldownManager } from '@/utils/CooldownManager';
 
 export enum EnemyType {
   BASIC = 'BASIC',

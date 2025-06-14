@@ -4,8 +4,8 @@
  */
 
 import { BaseUpgradeManager, type UpgradeConfig, type Upgradeable } from './BaseUpgradeManager';
-import { Tower, TowerType } from '../entities/Tower';
-import { Player, PlayerUpgradeType } from '../entities/Player';
+import { Tower, TowerType } from '@/entities/Tower';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
 import { UpgradeType as TowerUpgradeType } from './TowerUpgradeManager';
 
 // Unified upgrade configuration registry

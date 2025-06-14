@@ -1,14 +1,14 @@
 import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 export enum UpgradeType {
   DAMAGE = 'DAMAGE',
   RANGE = 'RANGE',
   FIRE_RATE = 'FIRE_RATE'
 }
 import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, RENDER_CONFIG } from '../config/GameConfig';
-import { CooldownManager } from '../utils/CooldownManager';
+import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 
 export enum TowerType {

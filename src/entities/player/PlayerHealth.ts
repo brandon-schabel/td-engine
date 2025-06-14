@@ -3,7 +3,7 @@
  * Extracted from Player.ts to handle health, healing, and regeneration
  */
 
-import { CooldownManager } from '../../utils/CooldownManager';
+import { CooldownManager } from '@/utils/CooldownManager';
 import { GAME_MECHANICS } from '../../config/GameConfig';
 
 export interface HealthInfo {

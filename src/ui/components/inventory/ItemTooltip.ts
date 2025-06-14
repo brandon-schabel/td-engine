@@ -3,11 +3,11 @@
  * Shows detailed item stats, descriptions, and actions
  */
 
-import { Component } from '../../core/Component';
-import type { Game } from '../../../core/Game';
-import type { InventoryItem, ItemType, ItemRarity } from '../../../systems/Inventory';
+import { Component } from '@/core/Component';
+import type { Game } from '@/core/Game';
+import type { InventoryItem, ItemType, ItemRarity } from '@/systems/Inventory';
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
-import { AudioManager } from '../../../audio/AudioManager';
+import { AudioManager } from '@/audio/AudioManager';
 
 export interface ItemTooltipProps {
   game: Game;

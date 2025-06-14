@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameWithEvents } from '../../src/core/GameWithEvents';
 import { TowerType, UpgradeType } from '../../src/entities/Tower';
-import { createMockCanvas } from '../helpers';
+import { 
+  createMockCanvas,
+  expectResourcesChanged,
+  expectEntityCount
+} from '../helpers';
 
 // Mock MouseEvent for test environment
 global.MouseEvent = vi.fn().mockImplementation((type, options = {}) => ({
@@ -15,21 +19,23 @@ describe('Tower Upgrade Integration', () => {
   let game: GameWithEvents;
   let canvas: HTMLCanvasElement;
 
+  const defaultMapConfig = {
+    width: 25,
+    height: 19,
+    cellSize: 20,
+    biome: 'FOREST' as any,
+    difficulty: 'MEDIUM' as any,
+    seed: 12345,
+    pathComplexity: 0.5,
+    obstacleCount: 10,
+    decorationLevel: 0.3,
+    enableWater: false,
+    enableAnimations: false
+  };
+
   beforeEach(() => {
     canvas = createMockCanvas();
-    game = new GameWithEvents(canvas, {
-      width: 25,
-      height: 19,
-      cellSize: 20,
-      biome: 'FOREST' as any,
-      difficulty: 'MEDIUM' as any,
-      seed: 12345,
-      pathComplexity: 0.5,
-      obstacleCount: 10,
-      decorationLevel: 0.3,
-      enableWater: false,
-      enableAnimations: false
-    }, false);
+    game = new GameWithEvents(canvas, defaultMapConfig, false);
   });
 
   it('should emit towerSelected event when clicking on a tower', () => {
@@ -44,7 +50,7 @@ describe('Tower Upgrade Integration', () => {
     expect(placed).toBe(true);
     
     const towers = game.getTowers();
-    expect(towers.length).toBe(1);
+    expectEntityCount(towers, 1);
     const tower = towers[0];
     
     // Set up event listener
@@ -97,7 +103,12 @@ describe('Tower Upgrade Integration', () => {
     const upgraded = game.upgradeTower(tower, UpgradeType.DAMAGE);
     expect(upgraded).toBe(true);
     
-    // Check results
+    // Check results - tower should be upgraded and currency reduced
+    expectResourcesChanged(
+      { currency: initialCurrency, lives: 0, score: 0 },
+      { currency: game.getCurrency(), lives: 0, score: 0 },
+      { currency: -upgradeCost }
+    );
     expect(tower.getUpgradeLevel(UpgradeType.DAMAGE)).toBe(1);
     expect(tower.damage).toBeGreaterThan(initialDamage);
     expect(game.getCurrency()).toBe(initialCurrency - upgradeCost);

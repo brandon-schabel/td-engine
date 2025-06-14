@@ -1,17 +1,17 @@
-import { Tower, TowerType } from '../entities/Tower';
-import { Enemy } from '../entities/Enemy';
-import { Projectile } from '../entities/Projectile';
-import { Player, PlayerUpgradeType } from '../entities/Player';
-import { Collectible } from '../entities/Collectible';
-import { Entity } from '../entities/Entity';
+import { Tower, TowerType } from '@/entities/Tower';
+import { Enemy } from '@/entities/Enemy';
+import { Projectile } from '@/entities/Projectile';
+import { Player, PlayerUpgradeType } from '@/entities/Player';
+import { Collectible } from '@/entities/Collectible';
+import { Entity } from '@/entities/Entity';
 import { Grid, CellType } from './Grid';
 import { Camera } from './Camera';
-import { UpgradeType } from '../entities/Tower';
+import { UpgradeType } from '@/entities/Tower';
 import { TextureManager, type Texture, type SpriteFrame } from './TextureManager';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 import { COLOR_CONFIG, RENDER_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
-import { BIOME_PRESETS, BiomeType } from '../types/MapData';
-import type { BiomeColors, EnvironmentalEffect } from '../types/MapData';
+import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
+import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;

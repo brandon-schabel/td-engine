@@ -4,16 +4,16 @@
  */
 
 import { BaseRenderer } from './BaseRenderer';
-import { Tower } from '../entities/Tower';
-import { Enemy } from '../entities/Enemy';
-import { Projectile } from '../entities/Projectile';
-import { Player } from '../entities/Player';
-import { HealthPickup } from '../entities/HealthPickup';
-import { PowerUp } from '../entities/PowerUp';
-import { Entity } from '../entities/Entity';
-import { UpgradeType } from '../entities/Tower';
+import { Tower } from '@/entities/Tower';
+import { Enemy } from '@/entities/Enemy';
+import { Projectile } from '@/entities/Projectile';
+import { Player } from '@/entities/Player';
+import { HealthPickup } from '@/entities/HealthPickup';
+import { PowerUp } from '@/entities/PowerUp';
+import { Entity } from '@/entities/Entity';
+import { UpgradeType } from '@/entities/Tower';
 import { COLOR_CONFIG, RENDER_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
-import type { Vector2 } from '../utils/Vector2';
+import type { Vector2 } from '@/utils/Vector2';
 
 export class EntityRenderer extends BaseRenderer {
   
