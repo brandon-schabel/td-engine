@@ -1,3 +1,5 @@
+import { AUDIO_SYSTEM, SOUND_VOLUMES, SOUND_PARAMS } from '../config/AudioConfig';
+
 export enum SoundType {
   // Combat sounds
   PLAYER_SHOOT = 'player_shoot',
@@ -56,12 +58,12 @@ interface SoundConfig {
 
 export class AudioManager {
   private audioContext: AudioContext;
-  private masterVolume: number = 0.3;
+  private masterVolume: number = AUDIO_SYSTEM.masterVolume;
   private soundConfigs: Map<SoundType, SoundConfig> = new Map();
   private isEnabled: boolean = true;
   private activeSounds: Set<AudioBufferSourceNode | OscillatorNode> = new Set();
   private lastSoundTime: Map<SoundType, number> = new Map();
-  private maxConcurrentSounds: number = 8;
+  private maxConcurrentSounds: number = AUDIO_SYSTEM.maxConcurrentSounds;
 
   constructor() {
     // Create audio context - handle both new and legacy APIs
@@ -499,11 +501,11 @@ export class AudioManager {
     // More aggressive throttling for shooting sounds to prevent audio getting stuck
     const now = this.audioContext.currentTime;
     const lastTime = this.lastSoundTime.get(soundType) || 0;
-    let minInterval = 0.05; // Default 50ms
+    let minInterval = AUDIO_SYSTEM.minSoundInterval; // Default 50ms
     
     // Extra throttling for shooting sounds
     if (soundType === SoundType.PLAYER_SHOOT || soundType === SoundType.TOWER_SHOOT) {
-      minInterval = 0.2; // 200ms minimum between shooting sounds
+      minInterval = AUDIO_SYSTEM.shootingSoundInterval; // 200ms minimum between shooting sounds
     }
     
     if (now - lastTime < minInterval) {
@@ -638,14 +640,14 @@ export class AudioManager {
     if (!config) return;
 
     // Calculate pan based on horizontal position relative to viewport center
-    const panValue = Math.max(-1, Math.min(1, (position.x - viewportCenter.x) / 400));
+    const panValue = Math.max(-1, Math.min(1, (position.x - viewportCenter.x) / AUDIO_SYSTEM.spatialAudio.panDivisor));
     
     // Calculate volume based on distance from center
     const distance = Math.sqrt(
       Math.pow(position.x - viewportCenter.x, 2) + 
       Math.pow(position.y - viewportCenter.y, 2)
     );
-    const maxDistance = 600; // Max distance for audio falloff
+    const maxDistance = AUDIO_SYSTEM.spatialAudio.maxDistance; // Max distance for audio falloff
     const volumeMultiplier = Math.max(0.1, 1 - (distance / maxDistance));
 
     // For now, just play with volume adjustment

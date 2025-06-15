@@ -3,17 +3,12 @@ import { Player } from './Player';
 import { Tower } from './Tower';
 import type { Vector2 } from '@/utils/Vector2';
 import { CooldownManager } from '@/utils/CooldownManager';
+import { ENEMY_STATS, ENEMY_BEHAVIOR, ENEMY_VISUALS, EnemyBehavior } from '../config/EnemyConfig';
 
 export enum EnemyType {
   BASIC = 'BASIC',
   FAST = 'FAST',
   TANK = 'TANK'
-}
-
-export enum EnemyBehavior {
-  PLAYER_FOCUSED = 'PLAYER_FOCUSED',
-  TOWER_FOCUSED = 'TOWER_FOCUSED',
-  OPPORTUNIST = 'OPPORTUNIST' // Attacks towers if close, otherwise targets player
 }
 
 interface EnemyStats {
@@ -28,41 +23,7 @@ interface EnemyStats {
   behavior: EnemyBehavior;
 }
 
-const ENEMY_STATS: Record<EnemyType, EnemyStats> = {
-  [EnemyType.BASIC]: {
-    health: 50,
-    speed: 50,
-    radius: 8,
-    reward: 10,
-    damage: 10,
-    attackRange: 20,
-    attackCooldown: 1000, // 1 attack per second
-    towerDetectionRange: 60,
-    behavior: EnemyBehavior.OPPORTUNIST // Will attack towers if close, otherwise player
-  },
-  [EnemyType.FAST]: {
-    health: 30,
-    speed: 100,
-    radius: 6,
-    reward: 15,
-    damage: 5,
-    attackRange: 15,
-    attackCooldown: 500, // 2 attacks per second
-    towerDetectionRange: 40,
-    behavior: EnemyBehavior.PLAYER_FOCUSED // Primarily targets player
-  },
-  [EnemyType.TANK]: {
-    health: 200,
-    speed: 25,
-    radius: 12,
-    reward: 50,
-    damage: 20,
-    attackRange: 25,
-    attackCooldown: 2000, // 0.5 attacks per second
-    towerDetectionRange: 80,
-    behavior: EnemyBehavior.TOWER_FOCUSED // Prioritizes attacking towers
-  }
-};
+// Enemy stats are now imported from EnemyConfig
 
 export class Enemy extends Entity {
   public readonly enemyType: EnemyType;
@@ -133,7 +94,7 @@ export class Enemy extends Entity {
         
       case EnemyBehavior.PLAYER_FOCUSED:
         // Prioritize player, only attack towers if very close
-        if (nearbyTower && this.distanceTo(nearbyTower.position) <= this.attackRange * 1.2) {
+        if (nearbyTower && this.distanceTo(nearbyTower.position) <= this.attackRange * ENEMY_BEHAVIOR.towerAttackPriorityMultiplier) {
           return nearbyTower;
         }
         return alivePlayerTarget;
@@ -180,7 +141,7 @@ export class Enemy extends Entity {
           this.moveTo(waypoint, this.speed);
           
           // Check if reached waypoint
-          if (this.distanceTo(waypoint) < 5) {
+          if (this.distanceTo(waypoint) < ENEMY_BEHAVIOR.waypointReachedThreshold) {
             this.currentPathIndex++;
           }
         }

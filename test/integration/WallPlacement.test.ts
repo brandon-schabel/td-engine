@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Game } from '../../src/core/Game';
 import { TowerType } from '../../src/entities/Tower';
 import { CellType } from '../../src/systems/Grid';
@@ -24,6 +24,12 @@ describe('Wall Placement Integration', () => {
     
     game = new Game(canvas, mapConfig, false); // Don't auto-start
     game['currency'] = 100; // Give enough currency for testing
+  });
+
+  afterEach(() => {
+    if (game) {
+      game.stop();
+    }
   });
 
   it('should place wall and mark cell as obstacle', () => {

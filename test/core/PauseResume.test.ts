@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Game } from '@/core/Game';
 import { GameState } from '@/core/GameState';
 
@@ -46,6 +46,12 @@ describe('Game Pause/Resume', () => {
   beforeEach(() => {
     game = new Game(mockCanvas, undefined, false); // Disable auto-start for testing
     game.start(); // Manually start for testing pause functionality
+  });
+
+  afterEach(() => {
+    if (game) {
+      game.stop();
+    }
   });
 
   describe('pause functionality', () => {

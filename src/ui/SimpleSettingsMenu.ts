@@ -1,4 +1,5 @@
-import { SettingsManager, GameSettings, DIFFICULTY_PRESETS } from '@/config/GameSettings';
+import { SettingsManager, DIFFICULTY_PRESETS } from '@/config/GameSettings';
+import type { GameSettings } from '@/config/GameSettings';
 
 export class SimpleSettingsMenu {
   private container: HTMLElement;
@@ -117,10 +118,10 @@ export class SimpleSettingsMenu {
     `;
 
     this.addStyles();
-    this.attachEventListeners(menu);
-    this.updateDifficultyDescription();
-
     overlay.appendChild(menu);
+    this.attachEventListeners(menu, overlay);
+    this.updateDifficultyDescription(menu);
+
     return overlay;
   }
 
@@ -240,7 +241,7 @@ export class SimpleSettingsMenu {
     document.head.appendChild(style);
   }
 
-  private attachEventListeners(menu: HTMLElement): void {
+  private attachEventListeners(menu: HTMLElement, overlay: HTMLElement): void {
     // Difficulty preset buttons
     menu.querySelectorAll('.preset-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -314,17 +315,17 @@ export class SimpleSettingsMenu {
     });
 
     // Close on overlay click
-    this.container.addEventListener('click', (e) => {
-      if (e.target === this.container) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
         this.saveSettings();
         this.close();
       }
     });
 
-    this.updateActivePreset();
+    this.updateActivePreset(menu);
   }
 
-  private updateDifficultyDescription(): void {
+  private updateDifficultyDescription(menu?: HTMLElement): void {
     const preset = DIFFICULTY_PRESETS[this.settings.difficulty];
     const descriptions = {
       CASUAL: `More currency (${preset.startingCurrency}), extra lives (${preset.startingLives}), weaker enemies`,
@@ -332,14 +333,16 @@ export class SimpleSettingsMenu {
       CHALLENGE: `Less currency (${preset.startingCurrency}), fewer lives (${preset.startingLives}), stronger enemies`
     };
 
-    const descElement = this.container.querySelector('.difficulty-description');
+    const element = menu || this.container;
+    const descElement = element.querySelector('.difficulty-description');
     if (descElement) {
       descElement.textContent = descriptions[this.settings.difficulty];
     }
   }
 
-  private updateActivePreset(): void {
-    this.container.querySelectorAll('.preset-btn').forEach(btn => {
+  private updateActivePreset(menu?: HTMLElement): void {
+    const element = menu || this.container;
+    element.querySelectorAll('.preset-btn').forEach(btn => {
       btn.classList.remove('active');
       if ((btn as HTMLElement).dataset.difficulty === this.settings.difficulty) {
         btn.classList.add('active');

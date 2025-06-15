@@ -155,34 +155,3 @@ export class ShootingUtils {
   }
 }
 
-/**
- * Mixin for adding shooting capabilities to entities
- * Usage: class MyShooter extends ShootingMixin(BaseEntity)
- */
-export function ShootingMixin<T extends new (...args: any[]) => {}>(Base: T) {
-  return class extends Base implements ShootingCapable {
-    currentCooldown: number = 0;
-
-    // These must be implemented by the concrete class
-    abstract readonly damage: number;
-    abstract readonly cooldownTime: number;
-    abstract readonly position: Vector2;
-
-    canShoot(): boolean {
-      return ShootingUtils.canShoot(this.currentCooldown);
-    }
-
-    shoot(target: Enemy): Projectile | null {
-      // This should be implemented by the concrete class with specific projectile speed
-      throw new Error('shoot() method must be implemented by the concrete class');
-    }
-
-    updateShootingCooldown(deltaTime: number): void {
-      this.currentCooldown = CooldownManager.updateCooldown(this.currentCooldown, deltaTime);
-    }
-
-    getCooldownProgress(): number {
-      return CooldownManager.getCooldownPercentage(this.currentCooldown, this.cooldownTime);
-    }
-  };
-}

@@ -74,7 +74,18 @@ export function setupTimeMocks(): TimeHelpers {
   
   global.requestAnimationFrame = requestAnimationFrame as any;
   global.cancelAnimationFrame = cancelAnimationFrame as any;
-  global.performance = { now: performanceNow } as any;
+  
+  // Safely set performance.now
+  if (global.performance) {
+    global.performance.now = performanceNow;
+  } else {
+    Object.defineProperty(global, 'performance', {
+      value: { now: performanceNow },
+      writable: true,
+      configurable: true
+    });
+  }
+  
   Date.now = dateNow;
   global.setTimeout = setTimeout as any;
   global.clearTimeout = clearTimeout as any;

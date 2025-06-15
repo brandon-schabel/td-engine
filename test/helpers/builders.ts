@@ -1,6 +1,7 @@
 import { Game } from '@/core/Game';
 import { Tower, TowerType, UpgradeType } from '@/entities/Tower';
 import { Enemy, EnemyType } from '@/entities/Enemy';
+import { Player } from '@/entities/Player';
 import type { Vector2 } from '@/utils/Vector2';
 import type { MapData, Path } from '@/types/map';
 import type { WaveConfig } from '@/systems/WaveManager';
@@ -343,6 +344,44 @@ export class WaveBuilder {
       enemies: this.enemyGroups,
       startDelay: this.startDelay
     };
+  }
+}
+
+/**
+ * Builder for player configurations
+ */
+export class PlayerBuilder {
+  private position: Vector2 = { x: 0, y: 0 };
+  private health?: number;
+  private maxHealth?: number;
+  
+  at(x: number, y: number): this {
+    this.position = { x, y };
+    return this;
+  }
+  
+  withHealth(health: number): this {
+    this.health = health;
+    return this;
+  }
+  
+  withMaxHealth(maxHealth: number): this {
+    this.maxHealth = maxHealth;
+    return this;
+  }
+  
+  build(): Player {
+    const player = new Player(this.position);
+    
+    if (this.health !== undefined) {
+      player.health = this.health;
+    }
+    
+    if (this.maxHealth !== undefined) {
+      player.maxHealth = this.maxHealth;
+    }
+    
+    return player;
   }
 }
 

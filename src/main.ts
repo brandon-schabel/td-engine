@@ -6,7 +6,7 @@ import { AudioManager, SoundType } from './audio/AudioManager';
 import { SimpleSettingsMenu } from './ui/SimpleSettingsMenu';
 import { TouchInputSystem } from './ui/core/TouchInputSystem';
 import { applySettingsToGame } from './config/SettingsIntegration';
-import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty } from './types/MapData';
+import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty, DecorationLevel } from './types/MapData';
 import { createSvgIcon, IconType } from './ui/icons/SvgIcons';
 import { setupGameUI } from './ui/setupGameUI';
 import { GameOverScreen } from './ui/components/GameOverScreen';
@@ -74,12 +74,12 @@ function initializeGame() {
     width: gameConfig.mapConfig.width,
     height: gameConfig.mapConfig.height,
     cellSize: gameConfig.mapConfig.cellSize,
-    biome: gameConfig.mapConfig.biome as BiomeType,
+    biome: gameConfig.mapConfig.biome.toUpperCase() as BiomeType,
     difficulty: MapDifficulty.MEDIUM,
     seed: Date.now(),
     pathComplexity: gameConfig.mapConfig.pathComplexity,
     obstacleCount: Math.floor(gameConfig.mapConfig.width * gameConfig.mapConfig.height * 0.1),
-    decorationLevel: 3, // Dense
+    decorationLevel: DecorationLevel.DENSE,
     enableWater: true,
     enableAnimations: true,
     chokePointCount: 3,
@@ -411,11 +411,6 @@ document.addEventListener('keyup', (e) => {
   game.handleKeyUp(e.key);
 });
 
-// Listen for player clicks (temporarily disabled)
-// document.addEventListener('playerClicked', () => {
-//   playerUpgradeContainer.style.display = 'block';
-//   updatePlayerUpgradePanel();
-// });
 
 async function setupModernGameUI() {
   // Setup game handlers
@@ -437,13 +432,10 @@ async function setupModernGameUI() {
     // Store UI manager reference globally for keyboard access
     (window as any).gameUIManager = uiManager;
     
-    console.log('Modern UI system initialized successfully');
     return;
   } catch (error) {
-    console.error('Failed to initialize modern UI system:', error);
     
     // Fallback to legacy UI if modern system fails
-    console.warn('Falling back to legacy UI system');
     const { setupGameUIRevamp } = await import('./ui/GameUIRevamp');
     const ui = setupGameUIRevamp(game, audioManager);
     (window as any).gameUI = ui;
@@ -1090,11 +1082,4 @@ async function setupModernGameUI() {
   }, 100);
   }
   
-  console.log('Tower Defense Game Loaded!');
-  console.log('Use WASD or Arrow keys to move your character.');
-  console.log('Press U or click on your character to open player upgrades.');
-  console.log('Press 1, 2, or 3 to select towers, then click to place them.');
-  console.log('Click on towers to upgrade them.');
-  console.log('Your character automatically shoots at nearby enemies!');
-  console.log('Press Enter to start the first wave.');
 }

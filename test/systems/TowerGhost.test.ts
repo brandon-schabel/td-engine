@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Game } from '@/core/Game';
 import { TowerType } from '@/entities/Tower';
 
@@ -35,6 +35,12 @@ describe('Tower Ghost System', () => {
 
   beforeEach(() => {
     game = new Game(mockCanvas);
+  });
+
+  afterEach(() => {
+    if (game) {
+      game.stop();
+    }
   });
 
   describe('mouse position tracking', () => {

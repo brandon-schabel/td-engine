@@ -1,6 +1,7 @@
 import type { Vector2 } from '@/utils/Vector2';
 import type { MapDecoration } from '@/types/MapData';
 import { BiomeType } from '@/types/MapData';
+import { GRID_RENDER } from '../config/UIConfig';
 
 export enum CellType {
   EMPTY = 'EMPTY',
@@ -31,7 +32,7 @@ export class Grid {
   private cells: CellData[][];
   private biome: BiomeType = BiomeType.GRASSLAND;
 
-  constructor(width: number, height: number, cellSize: number = 32) {
+  constructor(width: number, height: number, cellSize: number = GRID_RENDER.defaultCellSize) {
     this.width = width;
     this.height = height;
     this.cellSize = cellSize;
@@ -92,13 +93,13 @@ export class Grid {
     
     switch (cellData.type) {
       case CellType.ROUGH_TERRAIN:
-        return cellData.movementSpeed || 0.5;
+        return cellData.movementSpeed || GRID_RENDER.movementSpeeds.ROUGH_TERRAIN;
       case CellType.WATER:
       case CellType.BLOCKED:
       case CellType.OBSTACLE:
         return 0.0;
       case CellType.PATH:
-        return 1.2; // Slightly faster on paths
+        return GRID_RENDER.movementSpeeds.PATH; // Slightly faster on paths
       default:
         return 1.0;
     }

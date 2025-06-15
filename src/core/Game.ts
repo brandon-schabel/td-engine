@@ -815,7 +815,7 @@ export class Game {
         break;
       case "c":
       case "C":
-        this.resetCameraToPlayer();
+        this.toggleCameraFollow();
         break;
     }
   }

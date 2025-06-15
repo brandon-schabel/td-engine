@@ -1,9 +1,24 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TextureManager } from '@/systems/TextureManager';
 import type { Texture, SpriteFrame } from '@/systems/TextureManager';
-
-// Use the global Image mock from setup.ts, but ensure proper texture dimensions
-// No need to override Image here - we'll use the global mock
+import {
+  TextureBuilder,
+  AtlasBuilder,
+  AnimatedSpriteBuilder,
+  TextureManagerBuilder,
+  createTestTextureManager,
+  createStandardAtlasData,
+  createStandardAnimationFrames,
+  getTextureStats,
+  expectTextureLoaded,
+  expectTextureNotLoaded,
+  expectAtlasValid,
+  expectSpriteFrame,
+  expectAnimatedSpriteValid,
+  expectBiomeTextureSetValid,
+  expectTextureManagerState,
+  expectLoadingProgress
+} from '../helpers';
 
 describe('TextureManager', () => {
   let textureManager: TextureManager;
@@ -17,11 +32,7 @@ describe('TextureManager', () => {
     it('should load a texture successfully', async () => {
       const texture = await textureManager.loadTexture('test_texture', 'test.png');
       
-      expect(texture).toBeDefined();
-      expect(texture.id).toBe('test_texture');
-      expect(texture.loaded).toBe(true);
-      expect(texture.width).toBe(64);
-      expect(texture.height).toBe(64);
+      expectTextureLoaded(texture, 'test_texture', 64, 64);
     });
 
     it('should return existing texture if already loaded', async () => {
@@ -29,7 +40,7 @@ describe('TextureManager', () => {
       const texture2 = await textureManager.loadTexture('test_texture', 'test2.png');
       
       expect(texture1).toBe(texture2);
-      expect(texture1.id).toBe('test_texture');
+      expectTextureLoaded(texture1, 'test_texture');
     });
 
     it('should handle concurrent loading of same texture', async () => {
@@ -39,7 +50,7 @@ describe('TextureManager', () => {
       ]);
       
       expect(texture1).toBe(texture2);
-      expect(texture1.id).toBe('concurrent_texture');
+      expectTextureLoaded(texture1, 'concurrent_texture');
     });
   });
 

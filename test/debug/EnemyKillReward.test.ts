@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Game } from '@/core/Game';
 import { Enemy, EnemyType } from '@/entities/Enemy';
 import { ResourceManager, ResourceType } from '@/systems/ResourceManager';
@@ -36,6 +36,12 @@ describe('Enemy Kill Reward Debug', () => {
 
   beforeEach(() => {
     game = new Game(mockCanvas);
+  });
+
+  afterEach(() => {
+    if (game) {
+      game.stop();
+    }
   });
 
   describe('enemy kill rewards', () => {

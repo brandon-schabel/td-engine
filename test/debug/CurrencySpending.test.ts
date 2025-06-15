@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Game } from '@/core/Game';
 import { TowerType } from '@/entities/Tower';
 import { PlayerUpgradeType } from '@/entities/Player';
@@ -45,6 +45,12 @@ describe('Currency Spending Debug', () => {
   beforeEach(() => {
     game = new Game(mockCanvas);
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    if (game) {
+      game.stop();
+    }
   });
 
   describe('unexpected currency deductions', () => {

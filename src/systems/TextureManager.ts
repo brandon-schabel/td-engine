@@ -97,28 +97,21 @@ export class TextureManager {
     }
 
     const loadingPromise = new Promise<Texture>((resolve, reject) => {
-      // Check if we're in a test environment without Image support
+      // Check if Image is available (not in test environment)
       if (typeof Image === 'undefined') {
-        // Create a mock texture for testing
+        // In test environment, return a mock texture
         const mockTexture: Texture = {
           id,
-          image: {
-            width: 64,
-            height: 64,
-            src: src,
-            onload: null,
-            onerror: null
-          } as any,
+          image: { width: 64, height: 64 } as any,
           width: 64,
           height: 64,
           loaded: true
         };
         this.textures.set(id, mockTexture);
-        this.loadingPromises.delete(id);
         resolve(mockTexture);
         return;
       }
-
+      
       const image = new Image();
       
       image.onload = () => {
@@ -256,69 +249,24 @@ export class TextureManager {
   }
 
   createFallbackTexture(id: string, width: number, height: number, color: string = '#FF00FF'): Texture {
-    // Handle test environment where document might not be properly mocked
-    if (typeof document === 'undefined' || typeof window === 'undefined' || typeof Image === 'undefined') {
-      // Create mock texture for test environment
-      const image = {
-        width,
-        height,
-        src: '',
-        onload: null,
-        onerror: null
-      } as any;
-      const texture: Texture = {
+    // Check if document is available
+    if (typeof document === 'undefined') {
+      // In test environment, return a mock texture
+      return {
         id,
-        image,
+        image: { width, height } as any,
         width,
         height,
         loaded: true
       };
-      this.textures.set(texture.id, texture);
-      return texture;
     }
     
     const canvas = document.createElement('canvas');
-    
-    // Handle case where canvas creation fails or properties aren't writable
-    try {
-      canvas.width = width;
-      canvas.height = height;
-    } catch (error) {
-      // Fallback for test environment
-      const image = {
-        width,
-        height,
-        src: '',
-        onload: null,
-        onerror: null
-      } as any;
-      const texture: Texture = {
-        id,
-        image,
-        width,
-        height,
-        loaded: true
-      };
-      this.textures.set(texture.id, texture);
-      return texture;
-    }
+    canvas.width = width;
+    canvas.height = height;
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      // Fallback if context creation fails
-      const image = new Image();
-      const texture: Texture = {
-        id,
-        image,
-        width,
-        height,
-        loaded: true
-      };
-      this.textures.set(texture.id, texture);
-      return texture;
-    }
-    
-    try {
+    if (ctx) {
       ctx.fillStyle = color;
       ctx.fillRect(0, 0, width, height);
       
@@ -327,16 +275,10 @@ export class TextureManager {
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('MISSING', width / 2, height / 2);
-    } catch (error) {
-      // Ignore rendering errors in test environment
     }
 
     const image = new Image();
-    try {
-      image.src = canvas.toDataURL();
-    } catch (error) {
-      // Fallback if toDataURL fails
-    }
+    image.src = canvas.toDataURL();
 
     const texture: Texture = {
       id,

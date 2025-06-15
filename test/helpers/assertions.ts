@@ -1,379 +1,328 @@
-import { Entity } from "@/entities/Entity";
-import { Tower } from "@/entities/Tower";
-import { Enemy } from "@/entities/Enemy";
-import type { Vector2 } from "@/utils/Vector2";
-import type { MapData, Path } from "@/types/map";
-import type { WaveConfig } from "@/systems/WaveManager";
-import { expect } from "vitest";
+import { expect } from 'vitest';
+import type { Tower } from '@/entities/Tower';
+import { TowerType } from '@/entities/Tower';
+import type { Enemy } from '@/entities/Enemy';
+import { EnemyType } from '@/entities/Enemy';
+import type { Player } from '@/entities/Player';
+import type { Game } from '@/core/Game';
+import type { Inventory } from '@/systems/InventorySystem';
+import { EntityType } from '@/entities/Entity';
+import { ItemType } from '@/systems/Inventory';
+import type { Vector2 } from '@/utils/Vector2';
 
-export function expectEntityAlive(entity: Entity): void {
-  expect(entity.health).toBeGreaterThan(0);
-  expect(entity.isAlive).toBe(true);
-}
-
-export function expectEntityDead(entity: Entity): void {
-  expect(entity.health).toBe(0);
-  expect(entity.isAlive).toBe(false);
-}
-
-export function expectEntityInRange(
-  entity1: Entity,
-  entity2: Entity,
-  range: number
-): void {
-  const distance = entity1.distanceTo(entity2);
-  expect(distance).toBeLessThanOrEqual(range);
-}
-
-export function expectEntityOutOfRange(
-  entity1: Entity,
-  entity2: Entity,
-  range: number
-): void {
-  const distance = entity1.distanceTo(entity2);
-  expect(distance).toBeGreaterThan(range);
-}
-
-export function expectHealthBetween(
-  entity: Entity,
-  min: number,
-  max: number
-): void {
-  expect(entity.health).toBeGreaterThanOrEqual(min);
-  expect(entity.health).toBeLessThanOrEqual(max);
-}
-
-export function expectHealthPercentage(
-  entity: Entity,
-  percentage: number,
-  tolerance = 0.01
-): void {
-  const expectedHealth = entity.maxHealth * percentage;
-  expect(Math.abs(entity.health - expectedHealth)).toBeLessThan(
-    tolerance * entity.maxHealth
-  );
-}
-
-export function expectValidPosition(
-  position: Vector2,
-  bounds: { width: number; height: number }
-): void {
-  expect(position.x).toBeGreaterThanOrEqual(0);
-  expect(position.x).toBeLessThanOrEqual(bounds.width);
-  expect(position.y).toBeGreaterThanOrEqual(0);
-  expect(position.y).toBeLessThanOrEqual(bounds.height);
-}
-
-export function expectPositionNear(
-  actual: Vector2,
-  expected: Vector2,
-  tolerance = 1
-): void {
-  const distance = Math.sqrt(
-    Math.pow(actual.x - expected.x, 2) + Math.pow(actual.y - expected.y, 2)
-  );
-  expect(distance).toBeLessThanOrEqual(tolerance);
-}
-
-export function expectVelocityDirection(
-  entity: { velocity: Vector2 },
-  direction: Vector2,
-  tolerance = 0.1
-): void {
-  const magnitude = Math.sqrt(entity.velocity.x ** 2 + entity.velocity.y ** 2);
-
-  if (magnitude === 0) {
-    expect(direction.x).toBe(0);
-    expect(direction.y).toBe(0);
-    return;
-  }
-
-  const normalizedVelocity = {
-    x: entity.velocity.x / magnitude,
-    y: entity.velocity.y / magnitude,
-  };
-
-  const dirMagnitude = Math.sqrt(direction.x ** 2 + direction.y ** 2);
-  const normalizedDirection = {
-    x: direction.x / dirMagnitude,
-    y: direction.y / dirMagnitude,
-  };
-
-  expect(Math.abs(normalizedVelocity.x - normalizedDirection.x)).toBeLessThan(
-    tolerance
-  );
-  expect(Math.abs(normalizedVelocity.y - normalizedDirection.y)).toBeLessThan(
-    tolerance
-  );
-}
-
-export function expectTowerCanTarget(tower: Tower, enemy: Enemy): void {
-  const distance = tower.distanceTo(enemy);
-  expect(distance).toBeLessThanOrEqual(tower.range);
-  expect(enemy.isAlive).toBe(true);
-}
-
-export function expectTowerCannotTarget(
+/**
+ * Tower-specific assertions
+ */
+export function assertTowerStats(
   tower: Tower,
-  enemy: Enemy,
-  reason?: "range" | "dead"
+  expected: {
+    type?: TowerType;
+    damage?: number;
+    range?: number;
+    fireRate?: number;
+    level?: number;
+    position?: { x: number; y: number };
+  }
 ): void {
-  if (reason === "range") {
-    const distance = tower.distanceTo(enemy);
-    expect(distance).toBeGreaterThan(tower.range);
-  } else if (reason === "dead") {
-    expect(enemy.isAlive).toBe(false);
-  } else {
-    const distance = tower.distanceTo(enemy);
-    const canTarget = distance <= tower.range && enemy.isAlive;
-    expect(canTarget).toBe(false);
+  expect(tower.type).toBe(EntityType.TOWER);
+  
+  if (expected.type !== undefined) {
+    expect(tower.towerType).toBe(expected.type);
+  }
+  if (expected.damage !== undefined) {
+    expect(tower.damage).toBe(expected.damage);
+  }
+  if (expected.range !== undefined) {
+    expect(tower.range).toBe(expected.range);
+  }
+  if (expected.fireRate !== undefined) {
+    expect(tower.fireRate).toBe(expected.fireRate);
+  }
+  if (expected.level !== undefined) {
+    expect(tower.level).toBe(expected.level);
+  }
+  if (expected.position !== undefined) {
+    expect(tower.position).toEqual(expected.position);
   }
 }
 
-export function expectEnemyOnPath(
+/**
+ * Enemy-specific assertions
+ */
+export function assertEnemyState(
   enemy: Enemy,
-  path: Path,
-  tolerance = 5
-): void {
-  let minDistance = Infinity;
-
-  for (let i = 0; i < path.points.length - 1; i++) {
-    const start = path.points[i];
-    const end = path.points[i + 1];
-
-    const segmentLength = Math.sqrt(
-      Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)
-    );
-
-    if (segmentLength === 0) continue;
-
-    const t = Math.max(
-      0,
-      Math.min(
-        1,
-        ((enemy.position.x - start.x) * (end.x - start.x) +
-          (enemy.position.y - start.y) * (end.y - start.y)) /
-          (segmentLength * segmentLength)
-      )
-    );
-
-    const projection = {
-      x: start.x + t * (end.x - start.x),
-      y: start.y + t * (end.y - start.y),
-    };
-
-    const distance = Math.sqrt(
-      Math.pow(enemy.position.x - projection.x, 2) +
-        Math.pow(enemy.position.y - projection.y, 2)
-    );
-
-    minDistance = Math.min(minDistance, distance);
+  expected: {
+    type?: EnemyType;
+    health?: number;
+    maxHealth?: number;
+    speed?: number;
+    position?: { x: number; y: number };
+    isDead?: boolean;
   }
-
-  expect(minDistance).toBeLessThanOrEqual(tolerance);
-}
-
-export function expectValidMapData(mapData: MapData): void {
-  expect(mapData.metadata.height).toBeGreaterThan(0);
-  expect(mapData.metadata.width).toBeGreaterThan(0);
-  expect(mapData.metadata.height).toBeGreaterThan(0);
-  expect(mapData.paths).toHaveLength.greaterThan(0);
-  expect(mapData.spawns).toHaveLength.greaterThan(0);
-  expect(mapData.exits).toHaveLength.greaterThan(0);
-  expect(mapData.placeable).toHaveLength(mapData.height);
-
-  mapData.placeable.forEach((row) => {
-    expect(row).toHaveLength(mapData.width);
-  });
-
-  mapData.paths.forEach((path) => {
-    expect(path.points).toHaveLength.greaterThan(1);
-    expect(path.length).toBeGreaterThan(0);
-  });
-}
-
-export function expectPathConnectivity(
-  paths: Path[],
-  spawns: Vector2[],
-  exits: Vector2[]
 ): void {
-  paths.forEach((path, index) => {
-    const firstPoint = path.points[0];
-    const lastPoint = path.points[path.points.length - 1];
-
-    const hasValidStart = spawns.some(
-      (spawn) =>
-        Math.abs(spawn.x - firstPoint.x) < 1 &&
-        Math.abs(spawn.y - firstPoint.y) < 1
-    );
-
-    const hasValidEnd = exits.some(
-      (exit) =>
-        Math.abs(exit.x - lastPoint.x) < 1 && Math.abs(exit.y - lastPoint.y) < 1
-    );
-
-    expect(hasValidStart || hasValidEnd).toBe(true);
-  });
+  expect(enemy.type).toBe(EntityType.ENEMY);
+  
+  if (expected.type !== undefined) {
+    expect(enemy.enemyType).toBe(expected.type);
+  }
+  if (expected.health !== undefined) {
+    expect(enemy.health).toBe(expected.health);
+  }
+  if (expected.maxHealth !== undefined) {
+    expect(enemy.maxHealth).toBe(expected.maxHealth);
+  }
+  if (expected.speed !== undefined) {
+    expect(enemy.speed).toBe(expected.speed);
+  }
+  if (expected.position !== undefined) {
+    expect(enemy.position.x).toBeCloseTo(expected.position.x, 1);
+    expect(enemy.position.y).toBeCloseTo(expected.position.y, 1);
+  }
+  if (expected.isDead !== undefined) {
+    expect(enemy.isDead()).toBe(expected.isDead);
+  }
 }
 
-export function expectValidWaveConfig(waveConfig: WaveConfig): void {
-  expect(waveConfig.waveNumber).toBeGreaterThan(0);
-  expect(waveConfig.enemies.length).toBeGreaterThan(0);
-  expect(waveConfig.startDelay).toBeGreaterThanOrEqual(0);
-
-  waveConfig.enemies.forEach((enemyGroup) => {
-    expect(enemyGroup.count).toBeGreaterThan(0);
-    expect(enemyGroup.spawnDelay).toBeGreaterThan(0);
-    expect(["BASIC", "FAST", "TANK"]).toContain(enemyGroup.type);
-  });
+/**
+ * Player-specific assertions
+ */
+export function assertPlayerState(
+  player: Player,
+  expected: {
+    health?: number;
+    maxHealth?: number;
+    damage?: number;
+    speed?: number;
+    position?: { x: number; y: number };
+    isDead?: boolean;
+    level?: number;
+  }
+): void {
+  expect(player.type).toBe(EntityType.PLAYER);
+  
+  if (expected.health !== undefined) {
+    expect(player.health).toBe(expected.health);
+  }
+  if (expected.maxHealth !== undefined) {
+    expect(player.maxHealth).toBe(expected.maxHealth);
+  }
+  if (expected.damage !== undefined) {
+    expect(player.damage).toBe(expected.damage);
+  }
+  if (expected.speed !== undefined) {
+    expect(player.speed).toBe(expected.speed);
+  }
+  if (expected.position !== undefined) {
+    expect(player.position.x).toBeCloseTo(expected.position.x, 1);
+    expect(player.position.y).toBeCloseTo(expected.position.y, 1);
+  }
+  if (expected.isDead !== undefined) {
+    expect(player.isDead()).toBe(expected.isDead);
+  }
+  if (expected.level !== undefined) {
+    expect(player.level).toBe(expected.level);
+  }
 }
 
-export function expectResourcesChanged(
-  before: { currency: number; lives: number; score: number },
-  after: { currency: number; lives: number; score: number },
-  expected: { currency?: number; lives?: number; score?: number }
+/**
+ * Game resource assertions
+ */
+export function assertGameResources(
+  game: Game,
+  expected: {
+    currency?: number;
+    lives?: number;
+    score?: number;
+    wave?: number;
+  }
 ): void {
   if (expected.currency !== undefined) {
-    expect(after.currency - before.currency).toBe(expected.currency);
+    expect(game.getCurrency()).toBe(expected.currency);
   }
-
   if (expected.lives !== undefined) {
-    expect(after.lives - before.lives).toBe(expected.lives);
+    expect(game.getLives()).toBe(expected.lives);
   }
-
   if (expected.score !== undefined) {
-    expect(after.score - before.score).toBe(expected.score);
+    expect(game.getScore()).toBe(expected.score);
+  }
+  if (expected.wave !== undefined) {
+    expect(game.getCurrentWave()).toBe(expected.wave);
   }
 }
 
-export function expectEntityCount(
-  entities: Entity[],
-  count: number | { min?: number; max?: number }
+/**
+ * Entity count assertions
+ */
+export function assertEntityCounts(
+  game: Game,
+  expected: {
+    enemies?: number;
+    towers?: number;
+    projectiles?: number;
+    collectibles?: number;
+  }
 ): void {
-  if (typeof count === "number") {
-    expect(entities).toHaveLength(count);
-  } else {
-    if (count.min !== undefined) {
-      expect(entities.length).toBeGreaterThanOrEqual(count.min);
+  if (expected.enemies !== undefined) {
+    expect(game.getEnemies().length).toBe(expected.enemies);
+  }
+  if (expected.towers !== undefined) {
+    expect(game.getTowers().length).toBe(expected.towers);
+  }
+  if (expected.projectiles !== undefined) {
+    expect(game.getProjectiles().length).toBe(expected.projectiles);
+  }
+  if (expected.collectibles !== undefined) {
+    expect(game.getCollectibles().length).toBe(expected.collectibles);
+  }
+}
+
+/**
+ * Inventory assertions
+ */
+export function assertInventoryContents(
+  inventory: Inventory,
+  expected: {
+    itemCount?: number;
+    emptySlots?: number;
+    hasItem?: string;
+    itemQuantity?: { itemId: string; quantity: number };
+    equipment?: { [slot: string]: string | null };
+  }
+): void {
+  if (expected.itemCount !== undefined) {
+    const actualCount = inventory.getItems().reduce((sum, item) => 
+      sum + (item ? item.quantity : 0), 0
+    );
+    expect(actualCount).toBe(expected.itemCount);
+  }
+  
+  if (expected.emptySlots !== undefined) {
+    const emptyCount = inventory.getItems().filter(item => !item).length;
+    expect(emptyCount).toBe(expected.emptySlots);
+  }
+  
+  if (expected.hasItem !== undefined) {
+    const hasItem = inventory.getItems().some(item => 
+      item && item.id === expected.hasItem
+    );
+    expect(hasItem).toBe(true);
+  }
+  
+  if (expected.itemQuantity !== undefined) {
+    const item = inventory.getItems().find(item => 
+      item && item.id === expected.itemQuantity!.itemId
+    );
+    expect(item?.quantity).toBe(expected.itemQuantity.quantity);
+  }
+  
+  if (expected.equipment !== undefined) {
+    Object.entries(expected.equipment).forEach(([slot, itemId]) => {
+      const equipped = inventory.getEquippedItem(slot as any);
+      if (itemId === null) {
+        expect(equipped).toBeNull();
+      } else {
+        expect(equipped?.id).toBe(itemId);
+      }
+    });
+  }
+}
+
+/**
+ * Position assertions with tolerance
+ */
+export function assertPosition(
+  actual: { x: number; y: number },
+  expected: { x: number; y: number },
+  tolerance = 1
+): void {
+  expect(actual.x).toBeCloseTo(expected.x, tolerance);
+  expect(actual.y).toBeCloseTo(expected.y, tolerance);
+}
+
+/**
+ * Array contains assertion
+ */
+export function assertArrayContains<T>(
+  array: T[],
+  predicate: (item: T) => boolean,
+  expectedCount = 1
+): void {
+  const matches = array.filter(predicate);
+  expect(matches.length).toBe(expectedCount);
+}
+
+/**
+ * Game state composite assertion
+ */
+export function assertGameInState(
+  game: Game,
+  state: 'MENU' | 'PLAYING' | 'PAUSED' | 'GAME_OVER' | 'VICTORY'
+): void {
+  expect(game.getState()).toBe(state);
+}
+
+/**
+ * Performance assertion
+ */
+export function assertPerformance(
+  fn: () => void,
+  maxDuration: number,
+  iterations = 100
+): void {
+  const start = performance.now();
+  
+  for (let i = 0; i < iterations; i++) {
+    fn();
+  }
+  
+  const duration = performance.now() - start;
+  const avgDuration = duration / iterations;
+  
+  expect(avgDuration).toBeLessThan(maxDuration);
+}
+
+/**
+ * Upgrade assertion helper
+ */
+export function assertCanUpgrade(
+  entity: Tower | Player,
+  upgradeType: string,
+  expected: boolean
+): void {
+  const canUpgrade = entity.canUpgrade(upgradeType as any);
+  expect(canUpgrade).toBe(expected);
+}
+
+/**
+ * Batch assertion helper
+ */
+export function assertAll<T>(
+  items: T[],
+  assertion: (item: T) => void
+): void {
+  items.forEach((item, index) => {
+    try {
+      assertion(item);
+    } catch (error) {
+      throw new Error(`Assertion failed for item at index ${index}: ${error}`);
     }
-    if (count.max !== undefined) {
-      expect(entities.length).toBeLessThanOrEqual(count.max);
-    }
-  }
+  });
 }
 
-export function expectUniquePositions(
-  entities: Entity[],
-  tolerance = 0.1
-): void {
-  for (let i = 0; i < entities.length; i++) {
-    for (let j = i + 1; j < entities.length; j++) {
-      const distance = Math.sqrt(
-        Math.pow(entities[i].position.x - entities[j].position.x, 2) +
-          Math.pow(entities[i].position.y - entities[j].position.y, 2)
-      );
-      expect(distance).toBeGreaterThan(tolerance);
-    }
-  }
+/**
+ * Entity health assertion
+ */
+export function assertEntityHealth(entity: { health: number }, expectedHealth: number): void {
+  expect(entity.health).toBe(expectedHealth);
 }
 
-// Game-specific assertions for common patterns
-export function expectGameStateValid(game: any): void {
-  expect(game.getCurrency()).toBeGreaterThanOrEqual(0);
-  expect(game.getLives()).toBeGreaterThanOrEqual(0);
-  expect(game.getScore()).toBeGreaterThanOrEqual(0);
-}
-
-export function expectTowerPlaced(
-  game: any,
-  initialTowerCount: number,
-  expectedCostReduction: number
-): void {
-  const newTowerCount = game.getTowers().length;
-  expect(newTowerCount).toBe(initialTowerCount + 1);
-  
-  // Currency should be reduced by tower cost
-  if (expectedCostReduction > 0) {
-    expect(game.getCurrency()).toBeLessThan(game.getCurrency() + expectedCostReduction);
-  }
-}
-
-export function expectTowerUpgraded(
-  tower: Tower,
-  upgradeType: any,
-  initialLevel: number
-): void {
-  expect(tower.getUpgradeLevel(upgradeType)).toBe(initialLevel + 1);
-  
-  // Stats should have improved
-  switch(upgradeType) {
-    case 'DAMAGE':
-      expect(tower.damage).toBeGreaterThan(0);
-      break;
-    case 'RANGE':
-      expect(tower.range).toBeGreaterThan(0);
-      break;
-    case 'FIRE_RATE':
-      expect(tower.fireRate).toBeGreaterThan(0);
-      break;
-  }
-}
-
-export function expectProjectileValid(
-  projectile: any,
-  expectedDamage?: number,
-  expectedTarget?: Entity
-): void {
-  expect(projectile).toBeDefined();
-  expect(projectile.position).toBeDefined();
-  expect(projectile.position.x).toBeGreaterThanOrEqual(0);
-  expect(projectile.position.y).toBeGreaterThanOrEqual(0);
-  
-  if (expectedDamage !== undefined) {
-    expect(projectile.damage).toBe(expectedDamage);
-  }
-  
-  if (expectedTarget) {
-    expect(projectile.target).toBe(expectedTarget);
-  }
-}
-
-export function expectWaveActive(
-  waveManager: any,
-  expectedWaveNumber: number
-): void {
-  expect(waveManager.isWaveActive()).toBe(true);
-  expect(waveManager.currentWave).toBe(expectedWaveNumber);
-  expect(waveManager.isSpawning()).toBe(true);
-}
-
-export function expectWaveComplete(
-  waveManager: any
-): void {
-  expect(waveManager.isWaveActive()).toBe(false);
-  expect(waveManager.isSpawning()).toBe(false);
-  expect(waveManager.getEnemiesInWave()).toHaveLength(0);
-}
-
-export function expectEnemyMovingToward(
-  enemy: Entity & { velocity?: any },
-  target: Entity,
-  tolerance = 0.2
-): void {
-  if (!enemy.velocity) return;
-  
-  const directionToTarget = {
-    x: target.position.x - enemy.position.x,
-    y: target.position.y - enemy.position.y
-  };
-  
-  const targetMagnitude = Math.sqrt(directionToTarget.x ** 2 + directionToTarget.y ** 2);
-  if (targetMagnitude === 0) return;
-  
-  const normalizedTarget = {
-    x: directionToTarget.x / targetMagnitude,
-    y: directionToTarget.y / targetMagnitude
-  };
-  
-  expectVelocityDirection(enemy, normalizedTarget, tolerance);
+/**
+ * Entity position assertion with tolerance
+ */
+export function assertEntityPosition(entity: { position: Vector2 }, expectedPosition: Vector2, tolerance: number = 0): void {
+  const distance = Math.hypot(
+    entity.position.x - expectedPosition.x,
+    entity.position.y - expectedPosition.y
+  );
+  expect(distance).toBeLessThanOrEqual(tolerance);
 }

@@ -3,6 +3,7 @@ import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
 import type { Vector2 } from '@/utils/Vector2';
 import { BASE_PLAYER_STATS, GAME_MECHANICS, UPGRADE_CONFIG } from '../config/GameConfig';
+import { PLAYER_ABILITIES, PLAYER_UPGRADES, POWER_UP_CONFIG, PLAYER_VISUALS } from '../config/PlayerConfig';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 import { PlayerPowerUps } from './player/PlayerPowerUps';
@@ -33,7 +34,7 @@ export class Player extends Entity implements ShootingCapable {
   // Healing mechanics
   private regenerationTimer: number = 0;
   private damageCooldown: number = 0;
-  private healAbilityCooldown: number = 5000; // Start on cooldown
+  private healAbilityCooldown: number = PLAYER_ABILITIES.heal.cooldown; // Start on cooldown
   private maxHealAbilityCooldown: number = GAME_MECHANICS.healAbilityCooldown;
   private healthPickupsCollected: number = 0;
   private totalHealingReceived: number = 0;
@@ -247,15 +248,15 @@ export class Player extends Entity implements ShootingCapable {
   getUpgradeDescription(upgradeType: PlayerUpgradeType): string {
     switch (upgradeType) {
       case PlayerUpgradeType.DAMAGE:
-        return 'Increase damage by 40%';
+        return `Increase damage by ${PLAYER_UPGRADES.bonusMultipliers.DAMAGE * 100}%`;
       case PlayerUpgradeType.SPEED:
-        return 'Increase movement speed by 30%';
+        return `Increase movement speed by ${PLAYER_UPGRADES.bonusMultipliers.SPEED * 100}%`;
       case PlayerUpgradeType.FIRE_RATE:
-        return 'Increase fire rate by 25%';
+        return `Increase fire rate by ${PLAYER_UPGRADES.bonusMultipliers.FIRE_RATE * 100}%`;
       case PlayerUpgradeType.HEALTH:
-        return 'Increase max health by 50%';
+        return `Increase max health by ${PLAYER_UPGRADES.bonusMultipliers.HEALTH * 100}%`;
       case PlayerUpgradeType.REGENERATION:
-        return 'Increase regeneration by 1.5 HP/s';
+        return `Increase regeneration by ${PLAYER_ABILITIES.regeneration.levelBonus} HP/s`;
       default:
         return 'Unknown upgrade';
     }
@@ -307,7 +308,7 @@ export class Player extends Entity implements ShootingCapable {
   getRegenerationRate(): number {
     const regenLevel = this.getUpgradeLevel(PlayerUpgradeType.REGENERATION);
     if (regenLevel === 0) return 0;
-    return 2 + regenLevel * 1.5; // 2 HP/s base, +1.5 per level
+    return PLAYER_ABILITIES.regeneration.baseRate + regenLevel * PLAYER_ABILITIES.regeneration.levelBonus; // 2 HP/s base, +1.5 per level
   }
 
   canUseHealAbility(): boolean {
@@ -319,7 +320,7 @@ export class Player extends Entity implements ShootingCapable {
       return false;
     }
 
-    const healAmount = 30;
+    const healAmount = PLAYER_ABILITIES.heal.amount;
     const actualHealAmount = Math.min(healAmount, this.maxHealth - this.health);
     this.heal(actualHealAmount);
     this.totalHealingReceived += actualHealAmount;
@@ -447,7 +448,7 @@ export class Player extends Entity implements ShootingCapable {
 
   getAimerLine(): { start: Vector2; end: Vector2 } {
     const angle = this.getAimAngle();
-    const aimerLength = 100; // Length of the aimer line
+    const aimerLength = PLAYER_VISUALS.aimerLength; // Length of the aimer line
     
     const end = {
       x: this.position.x + Math.cos(angle) * aimerLength,
@@ -461,20 +462,20 @@ export class Player extends Entity implements ShootingCapable {
   }
 
   // Power-up system methods (delegated to PlayerPowerUps)
-  addTemporaryDamageBoost(multiplier: number, duration: number = 10000): void {
+  addTemporaryDamageBoost(multiplier: number, duration: number = POWER_UP_CONFIG.durations.DAMAGE_BOOST): void {
     this.powerUps.addExtraDamage(multiplier, duration);
   }
 
-  addTemporaryFireRateBoost(multiplier: number, duration: number = 8000): void {
+  addTemporaryFireRateBoost(multiplier: number, duration: number = POWER_UP_CONFIG.durations.RAPID_FIRE): void {
     this.powerUps.addFasterShooting(multiplier, duration);
     this.cooldownTime = 1000 / this.getCurrentFireRate(); // Update cooldown
   }
 
-  addTemporarySpeedBoost(multiplier: number, duration: number = 12000): void {
+  addTemporarySpeedBoost(multiplier: number, duration: number = POWER_UP_CONFIG.durations.SPEED_BOOST): void {
     this.powerUps.addSpeedBoost(multiplier, duration);
   }
 
-  addShield(duration: number = 15000): void {
+  addShield(duration: number = POWER_UP_CONFIG.durations.INVINCIBILITY): void {
     this.powerUps.addShield(duration);
   }
 

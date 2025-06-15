@@ -93,10 +93,25 @@ class MockHTMLCanvasElement {
 class MockHTMLImageElement {
   src = '';
   alt = '';
-  width = 0;
-  height = 0;
-  onload = null;
-  onerror = null;
+  width = 64; // Default test dimensions
+  height = 64;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  
+  constructor() {
+    // Set up a setter for src that triggers onload
+    let _src = '';
+    Object.defineProperty(this, 'src', {
+      get: () => _src,
+      set: (value: string) => {
+        _src = value;
+        // Trigger onload synchronously for tests to avoid hanging
+        if (this.onload) {
+          this.onload();
+        }
+      }
+    });
+  }
   
   addEventListener = vi.fn();
   removeEventListener = vi.fn();
@@ -214,14 +229,16 @@ global.cancelAnimationFrame = vi.fn((id: number) => {
   // Real cleanup is handled by individual test utilities
 });
 
-// Mock performance.now
-Object.defineProperty(global, 'performance', {
-  value: {
-    now: vi.fn(() => Date.now())
-  },
-  writable: true,
-  configurable: true
-});
+// Mock performance.now - allow TimeController to override it
+if (!global.performance) {
+  Object.defineProperty(global, 'performance', {
+    value: {
+      now: vi.fn(() => Date.now())
+    },
+    writable: true,
+    configurable: true
+  });
+}
 
 // Mock window.AudioContext
 Object.defineProperty(global, 'AudioContext', {
@@ -244,6 +261,15 @@ Object.defineProperty(global, 'HTMLImageElement', {
   writable: true,
   configurable: true
 });
+
+Object.defineProperty(global, 'Image', {
+  value: MockHTMLImageElement,
+  writable: true,
+  configurable: true
+});
+
+// Also ensure Image is available as a global constructor
+(globalThis as any).Image = MockHTMLImageElement;
 
 Object.defineProperty(global, 'Audio', {
   value: MockAudio,
@@ -297,20 +323,37 @@ Object.defineProperty(document, 'createElement', {
   })
 });
 
-// Mock document.body and document.head for tests that manipulate DOM
-Object.defineProperty(document, 'body', {
+// Mock document with all necessary methods
+Object.defineProperty(global, 'document', {
   value: {
-    appendChild: vi.fn(),
-    removeChild: vi.fn(),
-    style: {}
-  }
+    ...document,
+    dispatchEvent: vi.fn(),
+    body: {
+      appendChild: vi.fn(),
+      removeChild: vi.fn(),
+      style: {}
+    },
+    head: {
+      appendChild: vi.fn(),
+      removeChild: vi.fn()
+    }
+  },
+  writable: true,
+  configurable: true
 });
 
-Object.defineProperty(document, 'head', {
+// Mock localStorage
+Object.defineProperty(global, 'localStorage', {
   value: {
-    appendChild: vi.fn(),
-    removeChild: vi.fn()
-  }
+    getItem: vi.fn(() => null),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
+    length: 0,
+    key: vi.fn(() => null)
+  },
+  writable: true,
+  configurable: true
 });
 
 // Console setup for cleaner test output

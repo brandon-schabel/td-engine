@@ -10,3 +10,6 @@ export * from './builders';
 export * from './performance';
 export * from './generators';
 export * from './constants';
+export * from './textures';
+export * from './setup';
+export * from './templates';

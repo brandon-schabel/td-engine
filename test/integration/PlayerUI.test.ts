@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Game } from '@/core/Game';
 import { Enemy, EnemyType } from '@/entities/Enemy';
 import { TowerType } from '@/entities/Tower';
@@ -61,6 +61,12 @@ describe('Player UI Integration', () => {
     vi.clearAllMocks();
     vi.restoreAllMocks(); // Restore any spies from previous tests
     game = new Game(mockCanvas);
+  });
+
+  afterEach(() => {
+    if (game) {
+      game.stop();
+    }
   });
 
   describe('player click detection', () => {

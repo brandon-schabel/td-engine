@@ -1,19 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { Tower, TowerType } from '../../src/entities/Tower';
-import { TOWER_COSTS } from '../../src/config/GameConfig';
+import { Tower, TowerType } from '@/entities/Tower';
+import { TOWER_COSTS } from '@/config/GameConfig';
+import { when, then } from '../helpers/templates';
+import { withTestContext } from '../helpers/setup';
 
 describe('Wall Core Functionality', () => {
-  it('should have wall type in TowerType enum', () => {
+  const context = withTestContext();
+  
+  it('has wall type in TowerType enum', () => {
     expect(TowerType.WALL).toBe('WALL');
   });
 
-  it('should have wall cost defined', () => {
+  it('has wall cost defined', () => {
     expect(TOWER_COSTS.WALL).toBe(10);
   });
 
-  it('should create wall with zero damage and range', () => {
+  it(when('creating wall tower'), () => {
     const wall = new Tower(TowerType.WALL, { x: 100, y: 100 });
     
+    then('has correct properties');
     expect(wall.towerType).toBe(TowerType.WALL);
     expect(wall.damage).toBe(0);
     expect(wall.range).toBe(0);
@@ -22,13 +27,13 @@ describe('Wall Core Functionality', () => {
     expect(wall.radius).toBe(16);
   });
 
-  it('wall should not be able to shoot', () => {
+  it(then('cannot shoot'), () => {
     const wall = new Tower(TowerType.WALL, { x: 100, y: 100 });
     
     expect(wall.canShoot()).toBe(false);
   });
 
-  it('wall should not be upgradeable', () => {
+  it(then('cannot be upgraded'), () => {
     const wall = new Tower(TowerType.WALL, { x: 100, y: 100 });
     
     expect(wall.canUpgrade('DAMAGE' as any)).toBe(false);

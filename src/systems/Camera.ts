@@ -1,4 +1,5 @@
 import type { Vector2 } from '@/utils/Vector2';
+import { CAMERA_CONFIG } from '../config/UIConfig';
 
 export interface CameraOptions {
   minZoom?: number;
@@ -13,15 +14,15 @@ export class Camera {
   private viewportHeight: number;
   private worldWidth: number;
   private worldHeight: number;
-  private smoothing: number = 0.25; // Camera smoothing factor (increased for more responsive following)
+  private smoothing: number = CAMERA_CONFIG.smoothing; // Camera smoothing factor (increased for more responsive following)
   
   // Zoom system properties
   private zoom: number = 1.0;
   private targetZoom: number = 1.0;
-  private minZoom: number = 0.3;
-  private maxZoom: number = 3.0;
-  private zoomSpeed: number = 0.1;
-  private zoomSmoothing: number = 0.15;
+  private minZoom: number = CAMERA_CONFIG.minZoom;
+  private maxZoom: number = CAMERA_CONFIG.maxZoom;
+  private zoomSpeed: number = CAMERA_CONFIG.zoomSpeed;
+  private zoomSmoothing: number = CAMERA_CONFIG.zoomSmoothing;
   
   // Camera mode
   private followTarget: boolean = true;
@@ -49,8 +50,30 @@ export class Camera {
     const effectiveViewportWidth = this.viewportWidth / this.zoom;
     const effectiveViewportHeight = this.viewportHeight / this.zoom;
     
-    if (this.followTarget) {
-      // Calculate desired camera position (centered on target)
+    // Check if the entire world fits in the viewport (zoomed out enough)
+    const worldFitsHorizontally = this.worldWidth <= effectiveViewportWidth;
+    const worldFitsVertically = this.worldHeight <= effectiveViewportHeight;
+    
+    if (worldFitsHorizontally || worldFitsVertically) {
+      // Center the world in the viewport when zoomed out
+      if (worldFitsHorizontally) {
+        this.position.x = (this.worldWidth - effectiveViewportWidth) / 2;
+      }
+      if (worldFitsVertically) {
+        this.position.y = (this.worldHeight - effectiveViewportHeight) / 2;
+      }
+      
+      // For dimensions that don't fit, continue following the target
+      if (!worldFitsHorizontally && this.followTarget) {
+        const targetX = targetPosition.x - effectiveViewportWidth / 2;
+        this.position.x += (targetX - this.position.x) * this.smoothing;
+      }
+      if (!worldFitsVertically && this.followTarget) {
+        const targetY = targetPosition.y - effectiveViewportHeight / 2;
+        this.position.y += (targetY - this.position.y) * this.smoothing;
+      }
+    } else if (this.followTarget) {
+      // Normal following behavior when zoomed in
       const targetX = targetPosition.x - effectiveViewportWidth / 2;
       const targetY = targetPosition.y - effectiveViewportHeight / 2;
       
@@ -60,8 +83,12 @@ export class Camera {
     }
     
     // Clamp camera to world bounds (accounting for zoom)
-    this.position.x = Math.max(0, Math.min(this.worldWidth - effectiveViewportWidth, this.position.x));
-    this.position.y = Math.max(0, Math.min(this.worldHeight - effectiveViewportHeight, this.position.y));
+    if (!worldFitsHorizontally) {
+      this.position.x = Math.max(0, Math.min(this.worldWidth - effectiveViewportWidth, this.position.x));
+    }
+    if (!worldFitsVertically) {
+      this.position.y = Math.max(0, Math.min(this.worldHeight - effectiveViewportHeight, this.position.y));
+    }
   }
   
   // Convert world coordinates to screen coordinates
@@ -186,14 +213,23 @@ export class Camera {
   // Pan the camera manually (when not following target)
   pan(deltaX: number, deltaY: number): void {
     if (!this.followTarget) {
-      this.position.x += deltaX / this.zoom;
-      this.position.y += deltaY / this.zoom;
-      
-      // Clamp to bounds
       const effectiveViewportWidth = this.viewportWidth / this.zoom;
       const effectiveViewportHeight = this.viewportHeight / this.zoom;
-      this.position.x = Math.max(0, Math.min(this.worldWidth - effectiveViewportWidth, this.position.x));
-      this.position.y = Math.max(0, Math.min(this.worldHeight - effectiveViewportHeight, this.position.y));
+      
+      // Check if the entire world fits in the viewport
+      const worldFitsHorizontally = this.worldWidth <= effectiveViewportWidth;
+      const worldFitsVertically = this.worldHeight <= effectiveViewportHeight;
+      
+      // Only allow panning in dimensions where the world doesn't fit
+      if (!worldFitsHorizontally) {
+        this.position.x += deltaX / this.zoom;
+        this.position.x = Math.max(0, Math.min(this.worldWidth - effectiveViewportWidth, this.position.x));
+      }
+      
+      if (!worldFitsVertically) {
+        this.position.y += deltaY / this.zoom;
+        this.position.y = Math.max(0, Math.min(this.worldHeight - effectiveViewportHeight, this.position.y));
+      }
     }
   }
   
@@ -236,7 +272,22 @@ export class Camera {
     // Recalculate bounds to ensure camera stays within world limits
     const effectiveViewportWidth = this.viewportWidth / this.zoom;
     const effectiveViewportHeight = this.viewportHeight / this.zoom;
-    this.position.x = Math.max(0, Math.min(this.worldWidth - effectiveViewportWidth, this.position.x));
-    this.position.y = Math.max(0, Math.min(this.worldHeight - effectiveViewportHeight, this.position.y));
+    
+    // Check if the world fits in the viewport
+    const worldFitsHorizontally = this.worldWidth <= effectiveViewportWidth;
+    const worldFitsVertically = this.worldHeight <= effectiveViewportHeight;
+    
+    // Center the world if it fits
+    if (worldFitsHorizontally) {
+      this.position.x = (this.worldWidth - effectiveViewportWidth) / 2;
+    } else {
+      this.position.x = Math.max(0, Math.min(this.worldWidth - effectiveViewportWidth, this.position.x));
+    }
+    
+    if (worldFitsVertically) {
+      this.position.y = (this.worldHeight - effectiveViewportHeight) / 2;
+    } else {
+      this.position.y = Math.max(0, Math.min(this.worldHeight - effectiveViewportHeight, this.position.y));
+    }
   }
 }

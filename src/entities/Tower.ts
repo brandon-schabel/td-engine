@@ -8,6 +8,7 @@ export enum UpgradeType {
   FIRE_RATE = 'FIRE_RATE'
 }
 import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, RENDER_CONFIG } from '../config/GameConfig';
+import { TOWER_STATS, TOWER_UPGRADES, TOWER_VISUALS } from '../config/TowerConfig';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 
@@ -26,36 +27,7 @@ export interface TowerStats {
   radius: number;
 }
 
-const TOWER_STATS: Record<TowerType, TowerStats> = {
-  [TowerType.BASIC]: {
-    damage: 10,
-    range: 100,
-    fireRate: 1,
-    health: 100,
-    radius: 15
-  },
-  [TowerType.SNIPER]: {
-    damage: 50,
-    range: 200,
-    fireRate: 0.5,
-    health: 80,
-    radius: 15
-  },
-  [TowerType.RAPID]: {
-    damage: 5,
-    range: 80,
-    fireRate: 4,
-    health: 60,
-    radius: 15
-  },
-  [TowerType.WALL]: {
-    damage: 0,
-    range: 0,
-    fireRate: 0,
-    health: 200,
-    radius: 16
-  }
-};
+// Tower stats are now imported from TowerConfig
 
 export class Tower extends Entity implements ShootingCapable {
   public readonly towerType: TowerType;
@@ -194,9 +166,9 @@ export class Tower extends Entity implements ShootingCapable {
   // Upgrade cost and management (replaces TowerUpgradeManager)
   getUpgradeCost(upgradeType: UpgradeType): number {
     const configs = {
-      [UpgradeType.DAMAGE]: { baseCost: 15, costMultiplier: 1.5, maxLevel: 5 },
-      [UpgradeType.RANGE]: { baseCost: 20, costMultiplier: 1.5, maxLevel: 5 },
-      [UpgradeType.FIRE_RATE]: { baseCost: 25, costMultiplier: 1.5, maxLevel: 5 }
+      [UpgradeType.DAMAGE]: { baseCost: TOWER_UPGRADES.baseCosts.DAMAGE, costMultiplier: TOWER_UPGRADES.costMultiplier, maxLevel: TOWER_UPGRADES.maxLevel },
+      [UpgradeType.RANGE]: { baseCost: TOWER_UPGRADES.baseCosts.RANGE, costMultiplier: TOWER_UPGRADES.costMultiplier, maxLevel: TOWER_UPGRADES.maxLevel },
+      [UpgradeType.FIRE_RATE]: { baseCost: TOWER_UPGRADES.baseCosts.FIRE_RATE, costMultiplier: TOWER_UPGRADES.costMultiplier, maxLevel: TOWER_UPGRADES.maxLevel }
     };
     
     const config = configs[upgradeType];
@@ -221,23 +193,23 @@ export class Tower extends Entity implements ShootingCapable {
   // Computed properties based on upgrades
   get damage(): number {
     const damageLevel = this.getUpgradeLevel(UpgradeType.DAMAGE);
-    return Math.floor(this.baseDamage * (1 + damageLevel * 0.3));
+    return Math.floor(this.baseDamage * (1 + damageLevel * TOWER_UPGRADES.bonusMultipliers.DAMAGE));
   }
 
   get range(): number {
     const rangeLevel = this.getUpgradeLevel(UpgradeType.RANGE);
-    return Math.floor(this.baseRange * (1 + rangeLevel * 0.25));
+    return Math.floor(this.baseRange * (1 + rangeLevel * TOWER_UPGRADES.bonusMultipliers.RANGE));
   }
 
   get fireRate(): number {
     const fireRateLevel = this.getUpgradeLevel(UpgradeType.FIRE_RATE);
-    return this.baseFireRate * (1 + fireRateLevel * 0.2);
+    return this.baseFireRate * (1 + fireRateLevel * TOWER_UPGRADES.bonusMultipliers.FIRE_RATE);
   }
 
   getVisualRadius(): number {
     // Increase visual size slightly with upgrades
     const baseRadius = TOWER_STATS[this.towerType].radius;
-    const sizeIncrease = Math.min(this.level - 1, 3) * 2; // Max 6 pixel increase
+    const sizeIncrease = Math.min(this.level - 1, 3) * TOWER_VISUALS.sizeIncreasePerLevel; // Max 6 pixel increase
     return baseRadius + sizeIncrease;
   }
 
