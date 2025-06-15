@@ -26,17 +26,37 @@ function resizeCanvas() {
   const container = canvas.parentElement;
   if (container) {
     const rect = container.getBoundingClientRect();
-    // Ensure minimum reasonable size
-    const width = Math.max(rect.width, 800);
-    const height = Math.max(rect.height, 600);
+    const pixelRatio = window.devicePixelRatio || 1;
     
-    canvas.width = width;
-    canvas.height = height;
+    // Use actual container size
+    const width = rect.width;
+    const height = rect.height;
+    
+    // Set canvas resolution (actual pixels)
+    canvas.width = width * pixelRatio;
+    canvas.height = height * pixelRatio;
+    
+    // Set canvas display size (CSS pixels)
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    
+    // Scale the drawing context for sharp rendering
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.scale(pixelRatio, pixelRatio);
+    }
     
     // Update camera viewport if game exists
     if (gameInitialized && game) {
       const camera = game.getCamera();
-      camera.updateViewport(canvas.width, canvas.height);
+      camera.updateViewport(width, height);
+      
+      // Adjust zoom based on screen size
+      const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+      if (isMobile) {
+        const baseZoom = Math.min(width / 1200, height / 800) * 0.9;
+        camera.setZoom(Math.max(0.5, baseZoom));
+      }
     }
   }
 }

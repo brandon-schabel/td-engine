@@ -173,13 +173,14 @@ function setupContainerStyles(container: HTMLElement): void {
  */
 function setupResponsiveHandling(container: HTMLElement, canvas: HTMLCanvasElement, uiManager: GameUIManager): void {
   const handleResize = () => {
-    // Update canvas size
-    const rect = container.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    
-    // Notify UI manager of size change
-    uiManager.handleResize(rect.width, rect.height);
+    // Get the canvas container size
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer) {
+      const rect = canvasContainer.getBoundingClientRect();
+      
+      // Notify UI manager of size change
+      uiManager.handleResize(rect.width, rect.height);
+    }
   };
   
   // Initial resize

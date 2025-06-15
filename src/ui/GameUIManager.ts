@@ -170,23 +170,24 @@ export class GameUIManager {
     const { GameStateOverlay } = await import('./components/game/GameStateOverlay');
     
     // Create modern UI components
-    await this.createModernComponent('hudOverlay', HUDOverlay, '#hud-container');
+    // Disable HUDOverlay for now as it creates floating elements
+    // await this.createModernComponent('hudOverlay', HUDOverlay, '#hud-container');
     await this.createBuildPanel();
     await this.createActionPanel();
     await this.createTowerUpgradePanel();
     
-    // Touch controls only on mobile
-    if (this.isMobile && this.options.enableTouchControls) {
-      await this.createModernComponent('touchControlsPanel', TouchControlsPanel, '#touch-controls-container');
-    }
+    // Touch controls only on mobile - disabled for now
+    // if (this.isMobile && this.options.enableTouchControls) {
+    //   await this.createModernComponent('touchControlsPanel', TouchControlsPanel, '#touch-controls-container');
+    // }
     
-    // Optional components
-    if (this.options.showInstructions) {
-      await this.createModernComponent('instructionsPanel', InstructionsPanel, '#instructions-container');
-    }
+    // Optional components - disabled for now to prevent floating elements
+    // if (this.options.showInstructions) {
+    //   await this.createModernComponent('instructionsPanel', InstructionsPanel, '#instructions-container');
+    // }
     
-    await this.createModernComponent('audioControlPanel', AudioControlPanel, '#audio-container');
-    await this.createModernComponent('gameStateOverlay', GameStateOverlay, '#game-state-container');
+    // await this.createModernComponent('audioControlPanel', AudioControlPanel, '#audio-container');
+    // await this.createModernComponent('gameStateOverlay', GameStateOverlay, '#game-state-container');
     
     this.log(`Initialized ${Object.keys(this.components).length} UI components`);
   }
@@ -206,7 +207,14 @@ export class GameUIManager {
       if (!container) {
         container = document.createElement('div');
         container.id = containerSelector.slice(1); // Remove the # from selector
-        document.body.appendChild(container);
+        
+        // Mount to UI container instead of body
+        const uiContainer = document.getElementById('ui-container');
+        if (uiContainer) {
+          uiContainer.appendChild(container);
+        } else {
+          document.body.appendChild(container);
+        }
       }
       
       // Create component with game reference
@@ -245,7 +253,13 @@ export class GameUIManager {
         showShortcuts: true
       } as BuildPanelProps);
       
-      buildPanel.mount(document.body);
+      // Mount to bottom UI container
+      const bottomContainer = document.getElementById('bottom-ui-container');
+      if (bottomContainer) {
+        buildPanel.mount(bottomContainer);
+      } else {
+        buildPanel.mount(document.body);
+      }
       this.components.buildPanel = buildPanel;
       
       // Register with panel manager
@@ -282,7 +296,13 @@ export class GameUIManager {
         compact: this.isMobile
       } as ActionPanelProps);
       
-      actionPanel.mount(document.body);
+      // Mount to bottom UI container
+      const bottomContainer = document.getElementById('bottom-ui-container');
+      if (bottomContainer) {
+        actionPanel.mount(bottomContainer);
+      } else {
+        actionPanel.mount(document.body);
+      }
       this.components.actionPanel = actionPanel;
       
       // Register with panel manager
@@ -323,7 +343,13 @@ export class GameUIManager {
         compactMode: this.isMobile
       } as TowerUpgradePanelProps);
       
-      towerUpgradePanel.mount(document.body);
+      // Mount to UI container (not bottom container as this is a popup)
+      const uiContainer = document.getElementById('ui-container');
+      if (uiContainer) {
+        towerUpgradePanel.mount(uiContainer);
+      } else {
+        towerUpgradePanel.mount(document.body);
+      }
       this.components.towerUpgradePanel = towerUpgradePanel;
       
       // Register with panel manager

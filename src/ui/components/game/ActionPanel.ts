@@ -144,7 +144,14 @@ export class ActionPanel extends GameComponent<ActionPanelProps, ActionPanelStat
   };
 
   protected renderContent(): HTMLElement {
-    const Container = this.createContainer('action-panel', {
+    // Check if mounted in bottom UI container
+    const isInBottomContainer = this.element?.parentElement?.id === 'bottom-ui-container';
+    
+    const Container = this.createContainer('action-panel', isInBottomContainer ? {
+      position: 'relative',
+      flex: '0 1 auto',
+      marginLeft: 'auto'
+    } : {
       position: 'fixed',
       bottom: '20px',
       right: '20px',

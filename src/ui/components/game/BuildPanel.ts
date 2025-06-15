@@ -164,7 +164,14 @@ export class BuildPanel extends GameComponent<BuildPanelProps, BuildPanelState> 
   };
 
   protected renderContent(): HTMLElement {
-    const Container = this.createContainer('build-panel', {
+    // Check if mounted in bottom UI container
+    const isInBottomContainer = this.element?.parentElement?.id === 'bottom-ui-container';
+    
+    const Container = this.createContainer('build-panel', isInBottomContainer ? {
+      position: 'relative',
+      flex: '0 1 auto',
+      minWidth: '280px'
+    } : {
       position: 'fixed',
       bottom: '20px',
       left: '20px',
@@ -174,23 +181,26 @@ export class BuildPanel extends GameComponent<BuildPanelProps, BuildPanelState> 
 
     const container = this.createElement(Container);
     
-    // Main panel with backdrop blur
+    // Main panel with backdrop blur - adjusted for container
     const Panel = styled.div`
-      background: rgba(0, 0, 0, 0.95);
-      border: 2px solid ${(props: { theme: any }) => props.theme.colors.primary};
+      background: ${isInBottomContainer ? 'transparent' : 'rgba(0, 0, 0, 0.95)'};
+      border: ${isInBottomContainer ? 'none' : `2px solid ${(props: { theme: any }) => props.theme.colors.primary}`};
       border-radius: ${(props: { theme: any }) => props.theme.borderRadius.lg};
-      backdrop-filter: blur(10px);
-      box-shadow: ${(props: { theme: any }) => props.theme.shadows.xl};
+      backdrop-filter: ${isInBottomContainer ? 'none' : 'blur(10px)'};
+      box-shadow: ${isInBottomContainer ? 'none' : (props: { theme: any }) => props.theme.shadows.xl};
       overflow: hidden;
       transition: all 0.3s ease;
+      padding: ${isInBottomContainer ? '0' : 'auto'};
       
       @media (max-width: 768px) {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        border-radius: ${(props: { theme: any }) => props.theme.borderRadius.lg} ${(props: { theme: any }) => props.theme.borderRadius.lg} 0 0;
-        min-width: auto;
+        ${!isInBottomContainer && `
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          border-radius: ${(props: { theme: any }) => props.theme.borderRadius.lg} ${(props: { theme: any }) => props.theme.borderRadius.lg} 0 0;
+          min-width: auto;
+        `}
       }
     `;
     
