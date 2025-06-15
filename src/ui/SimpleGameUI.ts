@@ -3,11 +3,11 @@ import { TowerType, UpgradeType } from '@/entities/Tower';
 import { PlayerUpgradeType } from '@/entities/Player';
 import { createSvgIcon, IconType } from './icons/SvgIcons';
 import { AudioManager, SoundType } from '../audio/AudioManager';
-import { PowerUpDisplay } from './components/game/PowerUpDisplay';
-import { CameraControls } from './components/game/CameraControls';
+import { PowerUpDisplay } from './components/game/SimplePowerUpDisplay';
+import { CameraControls } from './components/game/SimpleCameraControls';
 import { InventoryPanel } from './components/inventory/InventoryPanel';
 
-export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
+export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById('game-container');
   if (!gameContainer) return;
 

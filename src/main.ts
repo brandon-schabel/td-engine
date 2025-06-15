@@ -4,7 +4,7 @@ import { UpgradeType } from './entities/Tower';
 import { PlayerUpgradeType } from './entities/Player';
 import { AudioManager, SoundType } from './audio/AudioManager';
 import { SimpleSettingsMenu } from './ui/SimpleSettingsMenu';
-import { TouchInputSystem } from './ui/core/TouchInputSystem';
+// Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from './config/SettingsIntegration';
 import { MAP_SIZE_PRESETS, type MapGenerationConfig, BiomeType, MapDifficulty, DecorationLevel } from './types/MapData';
 import { createSvgIcon, IconType } from './ui/icons/SvgIcons';
@@ -70,7 +70,7 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimeout);
   resizeTimeout = window.setTimeout(resizeCanvas, 100);
 });
-let touchInputSystem: TouchInputSystem | null = null;
+// Touch input is now handled within the SimpleGameUI
 const audioManager = new AudioManager();
 let gameOverScreen: GameOverScreen;
 let settingsMenu: SimpleSettingsMenu;
@@ -173,64 +173,51 @@ let playerUpgradeContainer: HTMLDivElement;
 let updatePlayerUpgradePanel: () => void;
 
 function setupGameHandlers() {
-  // Detect if device supports touch
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  // Setup mouse event handlers for both desktop and touch
+  canvas.addEventListener('mousedown', (e) => {
+    if (gameInitialized) game.handleMouseDown(e);
+  });
+
+  canvas.addEventListener('mouseup', (e) => {
+    if (gameInitialized) game.handleMouseUp(e);
+  });
   
+  // Touch events are handled by the canvas natively
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameInitialized && e.touches.length > 0) {
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        button: 0
+      });
+      game.handleMouseDown(mouseEvent);
+    }
+  });
+  
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (gameInitialized) {
+      const mouseEvent = new MouseEvent('mouseup', { button: 0 });
+      game.handleMouseUp(mouseEvent);
+    }
+  });
+  
+  // Detect if device supports touch and add indicators
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   if (isTouchDevice) {
-    // Initialize TouchInputSystem for touch devices
-    touchInputSystem = new TouchInputSystem({
-      canvas,
-      game,
-      enableVirtualControls: true,
-      enableGestures: true,
-      hapticFeedback: true
-    });
-    
-    // Handle virtual control events
-    touchInputSystem.on('virtualcontrol', (event) => {
-      handleVirtualControlEvent(event);
-    });
-    
-    // Handle touch gestures
-    touchInputSystem.on('tap', (event) => {
-      audioManager.playUISound(SoundType.SELECT);
-    });
-    
-    touchInputSystem.on('doubletap', (event) => {
-      // Double tap to pause/resume
-      if (game.isPaused()) {
-        game.resume();
-      } else {
-        game.pause();
-      }
-    });
-    
-    touchInputSystem.on('press', (event) => {
-      // Long press for special actions (e.g., tower info)
-      audioManager.playUISound(SoundType.HOVER);
-    });
-    
-    // Add touch-friendly UI indicators
     addTouchUIIndicators();
-    
-  } else {
-    // Fallback to traditional mouse events for desktop
-    canvas.addEventListener('mousedown', (e) => {
-      if (gameInitialized) game.handleMouseDown(e);
-    });
-
-    canvas.addEventListener('mouseup', (e) => {
-      if (gameInitialized) game.handleMouseUp(e);
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-      if (gameInitialized) game.handleMouseMove(e);
-    });
-
-    canvas.addEventListener('wheel', (e) => {
-      if (gameInitialized) game.handleMouseWheel(e);
-    });
   }
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (gameInitialized) game.handleMouseMove(e);
+  });
+
+  canvas.addEventListener('wheel', (e) => {
+    if (gameInitialized) game.handleMouseWheel(e);
+  });
 }
 
 function handleVirtualControlEvent(event: any) {
@@ -401,16 +388,10 @@ document.addEventListener('keydown', (e) => {
     case 'E':
       // Toggle inventory
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-      // Access inventory through the modern UI manager
-      const uiManager = (window as any).gameUIManager;
-      if (uiManager) {
-        uiManager.toggleInventory();
-      } else {
-        // Fallback for legacy UI
-        const inventoryPanel = (window as any).gameUI?.inventoryPanel;
-        if (inventoryPanel) {
-          inventoryPanel.toggle();
-        }
+      // Access inventory through the UI
+      const inventoryPanel = (window as any).gameUI?.inventoryPanel;
+      if (inventoryPanel) {
+        inventoryPanel.toggle();
       }
       break;
     case 'm':
@@ -436,35 +417,19 @@ async function setupModernGameUI() {
   // Setup game handlers
   setupGameHandlers();
   
-  try {
-    // Use the modern UI system
-    const uiManager = await setupGameUI({
-      game,
-      container: document.body,
-      canvas,
-      audioManager,
-      showInstructions: true,
-      enableTouch: 'ontouchstart' in window,
-      enableHapticFeedback: true,
-      debugMode: false
-    });
-    
-    // Store UI manager reference globally for keyboard access
-    (window as any).gameUIManager = uiManager;
-    
-    return;
-  } catch (error) {
-    
-    // Fallback to legacy UI if modern system fails
-    const { setupGameUIRevamp } = await import('./ui/GameUIRevamp');
-    const ui = setupGameUIRevamp(game, audioManager);
-    (window as any).gameUI = ui;
-    
-    // Update control buttons periodically
-    setInterval(() => {
-      ui.updateControlButtons();
-    }, 100);
-  }
+  // Use the simple UI system
+  const ui = await setupGameUI({
+    game,
+    container: document.body,
+    canvas,
+    audioManager,
+    showInstructions: true,
+    enableTouch: 'ontouchstart' in window,
+    enableHapticFeedback: true,
+    debugMode: false
+  });
+  
+  // UI reference is stored globally by setupGameUI
   
   // Legacy UI code below (disabled)
   const gameContainer = document.getElementById('game-container');

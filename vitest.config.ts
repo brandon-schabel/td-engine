@@ -21,15 +21,8 @@ export default defineConfig({
     mockReset: true,
     // Enable isolation to prevent test interference
     isolate: true,
-    // Use forks pool which is more stable for hanging tests
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-        // Limit concurrent tests to prevent resource exhaustion
-        maxForks: 1,
-      }
-    },
+    // Use threads pool for better performance
+    pool: 'threads',
     // Disable file parallelism
     fileParallelism: false,
     // Bail on first test failure to help identify problematic tests

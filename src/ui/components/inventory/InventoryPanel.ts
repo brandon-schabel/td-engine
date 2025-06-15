@@ -5,8 +5,8 @@
 
 import type { Game } from '@/core/Game';
 import type { Inventory, InventoryItem, ItemType } from '@/systems/Inventory';
-import { ItemSlot } from './ItemSlot';
-import { ItemTooltip } from './ItemTooltip';
+import { ItemSlot } from './SimpleItemSlot';
+import { ItemTooltip } from './SimpleItemTooltip';
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 

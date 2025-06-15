@@ -4,7 +4,7 @@
  */
 
 import { Game } from './Game';
-import { EventEmitter } from '../ui/core/EventEmitter';
+import { EventEmitter } from '../utils/EventEmitter';
 import { GameState } from './GameState';
 import { Tower, TowerType } from '@/entities/Tower';
 import { Enemy } from '@/entities/Enemy';
