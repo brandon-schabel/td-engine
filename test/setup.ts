@@ -97,6 +97,7 @@ class MockHTMLImageElement {
   height = 64;
   onload: (() => void) | null = null;
   onerror: (() => void) | null = null;
+  complete = true; // Mark as complete for tests
   
   constructor() {
     // Set up a setter for src that triggers onload
@@ -105,10 +106,13 @@ class MockHTMLImageElement {
       get: () => _src,
       set: (value: string) => {
         _src = value;
-        // Trigger onload synchronously for tests to avoid hanging
-        if (this.onload) {
-          this.onload();
-        }
+        // Trigger onload on next tick to allow promise setup
+        // Use Promise.resolve().then to ensure it runs after the current task
+        Promise.resolve().then(() => {
+          if (this.onload) {
+            this.onload();
+          }
+        });
       }
     });
   }
@@ -215,18 +219,48 @@ class MockKeyboardEvent extends Event {
   stopPropagation = vi.fn();
 }
 
+// Add setImmediate polyfill for environments that don't have it
+if (typeof setImmediate === 'undefined') {
+  (global as any).setImmediate = (fn: Function) => setTimeout(fn, 0);
+}
+
+// Track all created games for cleanup
+const activeGames = new Set<any>();
+const originalGameStart = (global as any).Game?.prototype?.start;
+const originalGameStop = (global as any).Game?.prototype?.stop;
+
+// Hook into game lifecycle if Game class exists
+if (typeof (global as any).Game !== 'undefined') {
+  (global as any).Game.prototype.start = function() {
+    activeGames.add(this);
+    if (originalGameStart) {
+      return originalGameStart.call(this);
+    }
+  };
+  
+  (global as any).Game.prototype.stop = function() {
+    activeGames.delete(this);
+    if (originalGameStop) {
+      return originalGameStop.call(this);
+    }
+  };
+}
+
 // Mock requestAnimationFrame and cancelAnimationFrame
 // Note: These provide basic mocks that don't execute automatically
 // Tests that need controlled timing should use TimeController from test helpers
+let rafId = 0;
+const rafCallbacks = new Map<number, FrameRequestCallback>();
+
 global.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
-  // Return a mock ID but don't actually schedule the callback
-  // This prevents real timers from being created in tests
-  return 1;
+  const id = ++rafId;
+  rafCallbacks.set(id, callback);
+  // Don't execute the callback automatically
+  return id;
 });
 
 global.cancelAnimationFrame = vi.fn((id: number) => {
-  // Mock implementation that does nothing
-  // Real cleanup is handled by individual test utilities
+  rafCallbacks.delete(id);
 });
 
 // Mock performance.now - allow TimeController to override it
@@ -240,61 +274,82 @@ if (!global.performance) {
   });
 }
 
-// Mock window.AudioContext
-Object.defineProperty(global, 'AudioContext', {
-  value: MockAudioContext
-});
+// Mock window.AudioContext - only define if not already defined
+if (!global.AudioContext) {
+  Object.defineProperty(global, 'AudioContext', {
+    value: MockAudioContext,
+    writable: true,
+    configurable: true
+  });
+}
 
-Object.defineProperty(global, 'webkitAudioContext', {
-  value: MockAudioContext
-});
+if (!global.webkitAudioContext) {
+  Object.defineProperty(global, 'webkitAudioContext', {
+    value: MockAudioContext,
+    writable: true,
+    configurable: true
+  });
+}
 
 // Setup global mocks
-Object.defineProperty(global, 'HTMLCanvasElement', {
-  value: MockHTMLCanvasElement,
-  writable: true,
-  configurable: true
-});
+if (!global.HTMLCanvasElement || global.HTMLCanvasElement !== MockHTMLCanvasElement) {
+  Object.defineProperty(global, 'HTMLCanvasElement', {
+    value: MockHTMLCanvasElement,
+    writable: true,
+    configurable: true
+  });
+}
 
-Object.defineProperty(global, 'HTMLImageElement', {
-  value: MockHTMLImageElement,
-  writable: true,
-  configurable: true
-});
+if (!global.HTMLImageElement || global.HTMLImageElement !== MockHTMLImageElement) {
+  Object.defineProperty(global, 'HTMLImageElement', {
+    value: MockHTMLImageElement,
+    writable: true,
+    configurable: true
+  });
+}
 
-Object.defineProperty(global, 'Image', {
-  value: MockHTMLImageElement,
-  writable: true,
-  configurable: true
-});
+if (!global.Image || global.Image !== MockHTMLImageElement) {
+  Object.defineProperty(global, 'Image', {
+    value: MockHTMLImageElement,
+    writable: true,
+    configurable: true
+  });
+}
 
 // Also ensure Image is available as a global constructor
 (globalThis as any).Image = MockHTMLImageElement;
 
-Object.defineProperty(global, 'Audio', {
-  value: MockAudio,
-  writable: true,
-  configurable: true
-});
+if (!global.Audio || global.Audio !== MockAudio) {
+  Object.defineProperty(global, 'Audio', {
+    value: MockAudio,
+    writable: true,
+    configurable: true
+  });
+}
 
-Object.defineProperty(global, 'MouseEvent', {
-  value: MockMouseEvent,
-  writable: true,
-  configurable: true
-});
+if (!global.MouseEvent || global.MouseEvent !== MockMouseEvent) {
+  Object.defineProperty(global, 'MouseEvent', {
+    value: MockMouseEvent,
+    writable: true,
+    configurable: true
+  });
+}
 
-Object.defineProperty(global, 'KeyboardEvent', {
-  value: MockKeyboardEvent,
-  writable: true,
-  configurable: true
-});
+if (!global.KeyboardEvent || global.KeyboardEvent !== MockKeyboardEvent) {
+  Object.defineProperty(global, 'KeyboardEvent', {
+    value: MockKeyboardEvent,
+    writable: true,
+    configurable: true
+  });
+}
 
 // Ensure KeyboardEvent is also available on globalThis
 (globalThis as any).KeyboardEvent = MockKeyboardEvent;
 
 // Mock DOM methods that might be used in tests
-Object.defineProperty(document, 'createElement', {
-  value: vi.fn((tagName: string) => {
+if (typeof document !== 'undefined' && document.createElement) {
+  Object.defineProperty(document, 'createElement', {
+    value: vi.fn((tagName: string) => {
     if (tagName === 'canvas') {
       return new MockHTMLCanvasElement();
     }
@@ -320,41 +375,49 @@ Object.defineProperty(document, 'createElement', {
         toggle: vi.fn()
       }
     };
-  })
-});
+  }),
+  writable: true,
+  configurable: true
+  });
+}
 
 // Mock document with all necessary methods
-Object.defineProperty(global, 'document', {
-  value: {
-    ...document,
-    dispatchEvent: vi.fn(),
-    body: {
-      appendChild: vi.fn(),
-      removeChild: vi.fn(),
-      style: {}
+if (!global.document || !global.document._mocked) {
+  Object.defineProperty(global, 'document', {
+    value: {
+      ...document,
+      _mocked: true,
+      dispatchEvent: vi.fn(),
+      body: {
+        appendChild: vi.fn(),
+        removeChild: vi.fn(),
+        style: {}
+      },
+      head: {
+        appendChild: vi.fn(),
+        removeChild: vi.fn()
+      }
     },
-    head: {
-      appendChild: vi.fn(),
-      removeChild: vi.fn()
-    }
-  },
-  writable: true,
-  configurable: true
-});
+    writable: true,
+    configurable: true
+  });
+}
 
 // Mock localStorage
-Object.defineProperty(global, 'localStorage', {
-  value: {
-    getItem: vi.fn(() => null),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-    length: 0,
-    key: vi.fn(() => null)
-  },
-  writable: true,
-  configurable: true
-});
+if (!global.localStorage) {
+  Object.defineProperty(global, 'localStorage', {
+    value: {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(() => null)
+    },
+    writable: true,
+    configurable: true
+  });
+}
 
 // Console setup for cleaner test output
 const originalConsoleError = console.error;
@@ -372,8 +435,28 @@ console.error = (...args: any[]) => {
   originalConsoleError(...args);
 };
 
+// Store original global objects
+const originalRAF = global.requestAnimationFrame;
+const originalCAF = global.cancelAnimationFrame;
+const originalPerformance = global.performance;
+
 // Cleanup function for tests
-afterEach(() => {
+afterEach(async () => {
+  // Stop all active games
+  activeGames.forEach(game => {
+    if (game && typeof game.stop === 'function') {
+      try {
+        game.stop();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    }
+  });
+  activeGames.clear();
+  
+  // Clear all RAF callbacks
+  rafCallbacks.clear();
+  
   // Clear all Vitest mocks
   vi.clearAllMocks();
   
@@ -383,4 +466,15 @@ afterEach(() => {
   
   // Restore timers to ensure clean state
   vi.useRealTimers();
+  
+  // Restore global functions to prevent corruption
+  global.requestAnimationFrame = originalRAF;
+  global.cancelAnimationFrame = originalCAF;
+  if (originalPerformance) {
+    global.performance = originalPerformance;
+  }
+  
+  // Clear any pending microtasks and timers
+  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => setTimeout(resolve, 0));
 });

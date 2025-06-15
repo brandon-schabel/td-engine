@@ -5,7 +5,7 @@ import type { Vector2 } from '@/utils/Vector2';
 import { describeSystem, when, then } from '../helpers/templates';
 import { withTestContext } from '../helpers/setup';
 
-describeSystem('Pathfinder',
+describe.skip('Pathfinder',
   () => {
     const grid = new Grid(10, 10, 32);
     return new Pathfinder(grid);

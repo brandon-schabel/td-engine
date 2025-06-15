@@ -271,11 +271,12 @@ export function createFailingImage(): void {
   global.Image = class extends originalImage {
     constructor() {
       super();
-      setTimeout(() => {
+      // Use Promise.resolve().then to ensure proper async behavior
+      Promise.resolve().then(() => {
         if (this.onerror) {
           this.onerror();
         }
-      }, 0);
+      });
     }
   } as any;
 }
@@ -292,6 +293,7 @@ export function restoreImageLoading(): void {
     height = 64;
     onload: (() => void) | null = null;
     onerror: (() => void) | null = null;
+    complete = true;
     
     constructor() {
       let _src = '';
@@ -299,11 +301,12 @@ export function restoreImageLoading(): void {
         get: () => _src,
         set: (value: string) => {
           _src = value;
-          setTimeout(() => {
+          // Use Promise.resolve().then to ensure proper async behavior
+          Promise.resolve().then(() => {
             if (this.onload) {
               this.onload();
             }
-          }, 0);
+          });
         }
       });
     }

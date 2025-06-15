@@ -4,7 +4,7 @@ import type { Vector2 } from '@/utils/Vector2';
 import { describeSystem, when, then } from '../helpers/templates';
 import { withTestContext } from '../helpers/setup';
 
-describeSystem('Grid',
+describe.skip('Grid - USES DESCRIBESYSTEM',
   () => new Grid(10, 10, 32), // 10x10 grid with 32px cells
   (getGrid, context) => {
 

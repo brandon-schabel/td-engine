@@ -81,12 +81,14 @@ export function withTestContext(): TestContext {
     context.canvas = createMockCanvas();
   });
   
-  afterEach(() => {
+  afterEach(async () => {
     context.timeController.reset();
     vi.clearAllMocks();
     if (context.cleanup) {
       context.cleanup();
     }
+    // Ensure all microtasks are processed
+    await new Promise(resolve => setTimeout(resolve, 0));
   });
   
   return context;

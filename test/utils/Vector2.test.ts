@@ -1,321 +1,251 @@
 import { describe, it, expect } from 'vitest';
-import { Vector2 } from '@/utils/vector2';
-import { describePerformance, when, then } from '../helpers/templates';
-import { assertPerformance } from '../helpers/assertions';
+import type { Vector2 } from '@/utils/Vector2';
+import { Vector2Utils } from '@/utils/Vector2';
 
-describe('Vector2', () => {
-  describe('creation', () => {
-    it('creates from coordinates', () => {
-      const v = new Vector2(3, 4);
-      expect(v.x).toBe(3);
-      expect(v.y).toBe(4);
+describe('Vector2Utils', () => {
+  describe('distance', () => {
+    it('calculates distance between two points', () => {
+      const a: Vector2 = { x: 0, y: 0 };
+      const b: Vector2 = { x: 3, y: 4 };
+      expect(Vector2Utils.distance(a, b)).toBe(5);
     });
-    
-    it('creates with default values', () => {
-      const v = new Vector2();
-      expect(v.x).toBe(0);
-      expect(v.y).toBe(0);
+
+    it('calculates distance with negative coordinates', () => {
+      const a: Vector2 = { x: -1, y: -1 };
+      const b: Vector2 = { x: 2, y: 3 };
+      expect(Vector2Utils.distance(a, b)).toBe(5);
     });
-    
-    it('creates from object', () => {
-      const v = Vector2.fromObject({ x: 5, y: 12 });
-      expect(v.x).toBe(5);
-      expect(v.y).toBe(12);
+
+    it('returns 0 for same points', () => {
+      const a: Vector2 = { x: 5, y: 5 };
+      const b: Vector2 = { x: 5, y: 5 };
+      expect(Vector2Utils.distance(a, b)).toBe(0);
     });
-  });
-  
-  describe('operations', () => {
-    it(when('adding vectors'), () => {
-      const v1 = new Vector2(1, 2);
-      const v2 = new Vector2(3, 4);
-      const result = v1.add(v2);
-      
-      expect(result.x).toBe(4);
-      expect(result.y).toBe(6);
-    });
-    
-    it(then('original vectors are unchanged'), () => {
-      const v1 = new Vector2(1, 2);
-      const v2 = new Vector2(3, 4);
-      v1.add(v2);
-      
-      expect(v1.x).toBe(1);
-      expect(v1.y).toBe(2);
-    });
-    
-    it('subtracts vectors', () => {
-      const v1 = new Vector2(5, 7);
-      const v2 = new Vector2(2, 3);
-      const result = v1.subtract(v2);
-      
-      expect(result.x).toBe(3);
-      expect(result.y).toBe(4);
-    });
-    
-    it('multiplies by scalar', () => {
-      const v = new Vector2(3, 4);
-      const result = v.multiply(2);
-      
-      expect(result.x).toBe(6);
-      expect(result.y).toBe(8);
-    });
-    
-    it('divides by scalar', () => {
-      const v = new Vector2(6, 8);
-      const result = v.divide(2);
-      
-      expect(result.x).toBe(3);
-      expect(result.y).toBe(4);
-    });
-    
-    it('handles division by zero', () => {
-      const v = new Vector2(6, 8);
-      expect(() => v.divide(0)).toThrow();
+
+    it('distance is symmetric', () => {
+      const a: Vector2 = { x: 1, y: 2 };
+      const b: Vector2 = { x: 4, y: 6 };
+      expect(Vector2Utils.distance(a, b)).toBe(Vector2Utils.distance(b, a));
     });
   });
-  
-  describe('magnitude and normalization', () => {
-    it('calculates magnitude', () => {
-      const v = new Vector2(3, 4);
-      expect(v.magnitude()).toBe(5);
-    });
-    
-    it('calculates squared magnitude', () => {
-      const v = new Vector2(3, 4);
-      expect(v.magnitudeSquared()).toBe(25);
-    });
-    
-    it('normalizes vector', () => {
-      const v = new Vector2(3, 4);
-      const normalized = v.normalize();
+
+  describe('normalize', () => {
+    it('normalizes a vector', () => {
+      const v: Vector2 = { x: 3, y: 4 };
+      const normalized = Vector2Utils.normalize(v);
       
-      expect(normalized.magnitude()).toBeCloseTo(1, 5);
       expect(normalized.x).toBeCloseTo(0.6, 5);
       expect(normalized.y).toBeCloseTo(0.8, 5);
+      
+      const length = Math.sqrt(normalized.x * normalized.x + normalized.y * normalized.y);
+      expect(length).toBeCloseTo(1, 5);
     });
-    
-    it('handles zero vector normalization', () => {
-      const v = new Vector2(0, 0);
-      const normalized = v.normalize();
+
+    it('handles zero vector', () => {
+      const v: Vector2 = { x: 0, y: 0 };
+      const normalized = Vector2Utils.normalize(v);
       
       expect(normalized.x).toBe(0);
       expect(normalized.y).toBe(0);
     });
-  });
-  
-  describe('distance calculations', () => {
-    it('calculates distance between vectors', () => {
-      const v1 = new Vector2(0, 0);
-      const v2 = new Vector2(3, 4);
+
+    it('normalizes negative vectors', () => {
+      const v: Vector2 = { x: -3, y: -4 };
+      const normalized = Vector2Utils.normalize(v);
       
-      expect(v1.distanceTo(v2)).toBe(5);
-    });
-    
-    it('calculates squared distance', () => {
-      const v1 = new Vector2(0, 0);
-      const v2 = new Vector2(3, 4);
+      expect(normalized.x).toBeCloseTo(-0.6, 5);
+      expect(normalized.y).toBeCloseTo(-0.8, 5);
       
-      expect(v1.distanceSquaredTo(v2)).toBe(25);
-    });
-    
-    it('distance is symmetric', () => {
-      const v1 = new Vector2(1, 2);
-      const v2 = new Vector2(4, 6);
-      
-      expect(v1.distanceTo(v2)).toBe(v2.distanceTo(v1));
+      const length = Math.sqrt(normalized.x * normalized.x + normalized.y * normalized.y);
+      expect(length).toBeCloseTo(1, 5);
     });
   });
-  
-  describe('dot and cross products', () => {
-    it('calculates dot product', () => {
-      const v1 = new Vector2(3, 4);
-      const v2 = new Vector2(2, 1);
+
+  describe('multiply', () => {
+    it('multiplies vector by positive scalar', () => {
+      const v: Vector2 = { x: 3, y: 4 };
+      const result = Vector2Utils.multiply(v, 2);
       
-      expect(v1.dot(v2)).toBe(10); // 3*2 + 4*1
+      expect(result.x).toBe(6);
+      expect(result.y).toBe(8);
     });
-    
-    it('dot product is commutative', () => {
-      const v1 = new Vector2(3, 4);
-      const v2 = new Vector2(2, 1);
+
+    it('multiplies vector by negative scalar', () => {
+      const v: Vector2 = { x: 3, y: 4 };
+      const result = Vector2Utils.multiply(v, -2);
       
-      expect(v1.dot(v2)).toBe(v2.dot(v1));
+      expect(result.x).toBe(-6);
+      expect(result.y).toBe(-8);
     });
-    
-    it('calculates cross product (2D)', () => {
-      const v1 = new Vector2(3, 4);
-      const v2 = new Vector2(2, 1);
+
+    it('multiplies vector by zero', () => {
+      const v: Vector2 = { x: 3, y: 4 };
+      const result = Vector2Utils.multiply(v, 0);
       
-      expect(v1.cross(v2)).toBe(-5); // 3*1 - 4*2
+      expect(result.x).toBe(0);
+      expect(result.y).toBe(0);
+    });
+
+    it('multiplies by fractional scalar', () => {
+      const v: Vector2 = { x: 10, y: 20 };
+      const result = Vector2Utils.multiply(v, 0.5);
+      
+      expect(result.x).toBe(5);
+      expect(result.y).toBe(10);
     });
   });
-  
-  describe('angle calculations', () => {
-    it('calculates angle to another vector', () => {
-      const v1 = new Vector2(1, 0);
-      const v2 = new Vector2(0, 1);
+
+  describe('add', () => {
+    it('adds two vectors', () => {
+      const a: Vector2 = { x: 1, y: 2 };
+      const b: Vector2 = { x: 3, y: 4 };
+      const result = Vector2Utils.add(a, b);
       
-      const angle = v1.angleTo(v2);
-      expect(angle).toBeCloseTo(Math.PI / 2, 5);
+      expect(result.x).toBe(4);
+      expect(result.y).toBe(6);
     });
-    
-    it('calculates angle from x-axis', () => {
-      const v = new Vector2(1, 1);
-      const angle = v.angle();
+
+    it('adds with negative values', () => {
+      const a: Vector2 = { x: 5, y: 3 };
+      const b: Vector2 = { x: -2, y: -1 };
+      const result = Vector2Utils.add(a, b);
       
-      expect(angle).toBeCloseTo(Math.PI / 4, 5);
+      expect(result.x).toBe(3);
+      expect(result.y).toBe(2);
     });
-    
-    it('rotates vector', () => {
-      const v = new Vector2(1, 0);
-      const rotated = v.rotate(Math.PI / 2);
+
+    it('adds zero vector', () => {
+      const a: Vector2 = { x: 5, y: 7 };
+      const b: Vector2 = { x: 0, y: 0 };
+      const result = Vector2Utils.add(a, b);
       
-      expect(rotated.x).toBeCloseTo(0, 5);
-      expect(rotated.y).toBeCloseTo(1, 5);
+      expect(result.x).toBe(5);
+      expect(result.y).toBe(7);
+    });
+
+    it('addition is commutative', () => {
+      const a: Vector2 = { x: 1, y: 2 };
+      const b: Vector2 = { x: 3, y: 4 };
+      
+      const result1 = Vector2Utils.add(a, b);
+      const result2 = Vector2Utils.add(b, a);
+      
+      expect(result1.x).toBe(result2.x);
+      expect(result1.y).toBe(result2.y);
     });
   });
-  
-  describe('utility methods', () => {
-    it('clones vector', () => {
-      const v = new Vector2(3, 4);
-      const clone = v.clone();
+
+  describe('subtract', () => {
+    it('subtracts two vectors', () => {
+      const a: Vector2 = { x: 5, y: 7 };
+      const b: Vector2 = { x: 2, y: 3 };
+      const result = Vector2Utils.subtract(a, b);
       
-      expect(clone).not.toBe(v);
-      expect(clone.x).toBe(3);
-      expect(clone.y).toBe(4);
+      expect(result.x).toBe(3);
+      expect(result.y).toBe(4);
     });
-    
-    it('checks equality', () => {
-      const v1 = new Vector2(3, 4);
-      const v2 = new Vector2(3, 4);
-      const v3 = new Vector2(3, 5);
+
+    it('subtracts with negative values', () => {
+      const a: Vector2 = { x: 3, y: 2 };
+      const b: Vector2 = { x: -2, y: -3 };
+      const result = Vector2Utils.subtract(a, b);
       
-      expect(v1.equals(v2)).toBe(true);
-      expect(v1.equals(v3)).toBe(false);
+      expect(result.x).toBe(5);
+      expect(result.y).toBe(5);
     });
-    
-    it('converts to array', () => {
-      const v = new Vector2(3, 4);
-      const arr = v.toArray();
+
+    it('subtracts zero vector', () => {
+      const a: Vector2 = { x: 5, y: 7 };
+      const b: Vector2 = { x: 0, y: 0 };
+      const result = Vector2Utils.subtract(a, b);
       
-      expect(arr).toEqual([3, 4]);
+      expect(result.x).toBe(5);
+      expect(result.y).toBe(7);
     });
-    
-    it('converts to object', () => {
-      const v = new Vector2(3, 4);
-      const obj = v.toObject();
+
+    it('subtracting same vectors gives zero', () => {
+      const a: Vector2 = { x: 5, y: 7 };
+      const result = Vector2Utils.subtract(a, a);
       
-      expect(obj).toEqual({ x: 3, y: 4 });
+      expect(result.x).toBe(0);
+      expect(result.y).toBe(0);
     });
   });
-  
-  describe('edge cases', () => {
-    it('handles negative values', () => {
-      const v = new Vector2(-3, -4);
-      expect(v.magnitude()).toBe(5);
+
+  describe('length', () => {
+    it('calculates length of vector', () => {
+      const v: Vector2 = { x: 3, y: 4 };
+      expect(Vector2Utils.length(v)).toBe(5);
     });
-    
+
+    it('calculates length with negative values', () => {
+      const v: Vector2 = { x: -3, y: -4 };
+      expect(Vector2Utils.length(v)).toBe(5);
+    });
+
+    it('returns 0 for zero vector', () => {
+      const v: Vector2 = { x: 0, y: 0 };
+      expect(Vector2Utils.length(v)).toBe(0);
+    });
+
+    it('calculates length of unit vectors', () => {
+      const v1: Vector2 = { x: 1, y: 0 };
+      const v2: Vector2 = { x: 0, y: 1 };
+      
+      expect(Vector2Utils.length(v1)).toBe(1);
+      expect(Vector2Utils.length(v2)).toBe(1);
+    });
+
     it('handles very large values', () => {
-      const v = new Vector2(1e10, 1e10);
-      const normalized = v.normalize();
-      
-      expect(normalized.magnitude()).toBeCloseTo(1, 5);
+      const v: Vector2 = { x: 1e5, y: 0 };
+      expect(Vector2Utils.length(v)).toBe(1e5);
     });
-    
+
     it('handles very small values', () => {
-      const v = new Vector2(1e-10, 1e-10);
-      const normalized = v.normalize();
-      
-      expect(normalized.magnitude()).toBeCloseTo(1, 5);
+      const v: Vector2 = { x: 1e-10, y: 1e-10 };
+      expect(Vector2Utils.length(v)).toBeCloseTo(Math.sqrt(2) * 1e-10, 15);
     });
   });
-  
-  describe('static methods', () => {
-    it('creates zero vector', () => {
-      const v = Vector2.zero();
-      expect(v.x).toBe(0);
-      expect(v.y).toBe(0);
+
+  describe('edge cases', () => {
+    it('handles operations with Infinity', () => {
+      const v: Vector2 = { x: Infinity, y: 0 };
+      const normalized = Vector2Utils.normalize(v);
+      
+      // When normalizing a vector with Infinity:
+      // length = Infinity, so Infinity/Infinity = NaN, 0/Infinity = 0
+      expect(normalized.x).toBeNaN();
+      expect(normalized.y).toBe(0);
     });
-    
-    it('creates unit vectors', () => {
-      const right = Vector2.right();
-      expect(right.x).toBe(1);
-      expect(right.y).toBe(0);
+
+    it('handles operations with very large numbers', () => {
+      const a: Vector2 = { x: 1e10, y: 1e10 };
+      const b: Vector2 = { x: -1e10, y: -1e10 };
+      const result = Vector2Utils.add(a, b);
       
-      const up = Vector2.up();
-      expect(up.x).toBe(0);
-      expect(up.y).toBe(1);
+      expect(result.x).toBe(0);
+      expect(result.y).toBe(0);
     });
-    
-    it('lerps between vectors', () => {
-      const v1 = new Vector2(0, 0);
-      const v2 = new Vector2(10, 10);
+  });
+
+  describe('immutability', () => {
+    it('does not modify input vectors', () => {
+      const a: Vector2 = { x: 1, y: 2 };
+      const b: Vector2 = { x: 3, y: 4 };
       
-      const mid = Vector2.lerp(v1, v2, 0.5);
-      expect(mid.x).toBe(5);
-      expect(mid.y).toBe(5);
+      Vector2Utils.add(a, b);
+      expect(a.x).toBe(1);
+      expect(a.y).toBe(2);
+      expect(b.x).toBe(3);
+      expect(b.y).toBe(4);
       
-      const quarter = Vector2.lerp(v1, v2, 0.25);
-      expect(quarter.x).toBe(2.5);
-      expect(quarter.y).toBe(2.5);
-    });
-    
-    it('clamps lerp parameter', () => {
-      const v1 = new Vector2(0, 0);
-      const v2 = new Vector2(10, 10);
+      Vector2Utils.normalize(a);
+      expect(a.x).toBe(1);
+      expect(a.y).toBe(2);
       
-      const clamped = Vector2.lerp(v1, v2, 1.5);
-      expect(clamped.x).toBe(10);
-      expect(clamped.y).toBe(10);
+      Vector2Utils.multiply(a, 5);
+      expect(a.x).toBe(1);
+      expect(a.y).toBe(2);
     });
   });
 });
-
-describePerformance('Vector2', [
-  {
-    name: 'vector addition',
-    fn: () => {
-      const v1 = new Vector2(Math.random(), Math.random());
-      const v2 = new Vector2(Math.random(), Math.random());
-      v1.add(v2);
-    },
-    maxDuration: 0.01,
-    iterations: 10000
-  },
-  {
-    name: 'magnitude calculation',
-    fn: () => {
-      const v = new Vector2(Math.random() * 100, Math.random() * 100);
-      v.magnitude();
-    },
-    maxDuration: 0.01,
-    iterations: 10000
-  },
-  {
-    name: 'normalization',
-    fn: () => {
-      const v = new Vector2(Math.random() * 100, Math.random() * 100);
-      v.normalize();
-    },
-    maxDuration: 0.02,
-    iterations: 10000
-  },
-  {
-    name: 'distance calculation',
-    fn: () => {
-      const v1 = new Vector2(Math.random() * 100, Math.random() * 100);
-      const v2 = new Vector2(Math.random() * 100, Math.random() * 100);
-      v1.distanceTo(v2);
-    },
-    maxDuration: 0.02,
-    iterations: 10000
-  },
-  {
-    name: 'rotation',
-    fn: () => {
-      const v = new Vector2(Math.random() * 100, Math.random() * 100);
-      v.rotate(Math.random() * Math.PI * 2);
-    },
-    maxDuration: 0.03,
-    iterations: 10000
-  }
-]);

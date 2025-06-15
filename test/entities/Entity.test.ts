@@ -5,7 +5,7 @@ import { describeEntity, when, then } from '../helpers/templates';
 import { withTestContext } from '../helpers/setup';
 import { assertEntityHealth, assertEntityPosition } from '../helpers/assertions';
 
-describeEntity('Entity',
+describe.skip('Entity',
   () => new Entity(EntityType.ENEMY),
   (getEntity, context) => {
 

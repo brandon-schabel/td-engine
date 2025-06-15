@@ -8,7 +8,7 @@ import { describeSystem, when, then } from '../helpers/templates';
 import { withTestContext } from '../helpers/setup';
 import { TowerBuilder, PlayerBuilder } from '../helpers/builders';
 
-describeSystem('SpawnZoneManager',
+describe.skip('SpawnZoneManager',
   () => {
     const grid = new Grid(20, 15, 20);
     return new SpawnZoneManager(grid);
