@@ -24,6 +24,15 @@ export class ItemTooltip extends Component<ItemTooltipProps> {
     super(props);
   }
 
+  protected getInitialState(): any {
+    return {};
+  }
+
+  protected render(): HTMLElement {
+    // Not used since we manually create tooltip
+    return document.createElement('div');
+  }
+
   mount(container: HTMLElement): void {
     this.container = container;
     this.createTooltip();

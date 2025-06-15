@@ -800,6 +800,8 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
   let inventoryPanel: any = null;
   try {
     // Try to create the complex InventoryPanel
+    console.log('Attempting to create InventoryPanel...');
+    console.log('Game inventory:', game.getInventory());
     inventoryPanel = new InventoryPanel({
       game: game,
       inventory: game.getInventory(),
@@ -807,10 +809,12 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
       visible: false,
       position: 'center'
     });
+    console.log('InventoryPanel instance created, mounting...');
     inventoryPanel.mount(inventoryPanelContainer);
     console.log('InventoryPanel created successfully');
   } catch (error) {
     console.error('Failed to create InventoryPanel, creating simple fallback:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     // Create a simple fallback inventory display
     inventoryPanel = {
@@ -820,12 +824,18 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
         const panel = document.getElementById('simple-inventory-panel');
         if (panel) {
           panel.style.display = this.isVisible ? 'block' : 'none';
+          if (this.isVisible) {
+            updateInventoryDisplay();
+          }
         }
       },
       show: function() {
         this.isVisible = true;
         const panel = document.getElementById('simple-inventory-panel');
-        if (panel) panel.style.display = 'block';
+        if (panel) {
+          panel.style.display = 'block';
+          updateInventoryDisplay();
+        }
       },
       hide: function() {
         this.isVisible = false;
@@ -853,13 +863,22 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
       z-index: 2001;
     `;
     
+    // Create a functional inventory display
+    const inventory = game.getInventory();
+    const stats = inventory.getStatistics();
+    
     simplePanel.innerHTML = `
-      <div style="color: #4CAF50; font-size: 18px; font-weight: bold; margin-bottom: 20px;">
-        Inventory System
+      <div class="inventory-header" style="color: #4CAF50; font-size: 18px; font-weight: bold; margin-bottom: 20px;">
+        Inventory (${stats.usedSlots}/${stats.totalSlots})
       </div>
-      <div style="color: #CCCCCC; margin-bottom: 20px;">
-        Inventory system is being implemented. Coming soon!
-      </div>
+      <div id="inventory-grid" style="
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-bottom: 20px;
+        max-height: 300px;
+        overflow-y: auto;
+      "></div>
       <button id="close-simple-inventory" style="
         background: #F44336;
         border: none;
@@ -869,6 +888,82 @@ export function setupGameUIRevamp(game: Game, audioManager: AudioManager) {
         cursor: pointer;
       ">Close</button>
     `;
+    
+    // Function to update inventory display
+    const updateInventoryDisplay = () => {
+      const grid = simplePanel.querySelector('#inventory-grid');
+      const headerDiv = simplePanel.querySelector('.inventory-header');
+      if (!grid) return;
+      
+      // Update header with current stats
+      const currentStats = inventory.getStatistics();
+      if (headerDiv) {
+        headerDiv.textContent = `Inventory (${currentStats.usedSlots}/${currentStats.totalSlots})`;
+      }
+      
+      grid.innerHTML = '';
+      const state = inventory.getState();
+      const slots = state.slots;
+      
+      // Show all slots
+      for (let i = 0; i < currentStats.totalSlots; i++) {
+        const slot = slots[i];
+        const slotEl = document.createElement('div');
+        slotEl.style.cssText = `
+          width: 80px;
+          height: 80px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 4px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          position: relative;
+        `;
+        
+        if (slot && slot.item) {
+          const item = slot.item;
+          slotEl.innerHTML = `
+            <div style="color: #FFF; font-size: 12px; text-align: center; padding: 4px;">
+              ${item.name}
+            </div>
+            <div style="color: #FFD700; font-size: 10px;">
+              ${item.quantity > 1 ? 'x' + item.quantity : ''}
+            </div>
+          `;
+          
+          // Color based on rarity
+          const rarityColors = {
+            'COMMON': '#CCCCCC',
+            'RARE': '#4169E1',
+            'EPIC': '#9370DB',
+            'LEGENDARY': '#FFD700'
+          };
+          slotEl.style.borderColor = rarityColors[item.rarity] || '#CCCCCC';
+          
+          // Add click handler to use item
+          slotEl.addEventListener('click', () => {
+            if (item.type === 'CONSUMABLE') {
+              const result = inventory.useItem(item.id);
+              if (result.success) {
+                audioManager.playUISound(SoundType.POWERUP_COLLECTED);
+                updateInventoryDisplay();
+              }
+            }
+          });
+        }
+        
+        grid.appendChild(slotEl);
+      }
+    };
+    
+    // Initial display
+    updateInventoryDisplay();
+    
+    // Listen for inventory changes
+    inventory.on('inventoryChanged', updateInventoryDisplay);
     
     inventoryPanelContainer.appendChild(simplePanel);
     

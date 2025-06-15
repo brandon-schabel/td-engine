@@ -5,7 +5,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [tsconfigPaths()],
   server: {
-    port: 4017,
+    port: 4020,
   },
   test: {
     globals: true,

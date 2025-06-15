@@ -983,7 +983,7 @@ export class Game {
         return currentState.slots[index];
       }
       return { item: null, slotIndex: index };
-    });
+    }).filter((slot): slot is { item: InventoryItem | null; slotIndex: number } => slot !== undefined);
 
     // Update inventory configuration and restore state with new capacity
     this.inventory.setState({

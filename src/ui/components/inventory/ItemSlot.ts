@@ -41,6 +41,15 @@ export class ItemSlot extends Component<ItemSlotProps> {
     this.handleDrop = this.handleDrop.bind(this);
   }
 
+  protected getInitialState(): any {
+    return {};
+  }
+
+  protected render(): HTMLElement {
+    // Not used since we manually create in mount
+    return document.createElement('div');
+  }
+
   mount(container: HTMLElement): void {
     this.container = container;
     this.render();
