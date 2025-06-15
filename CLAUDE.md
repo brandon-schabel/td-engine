@@ -5,6 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## General Code Principles
 Write self-explanatory, modular, functional code following DRY, SRP, and KISS. Code should be unit-testable with clear naming. Include a comment at the top of each file detailing the 5 most recent changes. Minimize file size with concise code.
 
+## Update Docs
+When changing/updating the architecture make sure to update the document files
+
+
+
 ## TypeScript Rules
 - **No `any`**: Use strong typing, Zod schemas for unknown shapes
 - **Functional style**: Pure functions, single responsibility, descriptive names
