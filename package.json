@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "test": "vitest run --reporter=verbose --no-file-parallelism",
+    "test": "vitest run",
     "test:sequential": "./test-sequential.sh",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

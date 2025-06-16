@@ -150,13 +150,13 @@ export class PlayerProgression {
   getUpgradeDescription(upgradeType: PlayerUpgradeType): string {
     switch (upgradeType) {
       case PlayerUpgradeType.DAMAGE:
-        return `Increase damage by ${(this.getDamageMultiplier() - 1) * 100}%`;
+        return `Increase damage by ${Math.round((this.getDamageMultiplier() - 1) * 100)}%`;
       case PlayerUpgradeType.SPEED:
-        return `Increase movement speed by ${(this.getSpeedMultiplier() - 1) * 100}%`;
+        return `Increase movement speed by ${Math.round((this.getSpeedMultiplier() - 1) * 100)}%`;
       case PlayerUpgradeType.FIRE_RATE:
-        return `Increase fire rate by ${(this.getFireRateMultiplier() - 1) * 100}%`;
+        return `Increase fire rate by ${Math.round((this.getFireRateMultiplier() - 1) * 100)}%`;
       case PlayerUpgradeType.HEALTH:
-        return `Increase max health by ${(this.getHealthMultiplier() - 1) * 100}%`;
+        return `Increase max health by ${Math.round((this.getHealthMultiplier() - 1) * 100)}%`;
       case PlayerUpgradeType.REGENERATION:
         return `Regenerate ${this.getRegenerationRate().toFixed(1)} HP/s`;
       default:

@@ -8,8 +8,6 @@ Write self-explanatory, modular, functional code following DRY, SRP, and KISS. C
 ## Update Docs
 When changing/updating the architecture make sure to update the document files
 
-
-
 ## TypeScript Rules
 - **No `any`**: Use strong typing, Zod schemas for unknown shapes
 - **Functional style**: Pure functions, single responsibility, descriptive names
@@ -17,6 +15,9 @@ When changing/updating the architecture make sure to update the document files
 - **Dependencies**: Prefer Bun built-ins, tree shake imports
 - **File organization**: Single-responsibility files, named exports
 - **Testing**: TDD approach, update tests with new logic
+
+## Unit Testing Philosophy
+Only unit test the engine. Avoid complex mocking, avoid integration tests, avoid functional tests, just do unit testing. If something can't be unit tested then break it out of the class or function until it can be unit tested. We're not going for 100% code coverage.
 
 ## Environment Setup
 - **Bun**: Version 1.2+ (always use bun)

@@ -447,7 +447,7 @@ export class Inventory {
     this.totalValue = state.statistics.totalValue;
 
     // Resize slots array if needed
-    if (state.slots.length !== this.slots.length) {
+    if (this.config.maxSlots !== this.slots.length) {
       this.slots = Array.from({ length: this.config.maxSlots }, (_, index) => ({
         item: null,
         slotIndex: index
