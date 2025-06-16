@@ -754,6 +754,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const controlsList = document.createElement('div');
   controlsList.style.cssText = 'font-size: 11px; line-height: 1.4;';
   const keyboardIcon = createSvgIcon(IconType.KEYBOARD, { size: 14 });
+  const mouseIcon = createSvgIcon(IconType.MOUSE, { size: 16 });
+
   controlsList.innerHTML = `
     <div style="margin-bottom: 4px;">${keyboardIcon} <strong>Keyboard:</strong></div>
     <div>WASD/Arrows - Move Player</div>
@@ -763,6 +765,17 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     <div>Enter - Start Next Wave</div>
     <div>Space - Pause/Resume</div>
     <div>ESC - Cancel Selection</div>
+        <div style="margin-top: 6px; color: #4CAF50;">
+      <strong>Camera/Zoom:</strong>
+    </div>
+    <div>+/- - Zoom In/Out</div>
+    <div>0 - Reset Zoom</div>
+    <div>F - Fit to Screen</div>
+    <div>C - Toggle Follow Player</div>
+    <div style="margin-top: 8px; font-size: 12px; color: #FFD700; display: flex; align-items: center; gap: 6px;">
+      ${mouseIcon}
+      <strong>Mouse wheel to zoom • Click audio icon for settings</strong>
+    </div>
   `;
   controlsSection.appendChild(controlsList);
   settingsContent.appendChild(controlsSection);
