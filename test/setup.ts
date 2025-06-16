@@ -21,14 +21,34 @@ global.performance = {
 } as any;
 
 // Mock localStorage for ScoreManager tests
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn()
-};
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: vi.fn((index: number) => {
+      const keys = Object.keys(store);
+      return keys[index] || null;
+    }),
+    // Helper to reset store for tests
+    __resetStore: () => {
+      store = {};
+    }
+  };
+})();
+
 global.localStorage = localStorageMock as any;
 
 // Mock console methods to avoid noise in test output
@@ -102,6 +122,5 @@ global.HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
 // Reset mocks before each test
 beforeEach(() => {
   vi.clearAllMocks();
-  localStorageMock.getItem.mockReset();
-  localStorageMock.setItem.mockReset();
+  (localStorageMock as any).__resetStore();
 });

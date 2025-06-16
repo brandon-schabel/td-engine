@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import type { Entity } from '@/entities/Entity';
 import { EntityType } from '@/entities/Entity';
 import type { Enemy } from '@/entities/Enemy';
@@ -48,8 +49,10 @@ export function createMockEnemy(overrides: Partial<Enemy> = {}): Enemy {
 }
 
 export function createMockTower(overrides: Partial<Tower> = {}): Tower {
+  const base = createMockEntity({ type: EntityType.TOWER });
   return {
-    ...createMockEntity({ type: EntityType.TOWER }),
+    ...base,
+    position: { x: base.x, y: base.y }, // Add position property
     towerType: TowerType.BASIC,
     damage: 20,
     range: 100,

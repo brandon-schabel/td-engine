@@ -1040,6 +1040,13 @@ export class Game {
 
     // Track enemies killed
     this.enemiesKilled++;
+    
+    // Award experience to player if they have the addExperience method
+    if (this.player && 'addExperience' in this.player && typeof this.player.addExperience === 'function') {
+      // Award experience based on enemy reward (could be adjusted)
+      const experienceGain = enemy.reward * 10; // 10 XP per currency reward
+      (this.player as any).addExperience(experienceGain);
+    }
 
     // Enhanced item drop system
     const dropRate = this.getEnemyDropRate(enemy);

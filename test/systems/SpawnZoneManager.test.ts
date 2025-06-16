@@ -108,6 +108,9 @@ describe('SpawnZoneManager', () => {
     it('should respect chaos mode', () => {
       const chaosManager = new SpawnZoneManager(grid, { chaosMode: true });
       
+      // Call update to activate multiple zones in chaos mode
+      chaosManager.update(100, mockGameState, [], mockPlayer(0, 0));
+      
       const positions = new Set<string>();
       for (let i = 0; i < 20; i++) {
         const pos = chaosManager.getNextSpawnPosition();
@@ -178,10 +181,11 @@ describe('SpawnZoneManager', () => {
       const zone = zones[0];
       const initialPriority = zone.priority;
       
-      // Place tower near zone
+      // Place tower near zone and player also near to isolate tower effect
       const towers = [mockTower(zone.position.x, zone.position.y)];
+      const nearbyPlayer = mockPlayer(zone.position.x + 50, zone.position.y + 50);
       
-      spawnZoneManager.update(100, mockGameState, towers, mockPlayer(500, 500));
+      spawnZoneManager.update(100, mockGameState, towers, nearbyPlayer);
       
       expect(zone.priority).toBeLessThan(initialPriority);
     });

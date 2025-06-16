@@ -62,23 +62,23 @@ describe('PlayerProgression', () => {
       expect(progression.getUpgradeLevel(PlayerUpgradeType.HEALTH)).toBe(0);
     });
 
-    it('should update player level based on total upgrades', () => {
-      // Level = 1 + floor(totalUpgrades / 4)
+    it('should not update player level based on upgrades', () => {
+      // Level is now only affected by experience, not upgrades
       expect(progression.getLevel()).toBe(1);
       
       progression.upgrade(PlayerUpgradeType.DAMAGE);
       progression.upgrade(PlayerUpgradeType.SPEED);
       progression.upgrade(PlayerUpgradeType.FIRE_RATE);
-      expect(progression.getLevel()).toBe(1); // 3 upgrades / 4 = 0
+      expect(progression.getLevel()).toBe(1); // Level unchanged by upgrades
       
       progression.upgrade(PlayerUpgradeType.HEALTH);
-      expect(progression.getLevel()).toBe(2); // 4 upgrades / 4 = 1
+      expect(progression.getLevel()).toBe(1); // Still level 1
       
       progression.upgrade(PlayerUpgradeType.REGENERATION);
       progression.upgrade(PlayerUpgradeType.DAMAGE);
       progression.upgrade(PlayerUpgradeType.SPEED);
       progression.upgrade(PlayerUpgradeType.FIRE_RATE);
-      expect(progression.getLevel()).toBe(3); // 8 upgrades / 4 = 2
+      expect(progression.getLevel()).toBe(1); // Level only changes with experience
     });
 
     it('should correctly report canUpgrade', () => {
@@ -252,18 +252,18 @@ describe('PlayerProgression', () => {
         });
       }
       
-      // With 25 upgrades and divisor of 4: level = 1 + floor(25/4) = 1 + 6 = 7
-      // We need to reach level 50, which requires 196 upgrades (49 * 4)
-      // Since we can't get that many upgrades, we need to use a different approach
+      // Now level is based on experience, not upgrades
+      // We need to level up to 50 through experience first
+      for (let i = 1; i < 50; i++) {
+        const expProgress = progression.getExperienceProgress();
+        progression.addExperience(expProgress.required - expProgress.current);
+      }
       
-      // The test seems to have a design flaw - let's check if we have 25 upgrades
       expect(progression.getTotalUpgrades()).toBe(25);
-      // But the level will only be 7, not 50
-      expect(progression.getLevel()).toBe(7);
+      expect(progression.getLevel()).toBe(50);
       
-      // The prestige system seems to have conflicting requirements
-      // For now, let's test that it correctly returns false
-      expect(progression.canPrestige()).toBe(false);
+      // Now we meet both requirements: level 50 + 25 upgrades
+      expect(progression.canPrestige()).toBe(true);
     });
 
     it('should reset progression on prestige', () => {

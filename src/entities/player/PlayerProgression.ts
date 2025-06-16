@@ -41,7 +41,7 @@ export class PlayerProgression {
     }
     
     this.upgradeLevels.set(upgradeType, currentLevel + 1);
-    this.updateLevel();
+    // Removed updateLevel() - upgrades no longer affect player level
     
     return true;
   }
@@ -55,9 +55,6 @@ export class PlayerProgression {
     return this.upgradeLevels.get(upgradeType) || 0;
   }
 
-  private updateLevel(): void {
-    this.level = 1 + Math.floor(this.getTotalUpgrades() / UPGRADE_CONFIG.levelCalculationDivisor.player);
-  }
 
   getTotalUpgrades(): number {
     let total = 0;

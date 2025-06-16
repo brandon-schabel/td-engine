@@ -195,8 +195,7 @@ export class Player extends Entity implements ShootingCapable {
       this.health += (this.maxHealth - oldMaxHealth);
     }
     
-    // Update level
-    this.level = 1 + Math.floor(this.getTotalUpgrades() / UPGRADE_CONFIG.levelCalculationDivisor.player);
+    // Removed level update - level is now only affected by experience
     
     return true;
   }

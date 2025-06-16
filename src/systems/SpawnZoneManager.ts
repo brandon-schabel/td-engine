@@ -275,6 +275,13 @@ export class SpawnZoneManager {
       if (allZones.length > 0) {
         const randomZone = allZones[Math.floor(Math.random() * allZones.length)];
         this.activateZone(randomZone.id);
+        
+        // Record spawn
+        randomZone.spawnCount++;
+        randomZone.lastSpawnTime = Date.now();
+        this.spawnHistory.push({ zoneId: randomZone.id, timestamp: Date.now() });
+        this.edgeSpawnCounts[randomZone.edgeType]++;
+        
         return randomZone.position;
       }
       return null;
