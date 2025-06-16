@@ -28,16 +28,13 @@ import {
 import type {
   MapData,
   MapGenerationConfig,
-  MapSizePreset,
 } from "@/types/MapData";
 import {
   TOWER_COSTS,
   SPAWN_CHANCES,
   CURRENCY_CONFIG,
-  AUDIO_CONFIG,
   INVENTORY_UPGRADES,
 } from "../config/GameConfig";
-import { GameInitializer } from "./GameInitializer";
 import { GameAudioHandler } from "@/systems/GameAudioHandler";
 import { ScoreManager, type GameStats } from "@/systems/ScoreManager";
 import { Inventory, type InventoryItem } from "@/systems/Inventory";

@@ -11,41 +11,7 @@ import { Enemy } from '@/entities/Enemy';
 import type { Vector2 } from '@/utils/Vector2';
 import type { MapGenerationConfig } from '@/types/MapData';
 
-// Game event types
-export interface GameEvents {
-  // Resource events
-  currencyChanged: { amount: number; previous: number };
-  livesChanged: { amount: number; previous: number };
-  scoreChanged: { amount: number; previous: number };
-  
-  // Wave events
-  waveStarted: { waveNumber: number };
-  waveCompleted: { waveNumber: number };
-  enemySpawned: { enemy: Enemy };
-  enemyKilled: { enemy: Enemy; reward: number };
-  
-  // Tower events
-  towerPlaced: { tower: Tower; cost: number };
-  towerSelected: { tower: Tower | null };
-  towerUpgraded: { tower: Tower; cost: number };
-  towerSold: { tower: Tower; refund: number };
-  selectedTowerTypeChanged: { type: TowerType | null };
-  
-  // Player events
-  playerDamaged: { damage: number; remainingHealth: number };
-  playerHealed: { amount: number; currentHealth: number };
-  playerUpgraded: { upgradeType: string; cost: number };
-  
-  // Game state events
-  gameStateChanged: { state: GameState; previous: GameState };
-  gamePaused: void;
-  gameResumed: void;
-  gameOver: { won: boolean; score: number };
-  
-  // UI events
-  mousePositionChanged: { gridX: number; gridY: number; worldX: number; worldY: number };
-  hoverTowerChanged: { tower: Tower | null };
-}
+
 
 export class GameWithEvents extends Game {
   private eventEmitter: EventEmitter;

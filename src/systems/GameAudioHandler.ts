@@ -1,7 +1,6 @@
 import { AudioManager, SoundType } from '../audio/AudioManager';
 import { Camera } from './Camera';
 import { Enemy } from '@/entities/Enemy';
-import { Player } from '@/entities/Player';
 import type { Vector2 } from '@/utils/Vector2';
 import { AUDIO_CONFIG } from '../config/GameConfig';
 
