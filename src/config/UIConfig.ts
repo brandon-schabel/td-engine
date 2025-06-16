@@ -55,7 +55,7 @@ export const OVERLAY_CONFIG = {
 
 // Camera configuration
 export const CAMERA_CONFIG = {
-  smoothing: 0.25,
+  smoothing: 0.85, // Increased from 0.25 for much more responsive following
   minZoom: 0.3,
   maxZoom: 3.0,
   zoomSpeed: 0.1,
@@ -64,7 +64,7 @@ export const CAMERA_CONFIG = {
   edgePanZone: 50, // pixels from edge
   followPlayerOffset: {
     x: 0,
-    y: -50 // Look ahead of player
+    y: 0 // Center directly on player (was -50)
   }
 } as const;
 

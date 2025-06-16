@@ -65,17 +65,18 @@ export class Camera {
       
       // For dimensions that don't fit, continue following the target
       if (!worldFitsHorizontally && this.followTarget) {
-        const targetX = targetPosition.x - effectiveViewportWidth / 2;
+        const targetX = targetPosition.x - effectiveViewportWidth / 2 + CAMERA_CONFIG.followPlayerOffset.x;
         this.position.x += (targetX - this.position.x) * this.smoothing;
       }
       if (!worldFitsVertically && this.followTarget) {
-        const targetY = targetPosition.y - effectiveViewportHeight / 2;
+        const targetY = targetPosition.y - effectiveViewportHeight / 2 + CAMERA_CONFIG.followPlayerOffset.y;
         this.position.y += (targetY - this.position.y) * this.smoothing;
       }
     } else if (this.followTarget) {
       // Normal following behavior when zoomed in
-      const targetX = targetPosition.x - effectiveViewportWidth / 2;
-      const targetY = targetPosition.y - effectiveViewportHeight / 2;
+      // Apply offset to target position
+      const targetX = targetPosition.x - effectiveViewportWidth / 2 + CAMERA_CONFIG.followPlayerOffset.x;
+      const targetY = targetPosition.y - effectiveViewportHeight / 2 + CAMERA_CONFIG.followPlayerOffset.y;
       
       // Smooth camera movement
       this.position.x += (targetX - this.position.x) * this.smoothing;
@@ -245,6 +246,36 @@ export class Camera {
     
     // Clamp current zoom to new limits
     this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.targetZoom));
+  }
+  
+  // Instantly center on target without smoothing
+  centerOnTarget(targetPosition: Vector2): void {
+    const effectiveViewportWidth = this.viewportWidth / this.zoom;
+    const effectiveViewportHeight = this.viewportHeight / this.zoom;
+    
+    // Apply offset to target position
+    const targetX = targetPosition.x - effectiveViewportWidth / 2 + CAMERA_CONFIG.followPlayerOffset.x;
+    const targetY = targetPosition.y - effectiveViewportHeight / 2 + CAMERA_CONFIG.followPlayerOffset.y;
+    
+    // Set position directly without smoothing
+    this.position.x = targetX;
+    this.position.y = targetY;
+    
+    // Clamp to world bounds
+    const worldFitsHorizontally = this.worldWidth <= effectiveViewportWidth;
+    const worldFitsVertically = this.worldHeight <= effectiveViewportHeight;
+    
+    if (worldFitsHorizontally) {
+      this.position.x = (this.worldWidth - effectiveViewportWidth) / 2;
+    } else {
+      this.position.x = Math.max(0, Math.min(this.worldWidth - effectiveViewportWidth, this.position.x));
+    }
+    
+    if (worldFitsVertically) {
+      this.position.y = (this.worldHeight - effectiveViewportHeight) / 2;
+    } else {
+      this.position.y = Math.max(0, Math.min(this.worldHeight - effectiveViewportHeight, this.position.y));
+    }
   }
   
   // Get camera info for debugging/UI

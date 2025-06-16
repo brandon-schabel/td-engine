@@ -188,8 +188,8 @@ export class Game {
       this.applyEquipmentBonuses();
     });
 
-    // Center camera on player initially
-    this.camera.update(this.player.position);
+    // Center camera on player initially (instant, no smoothing)
+    this.camera.centerOnTarget(this.player.position);
 
     // Load wave configurations
     this.loadWaveConfigurations();
