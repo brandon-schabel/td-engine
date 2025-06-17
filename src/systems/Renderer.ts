@@ -1817,4 +1817,21 @@ export class Renderer {
       '12px Arial'
     );
   }
+
+  // Getter methods for viewport dimensions
+  getViewportWidth(): number {
+    return this.viewportWidth;
+  }
+
+  getViewportHeight(): number {
+    return this.viewportHeight;
+  }
+
+  getCanvasWidth(): number {
+    return this.canvas.width;
+  }
+
+  getCanvasHeight(): number {
+    return this.canvas.height;
+  }
 }

@@ -8,6 +8,7 @@ import { SpawnZoneManager } from "@/systems/SpawnZoneManager";
 import type { GameStateSnapshot } from "@/systems/SpawnZoneManager";
 import { Renderer } from "@/systems/Renderer";
 import { Camera, type CameraOptions } from "@/systems/Camera";
+import { CameraDiagnostics } from "@/systems/CameraDiagnostics";
 import { Tower, TowerType, UpgradeType } from "@/entities/Tower";
 import { Enemy, EnemyType } from "@/entities/Enemy";
 import { Projectile } from "@/entities/Projectile";
@@ -25,10 +26,7 @@ import {
   MapSize,
   MAP_SIZE_PRESETS,
 } from "@/types/MapData";
-import type {
-  MapData,
-  MapGenerationConfig,
-} from "@/types/MapData";
+import type { MapData, MapGenerationConfig } from "@/types/MapData";
 import {
   TOWER_COSTS,
   SPAWN_CHANCES,
@@ -64,6 +62,7 @@ export class Game {
   private mapGenerator: MapGenerator;
   private textureManager: TextureManager;
   private currentMapData: MapData;
+  private cameraDiagnostics: CameraDiagnostics;
 
   private towers: Tower[] = [];
   private enemies: Enemy[] = [];
@@ -119,6 +118,9 @@ export class Game {
       worldHeight,
       cameraOptions
     );
+
+    // Initialize camera diagnostics
+    this.cameraDiagnostics = new CameraDiagnostics(this);
 
     // Initialize systems
     this.pathfinder = new Pathfinder(this.grid);
@@ -814,6 +816,17 @@ export class Game {
       case "C":
         this.toggleCameraFollow();
         break;
+      case "b":
+      case "B":
+        // Check camera
+        this.checkCamera();
+        break;
+
+      case "n":
+      case "N":
+        // Fix camera
+        this.fixCamera();
+        break;
     }
   }
 
@@ -980,7 +993,10 @@ export class Game {
         return currentState.slots[index];
       }
       return { item: null, slotIndex: index };
-    }).filter((slot): slot is { item: InventoryItem | null; slotIndex: number } => slot !== undefined);
+    }).filter(
+      (slot): slot is { item: InventoryItem | null; slotIndex: number } =>
+        slot !== undefined
+    );
 
     // Update inventory configuration and restore state with new capacity
     this.inventory.setState({
@@ -1037,9 +1053,13 @@ export class Game {
 
     // Track enemies killed
     this.enemiesKilled++;
-    
+
     // Award experience to player if they have the addExperience method
-    if (this.player && 'addExperience' in this.player && typeof this.player.addExperience === 'function') {
+    if (
+      this.player &&
+      "addExperience" in this.player &&
+      typeof this.player.addExperience === "function"
+    ) {
       // Award experience based on enemy reward (could be adjusted)
       const experienceGain = enemy.reward * 10; // 10 XP per currency reward
       (this.player as any).addExperience(experienceGain);
@@ -1429,6 +1449,23 @@ export class Game {
     this.camera.setFollowTarget(true);
   }
 
+  // Camera diagnostics methods
+  runCameraDiagnostics(): void {
+    this.cameraDiagnostics.diagnose();
+  }
+
+  startCameraLogging(): void {
+    this.cameraDiagnostics.startDiagnostics();
+  }
+
+  stopCameraLogging(): void {
+    this.cameraDiagnostics.stopDiagnostics();
+  }
+
+  testCameraCentering(): void {
+    this.cameraDiagnostics.testCentering();
+  }
+
   toggleCameraFollow(): boolean {
     const newFollowState = !this.camera.isFollowingTarget();
     this.camera.setFollowTarget(newFollowState);
@@ -1710,5 +1747,69 @@ export class Game {
         }
       }, 300);
     }, 3000);
+  }
+
+  // Add this simple diagnostic method
+  public checkCamera(): void {
+    const cameraPos = this.camera.getPosition();
+    const playerPos = this.player.position;
+    const zoom = this.camera.getZoom();
+    
+    // Get canvas dimensions from renderer's viewport
+    const canvasWidth = this.renderer.getViewportWidth();
+    const canvasHeight = this.renderer.getViewportHeight();
+
+    // Calculate where player appears on screen
+    const playerScreenX = (playerPos.x - cameraPos.x) * zoom;
+    const playerScreenY = (playerPos.y - cameraPos.y) * zoom;
+    const centerX = canvasWidth / 2;
+    const centerY = canvasHeight / 2;
+
+    // Distance from center
+    const distance = Math.sqrt(
+      Math.pow(playerScreenX - centerX, 2) +
+        Math.pow(playerScreenY - centerY, 2)
+    );
+
+    console.log("=== CAMERA CHECK ===");
+    console.log("Player should be at center of screen");
+    console.log(`Screen center: (${centerX}, ${centerY})`);
+    console.log(
+      `Player on screen: (${playerScreenX.toFixed(0)}, ${playerScreenY.toFixed(
+        0
+      )})`
+    );
+    console.log(`Distance from center: ${distance.toFixed(1)}px`);
+    console.log(`Status: ${distance < 10 ? "✅ GOOD" : "❌ BAD"}`);
+
+    if (distance > 10) {
+      console.log("\nTo fix, camera should be at:");
+      console.log({
+        x: playerPos.x - centerX / zoom,
+        y: playerPos.y - centerY / zoom,
+      });
+    }
+  }
+
+  // Quick fix method
+  public fixCamera(): void {
+    console.log("Fixing camera...");
+
+    // Enable following
+    this.camera.setFollowTarget(true);
+
+    // Get canvas dimensions
+    const canvas = this.renderer.canvas || this.canvas;
+    const zoom = this.camera.getZoom();
+
+    // Calculate correct camera position
+    const correctX = this.player.position.x - canvas.width / (2 * zoom);
+    const correctY = this.player.position.y - canvas.height / (2 * zoom);
+
+    // Set camera position
+    this.camera.setPosition({ x: correctX, y: correctY });
+
+    console.log("Camera fixed!");
+    this.checkCamera(); // Run check to verify
   }
 }

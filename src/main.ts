@@ -1,13 +1,10 @@
 import { GameWithEvents } from "./core/GameWithEvents";
 import { TowerType } from "./entities/Tower";
-import { UpgradeType } from "./entities/Tower";
-import { PlayerUpgradeType } from "./entities/Player";
 import { AudioManager, SoundType } from "./audio/AudioManager";
 import { SimpleSettingsMenu } from "./ui/SimpleSettingsMenu";
 // Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from "./config/SettingsIntegration";
 import {
-  MAP_SIZE_PRESETS,
   type MapGenerationConfig,
   BiomeType,
   MapDifficulty,
@@ -120,6 +117,12 @@ function initializeGame() {
   // Create game instance with configuration
   game = new GameWithEvents(canvas, mapGenConfig);
   gameInitialized = true;
+
+  //  @ts-ignore
+  if (typeof window !== "undefined") {
+    // Store game instance globally for debugging
+    (window as any).game = game;
+  }
 
   // Create game over screen if not exists
   if (!gameOverScreen) {
@@ -378,5 +381,4 @@ async function setupModernGameUI() {
     enableHapticFeedback: true,
     debugMode: false,
   });
-
 }
