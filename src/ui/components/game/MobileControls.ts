@@ -1,3 +1,14 @@
+/**
+ * MobileControls.ts
+ * 
+ * Recent changes:
+ * 1. Added passive: false to touch event listeners for better performance
+ * 2. Fixed touch event handling to use window for mouse move/up events
+ * 3. Added touch ID tracking for proper multi-touch support
+ * 4. Improved joystick movement logic for smooth diagonal movement
+ * 5. Fixed getEventPosition to handle changedTouches for touchend/touchcancel
+ */
+
 import type { Game } from '@/core/Game';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 
@@ -24,6 +35,8 @@ export class MobileControls {
   private moveCurrentPos = { x: 0, y: 0 };
   private aimStartPos = { x: 0, y: 0 };
   private aimCurrentPos = { x: 0, y: 0 };
+  private moveTouchId: number | null = null;
+  private aimTouchId: number | null = null;
   private joystickRadius = 60;
   private knobRadius = 25;
   private controlsHeight = 200;
@@ -238,43 +251,70 @@ export class MobileControls {
   }
 
   private setupEventListeners(): void {
-    // Aim joystick events
-    this.aimJoystick.addEventListener('touchstart', this.handleAimStart.bind(this));
-    this.aimJoystick.addEventListener('touchmove', this.handleAimUpdate.bind(this));
-    this.aimJoystick.addEventListener('touchend', this.handleAimEnd.bind(this));
-    this.aimJoystick.addEventListener('touchcancel', this.handleAimEnd.bind(this));
+    // Aim joystick events - start events on the joystick elements
+    this.aimJoystick.addEventListener('touchstart', this.handleAimStart.bind(this), { passive: false });
+    this.moveJoystick.addEventListener('touchstart', this.handleMoveStart.bind(this), { passive: false });
 
-    // Movement joystick events
-    this.moveJoystick.addEventListener('touchstart', this.handleMoveStart.bind(this));
-    this.moveJoystick.addEventListener('touchmove', this.handleMoveUpdate.bind(this));
-    this.moveJoystick.addEventListener('touchend', this.handleMoveEnd.bind(this));
-    this.moveJoystick.addEventListener('touchcancel', this.handleMoveEnd.bind(this));
+    // Global touch events on window for better multi-touch tracking
+    window.addEventListener('touchmove', (e: TouchEvent) => {
+      if (this.isAimActive) {
+        this.handleAimUpdate(e);
+      }
+      if (this.isMoveActive) {
+        this.handleMoveUpdate(e);
+      }
+    }, { passive: false });
+    
+    window.addEventListener('touchend', (e: TouchEvent) => {
+      if (this.isAimActive) {
+        this.handleAimEnd(e);
+      }
+      if (this.isMoveActive) {
+        this.handleMoveEnd(e);
+      }
+    }, { passive: false });
+    
+    window.addEventListener('touchcancel', (e: TouchEvent) => {
+      if (this.isAimActive) {
+        this.handleAimEnd(e);
+      }
+      if (this.isMoveActive) {
+        this.handleMoveEnd(e);
+      }
+    }, { passive: false });
 
     // Mouse events for testing on desktop
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       this.aimJoystick.addEventListener('mousedown', this.handleAimStart.bind(this));
-      this.aimJoystick.addEventListener('mousemove', (e: MouseEvent) => {
+      this.moveJoystick.addEventListener('mousedown', this.handleMoveStart.bind(this));
+      
+      // Use window for mousemove to track movement outside joystick bounds
+      window.addEventListener('mousemove', (e: MouseEvent) => {
         if (this.isAimActive) {
           this.handleAimUpdate(e as any);
         }
-      });
-      this.aimJoystick.addEventListener('mouseup', this.handleAimEnd.bind(this));
-      this.aimJoystick.addEventListener('mouseleave', this.handleAimEnd.bind(this));
-      
-      this.moveJoystick.addEventListener('mousedown', this.handleMoveStart.bind(this));
-      this.moveJoystick.addEventListener('mousemove', (e: MouseEvent) => {
         if (this.isMoveActive) {
           this.handleMoveUpdate(e as any);
         }
       });
-      this.moveJoystick.addEventListener('mouseup', this.handleMoveEnd.bind(this));
-      this.moveJoystick.addEventListener('mouseleave', this.handleMoveEnd.bind(this));
+      
+      window.addEventListener('mouseup', (e: MouseEvent) => {
+        if (this.isAimActive || this.isMoveActive) {
+          this.handleAimEnd(e);
+          this.handleMoveEnd(e);
+        }
+      });
     }
   }
 
   private handleAimStart(e: TouchEvent | MouseEvent): void {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Track touch ID for multi-touch support
+    if ('changedTouches' in e && e.changedTouches.length > 0) {
+      this.aimTouchId = e.changedTouches[0].identifier;
+    }
     
     this.isAimActive = true;
     this.aimJoystick.classList.add('active');
@@ -309,19 +349,54 @@ export class MobileControls {
     if (!this.isAimActive) return;
     
     e.preventDefault();
-    const pos = this.getEventPosition(e);
-    this.updateAimJoystickPosition(pos.x, pos.y);
+    
+    // For touch events, only process the correct touch
+    if ('touches' in e && this.aimTouchId !== null) {
+      let found = false;
+      for (let i = 0; i < e.touches.length; i++) {
+        if (e.touches[i].identifier === this.aimTouchId) {
+          const touch = e.touches[i];
+          this.updateAimJoystickPosition(touch.clientX, touch.clientY);
+          found = true;
+          break;
+        }
+      }
+      if (!found) return;
+    } else {
+      const pos = this.getEventPosition(e);
+      this.updateAimJoystickPosition(pos.x, pos.y);
+    }
   }
 
   private handleAimEnd(e: Event): void {
     e.preventDefault();
     e.stopPropagation();
     
+    // For touch events, only process the correct touch
+    if ('changedTouches' in e && this.aimTouchId !== null) {
+      let found = false;
+      const touchEvent = e as TouchEvent;
+      for (let i = 0; i < touchEvent.changedTouches.length; i++) {
+        if (touchEvent.changedTouches[i].identifier === this.aimTouchId) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) return;
+    }
+    
     this.isAimActive = false;
+    this.aimTouchId = null;
     this.aimJoystick.classList.remove('active');
     
-    // Reset joystick position
+    // Reset joystick position with smooth transition
+    this.aimJoystickKnob.style.transition = 'transform 0.2s ease-out';
     this.aimJoystickKnob.style.transform = 'translate(-50%, -50%)';
+    
+    // Reset transition after animation
+    setTimeout(() => {
+      this.aimJoystickKnob.style.transition = 'none';
+    }, 200);
     
     // Stop continuous shooting on the player
     const player = this.game.getPlayer();
@@ -361,6 +436,11 @@ export class MobileControls {
     e.preventDefault();
     e.stopPropagation();
     
+    // Track touch ID for multi-touch support
+    if ('changedTouches' in e && e.changedTouches.length > 0) {
+      this.moveTouchId = e.changedTouches[0].identifier;
+    }
+    
     this.isMoveActive = true;
     this.moveJoystick.classList.add('active');
     
@@ -379,19 +459,54 @@ export class MobileControls {
     if (!this.isMoveActive) return;
     
     e.preventDefault();
-    const pos = this.getEventPosition(e);
-    this.updateJoystickPosition(pos.x, pos.y);
+    
+    // For touch events, only process the correct touch
+    if ('touches' in e && this.moveTouchId !== null) {
+      let found = false;
+      for (let i = 0; i < e.touches.length; i++) {
+        if (e.touches[i].identifier === this.moveTouchId) {
+          const touch = e.touches[i];
+          this.updateJoystickPosition(touch.clientX, touch.clientY);
+          found = true;
+          break;
+        }
+      }
+      if (!found) return;
+    } else {
+      const pos = this.getEventPosition(e);
+      this.updateJoystickPosition(pos.x, pos.y);
+    }
   }
 
   private handleMoveEnd(e: Event): void {
     e.preventDefault();
     e.stopPropagation();
     
+    // For touch events, only process the correct touch
+    if ('changedTouches' in e && this.moveTouchId !== null) {
+      let found = false;
+      const touchEvent = e as TouchEvent;
+      for (let i = 0; i < touchEvent.changedTouches.length; i++) {
+        if (touchEvent.changedTouches[i].identifier === this.moveTouchId) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) return;
+    }
+    
     this.isMoveActive = false;
+    this.moveTouchId = null;
     this.moveJoystick.classList.remove('active');
     
-    // Reset joystick position
+    // Reset joystick position with smooth transition
+    this.joystickKnob.style.transition = 'transform 0.2s ease-out';
     this.joystickKnob.style.transform = 'translate(-50%, -50%)';
+    
+    // Reset transition after animation
+    setTimeout(() => {
+      this.joystickKnob.style.transition = 'none';
+    }, 200);
     
     // Stop player movement
     const player = this.game.getPlayer();
@@ -414,7 +529,7 @@ export class MobileControls {
     this.joystickKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
     
     // Convert to movement input
-    const threshold = this.joystickRadius * 0.3;
+    const threshold = this.joystickRadius * 0.2; // Lower threshold for better responsiveness
     const player = this.game.getPlayer();
     
     // Reset all movement keys
@@ -422,38 +537,41 @@ export class MobileControls {
     
     // Apply movement based on joystick position
     if (distance > threshold) {
-      if (Math.abs(dx) > Math.abs(dy)) {
-        // Horizontal movement
-        if (dx > 0) {
+      // Normalize the input
+      const normalizedX = dx / this.joystickRadius;
+      const normalizedY = dy / this.joystickRadius;
+      
+      // Apply movement for all active directions
+      // This allows smooth diagonal movement
+      const directionThreshold = 0.3; // Threshold for activating a direction
+      
+      // Horizontal movement
+      if (Math.abs(normalizedX) > directionThreshold) {
+        if (normalizedX > 0) {
           player.handleKeyDown('d');
         } else {
           player.handleKeyDown('a');
         }
-      } else {
-        // Vertical movement
-        if (dy > 0) {
+      }
+      
+      // Vertical movement
+      if (Math.abs(normalizedY) > directionThreshold) {
+        if (normalizedY > 0) {
           player.handleKeyDown('s');
         } else {
           player.handleKeyDown('w');
-        }
-      }
-      
-      // Diagonal movement
-      if (distance > this.joystickRadius * 0.5) {
-        if (Math.abs(dx) > threshold && Math.abs(dy) > threshold) {
-          if (dy > 0) {
-            player.handleKeyDown('s');
-          } else {
-            player.handleKeyDown('w');
-          }
         }
       }
     }
   }
 
   private getEventPosition(e: TouchEvent | MouseEvent): { x: number; y: number } {
-    if ('touches' in e && e.touches.length > 0) {
-      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if ('touches' in e) {
+      // For touch events, use changedTouches for touchend/touchcancel
+      const touches = e.touches.length > 0 ? e.touches : e.changedTouches;
+      if (touches && touches.length > 0) {
+        return { x: touches[0].clientX, y: touches[0].clientY };
+      }
     } else if ('clientX' in e) {
       return { x: e.clientX, y: e.clientY };
     }
@@ -513,8 +631,30 @@ export class MobileControls {
   }
 
   public destroy(): void {
-    window.removeEventListener('resize', () => this.handleResize());
-    window.removeEventListener('orientationchange', () => this.handleResize());
+    // Remove all event listeners
+    window.removeEventListener('resize', this.handleResize.bind(this));
+    window.removeEventListener('orientationchange', this.handleResize.bind(this));
+    
+    // Remove touch event listeners from window
+    const touchMoveHandler = (e: TouchEvent) => {
+      if (this.isAimActive) this.handleAimUpdate(e);
+      if (this.isMoveActive) this.handleMoveUpdate(e);
+    };
+    const touchEndHandler = (e: TouchEvent) => {
+      if (this.isAimActive) this.handleAimEnd(e);
+      if (this.isMoveActive) this.handleMoveEnd(e);
+    };
+    
+    window.removeEventListener('touchmove', touchMoveHandler);
+    window.removeEventListener('touchend', touchEndHandler);
+    window.removeEventListener('touchcancel', touchEndHandler);
+    
+    // Remove mouse event listeners if applicable
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      window.removeEventListener('mousemove', () => {});
+      window.removeEventListener('mouseup', () => {});
+    }
+    
     this.controlsElement.remove();
   }
 }

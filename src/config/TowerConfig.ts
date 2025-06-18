@@ -6,8 +6,8 @@
 // Tower base statistics
 export const TOWER_STATS = {
   BASIC: {
-    damage: 10,
-    range: 100,
+    damage: 8,
+    range: 85,
     fireRate: 1,      // shots per second
     health: 100,
     radius: 15,
@@ -15,8 +15,8 @@ export const TOWER_STATS = {
     color: '#4CAF50'  // Green
   },
   SNIPER: {
-    damage: 50,
-    range: 200,
+    damage: 38,
+    range: 170,
     fireRate: 0.5,    // shots per second
     health: 80,
     radius: 15,
@@ -24,8 +24,8 @@ export const TOWER_STATS = {
     color: '#2196F3'  // Blue
   },
   RAPID: {
-    damage: 5,
-    range: 80,
+    damage: 4,
+    range: 70,
     fireRate: 4,      // shots per second
     health: 60,
     radius: 15,
@@ -36,7 +36,7 @@ export const TOWER_STATS = {
     damage: 0,
     range: 0,
     fireRate: 0,
-    health: 200,
+    health: 150,
     radius: 16,
     projectileSpeed: 0,
     color: '#9E9E9E'  // Gray

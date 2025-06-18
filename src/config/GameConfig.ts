@@ -2,18 +2,18 @@ import type { WaveConfig } from '@/systems/WaveManager';
 
 // Tower costs - avoid circular dependency by using string keys
 export const TOWER_COSTS = {
-  'BASIC': 20,
-  'SNIPER': 50,
-  'RAPID': 30,
-  'WALL': 10
+  'BASIC': 30,
+  'SNIPER': 75,
+  'RAPID': 45,
+  'WALL': 15
 } as const;
 
 // Player stats
 export const BASE_PLAYER_STATS = {
-  damage: 15,
-  speed: 150, // pixels per second
-  fireRate: 2, // shots per second
-  health: 100,
+  damage: 11,
+  speed: 120, // pixels per second
+  fireRate: 1.5, // shots per second
+  health: 75,
   radius: 12
 } as const;
 
@@ -78,9 +78,9 @@ export const DEFAULT_WAVES: WaveConfig[] = [
 
 // Entity spawn chances
 export const SPAWN_CHANCES = {
-  healthPickup: 0.2, // 20% chance from enemies
-  powerUp: 0.3, // 30% chance from enemies
-  extraCurrencyDrop: 0.1, // 10% chance for extra currency
+  healthPickup: 0.1, // 10% chance from enemies
+  powerUp: 0.15, // 15% chance from enemies
+  extraCurrencyDrop: 0.05, // 5% chance for extra currency
 } as const;
 
 // Visual/Animation constants

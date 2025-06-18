@@ -271,14 +271,14 @@ export class Game {
     const waves: WaveConfig[] = [
       {
         waveNumber: 1,
-        enemies: [{ type: EnemyType.BASIC, count: 5, spawnDelay: 1000 }],
-        startDelay: 2000,
+        enemies: [{ type: EnemyType.BASIC, count: 8, spawnDelay: 600 }],
+        startDelay: 1500,
         spawnPattern: SpawnPattern.SINGLE_POINT, // All from one spawn point
       },
       {
         waveNumber: 2,
-        enemies: [{ type: EnemyType.BASIC, count: 8, spawnDelay: 800 }],
-        startDelay: 3000,
+        enemies: [{ type: EnemyType.BASIC, count: 12, spawnDelay: 500 }],
+        startDelay: 2000,
         spawnPattern: SpawnPattern.RANDOM, // Random spawn points
       },
       {
@@ -286,26 +286,26 @@ export class Game {
         enemies: [
           {
             type: EnemyType.BASIC,
-            count: 5,
-            spawnDelay: 1000,
+            count: 8,
+            spawnDelay: 600,
             spawnPattern: SpawnPattern.DISTRIBUTED,
           },
           {
             type: EnemyType.FAST,
-            count: 3,
-            spawnDelay: 600,
+            count: 5,
+            spawnDelay: 400,
             spawnPattern: SpawnPattern.EDGE_FOCUSED,
           },
         ],
-        startDelay: 2000,
+        startDelay: 1500,
       },
       {
         waveNumber: 4,
         enemies: [
-          { type: EnemyType.BASIC, count: 10, spawnDelay: 600 },
-          { type: EnemyType.FAST, count: 5, spawnDelay: 800 },
+          { type: EnemyType.BASIC, count: 15, spawnDelay: 400 },
+          { type: EnemyType.FAST, count: 8, spawnDelay: 500 },
         ],
-        startDelay: 2000,
+        startDelay: 1500,
         spawnPattern: SpawnPattern.ROUND_ROBIN, // Cycle through spawn points
       },
       {
@@ -313,26 +313,26 @@ export class Game {
         enemies: [
           {
             type: EnemyType.TANK,
-            count: 3,
-            spawnDelay: 2000,
+            count: 5,
+            spawnDelay: 1200,
             spawnPattern: SpawnPattern.CORNER_FOCUSED,
           },
           {
             type: EnemyType.FAST,
-            count: 8,
-            spawnDelay: 400,
+            count: 12,
+            spawnDelay: 250,
             spawnPattern: SpawnPattern.RANDOM,
           },
         ],
-        startDelay: 3000,
+        startDelay: 2000,
       },
       {
         waveNumber: 6,
         enemies: [
-          { type: EnemyType.BASIC, count: 15, spawnDelay: 500 },
-          { type: EnemyType.TANK, count: 2, spawnDelay: 2500 },
+          { type: EnemyType.BASIC, count: 23, spawnDelay: 300 },
+          { type: EnemyType.TANK, count: 3, spawnDelay: 1500 },
         ],
-        startDelay: 2000,
+        startDelay: 1500,
         spawnPattern: SpawnPattern.DISTRIBUTED,
       },
       {
@@ -340,52 +340,52 @@ export class Game {
         enemies: [
           {
             type: EnemyType.FAST,
-            count: 12,
-            spawnDelay: 400,
+            count: 18,
+            spawnDelay: 250,
             spawnPattern: SpawnPattern.RANDOM,
           },
           {
             type: EnemyType.BASIC,
-            count: 8,
-            spawnDelay: 700,
+            count: 12,
+            spawnDelay: 450,
             spawnPattern: SpawnPattern.EDGE_FOCUSED,
           },
           {
             type: EnemyType.TANK,
-            count: 4,
-            spawnDelay: 1800,
+            count: 6,
+            spawnDelay: 1100,
             spawnPattern: SpawnPattern.CORNER_FOCUSED,
           },
         ],
-        startDelay: 3000,
+        startDelay: 2000,
       },
       {
         waveNumber: 8,
         enemies: [
-          { type: EnemyType.BASIC, count: 20, spawnDelay: 400 },
-          { type: EnemyType.FAST, count: 10, spawnDelay: 500 },
-          { type: EnemyType.TANK, count: 5, spawnDelay: 1500 },
+          { type: EnemyType.BASIC, count: 30, spawnDelay: 250 },
+          { type: EnemyType.FAST, count: 15, spawnDelay: 300 },
+          { type: EnemyType.TANK, count: 8, spawnDelay: 900 },
         ],
-        startDelay: 2000,
+        startDelay: 1500,
         spawnPattern: SpawnPattern.BURST_SPAWN, // New pattern - enemies spawn from multiple edges simultaneously
       },
       {
         waveNumber: 9,
         enemies: [
-          { type: EnemyType.FAST, count: 15, spawnDelay: 300 },
-          { type: EnemyType.TANK, count: 6, spawnDelay: 1200 },
+          { type: EnemyType.FAST, count: 23, spawnDelay: 200 },
+          { type: EnemyType.TANK, count: 9, spawnDelay: 750 },
         ],
-        startDelay: 2500,
+        startDelay: 1800,
         spawnPattern: SpawnPattern.PINCER_MOVEMENT, // New pattern - enemies spawn from opposite edges
       },
       {
         waveNumber: 10,
         enemies: [
-          { type: EnemyType.BASIC, count: 25, spawnDelay: 300 },
-          { type: EnemyType.FAST, count: 15, spawnDelay: 400 },
-          { type: EnemyType.TANK, count: 8, spawnDelay: 1000 },
+          { type: EnemyType.BASIC, count: 38, spawnDelay: 200 },
+          { type: EnemyType.FAST, count: 23, spawnDelay: 250 },
+          { type: EnemyType.TANK, count: 12, spawnDelay: 600 },
         ],
-        startDelay: 3000,
+        startDelay: 2000,
         spawnPattern: SpawnPattern.CHAOS_MODE, // New pattern - completely random spawning
       },
     ];

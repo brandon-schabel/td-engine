@@ -17,6 +17,38 @@ export class GameOverScreen {
   constructor() {
     this.container = this.createContainer();
     document.body.appendChild(this.container);
+    this.addMobileStyles();
+  }
+
+  private addMobileStyles(): void {
+    const style = document.createElement('style');
+    style.textContent = `
+      @media (max-width: 768px) {
+        .game-over-screen {
+          padding: 10px !important;
+        }
+        
+        .game-over-panel {
+          margin-top: 10px !important;
+          margin-bottom: 10px !important;
+        }
+      }
+      
+      @media (max-height: 600px) {
+        .game-over-panel {
+          max-height: 85vh !important;
+        }
+      }
+      
+      /* Touch device optimizations */
+      @media (hover: none) and (pointer: coarse) {
+        .game-over-panel button:active {
+          transform: scale(0.98) !important;
+          box-shadow: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   private createContainer(): HTMLDivElement {
@@ -34,6 +66,8 @@ export class GameOverScreen {
       align-items: center;
       z-index: 10000;
       font-family: Arial, sans-serif;
+      overflow-y: auto;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     `;
     return container;
   }
@@ -68,23 +102,27 @@ export class GameOverScreen {
       background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
       border: 2px solid ${options.victory ? '#4CAF50' : '#f44336'};
       border-radius: 16px;
-      padding: 32px;
-      max-width: 600px;
+      padding: clamp(20px, 4vw, 32px);
+      max-width: min(600px, 90vw);
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
       color: white;
       text-align: center;
+      margin: auto;
     `;
 
     // Title
     const title = document.createElement('h1');
     title.style.cssText = `
-      margin: 0 0 24px 0;
-      font-size: 36px;
+      margin: 0 0 clamp(16px, 3vw, 24px) 0;
+      font-size: clamp(24px, 6vw, 36px);
       color: ${options.victory ? '#4CAF50' : '#f44336'};
       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     `;
-    const titleIcon = createSvgIcon(options.victory ? IconType.VICTORY : IconType.GAME_OVER, { size: 40 });
+    const iconSize = window.innerWidth < 768 ? 28 : 40;
+    const titleIcon = createSvgIcon(options.victory ? IconType.VICTORY : IconType.GAME_OVER, { size: iconSize });
     title.innerHTML = `${titleIcon} ${options.victory ? 'Victory!' : 'Game Over'}`;
     panel.appendChild(title);
 
@@ -93,17 +131,17 @@ export class GameOverScreen {
     scoreSummary.style.cssText = `
       background: rgba(0, 0, 0, 0.3);
       border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 24px;
+      padding: clamp(12px, 3vw, 20px);
+      margin-bottom: clamp(16px, 3vw, 24px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     `;
 
     const scoreTitle = document.createElement('h2');
     scoreTitle.textContent = 'Final Score';
     scoreTitle.style.cssText = `
-      margin: 0 0 16px 0;
+      margin: 0 0 clamp(12px, 2vw, 16px) 0;
       color: #FFD700;
-      font-size: 24px;
+      font-size: clamp(18px, 4vw, 24px);
     `;
     scoreSummary.appendChild(scoreTitle);
 
@@ -111,9 +149,9 @@ export class GameOverScreen {
     const statsGrid = document.createElement('div');
     statsGrid.style.cssText = `
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: clamp(8px, 2vw, 16px);
+      margin-bottom: clamp(12px, 2vw, 16px);
     `;
 
     const stats = [
@@ -129,17 +167,22 @@ export class GameOverScreen {
       const statElement = document.createElement('div');
       statElement.style.cssText = `
         text-align: center;
-        padding: 12px;
+        padding: clamp(8px, 2vw, 12px);
         background: rgba(255, 255, 255, 0.05);
         border-radius: 6px;
         border: 1px solid rgba(255, 255, 255, 0.1);
+        min-height: 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
       `;
       
-      const icon = createSvgIcon(stat.icon, { size: 20 });
+      const iconSize = window.innerWidth < 768 ? 16 : 20;
+      const icon = createSvgIcon(stat.icon, { size: iconSize });
       statElement.innerHTML = `
-        <div style="margin-bottom: 8px;">${icon}</div>
-        <div style="font-size: 18px; font-weight: bold; color: #4CAF50;">${stat.value}</div>
-        <div style="font-size: 12px; color: #ccc;">${stat.label}</div>
+        <div style="margin-bottom: clamp(4px, 1vw, 8px);">${icon}</div>
+        <div style="font-size: clamp(14px, 3vw, 18px); font-weight: bold; color: #4CAF50;">${stat.value}</div>
+        <div style="font-size: clamp(10px, 2vw, 12px); color: #ccc;">${stat.label}</div>
       `;
       statsGrid.appendChild(statElement);
     });
@@ -153,15 +196,16 @@ export class GameOverScreen {
         background: rgba(255, 215, 0, 0.1);
         border: 1px solid #FFD700;
         border-radius: 6px;
-        padding: 12px;
-        margin-top: 16px;
+        padding: clamp(8px, 2vw, 12px);
+        margin-top: clamp(12px, 2vw, 16px);
       `;
       
-      const trophyIcon = createSvgIcon(IconType.TROPHY, { size: 24 });
+      const trophyIconSize = window.innerWidth < 768 ? 20 : 24;
+      const trophyIcon = createSvgIcon(IconType.TROPHY, { size: trophyIconSize });
       rankInfo.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: clamp(6px, 1vw, 8px); flex-wrap: wrap;">
           ${trophyIcon}
-          <span style="color: #FFD700; font-size: 16px; font-weight: bold;">
+          <span style="color: #FFD700; font-size: clamp(14px, 3vw, 16px); font-weight: bold;">
             Rank #${options.scoreEntry.rank} on the leaderboard!
           </span>
         </div>
@@ -178,42 +222,44 @@ export class GameOverScreen {
       comparison.style.cssText = `
         background: rgba(0, 0, 0, 0.3);
         border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 24px;
+        padding: clamp(12px, 3vw, 16px);
+        margin-bottom: clamp(16px, 3vw, 24px);
         border: 1px solid rgba(255, 255, 255, 0.1);
       `;
 
       const comparisonTitle = document.createElement('h3');
       comparisonTitle.textContent = 'Personal Records';
       comparisonTitle.style.cssText = `
-        margin: 0 0 12px 0;
+        margin: 0 0 clamp(8px, 2vw, 12px) 0;
         color: #2196F3;
-        font-size: 18px;
+        font-size: clamp(16px, 3vw, 18px);
       `;
       comparison.appendChild(comparisonTitle);
 
       const isPersonalBest = options.stats.score === personalStats.personalBest;
       const comparisonText = document.createElement('div');
       comparisonText.style.cssText = `
-        font-size: 14px;
+        font-size: clamp(12px, 2.5vw, 14px);
         color: #ccc;
-        line-height: 1.4;
+        line-height: 1.6;
       `;
       
-      const personalBestIcon = createSvgIcon(IconType.TROPHY, { size: 16 });
-      const gamesIcon = createSvgIcon(IconType.GAME_CONTROLLER, { size: 16 });
+      const iconSize = window.innerWidth < 768 ? 14 : 16;
+      const personalBestIcon = createSvgIcon(IconType.TROPHY, { size: iconSize });
+      const gamesIcon = createSvgIcon(IconType.GAME_CONTROLLER, { size: iconSize });
       
       comparisonText.innerHTML = `
-        <div style="margin-bottom: 8px;">
+        <div style="margin-bottom: clamp(6px, 1vw, 8px);">
           ${personalBestIcon} Personal Best: <strong style="color: #FFD700;">${personalStats.personalBest.toLocaleString()}</strong>
-          ${isPersonalBest ? '<span style="color: #4CAF50; margin-left: 8px;">(NEW RECORD!)</span>' : ''}
+          ${isPersonalBest ? '<span style="color: #4CAF50; margin-left: clamp(6px, 1vw, 8px);">(NEW RECORD!)</span>' : ''}
         </div>
-        <div style="margin-bottom: 8px;">
+        <div style="margin-bottom: clamp(6px, 1vw, 8px);">
           ${gamesIcon} Games Played: <strong>${personalStats.totalGames}</strong>
         </div>
-        <div>
-          Average Score: <strong>${personalStats.averageScore.toLocaleString()}</strong> | 
-          Highest Wave: <strong>${personalStats.highestWave}</strong>
+        <div style="display: flex; flex-wrap: wrap; gap: clamp(4px, 1vw, 8px);">
+          <span>Average Score: <strong>${personalStats.averageScore.toLocaleString()}</strong></span>
+          <span>|</span>
+          <span>Highest Wave: <strong>${personalStats.highestWave}</strong></span>
         </div>
       `;
       comparison.appendChild(comparisonText);
@@ -224,7 +270,7 @@ export class GameOverScreen {
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = `
       display: flex;
-      gap: 16px;
+      gap: clamp(8px, 2vw, 16px);
       justify-content: center;
       flex-wrap: wrap;
     `;
@@ -272,20 +318,24 @@ export class GameOverScreen {
       background: ${color};
       border: none;
       border-radius: 8px;
-      padding: 12px 24px;
+      padding: clamp(10px, 2vw, 12px) clamp(16px, 3vw, 24px);
       color: white;
-      font-size: 16px;
+      font-size: clamp(14px, 3vw, 16px);
       font-weight: bold;
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
-      gap: 8px;
-      min-width: 140px;
+      gap: clamp(6px, 1vw, 8px);
+      min-width: clamp(120px, 25vw, 140px);
+      min-height: 44px;
       justify-content: center;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     `;
 
-    const icon = createSvgIcon(iconType, { size: 20 });
+    const iconSize = window.innerWidth < 768 ? 18 : 20;
+    const icon = createSvgIcon(iconType, { size: iconSize });
     button.innerHTML = `${icon}${text}`;
 
     button.addEventListener('mouseenter', () => {
@@ -320,6 +370,8 @@ export class GameOverScreen {
       justify-content: center;
       align-items: center;
       z-index: 10001;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      overflow-y: auto;
     `;
 
     const scoreboardPanel = document.createElement('div');
@@ -327,22 +379,24 @@ export class GameOverScreen {
       background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
       border: 2px solid #FFD700;
       border-radius: 16px;
-      padding: 32px;
-      max-width: 800px;
+      padding: clamp(20px, 4vw, 32px);
+      max-width: min(800px, 90vw);
       width: 90%;
-      max-height: 80%;
+      max-height: 80vh;
       overflow-y: auto;
       color: white;
+      margin: auto;
     `;
 
     const title = document.createElement('h2');
     title.style.cssText = `
       text-align: center;
-      margin: 0 0 24px 0;
+      margin: 0 0 clamp(16px, 3vw, 24px) 0;
       color: #FFD700;
-      font-size: 28px;
+      font-size: clamp(20px, 5vw, 28px);
     `;
-    const leaderboardIcon = createSvgIcon(IconType.LEADERBOARD, { size: 32 });
+    const leaderboardIconSize = window.innerWidth < 768 ? 24 : 32;
+    const leaderboardIcon = createSvgIcon(IconType.LEADERBOARD, { size: leaderboardIconSize });
     title.innerHTML = `${leaderboardIcon} Leaderboard`;
     scoreboardPanel.appendChild(title);
 
@@ -350,7 +404,12 @@ export class GameOverScreen {
     if (scores.length === 0) {
       const noScores = document.createElement('div');
       noScores.textContent = 'No scores yet. Play some games to see your results here!';
-      noScores.style.cssText = 'text-align: center; color: #ccc; padding: 32px;';
+      noScores.style.cssText = `
+        text-align: center;
+        color: #ccc;
+        padding: clamp(24px, 5vw, 32px);
+        font-size: clamp(14px, 3vw, 16px);
+      `;
       scoreboardPanel.appendChild(noScores);
     } else {
       scores.forEach((score, index) => {
@@ -359,31 +418,34 @@ export class GameOverScreen {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 12px 16px;
-          margin-bottom: 8px;
+          padding: clamp(10px, 2vw, 12px) clamp(12px, 2vw, 16px);
+          margin-bottom: clamp(6px, 1vw, 8px);
           background: rgba(255, 255, 255, 0.05);
           border-radius: 8px;
           border-left: 4px solid ${index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#4CAF50'};
+          flex-wrap: wrap;
+          gap: clamp(8px, 2vw, 12px);
         `;
 
+        const iconSize = window.innerWidth < 768 ? 16 : 20;
         const rankIcon = createSvgIcon(
           index === 0 ? IconType.TROPHY : IconType.MEDAL,
-          { size: 20 }
+          { size: iconSize }
         );
 
         scoreRow.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: clamp(8px, 2vw, 12px); flex: 1; min-width: 150px;">
             ${rankIcon}
-            <span style="font-weight: bold; color: ${index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#4CAF50'};">
+            <span style="font-weight: bold; color: ${index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#4CAF50'}; font-size: clamp(14px, 3vw, 16px);">
               #${score.rank}
             </span>
-            <span style="color: white;">Wave ${score.wave}</span>
+            <span style="color: white; font-size: clamp(12px, 2.5vw, 14px);">Wave ${score.wave}</span>
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 18px; font-weight: bold; color: #4CAF50;">
+            <div style="font-size: clamp(16px, 3vw, 18px); font-weight: bold; color: #4CAF50;">
               ${score.score.toLocaleString()}
             </div>
-            <div style="font-size: 12px; color: #ccc;">
+            <div style="font-size: clamp(10px, 2vw, 12px); color: #ccc;">
               ${new Date(score.date).toLocaleDateString()}
             </div>
           </div>
@@ -395,17 +457,25 @@ export class GameOverScreen {
     const closeButton = document.createElement('button');
     closeButton.style.cssText = `
       width: 100%;
-      margin-top: 24px;
+      margin-top: clamp(16px, 3vw, 24px);
       background: #f44336;
       border: none;
       border-radius: 8px;
-      padding: 12px;
+      padding: clamp(10px, 2vw, 12px);
       color: white;
-      font-size: 16px;
+      font-size: clamp(14px, 3vw, 16px);
       font-weight: bold;
       cursor: pointer;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(6px, 1vw, 8px);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     `;
-    const closeIcon = createSvgIcon(IconType.CLOSE, { size: 20 });
+    const closeIconSize = window.innerWidth < 768 ? 18 : 20;
+    const closeIcon = createSvgIcon(IconType.CLOSE, { size: closeIconSize });
     closeButton.innerHTML = `${closeIcon} Close`;
     closeButton.addEventListener('click', () => {
       document.body.removeChild(scoreboardContainer);

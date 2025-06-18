@@ -6,13 +6,13 @@
 // Player ability configuration
 export const PLAYER_ABILITIES = {
   heal: {
-    amount: 30,
-    cooldown: 5000, // 5 seconds
+    amount: 20,
+    cooldown: 8000, // 8 seconds
     lowHealthThreshold: 0.25, // 25% health
     criticalHealthThreshold: 0.1 // 10% health
   },
   regeneration: {
-    baseRate: 2, // HP per second
+    baseRate: 1, // HP per second
     levelBonus: 1.5, // Additional HP/s per level
     cooldownAfterDamage: 3000 // 3 seconds
   }
@@ -40,10 +40,10 @@ export const PLAYER_UPGRADES = {
 // Power-up configuration
 export const POWER_UP_CONFIG = {
   durations: {
-    SPEED_BOOST: 10000,      // 10 seconds
-    DAMAGE_BOOST: 8000,      // 8 seconds
-    INVINCIBILITY: 12000,    // 12 seconds
-    RAPID_FIRE: 15000        // 15 seconds
+    SPEED_BOOST: 6000,      // 6 seconds
+    DAMAGE_BOOST: 5000,      // 5 seconds
+    INVINCIBILITY: 7000,    // 7 seconds
+    RAPID_FIRE: 9000        // 9 seconds
   },
   effects: {
     SPEED_BOOST_MULTIPLIER: 1.5,

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Joystick Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: white;
+        }
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div>Touch the joysticks to test</div>
+        <div>Movement: <span id="movement">None</span></div>
+        <div>Aim: <span id="aim">None</span></div>
+        <div>Shooting: <span id="shooting">No</span></div>
+    </div>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+    
+    <script>
+        // Simple test to verify joystick functionality
+        window.addEventListener('load', () => {
+            const info = document.getElementById('info');
+            const movementSpan = document.getElementById('movement');
+            const aimSpan = document.getElementById('aim');
+            const shootingSpan = document.getElementById('shooting');
+            
+            // Create a mock game object for testing
+            const mockGame = {
+                getPlayer: () => ({
+                    handleKeyDown: (key) => {
+                        console.log('Key down:', key);
+                        updateMovement(key, true);
+                    },
+                    handleKeyUp: (key) => {
+                        console.log('Key up:', key);
+                        updateMovement(key, false);
+                    },
+                    setAimDirection: (angle) => {
+                        console.log('Aim direction:', angle);
+                        aimSpan.textContent = `${(angle * 180 / Math.PI).toFixed(1)}°`;
+                    },
+                    startShooting: () => {
+                        console.log('Start shooting');
+                        shootingSpan.textContent = 'Yes';
+                    },
+                    stopShooting: () => {
+                        console.log('Stop shooting');
+                        shootingSpan.textContent = 'No';
+                    }
+                })
+            };
+            
+            const movement = { w: false, a: false, s: false, d: false };
+            
+            function updateMovement(key, pressed) {
+                if (movement.hasOwnProperty(key)) {
+                    movement[key] = pressed;
+                }
+                
+                const dirs = [];
+                if (movement.w) dirs.push('Up');
+                if (movement.s) dirs.push('Down');
+                if (movement.a) dirs.push('Left');
+                if (movement.d) dirs.push('Right');
+                
+                movementSpan.textContent = dirs.length > 0 ? dirs.join('+') : 'None';
+            }
+            
+            // Detect touch support
+            const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            info.innerHTML += `<div>Touch: ${isTouch ? 'Yes' : 'No (Mouse simulation)'}</div>`;
+            
+            // Log all touch events for debugging
+            ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(event => {
+                document.addEventListener(event, (e) => {
+                    console.log(`${event}:`, e.touches.length, 'touches');
+                }, { passive: false });
+            });
+        });
+    </script>
+</body>
+</html>

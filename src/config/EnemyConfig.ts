@@ -13,11 +13,11 @@ export enum EnemyBehavior {
 // Enemy base statistics
 export const ENEMY_STATS = {
   BASIC: {
-    health: 50,
+    health: 75,
     speed: 50,
     radius: 8,
-    reward: 10,
-    damage: 10,
+    reward: 7,
+    damage: 13,
     attackRange: 20,
     attackCooldown: 1000, // 1 attack per second
     towerDetectionRange: 60,
@@ -25,11 +25,11 @@ export const ENEMY_STATS = {
     color: '#FF5252'  // Red
   },
   FAST: {
-    health: 30,
+    health: 45,
     speed: 100,
     radius: 6,
-    reward: 15,
-    damage: 5,
+    reward: 10,
+    damage: 7,
     attackRange: 15,
     attackCooldown: 500, // 2 attacks per second
     towerDetectionRange: 40,
@@ -37,11 +37,11 @@ export const ENEMY_STATS = {
     color: '#FFC107'  // Amber
   },
   TANK: {
-    health: 200,
+    health: 300,
     speed: 25,
     radius: 12,
-    reward: 50,
-    damage: 20,
+    reward: 35,
+    damage: 26,
     attackRange: 25,
     attackCooldown: 2000, // 0.5 attacks per second
     towerDetectionRange: 80,
@@ -49,11 +49,11 @@ export const ENEMY_STATS = {
     color: '#9C27B0'  // Purple
   },
   FLYING: {
-    health: 40,
+    health: 60,
     speed: 75,
     radius: 10,
-    reward: 25,
-    damage: 15,
+    reward: 17,
+    damage: 20,
     attackRange: 20,
     attackCooldown: 750,
     towerDetectionRange: 50,
@@ -61,11 +61,11 @@ export const ENEMY_STATS = {
     color: '#03A9F4'  // Light Blue
   },
   BOSS: {
-    health: 1000,
+    health: 1500,
     speed: 20,
     radius: 20,
-    reward: 100,
-    damage: 50,
+    reward: 70,
+    damage: 65,
     attackRange: 30,
     attackCooldown: 1500,
     towerDetectionRange: 100,

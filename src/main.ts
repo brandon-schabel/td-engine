@@ -14,8 +14,6 @@ import { createSvgIcon, IconType } from "./ui/icons/SvgIcons";
 import { setupGameUI } from "./ui/setupGameUI";
 import { GameOverScreen } from "./ui/components/GameOverScreen";
 import { TouchIndicator } from "./ui/components/game/TouchIndicator";
-import { TouchInputManager } from "./input/TouchInputManager";
-import { VirtualJoystick } from "./ui/components/VirtualJoystick";
 
 // Get canvas element
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
@@ -26,8 +24,6 @@ if (!canvas) {
 // Global variables for game initialization
 let game: GameWithEvents;
 let gameInitialized = false;
-let touchInputManager: TouchInputManager | null = null;
-let virtualJoystick: VirtualJoystick | null = null;
 
 // Set initial canvas size - will be updated to fill container
 function resizeCanvas() {
@@ -163,15 +159,7 @@ function showMainMenu() {
     game.stop();
     gameInitialized = false;
     
-    // Clean up touch controls
-    if (touchInputManager) {
-      touchInputManager.destroy();
-      touchInputManager = null;
-    }
-    if (virtualJoystick) {
-      virtualJoystick.destroy();
-      virtualJoystick = null;
-    }
+    // Touch controls are cleaned up automatically by SimpleGameUI
   }
 
   // Hide game over screen if visible
@@ -224,6 +212,87 @@ function setupGameHandlers() {
     if (gameInitialized) game.handleMouseMove(e);
   });
 
+  // Add touch event handlers for tower placement on mobile
+  if (isTouchDevice) {
+    let touchHandled = false;
+    
+    canvas.addEventListener("touchstart", (e) => {
+      if (!gameInitialized) return;
+      
+      // Check if touch is in joystick area (bottom portion of screen)
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const touchY = touch.clientY - rect.top;
+      const canvasHeight = rect.height;
+      
+      // If touch is in top 70% of screen and we have a selected tower, handle tower placement
+      if (touchY < canvasHeight * 0.7 && game.getSelectedTowerType()) {
+        e.preventDefault();
+        touchHandled = true;
+        
+        // Convert touch to mouse event for tower placement
+        const mouseEvent = new MouseEvent('mousedown', {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+        
+        game.handleMouseDown(mouseEvent);
+        
+        // Haptic feedback on tower placement attempt
+        if ('vibrate' in navigator) {
+          navigator.vibrate(10);
+        }
+      }
+    }, { passive: false });
+    
+    canvas.addEventListener("touchend", (e) => {
+      if (!gameInitialized || !touchHandled) return;
+      
+      e.preventDefault();
+      touchHandled = false;
+      
+      // Convert to mouse up event
+      const touch = e.changedTouches[0];
+      const mouseEvent = new MouseEvent('mouseup', {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        bubbles: true,
+        cancelable: true,
+        view: window
+      });
+      
+      game.handleMouseUp(mouseEvent);
+    }, { passive: false });
+    
+    canvas.addEventListener("touchmove", (e) => {
+      if (!gameInitialized || !game.getSelectedTowerType()) return;
+      
+      // Update tower ghost position during touch move
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const touchY = touch.clientY - rect.top;
+      const canvasHeight = rect.height;
+      
+      // Only handle if in tower placement area
+      if (touchY < canvasHeight * 0.7) {
+        e.preventDefault();
+        
+        const mouseEvent = new MouseEvent('mousemove', {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+          bubbles: true,
+          cancelable: true,
+          view: window
+        });
+        
+        game.handleMouseMove(mouseEvent);
+      }
+    }, { passive: false });
+  }
+
   // Add touch UI indicators if on mobile
   if (isTouchDevice) {
     addTouchUIIndicators();
@@ -259,7 +328,7 @@ function addTouchUIIndicators() {
       <span>Touch Controls Active</span>
     </div>
     <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">
-      Tap: Shoot • Hold & Drag: Continuous Shooting • Move: Virtual Joystick
+      Tap to place towers • Joysticks: Move & Aim
     </div>
   `;
   document.body.appendChild(touchHints);

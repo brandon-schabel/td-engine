@@ -40,28 +40,28 @@ export const DEFAULT_SETTINGS: GameSettings = {
 // Difficulty presets that modify game constants
 export const DIFFICULTY_PRESETS = {
   CASUAL: {
-    startingCurrency: 150,
-    startingLives: 25,
-    towerCostMultiplier: 0.8,
-    enemyHealthMultiplier: 0.8,
-    enemySpeedMultiplier: 0.9,
-    waveDelayMultiplier: 1.5
-  },
-  NORMAL: {
     startingCurrency: 100,
-    startingLives: 20,
-    towerCostMultiplier: 1.0,
-    enemyHealthMultiplier: 1.0,
-    enemySpeedMultiplier: 1.0,
+    startingLives: 17,
+    towerCostMultiplier: 1.2,
+    enemyHealthMultiplier: 1.2,
+    enemySpeedMultiplier: 1.2,
     waveDelayMultiplier: 1.0
   },
+  NORMAL: {
+    startingCurrency: 70,
+    startingLives: 13,
+    towerCostMultiplier: 1.5,
+    enemyHealthMultiplier: 1.5,
+    enemySpeedMultiplier: 1.3,
+    waveDelayMultiplier: 0.7
+  },
   CHALLENGE: {
-    startingCurrency: 75,
-    startingLives: 15,
-    towerCostMultiplier: 1.2,
-    enemyHealthMultiplier: 1.3,
-    enemySpeedMultiplier: 1.1,
-    waveDelayMultiplier: 0.8
+    startingCurrency: 50,
+    startingLives: 10,
+    towerCostMultiplier: 1.8,
+    enemyHealthMultiplier: 2.0,
+    enemySpeedMultiplier: 1.5,
+    waveDelayMultiplier: 0.5
   }
 } as const;
 
