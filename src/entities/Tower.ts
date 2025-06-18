@@ -11,6 +11,7 @@ import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, RENDER_CONFIG, TOWER_COST
 import { TOWER_STATS, TOWER_UPGRADES, TOWER_VISUALS } from '../config/TowerConfig';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
+import { calculateUpgradeCost, calculateSellValue } from '@/utils/MathUtils';
 
 export enum TowerType {
   BASIC = 'BASIC',
@@ -165,20 +166,14 @@ export class Tower extends Entity implements ShootingCapable {
 
   // Upgrade cost and management (replaces TowerUpgradeManager)
   getUpgradeCost(upgradeType: UpgradeType): number {
-    const configs = {
-      [UpgradeType.DAMAGE]: { baseCost: TOWER_UPGRADES.baseCosts.DAMAGE, costMultiplier: TOWER_UPGRADES.costMultiplier, maxLevel: TOWER_UPGRADES.maxLevel },
-      [UpgradeType.RANGE]: { baseCost: TOWER_UPGRADES.baseCosts.RANGE, costMultiplier: TOWER_UPGRADES.costMultiplier, maxLevel: TOWER_UPGRADES.maxLevel },
-      [UpgradeType.FIRE_RATE]: { baseCost: TOWER_UPGRADES.baseCosts.FIRE_RATE, costMultiplier: TOWER_UPGRADES.costMultiplier, maxLevel: TOWER_UPGRADES.maxLevel }
-    };
-    
-    const config = configs[upgradeType];
+    const baseCost = TOWER_UPGRADES.baseCosts[upgradeType];
     const currentLevel = this.getUpgradeLevel(upgradeType);
     
-    if (currentLevel >= config.maxLevel) {
+    if (currentLevel >= TOWER_UPGRADES.maxLevel) {
       return 0; // Max level reached
     }
     
-    return Math.floor(config.baseCost * Math.pow(config.costMultiplier, currentLevel));
+    return calculateUpgradeCost(baseCost, TOWER_UPGRADES.costMultiplier, currentLevel);
   }
 
   canAffordUpgrade(upgradeType: UpgradeType, availableCurrency: number): boolean {
@@ -329,12 +324,11 @@ export class Tower extends Entity implements ShootingCapable {
       
       // Sum up costs for each upgrade level
       for (let i = 1; i <= level; i++) {
-        upgradeCostSpent += Math.floor(baseCost * Math.pow(TOWER_UPGRADES.costMultiplier, i - 1));
+        upgradeCostSpent += calculateUpgradeCost(baseCost, TOWER_UPGRADES.costMultiplier, i - 1);
       }
     });
     
     // Sell value is 60% of total invested cost
-    const totalInvested = baseCost + upgradeCostSpent;
-    return Math.floor(totalInvested * 0.6);
+    return calculateSellValue(baseCost, upgradeCostSpent, 0.4);
   }
 }

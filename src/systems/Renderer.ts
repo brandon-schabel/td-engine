@@ -12,6 +12,7 @@ import type { Vector2 } from '@/utils/Vector2';
 import { COLOR_CONFIG, RENDER_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
 import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
+import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -83,21 +84,6 @@ export class Renderer {
     return BIOME_PRESETS[biome].colors;
   }
 
-  private adjustBrightness(color: string, brightness: number): string {
-    // Convert hex to RGB
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
-    // Adjust brightness
-    const newR = Math.floor(Math.min(255, r * brightness));
-    const newG = Math.floor(Math.min(255, g * brightness));
-    const newB = Math.floor(Math.min(255, b * brightness));
-    
-    // Convert back to hex
-    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
-  }
 
   renderGrid(): void {
     const cellSize = this.grid.cellSize;
@@ -128,7 +114,7 @@ export class Renderer {
         
         switch (cellData.type) {
           case CellType.PATH:
-            this.ctx.fillStyle = this.adjustBrightness(biomeColors.path, brightness);
+            this.ctx.fillStyle = adjustColorBrightness(biomeColors.path, brightness);
             if (typeof this.ctx.fillRect === 'function') {
               this.ctx.fillRect(
                 screenPos.x - cellSize / 2,
@@ -141,7 +127,7 @@ export class Renderer {
             
           case CellType.BLOCKED:
           case CellType.BORDER:
-            this.ctx.fillStyle = this.adjustBrightness(biomeColors.border, brightness * 0.7);
+            this.ctx.fillStyle = adjustColorBrightness(biomeColors.border, brightness * 0.7);
             if (typeof this.ctx.fillRect === 'function') {
               this.ctx.fillRect(
                 screenPos.x - cellSize / 2,
@@ -154,7 +140,7 @@ export class Renderer {
             
           case CellType.OBSTACLE:
             // Render rocks/obstacles
-            this.ctx.fillStyle = this.adjustBrightness(RENDER_CONFIG.obstacleColor, brightness);
+            this.ctx.fillStyle = adjustColorBrightness(RENDER_CONFIG.obstacleColor, brightness);
             if (typeof this.ctx.beginPath === 'function') {
               this.ctx.beginPath();
             }
@@ -166,7 +152,7 @@ export class Renderer {
             }
             
             // Add some detail
-            this.ctx.strokeStyle = this.adjustBrightness('#888888', brightness * 0.8);
+            this.ctx.strokeStyle = adjustColorBrightness('#888888', brightness * 0.8);
             this.ctx.lineWidth = 2;
             if (typeof this.ctx.stroke === 'function') {
               this.ctx.stroke();
@@ -176,7 +162,7 @@ export class Renderer {
           case CellType.SPAWN_ZONE:
             // Render spawn zones with pulsing effect
             const pulse = Math.sin(Date.now() * 0.002) * 0.2 + 0.8;
-            this.ctx.fillStyle = this.adjustBrightness(biomeColors.accent, brightness * pulse);
+            this.ctx.fillStyle = adjustColorBrightness(biomeColors.accent, brightness * pulse);
             if (typeof this.ctx.fillRect === 'function') {
               this.ctx.fillRect(
                 screenPos.x - cellSize / 2,
@@ -190,8 +176,8 @@ export class Renderer {
           case CellType.EMPTY:
           case CellType.DECORATIVE:
             // Render terrain with subtle variation
-            const variation = (x * 7 + y * 13) % 5 / 5 * 0.1; // Pseudo-random variation
-            this.ctx.fillStyle = this.adjustBrightness(biomeColors.primary, brightness + variation);
+            const variation = coordinateVariation(x, y, 0.1);
+            this.ctx.fillStyle = adjustColorBrightness(biomeColors.primary, brightness + variation);
             if (typeof this.ctx.fillRect === 'function') {
               this.ctx.fillRect(
                 screenPos.x - cellSize / 2,
@@ -203,7 +189,7 @@ export class Renderer {
             
             // Add subtle secondary color patches
             if ((x + y) % 7 === 0) {
-              this.ctx.fillStyle = this.adjustBrightness(biomeColors.secondary, brightness + variation);
+              this.ctx.fillStyle = adjustColorBrightness(biomeColors.secondary, brightness + variation);
               if (typeof this.ctx.fillRect === 'function') {
                 this.ctx.fillRect(
                   screenPos.x - cellSize / 4,
@@ -1673,7 +1659,7 @@ export class Renderer {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
-    this.clear(this.adjustBrightness(biomeColors.primary, 0.3));
+    this.clear(adjustColorBrightness(biomeColors.primary, 0.3));
     
     // Render grid with biome colors
     this.renderGrid();

@@ -7,6 +7,7 @@ import { PLAYER_ABILITIES, PLAYER_UPGRADES, POWER_UP_CONFIG, PLAYER_VISUALS } fr
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 import { PlayerPowerUps } from './player/PlayerPowerUps';
+import { calculateUpgradeCost, normalizeMovement } from '@/utils/MathUtils';
 
 export enum PlayerUpgradeType {
   DAMAGE = 'DAMAGE',
@@ -119,14 +120,9 @@ export class Player extends Entity implements ShootingCapable {
     }
     
     // Normalize diagonal movement
-    const magnitude = Math.sqrt(movementX * movementX + movementY * movementY);
-    if (magnitude > 0) {
-      this.velocity.x = (movementX / magnitude) * this.getCurrentSpeed();
-      this.velocity.y = (movementY / magnitude) * this.getCurrentSpeed();
-    } else {
-      this.velocity.x = 0;
-      this.velocity.y = 0;
-    }
+    const normalized = normalizeMovement(movementX, movementY);
+    this.velocity.x = normalized.x * this.getCurrentSpeed();
+    this.velocity.y = normalized.y * this.getCurrentSpeed();
     
     // Apply movement
     const deltaSeconds = deltaTime / 1000;
@@ -242,7 +238,7 @@ export class Player extends Entity implements ShootingCapable {
       return 0; // Max level reached
     }
     
-    return Math.floor(config.baseCost * Math.pow(config.costMultiplier, currentLevel));
+    return calculateUpgradeCost(config.baseCost, config.costMultiplier, currentLevel);
   }
 
   canAffordUpgrade(upgradeType: PlayerUpgradeType, availableCurrency: number): boolean {
@@ -561,11 +557,13 @@ export class Player extends Entity implements ShootingCapable {
     // Normalize the input if needed
     const magnitude = Math.sqrt(x * x + y * y);
     if (magnitude > 1) {
-      x /= magnitude;
-      y /= magnitude;
+      const normalized = normalizeMovement(x, y);
+      this.velocity.x = normalized.x * speed;
+      this.velocity.y = normalized.y * speed;
+    } else {
+      this.velocity.x = x * speed;
+      this.velocity.y = y * speed;
     }
-    this.velocity.x = x * speed;
-    this.velocity.y = y * speed;
   }
   
   setAimDirection(angle: number): void {

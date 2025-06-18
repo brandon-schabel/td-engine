@@ -1,7 +1,12 @@
 /**
  * Base Upgrade Manager and Interfaces
  * Provides the foundation for upgrade systems across different entity types
+ * 
+ * Recent changes:
+ * - Updated to use MathUtils for upgrade cost calculations
  */
+
+import { calculateUpgradeCost, calculateTotalCostToLevel } from '@/utils/MathUtils';
 
 /**
  * Configuration for upgrade mechanics
@@ -75,7 +80,7 @@ export abstract class BaseUpgradeManager<TUpgradeType, TEntity extends Upgradeab
       return 0; // Max level reached, cannot upgrade
     }
     
-    return Math.floor(config.baseCost * Math.pow(config.costMultiplier, currentLevel));
+    return calculateUpgradeCost(config.baseCost, config.costMultiplier, currentLevel);
   }
 
   /**
@@ -140,13 +145,8 @@ export abstract class BaseUpgradeManager<TUpgradeType, TEntity extends Upgradeab
    */
   getTotalCostToLevel(upgradeType: TUpgradeType, targetLevel: number): number {
     const config = this.getUpgradeConfig(upgradeType);
-    let totalCost = 0;
-    
-    for (let level = 0; level < Math.min(targetLevel, config.maxLevel); level++) {
-      totalCost += Math.floor(config.baseCost * Math.pow(config.costMultiplier, level));
-    }
-    
-    return totalCost;
+    const maxLevel = Math.min(targetLevel, config.maxLevel);
+    return calculateTotalCostToLevel(config.baseCost, config.costMultiplier, maxLevel);
   }
 
   /**
