@@ -44,6 +44,7 @@ export class Game {
   private pathfinder: Pathfinder;
   private waveManager: WaveManager;
   private spawnZoneManager: SpawnZoneManager;
+  private canvas: HTMLCanvasElement;
 
   // Inlined resource management for better performance
   private currency: number = 100;
@@ -83,6 +84,8 @@ export class Game {
     mapConfig?: MapGenerationConfig,
     autoStart: boolean = true
   ) {
+    this.canvas = canvas;
+    
     // Initialize map generation systems
     this.mapGenerator = new MapGenerator();
     this.textureManager = new TextureManager();
@@ -111,16 +114,28 @@ export class Game {
       zoomSpeed: 0.15,
       zoomSmoothing: 0.12,
     };
+    
+    // Get logical dimensions for camera (accounting for pixel ratio scaling)
+    // This is critical: when the canvas context is scaled by pixelRatio,
+    // all coordinate calculations must use logical dimensions, not pixel dimensions
+    const pixelRatio = window.devicePixelRatio || 1;
+    const logicalWidth = canvas.width / pixelRatio;
+    const logicalHeight = canvas.height / pixelRatio;
+    
+    console.log("Initializing camera with logical dimensions:", logicalWidth, "x", logicalHeight);
+    console.log("Canvas pixel dimensions:", canvas.width, "x", canvas.height);
+    console.log("Pixel ratio:", pixelRatio);
+    
     this.camera = new Camera(
-      canvas.width,
-      canvas.height,
+      logicalWidth,
+      logicalHeight,
       worldWidth,
       worldHeight,
       cameraOptions
     );
 
     // Initialize camera diagnostics
-    this.cameraDiagnostics = new CameraDiagnostics(this);
+    this.cameraDiagnostics = new CameraDiagnostics(this.camera);
 
     // Initialize systems
     this.pathfinder = new Pathfinder(this.grid);
@@ -203,6 +218,15 @@ export class Game {
     // Start the game engine (unless disabled for testing)
     if (autoStart) {
       this.engine.start();
+      
+      // Run initial camera diagnostic after a short delay
+      setTimeout(() => {
+        console.log("=== INITIAL CAMERA CHECK ===");
+        this.checkCamera();
+        const cameraInfo = this.camera.getCameraInfo();
+        console.log("Camera follow mode:", cameraInfo.followTarget ? "ENABLED" : "DISABLED");
+        console.log("Press 'B' to check camera, 'N' to fix camera, 'Shift+V' to toggle visual debug");
+      }, 1000);
     }
   }
 
@@ -635,6 +659,19 @@ export class Game {
     } else if (this.engine.getState() === GameState.PAUSED) {
       this.renderer.renderPaused();
     }
+
+    // Render camera diagnostics overlay if enabled
+    if (this.cameraDiagnostics.isVisualDebugEnabled()) {
+      const ctx = this.canvas.getContext('2d');
+      if (ctx) {
+        // Save context state since it might be scaled
+        ctx.save();
+        // Reset any transforms to ensure debug overlay renders correctly
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.cameraDiagnostics.renderDebug(ctx, this.player);
+        ctx.restore();
+      }
+    }
   };
 
   // Tower placement
@@ -712,7 +749,20 @@ export class Game {
 
   // Mouse interaction
   handleMouseDown(event: MouseEvent): void {
-    const screenPos = { x: event.offsetX, y: event.offsetY };
+    // Get mouse position accounting for pixel ratio
+    const rect = this.canvas.getBoundingClientRect();
+    const pixelRatio = window.devicePixelRatio || 1;
+    
+    // Calculate position relative to canvas
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Convert to actual canvas coordinates (accounting for CSS scaling)
+    const screenPos = { 
+      x: x * (this.canvas.width / pixelRatio) / rect.width,
+      y: y * (this.canvas.height / pixelRatio) / rect.height
+    };
+    
     const worldPos = this.camera.screenToWorld(screenPos);
     this.isMouseDown = true;
 
@@ -766,7 +816,20 @@ export class Game {
   }
 
   handleMouseMove(event: MouseEvent): void {
-    const screenPos = { x: event.offsetX, y: event.offsetY };
+    // Get mouse position accounting for pixel ratio
+    const rect = this.canvas.getBoundingClientRect();
+    const pixelRatio = window.devicePixelRatio || 1;
+    
+    // Calculate position relative to canvas
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Convert to actual canvas coordinates (accounting for CSS scaling)
+    const screenPos = { 
+      x: x * (this.canvas.width / pixelRatio) / rect.width,
+      y: y * (this.canvas.height / pixelRatio) / rect.height
+    };
+    
     const worldPos = this.camera.screenToWorld(screenPos);
 
     // Update mouse position for ghost tower rendering
@@ -834,6 +897,19 @@ export class Game {
       case "N":
         // Fix camera
         this.fixCamera();
+        break;
+      case "d":
+      case "D":
+        // Debug camera (only when combined with Shift)
+        if (key === "D") {
+          this.debugCamera();
+        }
+        break;
+      case "v":
+      case "V":
+        // Toggle visual debug mode
+        this.renderer.setDebugMode(key === "V");
+        console.log(`Visual debug mode: ${key === "V" ? "ON" : "OFF"}`);
         break;
     }
   }
@@ -1763,9 +1839,11 @@ export class Game {
 
   // Add this simple diagnostic method
   public checkCamera(): void {
-    const cameraPos = this.camera.getPosition();
+    const cameraInfo = this.camera.getCameraInfo();
+    const cameraPos = cameraInfo.position;
     const playerPos = this.player.position;
-    const zoom = this.camera.getZoom();
+    const zoom = cameraInfo.zoom;
+    const isFollowing = cameraInfo.followTarget;
     
     // Get canvas dimensions from renderer's viewport
     const canvasWidth = this.renderer.getViewportWidth();
@@ -1783,16 +1861,28 @@ export class Game {
         Math.pow(playerScreenY - centerY, 2)
     );
 
-    console.log("=== CAMERA CHECK ===");
-    console.log("Player should be at center of screen");
-    console.log(`Screen center: (${centerX}, ${centerY})`);
-    console.log(
-      `Player on screen: (${playerScreenX.toFixed(0)}, ${playerScreenY.toFixed(
-        0
-      )})`
-    );
+    console.log("=== CAMERA DIAGNOSTIC ===");
+    console.log("Canvas Info:", {
+      actualSize: { width: this.canvas.width, height: this.canvas.height },
+      cssSize: { width: this.canvas.offsetWidth, height: this.canvas.offsetHeight },
+      pixelRatio: window.devicePixelRatio || 1
+    });
+    console.log("Camera Info:", {
+      following: isFollowing,
+      position: cameraPos,
+      center: cameraInfo.center,
+      zoom: zoom.toFixed(2),
+      viewport: cameraInfo.viewportSize
+    });
+    console.log("Player Info:", {
+      worldPos: playerPos,
+      screenPos: { x: playerScreenX.toFixed(0), y: playerScreenY.toFixed(0) },
+      velocity: this.player.getVelocity(),
+      isMoving: this.player.isMoving()
+    });
+    console.log(`Expected center: (${centerX}, ${centerY})`);
     console.log(`Distance from center: ${distance.toFixed(1)}px`);
-    console.log(`Status: ${distance < 10 ? "✅ GOOD" : "❌ BAD"}`);
+    console.log(`Status: ${distance < 10 ? "✅ CENTERED" : "❌ OFF-CENTER"}`);
 
     if (distance > 10) {
       console.log("\nTo fix, camera should be at:");
@@ -1806,22 +1896,78 @@ export class Game {
   // Quick fix method
   public fixCamera(): void {
     console.log("Fixing camera...");
+    
+    // Log current state before fix
+    const beforeInfo = this.camera.getCameraInfo();
+    console.log("Before fix:", {
+      following: beforeInfo.followTarget,
+      cameraPos: beforeInfo.position,
+      playerPos: this.player.position
+    });
 
-    // Enable following
-    this.camera.setFollowTarget(true);
+    // Force enable following and center
+    this.camera.enableFollowingAndCenter(this.player.position);
 
-    // Get canvas dimensions
-    const canvas = this.renderer.canvas || this.canvas;
-    const zoom = this.camera.getZoom();
+    // Log state after fix
+    const afterInfo = this.camera.getCameraInfo();
+    console.log("After fix:", {
+      following: afterInfo.followTarget,
+      cameraPos: afterInfo.position,
+      playerPos: this.player.position
+    });
 
-    // Calculate correct camera position
-    const correctX = this.player.position.x - canvas.width / (2 * zoom);
-    const correctY = this.player.position.y - canvas.height / (2 * zoom);
-
-    // Set camera position
-    this.camera.setPosition({ x: correctX, y: correctY });
-
-    console.log("Camera fixed!");
+    console.log("Camera fixed! Following enabled and centered on player.");
     this.checkCamera(); // Run check to verify
+  }
+
+  // Debug camera following
+  public debugCamera(): void {
+    console.log("=== CAMERA DEBUG MODE ===");
+    
+    // Log current state
+    const cameraInfo = this.camera.getCameraInfo();
+    console.log("Current camera state:", cameraInfo);
+    
+    // Test player movement
+    const startPos = { ...this.player.position };
+    console.log("Testing player movement...");
+    
+    // Move player a bit
+    this.player.position.x += 100;
+    this.player.position.y += 100;
+    
+    // Update camera
+    this.camera.update(this.player.position);
+    
+    const newCameraInfo = this.camera.getCameraInfo();
+    console.log("After moving player +100,+100:");
+    console.log("  Player moved from", startPos, "to", this.player.position);
+    console.log("  Camera moved from", cameraInfo.position, "to", newCameraInfo.position);
+    
+    // Restore player position
+    this.player.position = startPos;
+    
+    // Test instant centering
+    console.log("\nTesting instant centering...");
+    this.camera.centerOnTarget(this.player.position);
+    const centeredInfo = this.camera.getCameraInfo();
+    console.log("  Camera after centerOnTarget:", centeredInfo.position);
+    
+    this.checkCamera();
+  }
+
+  // Toggle visual debug mode
+  public toggleVisualDebug(): void {
+    this.cameraDiagnostics.toggleVisualDebug();
+    const enabled = this.cameraDiagnostics.isVisualDebugEnabled();
+    
+    // Also toggle renderer debug mode
+    this.renderer.setDebugMode(enabled);
+    
+    console.log(`Camera visual debug: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    if (enabled) {
+      console.log("Green crosshair = screen center, Yellow circle = player position");
+      console.log("Red dashed line = distance from center to player");
+    }
   }
 }

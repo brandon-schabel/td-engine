@@ -57,6 +57,7 @@ function resizeCanvas() {
     // Update camera viewport if game exists
     if (gameInitialized && game) {
       const camera = game.getCamera();
+      // Use CSS dimensions since context is scaled by pixelRatio
       camera.updateViewport(width, height);
 
       // Adjust zoom based on screen size
@@ -353,6 +354,35 @@ document.addEventListener("keydown", (e) => {
       if (game.isPaused()) {
         audioManager.playUISound(SoundType.BUTTON_CLICK);
         showMainMenu();
+      }
+      break;
+    
+    // Camera diagnostic shortcuts
+    case "b":
+    case "B":
+      // Check camera status
+      game.checkCamera();
+      break;
+      
+    case "n":
+    case "N":
+      // Fix camera (enable following and center)
+      game.fixCamera();
+      break;
+      
+    case "v":
+    case "V":
+      // Toggle visual debug (only with Shift)
+      if (e.shiftKey) {
+        game.toggleVisualDebug();
+      }
+      break;
+      
+    case "d":
+    case "D":
+      // Debug camera (only with Shift)
+      if (e.shiftKey) {
+        game.debugCamera();
       }
       break;
   }

@@ -22,13 +22,18 @@ export class Renderer {
   private viewportHeight: number;
   private textureManager: TextureManager;
   private environmentalEffects: EnvironmentalEffect[] = [];
+  private debugMode: boolean = false;
 
   constructor(canvas: HTMLCanvasElement, grid: Grid, camera: Camera, textureManager?: TextureManager) {
     this.canvas = canvas;
     this.grid = grid;
     this.camera = camera;
-    this.viewportWidth = canvas.width;
-    this.viewportHeight = canvas.height;
+    
+    // Use CSS dimensions for viewport since context is scaled
+    const pixelRatio = window.devicePixelRatio || 1;
+    this.viewportWidth = canvas.width / pixelRatio;
+    this.viewportHeight = canvas.height / pixelRatio;
+    
     this.textureManager = textureManager || new TextureManager();
     
     const ctx = canvas.getContext('2d');
@@ -1657,6 +1662,11 @@ export class Renderer {
     
     // Render all entities
     this.renderEntities(towers, enemies, projectiles, collectibles, aimerLine, player, selectedTower);
+    
+    // Render debug overlay if enabled
+    if (this.debugMode) {
+      this.renderDebugOverlay(player);
+    }
   }
 
   renderUI(currency: number, lives: number, score: number, wave: number): void {
@@ -1833,5 +1843,81 @@ export class Renderer {
 
   getCanvasHeight(): number {
     return this.canvas.height;
+  }
+
+  // Toggle debug mode
+  setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled;
+  }
+
+  // Render debug overlay
+  private renderDebugOverlay(player?: Player): void {
+    if (!player) return;
+
+    // Get camera info
+    const cameraInfo = this.camera.getCameraInfo();
+    const playerScreenPos = this.camera.worldToScreen(player.position);
+    
+    // Draw crosshair at screen center
+    const centerX = this.viewportWidth / 2;
+    const centerY = this.viewportHeight / 2;
+    
+    this.ctx.strokeStyle = '#00FF00';
+    this.ctx.lineWidth = 2;
+    
+    // Horizontal line
+    this.ctx.beginPath();
+    this.ctx.moveTo(centerX - 20, centerY);
+    this.ctx.lineTo(centerX + 20, centerY);
+    this.ctx.stroke();
+    
+    // Vertical line
+    this.ctx.beginPath();
+    this.ctx.moveTo(centerX, centerY - 20);
+    this.ctx.lineTo(centerX, centerY + 20);
+    this.ctx.stroke();
+    
+    // Draw circle at center
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+    this.ctx.stroke();
+    
+    // Draw line from center to player
+    this.ctx.strokeStyle = '#FF0000';
+    this.ctx.setLineDash([5, 5]);
+    this.ctx.beginPath();
+    this.ctx.moveTo(centerX, centerY);
+    this.ctx.lineTo(playerScreenPos.x, playerScreenPos.y);
+    this.ctx.stroke();
+    this.ctx.setLineDash([]);
+    
+    // Draw player marker
+    this.ctx.strokeStyle = '#FFFF00';
+    this.ctx.lineWidth = 3;
+    this.ctx.beginPath();
+    this.ctx.arc(playerScreenPos.x, playerScreenPos.y, 15, 0, Math.PI * 2);
+    this.ctx.stroke();
+    
+    // Debug text
+    const debugText = [
+      `Camera Following: ${cameraInfo.followTarget ? 'YES' : 'NO'}`,
+      `Camera Pos: (${cameraInfo.position.x.toFixed(0)}, ${cameraInfo.position.y.toFixed(0)})`,
+      `Player World: (${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)})`,
+      `Player Screen: (${playerScreenPos.x.toFixed(0)}, ${playerScreenPos.y.toFixed(0)})`,
+      `Distance from Center: ${Math.sqrt(Math.pow(playerScreenPos.x - centerX, 2) + Math.pow(playerScreenPos.y - centerY, 2)).toFixed(1)}px`,
+      `Zoom: ${cameraInfo.zoom.toFixed(2)}`,
+      `Player Moving: ${player.isMoving() ? 'YES' : 'NO'}`
+    ];
+    
+    // Background for text
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    this.ctx.fillRect(10, 100, 300, debugText.length * 20 + 20);
+    
+    // Debug text
+    this.ctx.fillStyle = '#00FF00';
+    this.ctx.font = '14px monospace';
+    debugText.forEach((text, i) => {
+      this.ctx.fillText(text, 20, 120 + i * 20);
+    });
   }
 }
