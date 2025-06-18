@@ -487,6 +487,47 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
+    
+    /* Safari Mobile specific overrides for landscape mode */
+    @supports (-webkit-touch-callout: none) {
+      @media (orientation: landscape) {
+        #bottom-ui-container {
+          /* Force override Safari's safe area calculations in landscape */
+          height: 30px !important;
+          min-height: 30px !important;
+          max-height: 30px !important;
+          padding-bottom: 0 !important;
+          /* Ensure it doesn't expand beyond our intended size */
+          box-sizing: border-box !important;
+        }
+        
+        /* Extra small for very compact landscapes */
+        @media (max-height: 450px) {
+          #bottom-ui-container {
+            height: 25px !important;
+            min-height: 25px !important;
+            max-height: 25px !important;
+          }
+        }
+        
+        /* Force button sizes on Safari */
+        #bottom-ui-container .ui-button {
+          height: 24px !important;
+          min-height: 24px !important;
+          max-height: 24px !important;
+          line-height: 1 !important;
+        }
+        
+        #bottom-ui-container .ui-button.icon-only {
+          width: 24px !important;
+          height: 24px !important;
+          min-width: 24px !important;
+          max-width: 24px !important;
+          min-height: 24px !important;
+          max-height: 24px !important;
+        }
+      }
+    }
   </style>
 </head>
 <body>
