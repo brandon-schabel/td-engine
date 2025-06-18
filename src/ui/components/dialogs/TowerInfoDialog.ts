@@ -16,14 +16,16 @@ export interface TowerInfoDialogOptions {
 }
 
 export class TowerInfoDialog extends BaseDialog {
-  private tower: Tower;
-  private game: Game;
-  private onUpgrade?: () => void;
-  private onSell?: () => void;
-  private onClose?: () => void;
+  protected tower: Tower;
+  protected game: Game;
+  protected onUpgrade?: () => void;
+  protected onSell?: () => void;
+  protected onClose?: () => void;
+  protected audioManager?: AudioManager;
   private updateInterval?: number;
   
   constructor(options: TowerInfoDialogOptions) {
+    console.log('[TowerInfoDialog] Constructor called');
     super({
       title: `${options.tower.towerType} Tower`,
       width: DIALOG_CONFIG.sizes.small,
@@ -33,11 +35,20 @@ export class TowerInfoDialog extends BaseDialog {
       className: 'tower-info-dialog'
     });
     
+    console.log('[TowerInfoDialog] Base dialog constructed');
+    
     this.tower = options.tower;
     this.game = options.game;
     this.onUpgrade = options.onUpgrade;
     this.onSell = options.onSell;
     this.onClose = options.onClose;
+    this.audioManager = options.audioManager;
+    
+    // Ensure content exists before building
+    if (!this.content) {
+      console.error('[TowerInfoDialog] Content element not initialized!');
+      return;
+    }
     
     this.buildContent();
     this.startUpdating();
@@ -45,6 +56,8 @@ export class TowerInfoDialog extends BaseDialog {
   
   protected buildContent(): void {
     console.log('[TowerInfoDialog] buildContent called for tower:', this.tower.towerType);
+    console.log('[TowerInfoDialog] Dialog container exists:', !!this.container);
+    console.log('[TowerInfoDialog] Content element exists:', !!this.content);
     
     // Tower icon and basic info
     const headerSection = document.createElement('div');

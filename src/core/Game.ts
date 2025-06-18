@@ -840,13 +840,14 @@ export class Game {
     );
 
     if (clickedTower) {
-      console.log('[DEBUG] Clicked on tower:', clickedTower.towerType, 'at', clickedTower.position);
+      console.log('[Game] Clicked on tower:', clickedTower.towerType, 'at', clickedTower.position);
+      console.log('[Game] Current selected tower:', this.selectedTower);
       // Use the selectTower/deselectTower methods for consistency
       if (this.selectedTower === clickedTower) {
-        console.log('[DEBUG] Deselecting tower');
+        console.log('[Game] Deselecting tower');
         this.deselectTower();
       } else {
-        console.log('[DEBUG] Selecting tower');
+        console.log('[Game] Selecting tower');
         this.selectTower(clickedTower);
       }
       this.selectedTowerType = null; // Clear tower placement mode
@@ -1339,18 +1340,22 @@ export class Game {
   }
 
   selectTower(tower: Tower): void {
+    console.log('[Game.selectTower] Called with tower:', tower.towerType);
+    
     if (!this.towers.includes(tower)) {
       console.warn('[Game] Attempted to select a tower that is not in the game');
       return;
     }
 
     const previousTower = this.selectedTower;
+    console.log('[Game.selectTower] Previous tower:', previousTower?.towerType || 'none');
     
     // Deselect previous tower if different
     if (previousTower && previousTower !== tower) {
       const deselectEvent = new CustomEvent('towerDeselected', { 
         detail: { tower: previousTower } 
       });
+      console.log('[Game.selectTower] Dispatching towerDeselected event');
       document.dispatchEvent(deselectEvent);
     }
     
@@ -1361,6 +1366,7 @@ export class Game {
     const selectEvent = new CustomEvent('towerSelected', { 
       detail: { tower } 
     });
+    console.log('[Game.selectTower] Dispatching towerSelected event with tower:', tower.towerType);
     document.dispatchEvent(selectEvent);
   }
 
@@ -1418,6 +1424,41 @@ export class Game {
 
   getPlayer(): Player {
     return this.player;
+  }
+
+  // Tower selling
+  sellTower(tower: Tower): boolean {
+    const towerIndex = this.towers.indexOf(tower);
+    if (towerIndex === -1) {
+      console.warn('[Game] Attempted to sell a tower that is not in the game');
+      return false;
+    }
+
+    // Get sell value before removing
+    const sellValue = tower.getSellValue();
+
+    // Get tower grid position to clear it
+    const gridPos = this.grid.worldToGrid(tower.position);
+
+    // Remove tower from array
+    this.towers.splice(towerIndex, 1);
+
+    // Clear grid cell
+    this.grid.setCellType(gridPos.x, gridPos.y, CellType.EMPTY);
+
+    // Add currency from selling
+    this.addCurrency(sellValue);
+
+    // Clear selection if this was the selected tower
+    if (this.selectedTower === tower) {
+      this.deselectTower();
+    }
+
+    // Play sell sound
+    this.audioHandler.playTowerPlace(); // Using place sound for sell
+
+    console.log(`[Game] Sold ${tower.towerType} tower for ${sellValue} gold`);
+    return true;
   }
 
   getAudioManager(): AudioManager {

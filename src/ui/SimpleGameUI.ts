@@ -27,6 +27,7 @@ import {
 } from './components/dialogs';
 import { DebugDialogWrapper } from './DebugDialogWrapper';
 import { DialogShowFix } from './DialogShowFix';
+import { SimpleTowerInfo } from './components/SimpleTowerInfo';
 
 export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById('game-container');
@@ -44,7 +45,6 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   
   // Dialog instances
   let buildMenuDialog: BuildMenuDialogAdapter;
-  let towerInfoDialog: TowerInfoDialogAdapter | null = null;
   let inventoryDialog: InventoryDialogAdapter;
   let settingsDialog: SettingsDialog;
   let pauseDialog: PauseDialog;
@@ -76,6 +76,32 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         }
       });
       dialogManager.register('buildMenu', buildMenuDialog);
+    }
+    
+    // Test: Create a simple test dialog to verify dialog system works
+    console.log('[SimpleGameUI] Testing dialog system...');
+    try {
+      const testDialog = new BaseDialog({
+        title: 'Test Dialog',
+        width: '300px',
+        closeable: true,
+        modal: true,
+        audioManager: audioManager,
+        className: 'test-dialog'
+      });
+      
+      // Override buildContent for test
+      (testDialog as any).buildContent = function() {
+        this.content.innerHTML = '<p style="color: white;">If you see this, dialogs work!</p>';
+      };
+      (testDialog as any).buildContent();
+      
+      dialogManager.register('test', testDialog);
+      // Don't show it automatically, just verify it can be created
+      dialogManager.unregister('test');
+      console.log('[SimpleGameUI] Dialog system test passed');
+    } catch (error) {
+      console.error('[SimpleGameUI] Dialog system test failed:', error);
     }
 
     // Inventory Dialog - should already be registered
@@ -336,40 +362,27 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     updateTowerPlacementIndicator();
   });
 
+  // Keep track of current tower info
+  let currentTowerInfo: SimpleTowerInfo | null = null;
+  
   // Show tower info dialog when a tower is selected
   const showTowerInfoDialog = (tower: Tower) => {
-    console.log('[SimpleGameUI] showTowerInfoDialog called for tower:', tower);
+    console.log('[SimpleGameUI] showTowerInfoDialog called for tower:', tower.towerType);
     
-    // Close existing tower info dialog if any
-    if (towerInfoDialog) {
-      console.log('[SimpleGameUI] Closing existing tower info dialog');
-      dialogManager.unregister('towerInfo');
-      towerInfoDialog = null;
+    // Close any existing tower info
+    if (currentTowerInfo) {
+      currentTowerInfo.close();
+      currentTowerInfo = null;
     }
-
+    
     try {
-      // Create new tower info dialog for the selected tower
-      console.log('[SimpleGameUI] Creating new TowerInfoDialogAdapter');
-      towerInfoDialog = new TowerInfoDialogAdapter({
-        game,
-        tower,
-        audioManager,
-        onClosed: () => {
-          console.log('[SimpleGameUI] Tower info dialog closed');
-          dialogManager.unregister('towerInfo');
-          towerInfoDialog = null;
-        }
-      });
-
-      console.log('[SimpleGameUI] Registering tower info dialog');
-      dialogManager.register('towerInfo', towerInfoDialog);
-      
-      console.log('[SimpleGameUI] Showing tower info dialog');
-      dialogManager.show('towerInfo');
-      
-      console.log('[SimpleGameUI] Tower info dialog should now be visible');
+      // Create and show the simple tower info
+      currentTowerInfo = new SimpleTowerInfo(tower, game, audioManager);
+      currentTowerInfo.show();
+      console.log('[SimpleGameUI] SimpleTowerInfo shown successfully');
     } catch (error) {
-      console.error('[SimpleGameUI] Error creating/showing tower info dialog:', error);
+      console.error('[SimpleGameUI] Error creating/showing tower info:', error);
+      console.error('[SimpleGameUI] Stack trace:', error.stack);
     }
   };
 
@@ -381,6 +394,10 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   // Listen for tower selection events
   const handleTowerSelected = (event: CustomEvent) => {
+    console.log('[SimpleGameUI] handleTowerSelected called');
+    console.log('[SimpleGameUI] Event:', event);
+    console.log('[SimpleGameUI] Event detail:', event.detail);
+    
     const tower = event.detail.tower;
     console.log('[SimpleGameUI] Tower selected event received');
     console.log('[SimpleGameUI] Tower details:', {
@@ -388,6 +405,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       position: tower.position,
       level: tower.getLevel ? tower.getLevel() : 'N/A'
     });
+    
+    console.log('[SimpleGameUI] Calling showTowerInfoDialog');
     showTowerInfoDialog(tower);
   };
 
@@ -395,17 +414,41 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     const tower = event.detail.tower;
     console.log('[SimpleGameUI] Tower deselected:', tower.towerType);
     
-    // Close tower info dialog if it's for this tower
-    if (towerInfoDialog && game.isTowerSelected(tower) === false) {
-      dialogManager.hide('towerInfo');
-      dialogManager.unregister('towerInfo');
-      towerInfoDialog = null;
+    // Close simple tower info
+    if (currentTowerInfo) {
+      currentTowerInfo.close();
+      currentTowerInfo = null;
     }
   };
 
   // Add event listeners for tower selection
   document.addEventListener('towerSelected', handleTowerSelected as EventListener);
   document.addEventListener('towerDeselected', handleTowerDeselected as EventListener);
+  
+  // Handle tower upgrade request from SimpleTowerInfo
+  document.addEventListener('showTowerUpgrade', ((event: CustomEvent) => {
+    const tower = event.detail.tower;
+    console.log('[SimpleGameUI] showTowerUpgrade event received for tower:', tower.towerType);
+    
+    // Create and show upgrade dialog
+    const upgradeDialog = new UpgradeDialogAdapter({
+      game,
+      target: tower,
+      audioManager,
+      onUpgraded: (type, cost) => {
+        console.log('[SimpleGameUI] Tower upgraded');
+      },
+      onSold: () => {
+        console.log('[SimpleGameUI] Tower sold from upgrade dialog');
+      },
+      onClosed: () => {
+        dialogManager.unregister('towerUpgrade');
+      }
+    });
+    
+    dialogManager.register('towerUpgrade', upgradeDialog);
+    dialogManager.show('towerUpgrade');
+  }) as EventListener);
 
   // Keyboard shortcuts
   const handleKeyPress = (e: KeyboardEvent) => {

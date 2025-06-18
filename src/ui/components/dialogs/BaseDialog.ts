@@ -405,6 +405,7 @@ export abstract class BaseDialog {
     console.log(`[BaseDialog] Showing dialog: ${this.options.title}`);
     console.log(`[BaseDialog] Container in DOM:`, this.container.parentNode !== null);
     console.log(`[BaseDialog] Container display:`, this.container.style.display);
+    console.log(`[BaseDialog] Container element:`, this.container);
     
     this.visible = true;
     this.beforeShow();
@@ -419,6 +420,11 @@ export abstract class BaseDialog {
     this.container.style.display = 'block';
     this.container.style.pointerEvents = 'auto';
     
+    // Force visibility styles
+    this.container.style.visibility = 'visible';
+    this.overlay.style.visibility = 'visible';
+    this.dialog.style.visibility = 'visible';
+    
     console.log(`[BaseDialog] Container after show - display:`, this.container.style.display, 'z-index:', this.container.style.zIndex);
     
     // Trigger animations
@@ -428,6 +434,14 @@ export abstract class BaseDialog {
       // Use translate3d for better performance and no blur
       this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
       console.log(`[BaseDialog] Animation triggered for: ${this.options.title}`);
+      
+      // Double-check visibility after animation frame
+      console.log(`[BaseDialog] Final visibility check:`, {
+        containerInDOM: !!this.container.parentNode,
+        containerDisplay: this.container.style.display,
+        overlayOpacity: this.overlay.style.opacity,
+        dialogOpacity: this.dialog.style.opacity
+      });
     });
     
     this.afterShow();

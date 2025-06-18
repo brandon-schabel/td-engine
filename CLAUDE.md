@@ -79,6 +79,8 @@ src/
 
 ## Configuration
 
+The game/engine makes heavy use of configuration constants to enable better game balance tuning. All gameplay values, visual parameters, and UI dimensions are centralized in configuration files, making it easy to adjust game balance, create different difficulty modes, and maintain consistent styling throughout the codebase.
+
 ### Core Config Files
 - `GameConfig.ts`: Game initialization, mechanics, waves
 - `GameSettings.ts`: User preferences, difficulty presets
@@ -130,6 +132,8 @@ const button = {
 - **Group related values** - Keep similar configs together
 - **Document units** - Specify ms, px, etc. in comments
 - **Type safety** - Use `as const` for configuration objects
+- **Game balance** - All numeric values affecting gameplay should be in config files
+- **Easy tuning** - Group balance-related constants for quick iteration
 
 ## Code Standards
 

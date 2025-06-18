@@ -24,6 +24,12 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
   private upgradeDialog?: UpgradeDialogAdapter;
   
   constructor(options: TowerInfoDialogAdapterOptions) {
+    console.log('[TowerInfoDialogAdapter] Constructor called with options:', {
+      tower: options.tower?.towerType,
+      game: !!options.game,
+      audioManager: !!options.audioManager
+    });
+    
     super({
       tower: options.tower,
       game: options.game,
@@ -33,10 +39,14 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
       onClose: () => this.handleClose()
     });
     
+    console.log('[TowerInfoDialogAdapter] Super constructor completed');
+    
     this.game = options.game;
     this.tower = options.tower;
     this.dialogManager = DialogManager.getInstance();
     this.onClosed = options.onClosed;
+    
+    console.log('[TowerInfoDialogAdapter] Construction complete');
   }
   
   private handleUpgrade(): void {
@@ -70,23 +80,10 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
   }
   
   private handleSell(): void {
-    // Sell the tower through the game
-    const sellValue = this.tower.getSellValue();
+    // Sell the tower through the game's proper method
+    const success = this.game.sellTower(this.tower);
     
-    // Find tower index and remove it
-    const towers = this.game.getTowers();
-    const towerIndex = towers.indexOf(this.tower);
-    
-    if (towerIndex !== -1) {
-      // Remove tower from game
-      towers.splice(towerIndex, 1);
-      
-      // Add currency from selling
-      this.game.addCurrency(sellValue);
-      
-      // Play sound
-      this.playSound('TOWER_PLACE' as any);
-      
+    if (success) {
       // Close dialog
       this.hide();
     }

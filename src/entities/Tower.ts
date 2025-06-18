@@ -167,6 +167,10 @@ export class Tower extends Entity implements ShootingCapable {
     return total;
   }
 
+  getMaxUpgradeLevel(): number {
+    return TOWER_UPGRADES.maxLevel;
+  }
+
   // Upgrade cost and management (replaces TowerUpgradeManager)
   getUpgradeCost(upgradeType: UpgradeType): number {
     const baseCost = TOWER_UPGRADES.baseCosts[upgradeType];

@@ -10,6 +10,7 @@ export enum IconType {
   RAPID_TOWER = "RAPID_TOWER",
   WALL = "WALL",
   TOWER = "TOWER",
+  SELL = "SELL",
 
   // Action Icons
   PLAY = "PLAY",
@@ -150,6 +151,13 @@ const ICON_PATHS: Record<IconType, string> = {
     <path d="M5 21L19 21L17 7L7 7Z" fill="none" stroke="currentColor" stroke-width="2"/>
     <path d="M10 7V3H14V7" stroke="currentColor" stroke-width="2"/>
     <circle cx="12" cy="14" r="3" fill="currentColor"/>
+  `,
+
+  [IconType.SELL]: `
+    <path d="M12 2L2 12h3v8h6v-5h4v5h6v-8h3L12 2z" fill="currentColor"/>
+    
+
+    
   `,
 
   // Action Icons
