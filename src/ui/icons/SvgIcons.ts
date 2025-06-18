@@ -81,7 +81,11 @@ export enum IconType {
   POWERUP_SPEED = 'POWERUP_SPEED',
   POWERUP_FIRE_RATE = 'POWERUP_FIRE_RATE',
   POWERUP_SHIELD = 'POWERUP_SHIELD',
-  POWERUP_HEALTH_REGEN = 'POWERUP_HEALTH_REGEN'
+  POWERUP_HEALTH_REGEN = 'POWERUP_HEALTH_REGEN',
+  
+  // Mobile Control Icons
+  ARROW_UP = 'ARROW_UP',
+  CROSSHAIR = 'CROSSHAIR'
 }
 
 interface SvgIconOptions {
@@ -459,6 +463,17 @@ const ICON_PATHS: Record<IconType, string> = {
   
   [IconType.CHECKMARK]: `
     <path d="M20 6 L9 17 L4 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.ARROW_UP]: `
+    <path d="M12 4 L12 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M5 11 L12 4 L19 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.CROSSHAIR]: `
+    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
+    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>
   `
 };
 
