@@ -15,6 +15,11 @@ export interface GameSettings {
   mapSize: 'SMALL' | 'MEDIUM' | 'LARGE';
   terrain: 'FOREST' | 'DESERT' | 'ARCTIC';
   pathComplexity: 'SIMPLE' | 'COMPLEX';
+  
+  // Mobile controls
+  mobileJoystickEnabled: boolean;
+  hapticFeedbackEnabled: boolean;
+  touchControlsLayout: 'default' | 'lefty';
 }
 
 // Default settings
@@ -26,7 +31,10 @@ export const DEFAULT_SETTINGS: GameSettings = {
   showFPS: false,
   mapSize: 'MEDIUM',
   terrain: 'FOREST',
-  pathComplexity: 'SIMPLE'
+  pathComplexity: 'SIMPLE',
+  mobileJoystickEnabled: true,
+  hapticFeedbackEnabled: true,
+  touchControlsLayout: 'default'
 };
 
 // Difficulty presets that modify game constants

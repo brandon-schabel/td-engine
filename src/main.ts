@@ -13,6 +13,9 @@ import {
 import { createSvgIcon, IconType } from "./ui/icons/SvgIcons";
 import { setupGameUI } from "./ui/setupGameUI";
 import { GameOverScreen } from "./ui/components/GameOverScreen";
+import { TouchIndicator } from "./ui/components/game/TouchIndicator";
+import { TouchInputManager } from "./input/TouchInputManager";
+import { VirtualJoystick } from "./ui/components/VirtualJoystick";
 
 // Get canvas element
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
@@ -23,6 +26,8 @@ if (!canvas) {
 // Global variables for game initialization
 let game: GameWithEvents;
 let gameInitialized = false;
+let touchInputManager: TouchInputManager | null = null;
+let virtualJoystick: VirtualJoystick | null = null;
 
 // Set initial canvas size - will be updated to fill container
 function resizeCanvas() {
@@ -156,6 +161,16 @@ function showMainMenu() {
   if (gameInitialized) {
     game.stop();
     gameInitialized = false;
+    
+    // Clean up touch controls
+    if (touchInputManager) {
+      touchInputManager.destroy();
+      touchInputManager = null;
+    }
+    if (virtualJoystick) {
+      virtualJoystick.destroy();
+      virtualJoystick = null;
+    }
   }
 
   // Hide game over screen if visible
@@ -186,6 +201,15 @@ let playerUpgradeContainer: HTMLDivElement;
 let updatePlayerUpgradePanel: () => void;
 
 function setupGameHandlers() {
+  // Create touch indicator for visual feedback
+  const touchIndicator = new TouchIndicator(document.body);
+  
+  // Detect if device supports touch
+  const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  
+  // Skip TouchInputManager initialization - MobileControls in SimpleGameUI handles all touch input
+  // This prevents conflicts between the two touch handling systems
+  
   // Setup mouse event handlers for both desktop and touch
   canvas.addEventListener("mousedown", (e) => {
     if (gameInitialized) game.handleMouseDown(e);
@@ -195,39 +219,14 @@ function setupGameHandlers() {
     if (gameInitialized) game.handleMouseUp(e);
   });
 
-  // Touch events are handled by the canvas natively
-  canvas.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    if (gameInitialized && e.touches.length > 0) {
-      const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const mouseEvent = new MouseEvent("mousedown", {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        button: 0,
-      });
-      game.handleMouseDown(mouseEvent);
-    }
-  });
-
-  canvas.addEventListener("touchend", (e) => {
-    e.preventDefault();
-    if (gameInitialized) {
-      const mouseEvent = new MouseEvent("mouseup", { button: 0 });
-      game.handleMouseUp(mouseEvent);
-    }
-  });
-
-  // Detect if device supports touch and add indicators
-  const isTouchDevice =
-    "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  if (isTouchDevice) {
-    addTouchUIIndicators();
-  }
-
   canvas.addEventListener("mousemove", (e) => {
     if (gameInitialized) game.handleMouseMove(e);
   });
+
+  // Add touch UI indicators if on mobile
+  if (isTouchDevice) {
+    addTouchUIIndicators();
+  }
 
   canvas.addEventListener("wheel", (e) => {
     if (gameInitialized) game.handleMouseWheel(e);
@@ -259,7 +258,7 @@ function addTouchUIIndicators() {
       <span>Touch Controls Active</span>
     </div>
     <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">
-      Tap: Select • Double Tap: Pause • Long Press: Info
+      Tap: Shoot • Hold & Drag: Continuous Shooting • Move: Virtual Joystick
     </div>
   `;
   document.body.appendChild(touchHints);

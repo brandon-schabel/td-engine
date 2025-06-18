@@ -89,6 +89,10 @@ export class Entity {
     return this.distanceTo(target) <= range;
   }
 
+  getPosition(): Vector2 {
+    return { ...this.position };
+  }
+
   collidesWith(other: Entity): boolean {
     const distance = this.distanceTo(other);
     return distance < (this.radius + other.radius);

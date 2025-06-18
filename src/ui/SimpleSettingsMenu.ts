@@ -14,6 +14,34 @@ export class SimpleSettingsMenu {
     this.container = this.createMenu();
     parentElement.appendChild(this.container);
   }
+  
+  private createMobileControlsSection(): string {
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (!isTouchDevice) {
+      return ''; // Don't show mobile controls on desktop
+    }
+    
+    return `
+      <div class="settings-section">
+        <h3>Mobile Controls</h3>
+        <label class="setting-row">
+          <input type="checkbox" id="mobile-joystick" ${this.settings.mobileJoystickEnabled ? 'checked' : ''}>
+          <span>Virtual Joystick</span>
+        </label>
+        <label class="setting-row">
+          <input type="checkbox" id="haptic-feedback" ${this.settings.hapticFeedbackEnabled ? 'checked' : ''}>
+          <span>Haptic Feedback</span>
+        </label>
+        <label class="setting-row">
+          <span>Layout</span>
+          <select id="touch-layout">
+            <option value="default" ${this.settings.touchControlsLayout === 'default' ? 'selected' : ''}>Right-handed</option>
+            <option value="lefty" ${this.settings.touchControlsLayout === 'lefty' ? 'selected' : ''}>Left-handed</option>
+          </select>
+        </label>
+      </div>
+    `;
+  }
 
   private createMenu(): HTMLElement {
     const overlay = document.createElement('div');
@@ -34,16 +62,18 @@ export class SimpleSettingsMenu {
     menu.style.cssText = `
       background: #2a2a2a;
       border-radius: 12px;
-      padding: 30px;
+      padding: clamp(15px, 4vw, 30px);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
       color: white;
       font-family: 'Arial', sans-serif;
-      max-width: 500px;
+      max-width: min(500px, 90vw);
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
     `;
 
     menu.innerHTML = `
-      <h2 style="margin: 0 0 30px; text-align: center; color: #4CAF50;">Game Settings</h2>
+      <h2 style="margin: 0 0 clamp(15px, 3vw, 30px); text-align: center; color: #4CAF50; font-size: clamp(20px, 5vw, 28px);">Game Settings</h2>
       
       <div class="settings-section">
         <h3>Difficulty</h3>
@@ -111,6 +141,8 @@ export class SimpleSettingsMenu {
         </label>
       </div>
 
+      ${this.createMobileControlsSection()}
+
       <div class="button-row">
         <button id="reset-btn" class="secondary-btn">Reset to Defaults</button>
         <button id="close-btn" class="primary-btn">Start Game</button>
@@ -132,16 +164,16 @@ export class SimpleSettingsMenu {
     style.id = 'simple-settings-styles';
     style.textContent = `
       .settings-section {
-        margin: 25px 0;
-        padding: 15px;
+        margin: clamp(15px, 3vw, 25px) 0;
+        padding: clamp(10px, 2vw, 15px);
         background: rgba(255, 255, 255, 0.05);
         border-radius: 8px;
       }
       
       .settings-section h3 {
-        margin: 0 0 15px;
+        margin: 0 0 clamp(10px, 2vw, 15px);
         color: #4CAF50;
-        font-size: 18px;
+        font-size: clamp(16px, 3.5vw, 18px);
       }
       
       .preset-buttons {
@@ -152,14 +184,15 @@ export class SimpleSettingsMenu {
       
       .preset-btn {
         flex: 1;
-        padding: 12px;
+        padding: clamp(10px, 2vw, 12px);
         border: 2px solid #444;
         background: #333;
         color: white;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: clamp(12px, 2.5vw, 14px);
         transition: all 0.2s;
+        min-height: 44px;
       }
       
       .preset-btn:hover {
@@ -173,7 +206,7 @@ export class SimpleSettingsMenu {
       }
       
       .difficulty-description {
-        font-size: 12px;
+        font-size: clamp(11px, 2.5vw, 12px);
         color: #aaa;
         margin: 10px 0 0;
       }
@@ -182,8 +215,10 @@ export class SimpleSettingsMenu {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin: 12px 0;
-        gap: 15px;
+        margin: clamp(10px, 2vw, 12px) 0;
+        gap: clamp(10px, 2vw, 15px);
+        font-size: clamp(13px, 2.5vw, 14px);
+        min-height: 44px;
       }
       
       .setting-row input[type="range"] {
@@ -212,12 +247,13 @@ export class SimpleSettingsMenu {
       }
       
       .primary-btn, .secondary-btn {
-        padding: 12px 24px;
+        padding: clamp(10px, 2vw, 12px) clamp(20px, 4vw, 24px);
         border: none;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 16px;
+        font-size: clamp(14px, 3vw, 16px);
         transition: background 0.2s;
+        min-height: 44px;
       }
       
       .primary-btn {
@@ -236,6 +272,27 @@ export class SimpleSettingsMenu {
       
       .secondary-btn:hover {
         background: #777;
+      }
+      
+      /* Mobile specific styles */
+      @media (max-width: 768px) {
+        .preset-buttons {
+          flex-direction: column;
+        }
+        
+        .setting-row select {
+          min-width: 0;
+          max-width: 150px;
+        }
+        
+        .button-row {
+          flex-direction: column;
+          gap: 10px;
+        }
+        
+        .primary-btn, .secondary-btn {
+          width: 100%;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -298,6 +355,28 @@ export class SimpleSettingsMenu {
     pathSelect.addEventListener('change', () => {
       this.settings.pathComplexity = pathSelect.value as GameSettings['pathComplexity'];
     });
+
+    // Mobile controls (if on touch device)
+    const mobileJoystickToggle = menu.querySelector('#mobile-joystick') as HTMLInputElement;
+    if (mobileJoystickToggle) {
+      mobileJoystickToggle.addEventListener('change', () => {
+        this.settings.mobileJoystickEnabled = mobileJoystickToggle.checked;
+      });
+    }
+
+    const hapticToggle = menu.querySelector('#haptic-feedback') as HTMLInputElement;
+    if (hapticToggle) {
+      hapticToggle.addEventListener('change', () => {
+        this.settings.hapticFeedbackEnabled = hapticToggle.checked;
+      });
+    }
+
+    const touchLayoutSelect = menu.querySelector('#touch-layout') as HTMLSelectElement;
+    if (touchLayoutSelect) {
+      touchLayoutSelect.addEventListener('change', () => {
+        this.settings.touchControlsLayout = touchLayoutSelect.value as GameSettings['touchControlsLayout'];
+      });
+    }
 
     // Reset button
     menu.querySelector('#reset-btn')?.addEventListener('click', () => {

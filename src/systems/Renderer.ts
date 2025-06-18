@@ -907,7 +907,7 @@ export class Renderer {
     return this.camera.worldToScreen(worldPos);
   }
 
-  renderTower(tower: Tower): void {
+  renderTower(tower: Tower, isSelected: boolean = false): void {
     // Skip if not visible
     if (!this.camera.isVisible(tower.position, tower.radius)) return;
     
@@ -920,7 +920,7 @@ export class Renderer {
     this.ctx.scale(zoom, zoom);
     this.ctx.translate(-screenPos.x, -screenPos.y);
     
-    tower.render(this.ctx, screenPos, this.textureManager);
+    tower.render(this.ctx, screenPos, this.textureManager, isSelected);
     
     this.ctx.restore();
     
@@ -1605,10 +1605,10 @@ export class Renderer {
     }
   }
 
-  renderEntities(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player): void {
+  renderEntities(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
     // Render towers with health bars
     towers.forEach(tower => {
-      this.renderTower(tower);
+      this.renderTower(tower, tower === selectedTower);
       this.renderHealthBar(tower, true); // Always show tower health
     });
 
@@ -1640,7 +1640,7 @@ export class Renderer {
     }
   }
 
-  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], effects: any[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player): void {
+  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], effects: any[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
@@ -1656,7 +1656,7 @@ export class Renderer {
     this.renderEnvironmentalEffects();
     
     // Render all entities
-    this.renderEntities(towers, enemies, projectiles, collectibles, aimerLine, player);
+    this.renderEntities(towers, enemies, projectiles, collectibles, aimerLine, player, selectedTower);
   }
 
   renderUI(currency: number, lives: number, score: number, wave: number): void {

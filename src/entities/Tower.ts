@@ -214,7 +214,27 @@ export class Tower extends Entity implements ShootingCapable {
   }
 
   // Rendering method (moved from Renderer class)
-  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any): void {
+  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any, isSelected: boolean = false): void {
+    // Draw selection indicator first (behind the tower)
+    if (isSelected) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(screenPos.x, screenPos.y, this.radius + 8, 0, Math.PI * 2);
+      ctx.strokeStyle = '#4CAF50';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Glowing effect
+      ctx.beginPath();
+      ctx.arc(screenPos.x, screenPos.y, this.radius + 12, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(76, 175, 80, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+    
     // Try to render with texture first
     const textureId = `tower_${this.towerType.toLowerCase()}`;
     const texture = textureManager?.getTexture(textureId);

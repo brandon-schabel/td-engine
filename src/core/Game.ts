@@ -588,7 +588,8 @@ export class Game {
       this.collectibles,
       [], // effects (empty for now)
       this.getPlayerAimerLine(),
-      this.player
+      this.player,
+      this.selectedTower
     );
 
     // Render tower range if hovering
@@ -715,32 +716,38 @@ export class Game {
     const worldPos = this.camera.screenToWorld(screenPos);
     this.isMouseDown = true;
 
+    console.log('[DEBUG] Mouse down at screen:', screenPos, 'world:', worldPos);
+
     if (this.engine.getState() !== GameState.PLAYING) {
       return;
     }
 
     // Check if clicking on player
     if (this.player.distanceTo(worldPos) <= this.player.radius) {
+      console.log('[DEBUG] Clicked on player');
       // Trigger player upgrade panel (handled by UI)
       const playerClickEvent = new CustomEvent("playerClicked");
       document.dispatchEvent(playerClickEvent);
       return;
     }
 
-    // Check if clicking on existing tower
+    // Check if clicking on existing tower - use larger click radius for easier selection
+    const CLICK_RADIUS_MULTIPLIER = 1.5; // Make towers easier to click
     const clickedTower = this.towers.find(
-      (tower) => tower.distanceTo(worldPos) <= tower.radius
+      (tower) => tower.distanceTo(worldPos) <= tower.radius * CLICK_RADIUS_MULTIPLIER
     );
 
     if (clickedTower) {
+      console.log('[DEBUG] Clicked on tower:', clickedTower.towerType, 'at', clickedTower.position);
       // Select/deselect tower
-      this.selectedTower =
-        this.selectedTower === clickedTower ? null : clickedTower;
+      const wasSelected = this.selectedTower === clickedTower;
+      this.selectedTower = wasSelected ? null : clickedTower;
       this.selectedTowerType = null; // Clear tower placement mode
+      console.log('[DEBUG] Tower selection changed:', wasSelected ? 'deselected' : 'selected');
     } else if (this.selectedTowerType) {
       // Place new tower
       if (this.placeTower(this.selectedTowerType, worldPos)) {
-        // Tower placed successfully
+        console.log('[DEBUG] Tower placed successfully');
       }
     } else {
       // Manual shooting - start click and hold
@@ -749,6 +756,7 @@ export class Game {
         this.projectiles.push(projectile);
       }
       this.selectedTower = null; // Deselect tower
+      console.log('[DEBUG] Deselected tower (clicked empty space)');
     }
   }
 
@@ -1205,6 +1213,10 @@ export class Game {
 
   getAudioHandler(): GameAudioHandler {
     return this.audioHandler;
+  }
+
+  getProjectiles(): Projectile[] {
+    return this.projectiles;
   }
 
   // Map generation methods

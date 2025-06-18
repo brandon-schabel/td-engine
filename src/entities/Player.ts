@@ -42,8 +42,10 @@ export class Player extends Entity implements ShootingCapable {
   
   // Manual shooting mechanics
   private aimPosition: Vector2 = { x: 0, y: 0 };
+  private aimAngle: number = 0; // Store aim angle directly for touch controls
   private isHolding: boolean = false;
   private shootingMode: 'manual' | 'auto' = 'manual';
+  private isShooting: boolean = false; // For continuous shooting
   
   // Power-up system
   private powerUps: PlayerPowerUps;
@@ -434,12 +436,6 @@ export class Player extends Entity implements ShootingCapable {
     return this.isHolding;
   }
 
-  updateShooting(): Projectile | null {
-    if (this.isHolding && this.canShoot()) {
-      return this.shootManual();
-    }
-    return null;
-  }
 
   shouldShowAimer(): boolean {
     return true; // Always show aimer in manual mode
@@ -553,5 +549,51 @@ export class Player extends Entity implements ShootingCapable {
 
   getMaxHealthWithBonuses(): number {
     return this.getMaxHealth() * this.equipmentBonuses.healthMultiplier;
+  }
+  
+  // Touch control methods
+  setVelocity(x: number, y: number): void {
+    const speed = this.getCurrentSpeed();
+    // Normalize the input if needed
+    const magnitude = Math.sqrt(x * x + y * y);
+    if (magnitude > 1) {
+      x /= magnitude;
+      y /= magnitude;
+    }
+    this.velocity.x = x * speed;
+    this.velocity.y = y * speed;
+  }
+  
+  setAimDirection(angle: number): void {
+    this.aimAngle = angle;
+    // Update aim position based on angle
+    const distance = 100; // Arbitrary distance for aim position
+    this.aimPosition = {
+      x: this.position.x + Math.cos(angle) * distance,
+      y: this.position.y + Math.sin(angle) * distance
+    };
+  }
+  
+  startShooting(): void {
+    this.isShooting = true;
+  }
+  
+  stopShooting(): void {
+    this.isShooting = false;
+  }
+  
+  tryShoot(): Projectile | null {
+    if (this.canShoot()) {
+      return this.shootManual();
+    }
+    return null;
+  }
+  
+  // Update shooting to support continuous touch shooting
+  updateShooting(): Projectile | null {
+    if ((this.isHolding || this.isShooting) && this.canShoot()) {
+      return this.shootManual();
+    }
+    return null;
   }
 }

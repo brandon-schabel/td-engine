@@ -6,6 +6,7 @@ import { AudioManager, SoundType } from '../audio/AudioManager';
 import { PowerUpDisplay } from './components/game/SimplePowerUpDisplay';
 import { CameraControls } from './components/game/SimpleCameraControls';
 import { InventoryPanel } from './components/inventory/InventoryPanel';
+import { MobileControls } from './components/game/MobileControls';
 
 export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById('game-container');
@@ -35,14 +36,14 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
+    height: clamp(50px, 10vh, 60px);
     background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
     border-top: 2px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 0 20px;
+    gap: clamp(8px, 2vw, 12px);
+    padding: 0 clamp(10px, 2vw, 20px);
     z-index: 1000;
   `;
 
@@ -51,8 +52,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     const button = document.createElement('button');
     button.className = 'ui-button control-button icon-only';
     button.style.cssText = `
-      width: 48px;
-      height: 48px;
+      width: clamp(40px, 8vw, 48px);
+      height: clamp(40px, 8vw, 48px);
       border-radius: 50%;
       background: rgba(0, 0, 0, 0.8);
       border: 2px solid #FFD700;
@@ -63,7 +64,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       cursor: pointer;
       transition: all 0.2s ease;
     `;
-    const icon = createSvgIcon(iconType, { size: 24 });
+    const iconSize = Math.max(20, Math.min(24, window.innerWidth * 0.05));
+    const icon = createSvgIcon(iconType, { size: iconSize });
     button.innerHTML = icon;
     button.title = title;
     button.addEventListener('click', onClick);
@@ -75,11 +77,13 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   buildPanel.className = 'ui-panel popup-panel';
   buildPanel.style.cssText = `
     position: absolute;
-    bottom: 70px;
-    left: 20px;
-    min-width: 280px;
+    bottom: clamp(60px, 12vh, 70px);
+    left: clamp(10px, 2vw, 20px);
+    min-width: min(280px, 70vw);
     display: none;
     animation: slideUp 0.2s ease-out;
+    max-height: 50vh;
+    overflow-y: auto;
   `;
   panels.push(buildPanel);
 
@@ -94,7 +98,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   const buildTitle = document.createElement('div');
   buildTitle.textContent = 'Build Menu';
-  buildTitle.style.cssText = 'font-weight: bold; color: #4CAF50; font-size: 16px;';
+  buildTitle.style.cssText = 'font-weight: bold; color: #4CAF50; font-size: clamp(14px, 3vw, 16px);';
 
   const closeBuildBtn = document.createElement('button');
   closeBuildBtn.className = 'ui-button icon-only';
@@ -209,6 +213,11 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     display: none;
     min-width: 200px;
     animation: slideUp 0.2s ease-out;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #4CAF50;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   `;
   
   // Tower upgrade header
@@ -322,12 +331,14 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   towerUpgradePanel.appendChild(rangeUpgradeBtn);
   towerUpgradePanel.appendChild(fireRateUpgradeBtn);
   
-  gameContainer.appendChild(towerUpgradePanel);
+  // Append to document.body for better positioning
+  document.body.appendChild(towerUpgradePanel);
   
   // Update tower upgrade panel function
   const updateTowerUpgradePanel = () => {
     const selectedTower = game.getSelectedTower();
     if (selectedTower) {
+      console.log('[DEBUG] Updating tower upgrade panel for:', selectedTower.towerType);
       // Update tower stats section
       const statsGrid = document.getElementById('tower-stats-grid');
       if (statsGrid) {
@@ -349,12 +360,16 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
           </div>
         `;
       }
-      // Position panel near the tower
-      const towerPos = selectedTower.getPosition();
+      // Position panel near the tower - need to convert world coordinates to screen coordinates
+      const towerWorldPos = selectedTower.getPosition();
+      const camera = game.getCamera();
+      const towerScreenPos = camera.worldToScreen(towerWorldPos);
       const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
       const canvasRect = canvas.getBoundingClientRect();
-      const x = towerPos.x + canvasRect.left;
-      const y = towerPos.y + canvasRect.top;
+      const x = towerScreenPos.x + canvasRect.left;
+      const y = towerScreenPos.y + canvasRect.top;
+      
+      console.log('[DEBUG] Tower position - World:', towerWorldPos, 'Screen:', towerScreenPos, 'Final:', {x, y});
       
       // Adjust position to keep panel on screen
       const panelWidth = 200;
@@ -375,6 +390,10 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       towerUpgradePanel.style.left = `${panelX}px`;
       towerUpgradePanel.style.top = `${panelY}px`;
       towerUpgradePanel.style.display = 'block';
+      
+      console.log('[DEBUG] Tower upgrade panel shown at:', { x: panelX, y: panelY });
+      console.log('[DEBUG] Panel element:', towerUpgradePanel);
+      console.log('[DEBUG] Panel parent:', towerUpgradePanel.parentElement);
       
       // Update damage button
       const damageCost = game.getUpgradeCost(selectedTower, UpgradeType.DAMAGE);
@@ -412,6 +431,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       fireRateUpgradeBtn.style.background = canUpgradeFireRate ? '#4CAF50' : '#666';
       fireRateUpgradeBtn.disabled = !canUpgradeFireRate;
     } else {
+      console.log('[DEBUG] No tower selected, hiding panel');
       towerUpgradePanel.style.display = 'none';
     }
   };
@@ -1060,25 +1080,25 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Pause title
   const pauseTitle = document.createElement('div');
   pauseTitle.style.cssText = `
-    font-size: 64px;
+    font-size: clamp(32px, 8vw, 64px);
     font-weight: bold;
     color: #FFD700;
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
     font-family: Arial, sans-serif;
-    letter-spacing: 8px;
+    letter-spacing: clamp(4px, 1vw, 8px);
   `;
   pauseTitle.textContent = 'PAUSED';
 
   // Unpause button
   const unpauseButton = document.createElement('button');
   unpauseButton.style.cssText = `
-    width: 200px;
-    height: 80px;
+    width: clamp(150px, 40vw, 200px);
+    height: clamp(60px, 15vw, 80px);
     border-radius: 40px;
     background: linear-gradient(145deg, #4CAF50, #45a049);
     border: 3px solid #FFD700;
     color: white;
-    font-size: 24px;
+    font-size: clamp(18px, 4vw, 24px);
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1115,10 +1135,11 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const instructionsText = document.createElement('div');
   instructionsText.style.cssText = `
     color: #CCCCCC;
-    font-size: 18px;
+    font-size: clamp(14px, 3vw, 18px);
     text-align: center;
     font-family: Arial, sans-serif;
     line-height: 1.6;
+    padding: 0 20px;
   `;
   instructionsText.innerHTML = `
     <div style="margin-bottom: 10px;">Click the button above or press <span style="color: #FFD700; font-weight: bold;">SPACE</span> to resume</div>
@@ -1232,7 +1253,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     }
   };
 
-  // Add CSS animations
+  // Add CSS animations and responsive styles
   const style = document.createElement('style');
   style.textContent = `
     @keyframes slideUp {
@@ -1264,8 +1285,71 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       opacity: 0.5;
       cursor: not-allowed;
     }
+    
+    /* Responsive UI styles */
+    .ui-panel {
+      font-size: clamp(12px, 2.5vw, 14px);
+    }
+    
+    .ui-panel h3 {
+      font-size: clamp(14px, 3vw, 16px);
+    }
+    
+    /* Mobile-specific adjustments */
+    @media (max-width: 768px) {
+      .ui-panel {
+        padding: clamp(8px, 2vw, 12px);
+      }
+      
+      .popup-panel {
+        max-width: 90vw !important;
+        left: 5vw !important;
+        right: 5vw !important;
+      }
+      
+      .tower-button {
+        min-height: clamp(60px, 12vw, 80px) !important;
+        font-size: clamp(11px, 2.5vw, 13px) !important;
+      }
+      
+      .inventory-panel {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        max-height: none !important;
+        inset: 0 !important;
+      }
+    }
+    
+    /* Touch-friendly sizes */
+    @media (hover: none) and (pointer: coarse) {
+      button, .clickable {
+        min-width: 44px;
+        min-height: 44px;
+      }
+    }
   `;
   document.head.appendChild(style);
+
+  // Create mobile controls for touch devices
+  let mobileControls: MobileControls | null = null;
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  if (isTouchDevice) {
+    mobileControls = new MobileControls({
+      game: game,
+      container: gameContainer,
+      enableHaptic: true,
+      onShootStart: () => {
+        // Optional: Add visual feedback
+        console.log('Mobile shooting started');
+      },
+      onShootEnd: () => {
+        // Optional: Add visual feedback
+        console.log('Mobile shooting stopped');
+      }
+    });
+  }
 
   return {
     updateControlButtons,
@@ -1278,6 +1362,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     cameraControls,
     pauseOverlay,
     inventoryButton,
-    inventoryPanel
+    inventoryPanel,
+    mobileControls
   };
 }

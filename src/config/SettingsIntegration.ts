@@ -100,7 +100,10 @@ export function getCurrentGameConfig(): SimpleGameConfig {
     showFPS: false,
     mapSize: 'MEDIUM',
     terrain: 'FOREST',
-    pathComplexity: 'SIMPLE'
+    pathComplexity: 'SIMPLE',
+    mobileJoystickEnabled: true,
+    hapticFeedbackEnabled: true,
+    touchControlsLayout: 'default'
   };
   
   return applySettingsToGame(defaultSettings);
