@@ -6,6 +6,7 @@ import { ItemTooltip } from '../inventory/SimpleItemTooltip';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
+import { RESPONSIVE_CONFIG, isMobile, isTablet } from '@/config/ResponsiveConfig';
 
 export interface InventoryDialogOptions {
   game: Game;
@@ -210,8 +211,8 @@ export class InventoryDialog extends BaseDialog {
     this.grid.className = 'inventory-grid';
     
     // Responsive grid columns
-    const columns = window.innerWidth <= 480 ? 4 : 
-                   window.innerWidth <= 768 ? 6 : 8;
+    const columns = isMobile(window.innerWidth) ? 4 : 
+                   isTablet(window.innerWidth) ? 6 : 8;
     
     this.grid.style.cssText = `
       display: grid;

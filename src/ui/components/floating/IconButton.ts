@@ -1,4 +1,6 @@
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
 
 export interface IconButtonOptions {
   iconType: IconType;
@@ -31,7 +33,7 @@ export class IconButton {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '4px',
+      borderRadius: `${UI_CONSTANTS.floatingUI.borderRadius / 2}px`,
       transition: 'all 0.2s'
     };
     
@@ -56,7 +58,7 @@ export class IconButton {
     
     // Hover effects
     this.button.addEventListener('mouseenter', () => {
-      this.button.style.background = 'rgba(255, 255, 255, 0.1)';
+      this.button.style.background = COLOR_THEME.ui.button.hover;
       this.button.style.transform = 'scale(1.1)';
     });
     

@@ -4,6 +4,9 @@ import { AudioManager, SoundType } from "./audio/AudioManager";
 import { GameSettingsDialog } from "./ui/components/dialogs/GameSettingsDialog";
 import { GameOverDialog } from "./ui/components/dialogs/GameOverDialog";
 import { DialogManager } from "./ui/systems/DialogManager";
+import { ANIMATION_CONFIG } from "./config/AnimationConfig";
+import { RESPONSIVE_CONFIG, isMobile, getBreakpoint } from "./config/ResponsiveConfig";
+import { injectResponsiveStyles } from "./ui/styles/generateResponsiveStyles";
 // Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from "./config/SettingsIntegration";
 import { SettingsManager, type GameSettings } from "./config/GameSettings";
@@ -23,6 +26,9 @@ import {
   SettingsDialog,
   PauseDialog
 } from "./ui/components/dialogs";
+
+// Inject responsive styles
+injectResponsiveStyles();
 
 // Get canvas element
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
@@ -66,10 +72,10 @@ function resizeCanvas() {
       camera.updateViewport(width, height);
 
       // Adjust zoom based on screen size
-      const isMobile = window.innerWidth <= 768 || "ontouchstart" in window;
-      if (isMobile) {
-        const baseZoom = Math.min(width / 1200, height / 800) * 0.7;
-        camera.setZoom(Math.max(0.5, baseZoom));
+      const isMobileDevice = isMobile(window.innerWidth) || "ontouchstart" in window;
+      if (isMobileDevice) {
+        const baseZoom = Math.min(width / 1200, height / 800) * RESPONSIVE_CONFIG.scaling.ui.mobile;
+        camera.setZoom(Math.max(RESPONSIVE_CONFIG.scaling.game.minZoom, baseZoom));
       }
     }
   }
@@ -82,7 +88,7 @@ resizeCanvas();
 let resizeTimeout: number;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimeout);
-  resizeTimeout = window.setTimeout(resizeCanvas, 100);
+  resizeTimeout = window.setTimeout(resizeCanvas, ANIMATION_CONFIG.durations.fast);
 });
 // Touch input is now handled within the SimpleGameUI
 const audioManager = new AudioManager();
@@ -486,7 +492,7 @@ function addTouchUIIndicators() {
     if (touchHints.parentNode) {
       touchHints.style.opacity = "0";
       touchHints.style.transition = "opacity 1s ease";
-      setTimeout(() => touchHints.remove(), 1000);
+      setTimeout(() => touchHints.remove(), ANIMATION_CONFIG.durations.slowest);
     }
   }, 5000);
 }
@@ -627,7 +633,7 @@ async function setupModernGameUI() {
     canvas,
     audioManager,
     showInstructions: true,
-    enableTouch: "ontouchstart" in window,
+    enableTouch: "ontouchstart" in window || isMobile(window.innerWidth),
     enableHapticFeedback: true,
     debugMode: false,
   });

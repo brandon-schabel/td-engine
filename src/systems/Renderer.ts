@@ -9,10 +9,22 @@ import { Camera } from './Camera';
 import { UpgradeType } from '@/entities/Tower';
 import { TextureManager, type Texture, type SpriteFrame } from './TextureManager';
 import type { Vector2 } from '@/utils/Vector2';
-import { COLOR_CONFIG, RENDER_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
+import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
+import { RENDER_SETTINGS, GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER } from '../config/RenderingConfig';
+import { COLOR_THEME } from '../config/ColorTheme';
 import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
 import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
+
+// Legacy render config for backward compatibility
+const RENDER_CONFIG = {
+  obstacleColor: COLOR_THEME.map.blocked,
+  gridLineColor: GRID_RENDER_DETAILS.gridLines.color,
+  dashPattern: ENTITY_RENDER.dashPatterns.dashed,
+  healthBarWidth: ENTITY_RENDER.healthBar.width,
+  healthBarHeight: ENTITY_RENDER.healthBar.height,
+  ghostOpacity: TOWER_RENDER.placement.ghostOpacity
+} as const;
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;

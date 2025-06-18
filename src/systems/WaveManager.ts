@@ -1,6 +1,8 @@
 import { Enemy, EnemyType } from '@/entities/Enemy';
 import type { Vector2 } from '@/utils/Vector2';
 import type { SpawnZoneManager, GameStateSnapshot } from './SpawnZoneManager';
+import { InfiniteWaveGenerator, type InfiniteWaveGeneratorConfig } from './InfiniteWaveGenerator';
+import { ENEMY_STATS } from '@/config/EnemyConfig';
 
 export type EnemySpawnConfig = {
   type: EnemyType;
@@ -48,6 +50,9 @@ export class WaveManager {
   private defaultSpawnPattern: SpawnPattern = SpawnPattern.RANDOM;
   private spawnZoneManager?: SpawnZoneManager;
   private useDynamicSpawning: boolean = false;
+  private infiniteWaveGenerator?: InfiniteWaveGenerator;
+  private infiniteWavesEnabled: boolean = false;
+  private infiniteWaveStartAt: number = 11;
   
   public currentWave: number = 0;
 
@@ -69,6 +74,18 @@ export class WaveManager {
     this.useDynamicSpawning = enable;
   }
 
+  enableInfiniteWaves(enable: boolean, startAt: number = 11, config?: Partial<InfiniteWaveGeneratorConfig>): void {
+    this.infiniteWavesEnabled = enable;
+    this.infiniteWaveStartAt = startAt;
+    if (enable && !this.infiniteWaveGenerator) {
+      this.infiniteWaveGenerator = new InfiniteWaveGenerator(config);
+    }
+  }
+
+  getInfiniteWaveGenerator(): InfiniteWaveGenerator | undefined {
+    return this.infiniteWaveGenerator;
+  }
+
   setDefaultSpawnPattern(pattern: SpawnPattern): void {
     this.defaultSpawnPattern = pattern;
   }
@@ -78,11 +95,28 @@ export class WaveManager {
   }
 
   getTotalWaves(): number {
+    if (this.infiniteWavesEnabled) {
+      return Number.MAX_SAFE_INTEGER; // Infinite waves
+    }
     return this.waves.length;
   }
 
+  private getWaveConfig(waveNumber: number): WaveConfig | null {
+    // Use predefined waves for waves before the infinite wave start
+    if (waveNumber < this.infiniteWaveStartAt || !this.infiniteWavesEnabled) {
+      return this.waves.find(w => w.waveNumber === waveNumber) || null;
+    }
+    
+    // Use infinite generator for waves at or after the start point
+    if (this.infiniteWaveGenerator) {
+      return this.infiniteWaveGenerator.generateWave(waveNumber);
+    }
+    
+    return null;
+  }
+
   startWave(waveNumber: number): boolean {
-    const wave = this.waves.find(w => w.waveNumber === waveNumber);
+    const wave = this.getWaveConfig(waveNumber);
     if (!wave) {
       return false;
     }
@@ -272,9 +306,17 @@ export class WaveManager {
       
       const spawnPoint = this.selectSpawnPoint(spawnItem.spawnPointIndex, wavePattern);
       
+      // Calculate health based on scaling
+      let spawnHealth = 0; // Use default
+      if (this.infiniteWavesEnabled && this.currentWave >= this.infiniteWaveStartAt && this.infiniteWaveGenerator) {
+        const healthMultiplier = this.infiniteWaveGenerator.getEnemyHealthMultiplier(this.currentWave);
+        const stats = this.getEnemyStats(spawnItem.type);
+        spawnHealth = Math.floor(stats.health * healthMultiplier);
+      }
+      
       const enemy = new Enemy(
         { ...spawnPoint },
-        0, // Will use default health from EnemyType
+        spawnHealth,
         spawnItem.type
       );
       
@@ -312,6 +354,9 @@ export class WaveManager {
   }
 
   hasNextWave(): boolean {
+    if (this.infiniteWavesEnabled) {
+      return true; // Always has next wave in infinite mode
+    }
     return this.currentWave < this.waves.length;
   }
 
@@ -320,7 +365,7 @@ export class WaveManager {
   }
 
   getWaveInfo(waveNumber: number): WaveConfig | null {
-    return this.waves.find(w => w.waveNumber === waveNumber) || null;
+    return this.getWaveConfig(waveNumber);
   }
   
   getSpawnPoints(): Vector2[] {
@@ -358,5 +403,9 @@ export class WaveManager {
     });
     
     return enemies;
+  }
+
+  private getEnemyStats(type: EnemyType) {
+    return ENEMY_STATS[type];
   }
 }

@@ -5,6 +5,8 @@
 
 import { CooldownManager } from '@/utils/CooldownManager';
 import { GAME_MECHANICS } from '../../config/GameConfig';
+import { PLAYER_ABILITIES } from '../../config/PlayerConfig';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export interface HealthInfo {
   current: number;
@@ -24,8 +26,8 @@ export class PlayerHealth {
   private damageCooldown: number = 0;
   
   // Heal ability
-  private healAbilityCooldown: number = 5000; // Start on cooldown
-  private maxHealAbilityCooldown: number = GAME_MECHANICS.healAbilityCooldown;
+  private healAbilityCooldown: number = PLAYER_ABILITIES.heal.initialCooldown; // Start on cooldown
+  private maxHealAbilityCooldown: number = PLAYER_ABILITIES.heal.cooldown;
   
   // Tracking
   private healthPickupsCollected: number = 0;
@@ -122,7 +124,7 @@ export class PlayerHealth {
       return false;
     }
 
-    const healAmount = 30;
+    const healAmount = PLAYER_ABILITIES.heal.amount;
     this.heal(healAmount, 'heal_ability');
     this.healAbilityCooldown = this.maxHealAbilityCooldown;
     return true;

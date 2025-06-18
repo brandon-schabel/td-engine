@@ -2,6 +2,7 @@ import { Game } from '@/core/Game';
 import { CollectibleType } from '@/entities/items/ItemTypes';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { FloatingUIElement } from './FloatingUIElement';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export class PowerUpDisplay {
   private container: HTMLElement | null = null;
@@ -27,7 +28,7 @@ export class PowerUpDisplay {
     parent.appendChild(this.container);
 
     // Start updating
-    this.updateInterval = window.setInterval(() => this.update(), 100);
+    this.updateInterval = window.setInterval(() => this.update(), ANIMATION_CONFIG.durations.fast);
   }
 
   private update(): void {

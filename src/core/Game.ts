@@ -18,7 +18,12 @@ import { CollectibleType } from "@/entities/items/ItemTypes";
 import type { Vector2 } from "@/utils/Vector2";
 import { AudioManager, SoundType } from "../audio/AudioManager";
 import { MapGenerator } from "@/systems/MapGenerator";
+import { GAME_INIT } from "@/config/GameConfig";
+import { GAMEPLAY_CONSTANTS } from "@/config/GameplayConstants";
+import { INVENTORY_CONFIG, INVENTORY_UPGRADES } from "@/config/InventoryConfig";
+import { COLLECTIBLE_DROP_CHANCES } from "@/config/ItemConfig";
 import { TextureManager } from "@/systems/TextureManager";
+import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import {
   BiomeType,
   MapDifficulty,
@@ -29,9 +34,8 @@ import {
 import type { MapData, MapGenerationConfig } from "@/types/MapData";
 import {
   TOWER_COSTS,
-  SPAWN_CHANCES,
   CURRENCY_CONFIG,
-  INVENTORY_UPGRADES,
+  INFINITE_WAVE_CONFIG,
 } from "../config/GameConfig";
 import { GameAudioHandler } from "@/systems/GameAudioHandler";
 import { ScoreManager, type GameStats } from "@/systems/ScoreManager";
@@ -47,9 +51,9 @@ export class Game {
   private canvas: HTMLCanvasElement;
 
   // Inlined resource management for better performance
-  private currency: number = 100;
-  private lives: number = 10;
-  private score: number = 0;
+  private currency: number = GAME_INIT.startingCurrency;
+  private lives: number = GAME_INIT.startingLives;
+  private score: number = GAME_INIT.startingScore;
 
   // Game statistics tracking
   private gameStartTime: number = Date.now();
@@ -78,6 +82,7 @@ export class Game {
   private selectedTower: Tower | null = null;
   private mousePosition: Vector2 = { x: 0, y: 0 };
   private isMouseDown: boolean = false;
+  private waveCompleteProcessed: boolean = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -195,9 +200,9 @@ export class Game {
 
     // Initialize inventory and equipment systems
     this.inventory = new Inventory({
-      maxSlots: 20,
-      autoSort: false,
-      allowStacking: true,
+      maxSlots: INVENTORY_CONFIG.defaultSlots,
+      autoSort: INVENTORY_CONFIG.autoSortEnabled,
+      allowStacking: INVENTORY_CONFIG.stackingEnabled,
     });
     this.equipment = new EquipmentManager();
 
@@ -227,7 +232,7 @@ export class Game {
         const cameraInfo = this.camera.getCameraInfo();
         console.log("Camera follow mode:", cameraInfo.followTarget ? "ENABLED" : "DISABLED");
         console.log("Press 'B' to check camera, 'N' to fix camera, 'Shift+V' to toggle visual debug");
-      }, 1000);
+      }, ANIMATION_CONFIG.durations.slowest);
     }
   }
 
@@ -269,17 +274,30 @@ export class Game {
 
   private loadWaveConfigurations(): void {
     // Use inline wave configuration to avoid circular imports
+    // Calculate spawn delays based on centralized constants
+    const { spawnInterval } = GAMEPLAY_CONSTANTS.waves;
+    const getSpawnDelay = (enemyType: string, waveNumber: number) => {
+      // Scale spawn delay based on enemy type and wave progression
+      const baseDelay = enemyType === 'TANK' ? spawnInterval.max : 
+                       enemyType === 'FAST' ? spawnInterval.min : 
+                       (spawnInterval.min + spawnInterval.max) / 2;
+      
+      // Decrease delays slightly as waves progress (but not below minimum)
+      const waveSpeedMultiplier = Math.max(0.5, 1 - (waveNumber - 1) * 0.05);
+      return Math.max(spawnInterval.min, Math.floor(baseDelay * waveSpeedMultiplier));
+    };
+
     const waves: WaveConfig[] = [
       {
         waveNumber: 1,
-        enemies: [{ type: EnemyType.BASIC, count: 8, spawnDelay: 600 }],
-        startDelay: 1500,
+        enemies: [{ type: EnemyType.BASIC, count: 8, spawnDelay: getSpawnDelay('BASIC', 1) }],
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay / 2, // Shorter delay for first wave
         spawnPattern: SpawnPattern.SINGLE_POINT, // All from one spawn point
       },
       {
         waveNumber: 2,
-        enemies: [{ type: EnemyType.BASIC, count: 12, spawnDelay: 500 }],
-        startDelay: 2000,
+        enemies: [{ type: EnemyType.BASIC, count: 12, spawnDelay: getSpawnDelay('BASIC', 2) }],
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay * 0.67, // ~2000ms
         spawnPattern: SpawnPattern.RANDOM, // Random spawn points
       },
       {
@@ -288,25 +306,25 @@ export class Game {
           {
             type: EnemyType.BASIC,
             count: 8,
-            spawnDelay: 600,
+            spawnDelay: getSpawnDelay('BASIC', 3),
             spawnPattern: SpawnPattern.DISTRIBUTED,
           },
           {
             type: EnemyType.FAST,
             count: 5,
-            spawnDelay: 400,
+            spawnDelay: getSpawnDelay('FAST', 3),
             spawnPattern: SpawnPattern.EDGE_FOCUSED,
           },
         ],
-        startDelay: 1500,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay / 2,
       },
       {
         waveNumber: 4,
         enemies: [
-          { type: EnemyType.BASIC, count: 15, spawnDelay: 400 },
-          { type: EnemyType.FAST, count: 8, spawnDelay: 500 },
+          { type: EnemyType.BASIC, count: 15, spawnDelay: getSpawnDelay('BASIC', 4) },
+          { type: EnemyType.FAST, count: 8, spawnDelay: getSpawnDelay('FAST', 4) },
         ],
-        startDelay: 1500,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay / 2,
         spawnPattern: SpawnPattern.ROUND_ROBIN, // Cycle through spawn points
       },
       {
@@ -315,25 +333,25 @@ export class Game {
           {
             type: EnemyType.TANK,
             count: 5,
-            spawnDelay: 1200,
+            spawnDelay: getSpawnDelay('TANK', 5),
             spawnPattern: SpawnPattern.CORNER_FOCUSED,
           },
           {
             type: EnemyType.FAST,
             count: 12,
-            spawnDelay: 250,
+            spawnDelay: getSpawnDelay('FAST', 5),
             spawnPattern: SpawnPattern.RANDOM,
           },
         ],
-        startDelay: 2000,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay * 0.67,
       },
       {
         waveNumber: 6,
         enemies: [
-          { type: EnemyType.BASIC, count: 23, spawnDelay: 300 },
-          { type: EnemyType.TANK, count: 3, spawnDelay: 1500 },
+          { type: EnemyType.BASIC, count: 23, spawnDelay: getSpawnDelay('BASIC', 6) },
+          { type: EnemyType.TANK, count: 3, spawnDelay: getSpawnDelay('TANK', 6) },
         ],
-        startDelay: 1500,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay / 2,
         spawnPattern: SpawnPattern.DISTRIBUTED,
       },
       {
@@ -342,56 +360,67 @@ export class Game {
           {
             type: EnemyType.FAST,
             count: 18,
-            spawnDelay: 250,
+            spawnDelay: getSpawnDelay('FAST', 7),
             spawnPattern: SpawnPattern.RANDOM,
           },
           {
             type: EnemyType.BASIC,
             count: 12,
-            spawnDelay: 450,
+            spawnDelay: getSpawnDelay('BASIC', 7),
             spawnPattern: SpawnPattern.EDGE_FOCUSED,
           },
           {
             type: EnemyType.TANK,
             count: 6,
-            spawnDelay: 1100,
+            spawnDelay: getSpawnDelay('TANK', 7),
             spawnPattern: SpawnPattern.CORNER_FOCUSED,
           },
         ],
-        startDelay: 2000,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay * 0.67,
       },
       {
         waveNumber: 8,
         enemies: [
-          { type: EnemyType.BASIC, count: 30, spawnDelay: 250 },
-          { type: EnemyType.FAST, count: 15, spawnDelay: 300 },
-          { type: EnemyType.TANK, count: 8, spawnDelay: 900 },
+          { type: EnemyType.BASIC, count: 30, spawnDelay: getSpawnDelay('BASIC', 8) },
+          { type: EnemyType.FAST, count: 15, spawnDelay: getSpawnDelay('FAST', 8) },
+          { type: EnemyType.TANK, count: 8, spawnDelay: getSpawnDelay('TANK', 8) },
         ],
-        startDelay: 1500,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay / 2,
         spawnPattern: SpawnPattern.BURST_SPAWN, // New pattern - enemies spawn from multiple edges simultaneously
       },
       {
         waveNumber: 9,
         enemies: [
-          { type: EnemyType.FAST, count: 23, spawnDelay: 200 },
-          { type: EnemyType.TANK, count: 9, spawnDelay: 750 },
+          { type: EnemyType.FAST, count: 23, spawnDelay: getSpawnDelay('FAST', 9) },
+          { type: EnemyType.TANK, count: 9, spawnDelay: getSpawnDelay('TANK', 9) },
         ],
-        startDelay: 1800,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay * 0.6,
         spawnPattern: SpawnPattern.PINCER_MOVEMENT, // New pattern - enemies spawn from opposite edges
       },
       {
         waveNumber: 10,
         enemies: [
-          { type: EnemyType.BASIC, count: 38, spawnDelay: 200 },
-          { type: EnemyType.FAST, count: 23, spawnDelay: 250 },
-          { type: EnemyType.TANK, count: 12, spawnDelay: 600 },
+          { type: EnemyType.BASIC, count: 38, spawnDelay: getSpawnDelay('BASIC', 10) },
+          { type: EnemyType.FAST, count: 23, spawnDelay: getSpawnDelay('FAST', 10) },
+          { type: EnemyType.TANK, count: 12, spawnDelay: getSpawnDelay('TANK', 10) },
         ],
-        startDelay: 2000,
+        startDelay: GAMEPLAY_CONSTANTS.waves.startDelay * 0.67,
         spawnPattern: SpawnPattern.CHAOS_MODE, // New pattern - completely random spawning
       },
     ];
 
     this.waveManager.loadWaves(waves);
+    
+    // Enable infinite waves based on configuration
+    if (INFINITE_WAVE_CONFIG.enabled) {
+      const infiniteWaveConfig = {
+        ...INFINITE_WAVE_CONFIG.scaling,
+        ...INFINITE_WAVE_CONFIG.rewards,
+        ...INFINITE_WAVE_CONFIG.difficulty,
+        ...INFINITE_WAVE_CONFIG.specialWaves,
+      };
+      this.waveManager.enableInfiniteWaves(true, INFINITE_WAVE_CONFIG.startAt, infiniteWaveConfig);
+    }
   }
 
   update = (deltaTime: number): void => {
@@ -542,12 +571,14 @@ export class Game {
     this.towers = this.towers.filter((tower) => tower.isAlive);
 
     // Check for wave completion and victory
-    if (this.waveManager.isWaveComplete()) {
+    if (this.waveManager.isWaveComplete() && !this.waveCompleteProcessed) {
+      this.waveCompleteProcessed = true;
       if (!this.waveManager.hasNextWave()) {
         this.audioHandler.playVictory();
         this.handleVictory();
       } else {
         this.audioHandler.playWaveComplete();
+        this.handleWaveComplete();
       }
     }
   };
@@ -560,6 +591,26 @@ export class Game {
   private handleVictory(): void {
     this.saveGameStats(true);
     this.engine.victory();
+  }
+
+  private handleWaveComplete(): void {
+    // Calculate wave reward
+    const waveNumber = this.waveManager.currentWave;
+    const infiniteGenerator = this.waveManager.getInfiniteWaveGenerator();
+    
+    let waveReward = GAMEPLAY_CONSTANTS.economy.currencyPerKill.basic * 10; // Default reward based on basic enemy kill reward
+    if (infiniteGenerator && waveNumber >= 11) {
+      waveReward = infiniteGenerator.calculateWaveReward(waveNumber);
+    } else {
+      // Base reward for waves 1-10
+      waveReward = GAMEPLAY_CONSTANTS.economy.currencyPerKill.basic * 10 + (waveNumber * GAMEPLAY_CONSTANTS.economy.currencyPerKill.basic * 2);
+    }
+    
+    this.addCurrency(waveReward);
+    this.addScore(GAMEPLAY_CONSTANTS.scoring.enemyKillBase * 10 * waveNumber); // Score bonus for completing wave based on base enemy score
+    
+    // Show wave complete notification if UI is available
+    console.log(`Wave ${waveNumber} Complete! Reward: ${waveReward} currency`);
   }
 
   private saveGameStats(victory: boolean): void {
@@ -720,6 +771,7 @@ export class Game {
     const nextWave = this.waveManager.getNextWaveNumber();
     const started = this.waveManager.startWave(nextWave);
     if (started) {
+      this.waveCompleteProcessed = false; // Reset the flag for the new wave
       this.audioHandler.playWaveStart();
       this.audioHandler.resetWaveAudioFlags();
     }
@@ -1173,7 +1225,7 @@ export class Game {
       typeof this.player.addExperience === "function"
     ) {
       // Award experience based on enemy reward (could be adjusted)
-      const experienceGain = enemy.reward * 10; // 10 XP per currency reward
+      const experienceGain = enemy.reward * GAMEPLAY_CONSTANTS.scoring.enemyKillBase; // XP based on base enemy score
       (this.player as any).addExperience(experienceGain);
     }
 
@@ -1211,7 +1263,7 @@ export class Game {
     }
 
     // Extra currency drop chance
-    if (Math.random() < SPAWN_CHANCES.extraCurrencyDrop) {
+    if (Math.random() < COLLECTIBLE_DROP_CHANCES.extraCurrencyDrop) {
       this.addCurrency(enemy.reward * CURRENCY_CONFIG.extraDropMultiplier);
     }
   }
@@ -1737,7 +1789,7 @@ export class Game {
   // Enhanced item drop system helpers
   private getEnemyDropRate(enemy: Enemy): number {
     // Base drop rate varies by enemy type and wave
-    const baseRate = 0.25; // 25% base chance
+    const baseRate = GAMEPLAY_CONSTANTS.powerUps.dropChance * 2.5; // 25% base chance (0.1 * 2.5)
     const waveBonus = Math.min(this.waveManager.currentWave * 0.02, 0.15); // Up to +15% at wave 8+
 
     // Different enemy types have different drop rates
@@ -1756,11 +1808,11 @@ export class Game {
   private getNumDropsForEnemy(enemy: Enemy): number {
     // Most enemies drop 1 item, but stronger enemies can drop more
     if (enemy.enemyType === EnemyType.TANK) {
-      return Math.random() < 0.3 ? 2 : 1; // 30% chance for 2 items
+      return Math.random() < (GAMEPLAY_CONSTANTS.powerUps.dropChance * 3) ? 2 : 1; // 30% chance for 2 items
     } else if (enemy.enemyType === EnemyType.FAST) {
       return 1; // Fast enemies always drop 1 item
     } else {
-      return Math.random() < 0.1 ? 2 : 1; // Basic enemies have 10% chance for 2 items
+      return Math.random() < GAMEPLAY_CONSTANTS.powerUps.dropChance ? 2 : 1; // Basic enemies have 10% chance for 2 items
     }
   }
 
@@ -1873,7 +1925,7 @@ export class Game {
 
     // Remove after delay
     setTimeout(() => {
-      notification.style.animation = "slideUp 0.3s ease-in";
+      notification.style.animation = `slideUp ${ANIMATION_CONFIG.durations.slow}ms ease-in`;
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);
@@ -1881,8 +1933,8 @@ export class Game {
         if (style.parentNode) {
           style.parentNode.removeChild(style);
         }
-      }, 300);
-    }, 2000);
+      }, ANIMATION_CONFIG.durations.slow);
+    }, ANIMATION_CONFIG.durations.slowest * 2);
   }
 
   // Show inventory full notification
@@ -1912,13 +1964,13 @@ export class Game {
 
     // Remove after delay
     setTimeout(() => {
-      notification.style.animation = "slideUp 0.3s ease-in";
+      notification.style.animation = `slideUp ${ANIMATION_CONFIG.durations.slow}ms ease-in`;
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);
         }
-      }, 300);
-    }, 3000);
+      }, ANIMATION_CONFIG.durations.slow);
+    }, ANIMATION_CONFIG.durations.slowest * 3);
   }
 
   // Add this simple diagnostic method

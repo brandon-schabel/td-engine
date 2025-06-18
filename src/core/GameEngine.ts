@@ -1,4 +1,5 @@
 import { GameState } from './GameState';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 type UpdateCallback = (deltaTime: number) => void;
 type RenderCallback = (deltaTime: number) => void;
@@ -127,7 +128,7 @@ export class GameEngine {
     if (typeof requestAnimationFrame !== 'undefined') {
       this.animationId = requestAnimationFrame(this.gameLoop);
     } else {
-      this.animationId = setTimeout(() => this.gameLoop(Date.now()), 16) as any;
+      this.animationId = setTimeout(() => this.gameLoop(Date.now()), ANIMATION_CONFIG.frames.frameTime) as any;
     }
   };
 }

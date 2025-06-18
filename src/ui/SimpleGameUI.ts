@@ -3,9 +3,13 @@ import { TowerType, UpgradeType, Tower } from '@/entities/Tower';
 import { PlayerUpgradeType } from '@/entities/Player';
 import { createSvgIcon, IconType } from './icons/SvgIcons';
 import { AudioManager, SoundType } from '../audio/AudioManager';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
 import { PowerUpDisplay } from './components/game/SimplePowerUpDisplay';
 import { CameraControls } from './components/game/SimpleCameraControls';
 import { MobileControls } from './components/game/MobileControls';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
+import { RESPONSIVE_CONFIG, isMobile as checkIsMobile } from '@/config/ResponsiveConfig';
 import { 
   CurrencyDisplay,
   WaveDisplay,
@@ -160,8 +164,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       left: 0;
       right: 0;
       height: clamp(50px, 10vh, 60px);
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
-      border-top: 2px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(to top, ${COLOR_THEME.ui.background.overlay}e6, ${COLOR_THEME.ui.background.overlay}b3);
+      border-top: 2px solid ${COLOR_THEME.ui.text.primary}1a;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -189,9 +193,9 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       width: clamp(40px, 8vw, 48px);
       height: clamp(40px, 8vw, 48px);
       border-radius: 50%;
-      background: rgba(0, 0, 0, 0.8);
-      border: 2px solid #FFD700;
-      color: #FFD700;
+      background: ${COLOR_THEME.ui.background.overlay};
+      border: 2px solid ${COLOR_THEME.ui.currency};
+      color: ${COLOR_THEME.ui.currency};
       display: flex;
       align-items: center;
       justify-content: center;
@@ -310,7 +314,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Update tower placement indicator when tower type changes
   const updateTowerPlacementIndicator = () => {
     const selectedType = game.getSelectedTowerType();
-    const isMobile = 'ontouchstart' in window;
+    const isMobile = 'ontouchstart' in window || checkIsMobile(window.innerWidth);
     
     if (selectedType && isMobile) {
       const towerNames: Record<string, string> = {
@@ -558,7 +562,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   
   // Now that dialogs are initialized, we can set up the interval for button updates
   // Update button states periodically AFTER dialogs are initialized
-  setInterval(updateButtonStates, 100);
+  setInterval(updateButtonStates, ANIMATION_CONFIG.durations.fast);
 
   // Mobile controls - use multiple detection methods
   const isMobile = 'ontouchstart' in window || 

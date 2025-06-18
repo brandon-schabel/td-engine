@@ -2,6 +2,7 @@ import { BaseDialog } from './BaseDialog';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export interface SettingsDialogOptions {
   audioManager: AudioManager;
@@ -398,7 +399,7 @@ export class SettingsDialog extends BaseDialog {
       right: 0;
       bottom: 0;
       background-color: ${checked ? '#4CAF50' : '#666'};
-      transition: background-color 200ms ease;
+      transition: background-color ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
       border-radius: 28px;
     `;
     
@@ -410,7 +411,7 @@ export class SettingsDialog extends BaseDialog {
       width: clamp(20px, 5vw, 24px);
       height: clamp(20px, 5vw, 24px);
       background-color: white;
-      transition: left 200ms ease;
+      transition: left ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
       border-radius: 50%;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     `;

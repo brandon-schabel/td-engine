@@ -23,6 +23,17 @@ export const HUD_CONFIG = {
     score: '#4CAF50',
     wave: '#2196F3',
     fps: '#FFFFFF'
+  },
+  // Wave progress bar
+  waveProgress: {
+    position: { x: 'center', y: 50 },
+    width: 300,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    fillColor: '#2196F3',
+    borderColor: '#FFFFFF',
+    borderWidth: 2
   }
 } as const;
 

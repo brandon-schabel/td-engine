@@ -1,0 +1,265 @@
+/**
+ * Rendering system configuration constants
+ * Centralizes all rendering-related settings, styles, and visual parameters
+ */
+
+// Core rendering settings
+export const RENDER_SETTINGS = {
+  targetFPS: 60,
+  enableAntialiasing: true,
+  enableShadows: true,
+  enableParticles: true,
+  enablePostProcessing: false,
+  pixelPerfectRendering: false,
+  debugMode: false
+} as const;
+
+// Entity rendering configuration
+export const ENTITY_RENDER = {
+  // Health bars
+  healthBar: {
+    width: 28,
+    height: 5,
+    offset: 15,
+    borderWidth: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderColor: '#000000',
+    colors: {
+      high: '#4CAF50',    // >60% health
+      medium: '#FF9800',  // 30-60% health
+      low: '#F44336'      // <30% health
+    }
+  },
+  
+  // Upgrade indicators
+  upgradeDots: {
+    radius: 3,
+    spacing: 8,
+    spacingCompact: 4,
+    colors: ['#FF4444', '#44FF44', '#4444FF'], // Red, Green, Blue
+    maxVisible: 5
+  },
+  
+  // Selection and hover effects
+  selection: {
+    strokeWidth: 3,
+    strokeColor: '#4CAF50',
+    glowRadius: 20,
+    glowColor: 'rgba(76, 175, 80, 0.5)',
+    animationSpeed: 0.002
+  },
+  
+  // Shadow configuration
+  shadows: {
+    blur: 10,
+    offsetX: 2,
+    offsetY: 2,
+    color: 'rgba(0, 0, 0, 0.3)'
+  },
+  
+  // Line styles
+  lineWidths: {
+    thin: 1,
+    normal: 2,
+    thick: 3,
+    extra: 4
+  },
+  
+  // Dash patterns
+  dashPatterns: {
+    none: [],
+    dashed: [5, 5],
+    dotted: [2, 3],
+    dashDot: [10, 5, 2, 5]
+  },
+  
+  // Debug visualization
+  debug: {
+    collisionBoxColor: 'rgba(255, 0, 255, 0.5)',
+    pathColor: 'rgba(0, 255, 255, 0.5)',
+    gridColor: 'rgba(255, 255, 255, 0.2)',
+    vectorColor: 'rgba(255, 255, 0, 0.8)'
+  }
+} as const;
+
+// Tower-specific rendering
+export const TOWER_RENDER = {
+  baseOutlineWidth: 2,
+  upgradedOutlineWidth: 3,
+  rangeIndicator: {
+    fillOpacity: 0.1,
+    strokeOpacity: 0.3,
+    strokeWidth: 2,
+    dashPattern: [5, 5]
+  },
+  placement: {
+    ghostOpacity: 0.6,
+    validColor: 'rgba(76, 175, 80, 0.6)',
+    invalidColor: 'rgba(244, 67, 54, 0.6)',
+    rangePreviewOpacity: 0.3
+  },
+  targetLine: {
+    width: 2,
+    dashPattern: [5, 3],
+    color: 'rgba(255, 255, 255, 0.5)'
+  }
+} as const;
+
+// Enemy-specific rendering
+export const ENEMY_RENDER = {
+  damageFlash: {
+    duration: 100, // milliseconds
+    color: '#FFFFFF'
+  },
+  deathAnimation: {
+    duration: 300, // milliseconds
+    fadeOut: true,
+    particleCount: 5
+  },
+  boss: {
+    glowRadius: 10,
+    glowColor: 'rgba(255, 0, 0, 0.5)',
+    outlineWidth: 3,
+    healthBarScale: 1.5
+  },
+  pathIndicator: {
+    opacity: 0.3,
+    width: 2,
+    color: 'rgba(255, 255, 255, 0.3)'
+  }
+} as const;
+
+// Player rendering configuration
+export const PLAYER_RENDER = {
+  aimer: {
+    length: 100,
+    width: 2,
+    color: 'rgba(255, 255, 255, 0.5)',
+    dotSize: 4
+  },
+  powerUpEffects: {
+    speed: { color: 'rgba(0, 255, 0, 0.3)', particleCount: 3 },
+    damage: { color: 'rgba(255, 0, 0, 0.3)', particleCount: 3 },
+    shield: { color: 'rgba(0, 100, 255, 0.3)', particleCount: 5 }
+  },
+  healthBarOffset: 20,
+  upgradeIndicatorSize: 8
+} as const;
+
+// Projectile rendering
+export const PROJECTILE_RENDER = {
+  basic: {
+    radius: 3,
+    color: '#FFFF00',
+    glowRadius: 5
+  },
+  tower: {
+    radius: 4,
+    trailLength: 3,
+    trailOpacity: 0.5
+  },
+  special: {
+    radius: 5,
+    particleTrail: true,
+    particleCount: 2
+  }
+} as const;
+
+// Grid and terrain rendering
+export const GRID_RENDER_DETAILS = {
+  gridLines: {
+    color: '#333333',
+    width: 0.5,
+    opacity: 0.5
+  },
+  cellHighlight: {
+    strokeWidth: 2,
+    fillOpacity: 0.3,
+    animationSpeed: 0.002
+  },
+  terrainColors: {
+    EMPTY: '#1a1a1a',
+    PATH: '#654321',
+    TOWER: '#2a2a2a',
+    OBSTACLE: '#666666',
+    SPAWN: '#4a4a00',
+    DESTINATION: '#004a00',
+    BLOCKED: '#444444',
+    ROUGH_TERRAIN: '#8B4513'
+  },
+  terrainEffects: {
+    ROUGH_TERRAIN: {
+      borderWidth: 2,
+      borderColor: '#8B4513',
+      dashPattern: [3, 3]
+    }
+  }
+} as const;
+
+// Particle system configuration
+export const PARTICLE_CONFIG = {
+  maxParticles: 100,
+  defaultLifetime: 1000, // ms
+  defaultSize: 3,
+  defaultSpeed: 50,
+  effects: {
+    explosion: {
+      count: 20,
+      speed: 100,
+      lifetime: 500,
+      colors: ['#FF4444', '#FF8844', '#FFAA44']
+    },
+    heal: {
+      count: 10,
+      speed: 30,
+      lifetime: 1000,
+      colors: ['#44FF44', '#88FF88']
+    },
+    powerUp: {
+      count: 15,
+      speed: 40,
+      lifetime: 800,
+      colors: ['#4444FF', '#8888FF', '#AAAAFF']
+    }
+  }
+} as const;
+
+// Animation configuration
+export const ANIMATION_CONFIG = {
+  bobAmount: 5,
+  bobSpeed: 0.002, // radians per millisecond
+  rotationSpeed: 0.001, // radians per millisecond
+  pulseSpeed: 0.004,
+  cameraSmoothing: 0.25,
+  
+  // PowerUp-specific animations (more dramatic)
+  powerUp: {
+    bobAmount: 8,
+    bobSpeed: 0.003,
+    rotationSpeed: 0.002,
+  },
+  
+  // Collectible animations
+  collectible: {
+    floatHeight: 5,
+    floatSpeed: 0.002,
+    spinSpeed: 0.003,
+    pulseAmount: 0.1
+  }
+} as const;
+
+// Performance optimization settings
+export const RENDER_OPTIMIZATION = {
+  culling: {
+    enabled: true,
+    margin: 50 // pixels outside viewport to still render
+  },
+  batching: {
+    enabled: true,
+    maxBatchSize: 1000
+  },
+  LOD: {
+    enabled: false,
+    distances: [100, 300, 600]
+  }
+} as const;

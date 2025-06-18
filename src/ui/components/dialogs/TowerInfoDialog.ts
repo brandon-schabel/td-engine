@@ -4,6 +4,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
 import { Game } from '@/core/Game';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export interface TowerInfoDialogOptions {
   tower: Tower;
@@ -329,7 +330,7 @@ export class TowerInfoDialog extends BaseDialog {
         // Update value
         statsElements[3].querySelector('div:last-child')!.textContent = this.tower.getSellValue() + 'g';
       }
-    }, 500);
+    }, ANIMATION_CONFIG.durations.slower);
   }
   
   protected override afterShow(): void {

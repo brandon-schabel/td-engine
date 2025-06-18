@@ -7,8 +7,9 @@ export enum UpgradeType {
   RANGE = 'RANGE',
   FIRE_RATE = 'FIRE_RATE'
 }
-import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, RENDER_CONFIG, TOWER_COSTS } from '../config/GameConfig';
+import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, TOWER_COSTS } from '../config/GameConfig';
 import { TOWER_STATS, TOWER_UPGRADES, TOWER_VISUALS } from '../config/TowerConfig';
+import { ENTITY_RENDER } from '../config/RenderingConfig';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 import { calculateUpgradeCost, calculateSellValue } from '@/utils/MathUtils';
@@ -268,7 +269,7 @@ export class Tower extends Entity implements ShootingCapable {
       
       // Tower outline - thicker for upgraded towers
       ctx.strokeStyle = upgradeLevel > 1 ? '#222222' : '#333333';
-      ctx.lineWidth = upgradeLevel > 1 ? RENDER_CONFIG.upgradeOutlineThickness.upgraded : RENDER_CONFIG.upgradeOutlineThickness.normal;
+      ctx.lineWidth = upgradeLevel > 1 ? ENTITY_RENDER.lineWidths.thick : ENTITY_RENDER.lineWidths.normal;
       ctx.stroke();
     }
     
@@ -281,7 +282,7 @@ export class Tower extends Entity implements ShootingCapable {
   private renderUpgradeDots(ctx: CanvasRenderingContext2D, screenPos: Vector2): void {
     const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
     const colors = COLOR_CONFIG.upgradeDots;
-    const dotRadius = RENDER_CONFIG.upgradeDotRadius;
+    const dotRadius = ENTITY_RENDER.upgradeDots.radius;
     
     upgradeTypes.forEach((upgradeType, index) => {
       const level = this.getUpgradeLevel(upgradeType);

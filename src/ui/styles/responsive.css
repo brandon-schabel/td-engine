@@ -1,0 +1,148 @@
+/* Responsive styles using centralized ResponsiveConfig variables */
+
+/* Mobile-specific fixes */
+@media screen and (max-width: 768px) {
+  /* Use mobile layout values */
+  #game-container {
+    padding-top: var(--layout-mobile-top-offset);
+    /* Remove side padding to prevent canvas offset */
+    padding-left: 0;
+    padding-right: 0;
+  }
+  
+  #bottom-ui-container {
+    padding-bottom: max(var(--layout-mobile-bottom-offset), env(safe-area-inset-bottom));
+  }
+  
+  /* Mobile dialog sizing */
+  .dialog-panel {
+    max-width: var(--dialog-mobile-max-width) !important;
+    max-height: var(--dialog-mobile-max-height) !important;
+    padding: var(--dialog-mobile-padding) !important;
+  }
+  
+  /* Mobile font sizing */
+  body {
+    font-size: max(var(--text-min-size-mobile), 1rem);
+  }
+  
+  /* Mobile UI scaling */
+  .ui-element {
+    transform: scale(var(--scale-ui-mobile));
+  }
+}
+
+/* Tablet-specific styles */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  /* Use tablet layout values */
+  #game-container {
+    padding-top: var(--layout-tablet-top-offset);
+    /* Remove side padding to prevent canvas offset */
+    padding-left: 0;
+    padding-right: 0;
+  }
+  
+  #bottom-ui-container {
+    padding-bottom: var(--layout-tablet-bottom-offset);
+  }
+  
+  /* Tablet dialog sizing */
+  .dialog-panel {
+    max-width: var(--dialog-tablet-max-width) !important;
+    max-height: var(--dialog-tablet-max-height) !important;
+    padding: var(--dialog-tablet-padding) !important;
+  }
+  
+  /* Tablet font sizing */
+  body {
+    font-size: max(var(--text-min-size-tablet), 1rem);
+  }
+  
+  /* Tablet UI scaling */
+  .ui-element {
+    transform: scale(var(--scale-ui-tablet));
+  }
+}
+
+/* Desktop and larger */
+@media screen and (min-width: 1025px) {
+  /* Use desktop layout values */
+  #game-container {
+    padding-top: var(--layout-desktop-top-offset);
+    /* Remove side padding to prevent canvas offset */
+    padding-left: 0;
+    padding-right: 0;
+  }
+  
+  #bottom-ui-container {
+    padding-bottom: var(--layout-desktop-bottom-offset);
+  }
+  
+  /* Desktop dialog sizing */
+  .dialog-panel {
+    max-width: var(--dialog-desktop-max-width) !important;
+    max-height: var(--dialog-desktop-max-height) !important;
+    padding: var(--dialog-desktop-padding) !important;
+  }
+  
+  /* Desktop font sizing */
+  body {
+    font-size: max(var(--text-min-size-desktop), 1rem);
+  }
+}
+
+/* Landscape mobile adjustments */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  #game-container {
+    padding-top: calc(var(--layout-mobile-top-offset) * 0.7);
+  }
+  
+  #bottom-ui-container {
+    padding-bottom: calc(var(--layout-mobile-bottom-offset) * 0.7);
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Use touch thresholds */
+  .draggable {
+    --drag-threshold: var(--touch-drag-deadzone);
+  }
+  
+  .tappable {
+    --tap-threshold: var(--touch-tap-threshold);
+  }
+}
+
+/* Safe area handling */
+@supports (padding: max(0px)) {
+  #game-container {
+    padding-top: max(var(--safe-area-top), env(safe-area-inset-top));
+  }
+  
+  #bottom-ui-container {
+    padding-bottom: max(var(--safe-area-bottom), env(safe-area-inset-bottom));
+  }
+  
+  .side-panel-left {
+    padding-left: max(var(--safe-area-left), env(safe-area-inset-left));
+  }
+  
+  .side-panel-right {
+    padding-right: max(var(--safe-area-right), env(safe-area-inset-right));
+  }
+  
+  /* Notch handling */
+  @media screen and (orientation: portrait) {
+    .top-bar {
+      padding-top: max(var(--safe-area-notch-portrait), env(safe-area-inset-top));
+    }
+  }
+  
+  @media screen and (orientation: landscape) {
+    .side-content {
+      padding-left: max(var(--safe-area-notch-landscape), env(safe-area-inset-left));
+      padding-right: max(var(--safe-area-notch-landscape), env(safe-area-inset-right));
+    }
+  }
+}

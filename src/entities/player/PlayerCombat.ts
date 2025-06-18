@@ -8,6 +8,7 @@ import { Enemy } from '../Enemy';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils } from '../../interfaces/ShootingCapable';
 import { GAME_MECHANICS } from '../../config/GameConfig';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 import type { Vector2 } from '@/utils/Vector2';
 
 export enum ShootingMode {

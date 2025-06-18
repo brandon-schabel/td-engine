@@ -7,35 +7,39 @@ import { BaseRenderer } from './BaseRenderer';
 import { Tower } from '@/entities/Tower';
 import { UpgradeType } from '@/entities/Tower';
 import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
+import { HUD_CONFIG } from '../config/UIConfig';
+import { COLOR_THEME } from '../config/ColorTheme';
+import { UI_CONSTANTS } from '../config/UIConstants';
+import { ENTITY_RENDER } from '../config/RenderingConfig';
 
 export class UIRenderer extends BaseRenderer {
 
   renderHUD(currency: number, lives: number, score: number, wave: number): void {
-    const padding = 10;
-    const fontSize = 18;
-    const lineHeight = 25;
+    const padding = UI_CONSTANTS.hud.padding;
+    const fontSize = HUD_CONFIG.fontSize;
+    const lineHeight = HUD_CONFIG.lineHeight;
     
-    this.renderText(`Currency: $${currency}`, padding, padding + fontSize, COLOR_CONFIG.ui.currency, `${fontSize}px Arial`);
-    this.renderText(`Lives: ${lives}`, padding, padding + fontSize + lineHeight, COLOR_CONFIG.ui.lives, `${fontSize}px Arial`);
-    this.renderText(`Score: ${score}`, padding, padding + fontSize + lineHeight * 2, COLOR_CONFIG.ui.score, `${fontSize}px Arial`);
-    this.renderText(`Wave: ${wave}`, padding, padding + fontSize + lineHeight * 3, COLOR_CONFIG.ui.wave, `${fontSize}px Arial`);
+    this.renderText(`Currency: $${currency}`, padding, padding + fontSize, COLOR_THEME.ui.currency, `${fontSize}px Arial`);
+    this.renderText(`Lives: ${lives}`, padding, padding + fontSize + lineHeight, COLOR_THEME.ui.text.danger, `${fontSize}px Arial`);
+    this.renderText(`Score: ${score}`, padding, padding + fontSize + lineHeight * 2, COLOR_THEME.ui.score, `${fontSize}px Arial`);
+    this.renderText(`Wave: ${wave}`, padding, padding + fontSize + lineHeight * 3, COLOR_THEME.ui.wave, `${fontSize}px Arial`);
   }
 
   renderGameOver(): void {
-    this.renderOverlay('GAME OVER', COLOR_CONFIG.ui.lives);
+    this.renderOverlay('GAME OVER', COLOR_THEME.ui.text.danger);
   }
 
   renderVictory(): void {
-    this.renderOverlay('VICTORY!', COLOR_CONFIG.ui.score);
+    this.renderOverlay('VICTORY!', COLOR_THEME.ui.text.success);
   }
 
   renderPaused(): void {
-    this.renderOverlay('PAUSED', COLOR_CONFIG.ui.currency, 'Press SPACE to resume');
+    this.renderOverlay('PAUSED', COLOR_THEME.ui.currency, 'Press SPACE to resume');
   }
 
   private renderOverlay(title: string, titleColor: string, subtitle?: string): void {
     // Semi-transparent overlay
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillStyle = COLOR_THEME.ui.background.overlay;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
     // Title text
@@ -54,7 +58,7 @@ export class UIRenderer extends BaseRenderer {
         subtitle,
         this.canvas.width / 2,
         this.canvas.height / 2 + 60,
-        '#FFFFFF',
+        COLOR_THEME.ui.text.primary,
         '20px Arial',
         'center'
       );
@@ -83,24 +87,24 @@ export class UIRenderer extends BaseRenderer {
 
   renderNotification(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info', duration?: number): void {
     const colors = {
-      info: '#2196F3',
-      warning: '#FF9800',
-      error: '#F44336',
-      success: '#4CAF50'
+      info: COLOR_THEME.ui.button.primary,
+      warning: COLOR_THEME.ui.text.warning,
+      error: COLOR_THEME.ui.text.danger,
+      success: COLOR_THEME.ui.text.success
     };
 
     const x = this.canvas.width - 320;
     const y = 50;
-    const width = 300;
+    const width = UI_CONSTANTS.floatingUI.maxWidth;
     const height = 60;
 
     // Background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    this.ctx.fillStyle = COLOR_THEME.ui.background.overlay;
     this.ctx.fillRect(x, y, width, height);
 
     // Border
     this.ctx.strokeStyle = colors[type];
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = UI_CONSTANTS.floatingUI.borderWidth;
     this.ctx.strokeRect(x, y, width, height);
 
     // Icon
@@ -113,7 +117,7 @@ export class UIRenderer extends BaseRenderer {
       message,
       x + 35,
       y + height / 2 + 4,
-      '#FFFFFF',
+      COLOR_THEME.ui.text.primary,
       '14px Arial'
     );
   }
@@ -125,10 +129,10 @@ export class UIRenderer extends BaseRenderer {
     height: number, 
     progress: number, // 0 to 1
     label?: string,
-    color: string = '#4CAF50'
+    color: string = COLOR_THEME.ui.text.success
   ): void {
     // Background
-    this.ctx.fillStyle = '#333333';
+    this.ctx.fillStyle = COLOR_THEME.ui.border.default;
     this.ctx.fillRect(x, y, width, height);
 
     // Progress fill
@@ -136,8 +140,8 @@ export class UIRenderer extends BaseRenderer {
     this.ctx.fillRect(x, y, width * Math.max(0, Math.min(1, progress)), height);
 
     // Border
-    this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = COLOR_THEME.ui.border.default;
+    this.ctx.lineWidth = ENTITY_RENDER.lineWidths.thin;
     this.ctx.strokeRect(x, y, width, height);
 
     // Label
@@ -146,7 +150,7 @@ export class UIRenderer extends BaseRenderer {
         label,
         x + width / 2,
         y + height / 2 + 4,
-        '#FFFFFF',
+        COLOR_THEME.ui.text.primary,
         '12px Arial',
         'center'
       );
@@ -154,7 +158,7 @@ export class UIRenderer extends BaseRenderer {
   }
 
   renderTooltip(text: string, x: number, y: number, maxWidth: number = 200): void {
-    const padding = 8;
+    const padding = UI_CONSTANTS.floatingUI.padding;
     const fontSize = 12;
     const lineHeight = 16;
     
@@ -189,12 +193,12 @@ export class UIRenderer extends BaseRenderer {
     const adjustedY = Math.max(y - tooltipHeight - 10, 10);
 
     // Background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    this.ctx.fillStyle = COLOR_THEME.ui.background.overlay;
     this.ctx.fillRect(adjustedX, adjustedY, tooltipWidth, tooltipHeight);
 
     // Border
-    this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = COLOR_THEME.ui.border.default;
+    this.ctx.lineWidth = ENTITY_RENDER.lineWidths.thin;
     this.ctx.strokeRect(adjustedX, adjustedY, tooltipWidth, tooltipHeight);
 
     // Text
@@ -203,7 +207,7 @@ export class UIRenderer extends BaseRenderer {
         line,
         adjustedX + padding,
         adjustedY + padding + (index + 1) * lineHeight,
-        '#FFFFFF',
+        COLOR_THEME.ui.text.primary,
         `${fontSize}px Arial`
       );
     });
@@ -221,19 +225,19 @@ export class UIRenderer extends BaseRenderer {
     worldHeight: number
   ): void {
     // Background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillStyle = COLOR_THEME.ui.background.overlay;
     this.ctx.fillRect(x, y, width, height);
 
     // Border
-    this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = COLOR_THEME.ui.border.default;
+    this.ctx.lineWidth = ENTITY_RENDER.lineWidths.thin;
     this.ctx.strokeRect(x, y, width, height);
 
     const scaleX = width / worldWidth;
     const scaleY = height / worldHeight;
 
     // Render towers
-    this.ctx.fillStyle = '#4CAF50';
+    this.ctx.fillStyle = COLOR_THEME.ui.text.success;
     towers.forEach(tower => {
       const miniX = x + tower.x * scaleX;
       const miniY = y + tower.y * scaleY;
@@ -241,7 +245,7 @@ export class UIRenderer extends BaseRenderer {
     });
 
     // Render enemies
-    this.ctx.fillStyle = '#F44336';
+    this.ctx.fillStyle = COLOR_THEME.ui.text.danger;
     enemies.forEach(enemy => {
       const miniX = x + enemy.x * scaleX;
       const miniY = y + enemy.y * scaleY;
@@ -249,10 +253,10 @@ export class UIRenderer extends BaseRenderer {
     });
 
     // Render player
-    this.ctx.fillStyle = '#2196F3';
+    this.ctx.fillStyle = COLOR_THEME.ui.button.primary;
     const playerMiniX = x + playerPosition.x * scaleX;
     const playerMiniY = y + playerPosition.y * scaleY;
-    this.fillCircle({ x: playerMiniX, y: playerMiniY }, 2, '#2196F3');
+    this.fillCircle({ x: playerMiniX, y: playerMiniY }, 2, COLOR_THEME.ui.button.primary);
   }
 
   renderResourceCounter(
@@ -260,10 +264,10 @@ export class UIRenderer extends BaseRenderer {
     y: number,
     icon: string,
     value: number,
-    color: string = '#FFFFFF'
+    color: string = COLOR_THEME.ui.text.primary
   ): void {
     // Icon background
-    this.fillCircle({ x: x + 15, y: y + 15 }, 12, 'rgba(0, 0, 0, 0.7)');
+    this.fillCircle({ x: x + 15, y: y + 15 }, 12, COLOR_THEME.ui.background.overlay);
     
     // Icon
     this.renderText(icon, x + 15, y + 20, color, 'bold 16px Arial', 'center');
@@ -282,7 +286,7 @@ export class UIRenderer extends BaseRenderer {
     const x = this.canvas.width - 80;
     const y = 30;
     
-    const color = fps > 45 ? '#4CAF50' : fps > 30 ? '#FF9800' : '#F44336';
+    const color = fps > 45 ? COLOR_THEME.ui.text.success : fps > 30 ? COLOR_THEME.ui.text.warning : COLOR_THEME.ui.text.danger;
     
     this.renderText(
       `FPS: ${Math.round(fps)}`,

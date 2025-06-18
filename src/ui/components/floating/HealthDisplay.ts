@@ -1,28 +1,30 @@
 import { FloatingDisplay } from './FloatingDisplay';
 import { IconType } from '../../icons/SvgIcons';
 import { Game } from '@/core/Game';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
 
 export class HealthDisplay extends FloatingDisplay {
   constructor(game: Game) {
     super({
-      position: { top: 55, left: 10 },
-      borderColor: '#FF4444',
-      textColor: '#FF4444',
+      position: { top: UI_CONSTANTS.hud.padding + 45, left: UI_CONSTANTS.hud.padding },
+      borderColor: COLOR_THEME.ui.text.danger,
+      textColor: COLOR_THEME.ui.text.danger,
       iconType: IconType.HEART,
       getValue: () => {
         const player = game.getPlayer();
-        if (!player) return { value: '0/0', color: '#FF4444' };
+        if (!player) return { value: '0/0', color: COLOR_THEME.ui.text.danger };
         
         const health = Math.max(0, player.health);
         const maxHealth = player.maxHealth;
         const healthPercent = (health / maxHealth) * 100;
         
         // Determine color based on health percentage
-        let color = '#4CAF50'; // Green
+        let color = COLOR_THEME.ui.text.success; // Green
         if (healthPercent <= 25) {
-          color = '#FF4444'; // Red
+          color = COLOR_THEME.ui.text.danger; // Red
         } else if (healthPercent <= 50) {
-          color = '#FF9800'; // Orange
+          color = COLOR_THEME.ui.text.warning; // Orange
         }
         
         return {

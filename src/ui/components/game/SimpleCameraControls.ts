@@ -1,6 +1,8 @@
 import { Game } from '@/core/Game';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
 
 export class CameraControls {
   private container: HTMLElement;
@@ -24,14 +26,14 @@ export class CameraControls {
       position: absolute;
       top: 50px;
       right: 10px;
-      background: rgba(0, 0, 0, 0.8);
-      border: 2px solid #00BCD4;
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: #00BCD4;
+      background: ${COLOR_THEME.ui.background.overlay};
+      border: ${UI_CONSTANTS.floatingUI.borderWidth}px solid ${COLOR_THEME.ui.button.primary};
+      border-radius: ${UI_CONSTANTS.floatingUI.borderRadius}px;
+      padding: ${UI_CONSTANTS.floatingUI.padding}px;
+      color: ${COLOR_THEME.ui.button.primary};
       font-weight: bold;
       font-size: clamp(14px, 3vw, 18px);
-      z-index: 100;
+      z-index: ${UI_CONSTANTS.zIndex.ui};
       display: flex;
       align-items: center;
       gap: 12px;
@@ -101,14 +103,14 @@ export class CameraControls {
     button.style.cssText = `
       background: none;
       border: none;
-      color: #00BCD4;
+      color: ${COLOR_THEME.ui.button.primary};
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: all 0.2s ease;
       padding: 4px;
-      border-radius: 4px;
+      border-radius: ${UI_CONSTANTS.floatingUI.borderRadius / 2}px;
     `;
     button.title = title;
     button.innerHTML = createSvgIcon(iconType, { size: 18 });
@@ -116,7 +118,7 @@ export class CameraControls {
     button.addEventListener('click', onClick);
     
     button.addEventListener('mouseenter', () => {
-      button.style.background = 'rgba(0, 188, 212, 0.2)';
+      button.style.background = '${COLOR_THEME.ui.button.hover}';
       button.style.transform = 'scale(1.1)';
     });
     

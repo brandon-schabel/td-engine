@@ -1,5 +1,19 @@
 import type { WaveConfig } from '@/systems/WaveManager';
 
+// Game initialization constants
+export const GAME_INIT = {
+  startingCurrency: 100,
+  startingLives: 10,
+  startingScore: 0,
+  startingWave: 1,
+  maxLives: 20,
+  difficultyMultipliers: {
+    easy: { currency: 1.5, lives: 1.5 },
+    normal: { currency: 1.0, lives: 1.0 },
+    hard: { currency: 0.7, lives: 0.7 }
+  }
+} as const;
+
 // Tower costs - avoid circular dependency by using string keys
 export const TOWER_COSTS = {
   'BASIC': 30,
@@ -24,14 +38,57 @@ export const GAME_MECHANICS = {
   healAbilityCooldown: 20000, // 20 seconds
   damageRegenCooldown: 3000, // 3 seconds before regeneration
   regenInterval: 1000, // Regenerate every second
+  
+  // Score mechanics
+  scoreMultipliers: {
+    baseKill: 10,
+    comboMultiplier: 1.5,
+    perfectWaveBonus: 500,
+    speedBonus: 100,
+  },
+  
+  // Game loop and timing
+  targetFPS: 60,
+  maxDeltaTime: 100, // Max ms between frames
+  pauseTransitionTime: 200,
+  
+  // Difficulty progression
+  difficultyScaling: {
+    waveInterval: 5, // Difficulty increases every 5 waves
+    healthIncrease: 1.2,
+    speedIncrease: 1.1,
+    rewardIncrease: 1.15,
+  }
 } as const;
 
-// Inventory upgrade configuration
-export const INVENTORY_UPGRADES = {
-  baseCost: 50, // Base cost for first upgrade
-  costMultiplier: 1.5, // Cost increases by 50% each upgrade
-  slotsPerUpgrade: 5, // How many slots each upgrade adds
-  maxUpgrades: 8, // Maximum number of upgrades (20 + 8*5 = 60 max slots)
+// NOTE: Inventory configuration has been moved to InventoryConfig.ts
+
+// Infinite wave configuration
+export const INFINITE_WAVE_CONFIG = {
+  enabled: true, // Enable infinite waves
+  startAt: 11, // Start infinite waves after wave 10
+  scaling: {
+    healthScalingRate: 0.5,
+    damageScalingRate: 0.3,
+    enemyCountScalingRate: 12,
+    spawnDelayScalingRate: 0.1,
+    maxEnemyCount: 80,
+    minSpawnDelay: 500,
+  },
+  rewards: {
+    baseRewardPerWave: 5,
+    rewardScalingBonus: 10,
+    milestoneMultiplier: 2,
+  },
+  difficulty: {
+    primaryPlateau: 50, // First difficulty plateau
+    secondaryPlateau: 100, // Second difficulty plateau
+  },
+  specialWaves: {
+    bossWaveInterval: 10,
+    swarmWaveInterval: 5,
+    eliteWaveInterval: 7,
+  }
 } as const;
 
 // Default wave configurations - avoid circular dependency by using string types
@@ -76,28 +133,9 @@ export const DEFAULT_WAVES: WaveConfig[] = [
   }
 ] as const;
 
-// Entity spawn chances
-export const SPAWN_CHANCES = {
-  healthPickup: 0.1, // 10% chance from enemies
-  powerUp: 0.15, // 15% chance from enemies
-  extraCurrencyDrop: 0.05, // 5% chance for extra currency
-} as const;
+// NOTE: Item and collectible drop chances have been moved to ItemConfig.ts
 
-// Visual/Animation constants
-export const ANIMATION_CONFIG = {
-  bobAmount: 5,
-  bobSpeed: 0.002, // radians per millisecond
-  rotationSpeed: 0.001, // radians per millisecond
-  pulseSpeed: 0.004,
-  cameraSmoothing: 0.25,
-  
-  // PowerUp-specific animations (more dramatic)
-  powerUp: {
-    bobAmount: 8,
-    bobSpeed: 0.003,
-    rotationSpeed: 0.002,
-  },
-} as const;
+// NOTE: Animation configuration has been moved to RenderingConfig.ts
 
 // Audio positioning and effects
 export const AUDIO_CONFIG = {
@@ -145,44 +183,7 @@ export const COLOR_CONFIG = {
   }
 } as const;
 
-// Rendering constants
-export const RENDER_CONFIG = {
-  healthBarWidth: 28,
-  healthBarHeight: 5,
-  upgradeDotRadius: 3,
-  upgradeDotSpacing: 8,
-  aimerLength: 100,
-  gridLineColor: '#333333',
-  pathColor: '#654321',
-  blockedColor: '#444444',
-  obstacleColor: '#666666',
-  ghostOpacity: 0.6,
-  glowBlur: 10,
-  dashPattern: [5, 5],
-  upgradeOutlineThickness: {
-    normal: 2,
-    upgraded: 3
-  }
-} as const;
+// NOTE: Rendering configuration has been moved to RenderingConfig.ts
 
-// Inventory system constants
-export const INVENTORY_CONFIG = {
-  defaultSlots: 20,
-  maxSlots: 40,
-  autoSortEnabled: false,
-  stackingEnabled: true,
-  quickSlots: 6, // Number of quick-use slots
-  tooltipDelay: 500, // ms
-  dragSensitivity: 5 // pixels
-} as const;
-
-// Item drop and generation constants
-export const ITEM_CONFIG = {
-  baseDropChance: 0.30, // 30% chance for items to drop from enemies
-  bossDropMultiplier: 2.0, // Bosses have 2x drop chance
-  rareDropBonus: 0.05, // Extra 5% chance for rare+ items from special enemies
-  qualityScaling: true, // Higher level enemies drop better items
-  contextualDrops: true, // Enemies drop thematically appropriate items
-  guaranteedDropWaves: [5, 10, 15, 20], // Waves that guarantee item drops
-  specialEventDrops: true // Enable special event-based drops
-} as const;
+// NOTE: Inventory configuration has been moved to InventoryConfig.ts
+// NOTE: Item configuration has been moved to ItemConfig.ts

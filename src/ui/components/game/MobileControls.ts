@@ -11,6 +11,10 @@
 
 import type { Game } from '@/core/Game';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
+import { RESPONSIVE_CONFIG, isMobile, getBreakpoint } from '@/config/ResponsiveConfig';
 
 export interface MobileControlsOptions {
   game: Game;
@@ -69,16 +73,16 @@ export class MobileControls {
     const vh = window.innerHeight;
     const baseSize = Math.min(vw, vh) * 0.15; // 15% of smallest dimension
     
-    this.joystickRadius = Math.max(50, Math.min(80, baseSize * 0.5));
+    this.joystickRadius = UI_CONSTANTS.mobileControls.button.size;
     this.knobRadius = this.joystickRadius * 0.4;
-    const buttonSize = Math.max(60, Math.min(100, baseSize * 0.7));
+    const buttonSize = UI_CONSTANTS.mobileControls.button.size;
     
     // Get safe area insets
     const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-bottom') || '0');
-    this.safeAreaBottom = Math.max(20, safeAreaBottom);
+    this.safeAreaBottom = Math.max(RESPONSIVE_CONFIG.safeAreas.bottom, safeAreaBottom);
     
     // Adjust control height for smaller screens
-    this.controlsHeight = vh < 600 ? 150 : 200;
+    this.controlsHeight = vh < RESPONSIVE_CONFIG.breakpoints.landscape.mobile ? 150 : 200;
     
     const controls = document.createElement('div');
     controls.className = 'mobile-controls';
@@ -97,8 +101,12 @@ export class MobileControls {
     // Movement joystick (left side)
     const moveJoystick = document.createElement('div');
     moveJoystick.className = 'move-joystick';
-    const joystickMargin = Math.max(20, vw * 0.05); // 5% of viewport width
-    const bottomOffset = Math.max(40, vh * 0.08); // Increased bottom offset (8% of viewport height)
+    const breakpoint = getBreakpoint(vw);
+    const layoutConfig = breakpoint === 'mobile' ? RESPONSIVE_CONFIG.layout.hud.mobile : 
+                        breakpoint === 'tablet' ? RESPONSIVE_CONFIG.layout.hud.tablet :
+                        RESPONSIVE_CONFIG.layout.hud.desktop;
+    const joystickMargin = layoutConfig.sideMargin;
+    const bottomOffset = layoutConfig.bottomOffset;
     moveJoystick.style.cssText = `
       position: absolute;
       bottom: ${this.safeAreaBottom + bottomOffset}px;
@@ -112,7 +120,7 @@ export class MobileControls {
       touch-action: none;
       display: block;
       visibility: visible;
-      opacity: 0.8;
+      opacity: ${UI_CONSTANTS.mobileControls.button.activeOpacity};
       z-index: 10000;
     `;
 
@@ -156,13 +164,13 @@ export class MobileControls {
       width: ${this.joystickRadius * 2}px;
       height: ${this.joystickRadius * 2}px;
       border-radius: 50%;
-      background: rgba(255, 0, 0, 0.2);
-      border: 3px solid rgba(255, 0, 0, 0.5);
+      background: ${COLOR_THEME.ui.button.danger}33;
+      border: 3px solid ${COLOR_THEME.ui.button.danger}80;
       pointer-events: auto;
       touch-action: none;
       display: block;
       visibility: visible;
-      opacity: 0.8;
+      opacity: ${UI_CONSTANTS.mobileControls.button.activeOpacity};
       z-index: 10000;
     `;
 
@@ -175,7 +183,7 @@ export class MobileControls {
       width: ${this.knobRadius * 2}px;
       height: ${this.knobRadius * 2}px;
       border-radius: 50%;
-      background: rgba(255, 0, 0, 0.5);
+      background: ${COLOR_THEME.ui.button.danger}80;
       transform: translate(-50%, -50%);
       transition: none;
       pointer-events: none;
@@ -219,8 +227,8 @@ export class MobileControls {
       }
       
       .aim-joystick.active {
-        background: rgba(255, 0, 0, 0.2) !important;
-        border-color: rgba(255, 0, 0, 0.5) !important;
+        background: ${COLOR_THEME.ui.button.danger}33 !important;
+        border-color: ${COLOR_THEME.ui.button.danger}80 !important;
       }
       
       .move-joystick.active {
@@ -423,13 +431,13 @@ export class MobileControls {
     this.aimJoystick.classList.remove('active');
     
     // Reset joystick position with smooth transition
-    this.aimJoystickKnob.style.transition = 'transform 0.2s ease-out';
+    this.aimJoystickKnob.style.transition = `transform ${ANIMATION_CONFIG.durations.uiTransition}ms ease-out`;
     this.aimJoystickKnob.style.transform = 'translate(-50%, -50%)';
     
     // Reset transition after animation
     setTimeout(() => {
       this.aimJoystickKnob.style.transition = 'none';
-    }, 200);
+    }, ANIMATION_CONFIG.durations.uiTransition);
     
     // Stop continuous shooting on the player
     const player = this.game.getPlayer();
@@ -538,13 +546,13 @@ export class MobileControls {
     this.moveJoystick.classList.remove('active');
     
     // Reset joystick position with smooth transition
-    this.joystickKnob.style.transition = 'transform 0.2s ease-out';
+    this.joystickKnob.style.transition = `transform ${ANIMATION_CONFIG.durations.uiTransition}ms ease-out`;
     this.joystickKnob.style.transform = 'translate(-50%, -50%)';
     
     // Reset transition after animation
     setTimeout(() => {
       this.joystickKnob.style.transition = 'none';
-    }, 200);
+    }, ANIMATION_CONFIG.durations.uiTransition);
     
     // Stop player movement
     const player = this.game.getPlayer();
@@ -630,9 +638,9 @@ export class MobileControls {
     const vh = window.innerHeight;
     const baseSize = Math.min(vw, vh) * 0.15;
     
-    this.joystickRadius = Math.max(50, Math.min(80, baseSize * 0.5));
+    this.joystickRadius = UI_CONSTANTS.mobileControls.button.size;
     this.knobRadius = this.joystickRadius * 0.4;
-    const buttonSize = Math.max(60, Math.min(100, baseSize * 0.7));
+    const buttonSize = UI_CONSTANTS.mobileControls.button.size;
     const margin = Math.max(20, vw * 0.05);
     
     // Update control height

@@ -1,4 +1,5 @@
 import { BaseDialog } from './BaseDialog';
+import { RESPONSIVE_CONFIG, isMobile } from '@/config/ResponsiveConfig';
 import type { GameStats, ScoreboardEntry } from '@/systems/ScoreManager';
 import { ScoreManager } from '@/systems/ScoreManager';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
@@ -306,7 +307,7 @@ export class GameOverDialog extends BaseDialog {
   protected onResize(): void {
     // Adjust grid columns on very small screens
     const statsGrid = this.content.querySelector('div:nth-child(2)') as HTMLElement;
-    if (statsGrid && window.innerWidth <= 400) {
+    if (statsGrid && isMobile(window.innerWidth)) {
       statsGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
     }
   }

@@ -80,15 +80,56 @@ src/
 ## Configuration
 
 ### Core Config Files
-- `GameConfig.ts`: Game constants
-- `GameConfiguration.ts`: Runtime config
-- `ConfigurationPresets.ts`: Difficulty presets
+- `GameConfig.ts`: Game initialization, mechanics, waves
+- `GameSettings.ts`: User preferences, difficulty presets
+- `ColorTheme.ts`: All game colors for theming
+- `UIConstants.ts`: UI dimensions, spacing, z-index
+- `AnimationConfig.ts`: Animation durations, easing
+- `GameplayConstants.ts`: Core gameplay values
+- `ResponsiveConfig.ts`: Breakpoints, scaling, touch
+
+### Entity-Specific Config Files
+- `PlayerConfig.ts`: Player abilities, upgrades, power-ups
+- `TowerConfig.ts`: Tower stats, costs, upgrades
+- `EnemyConfig.ts`: Enemy stats, behavior, rewards
+- `ItemConfig.ts`: Item drops, rarity, generation
+- `InventoryConfig.ts`: Inventory system settings
+
+### System Config Files
+- `AudioConfig.ts`: Audio volumes, spatial settings
+- `UIConfig.ts`: HUD layout, camera, dialogs
+- `MapConfig.ts`: Map generation, biomes, terrain
+- `RenderingConfig.ts`: Rendering, particles, animations
 
 ### Customizable Parameters
-- **Tower costs**: 20-50 currency
-- **Player stats**: Damage, speed, fire rate, health
-- **Game mechanics**: Projectile speeds, cooldowns
+- **Tower costs**: Configured in TowerConfig
+- **Player stats**: Base stats, abilities, upgrades
+- **Game mechanics**: Projectiles, waves, scoring
+- **Visual theme**: Colors, animations, effects
+- **Responsive design**: Breakpoints, scaling
 - **Map generation**: Biomes, difficulty, dimensions
+
+## Using the Configuration System
+
+### Import Configuration
+```typescript
+// Import specific configs
+import { COLOR_THEME, UI_CONSTANTS, ANIMATION_CONFIG } from '@/config';
+
+// Use in code
+const button = {
+  backgroundColor: COLOR_THEME.ui.button.primary,
+  padding: UI_CONSTANTS.spacing.md,
+  transition: `opacity ${ANIMATION_CONFIG.durations.buttonHover}ms`
+};
+```
+
+### Configuration Best Practices
+- **Never hardcode values** - Always use configuration constants
+- **Use semantic names** - Choose meaningful duration names (e.g., `dialogOpen` not `300`)
+- **Group related values** - Keep similar configs together
+- **Document units** - Specify ms, px, etc. in comments
+- **Type safety** - Use `as const` for configuration objects
 
 ## Code Standards
 

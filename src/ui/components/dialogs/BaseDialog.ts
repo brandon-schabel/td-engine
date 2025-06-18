@@ -1,5 +1,9 @@
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
+import { RESPONSIVE_CONFIG, isMobile } from '@/config/ResponsiveConfig';
 
 export interface BaseDialogOptions {
   title: string;
@@ -97,10 +101,10 @@ export abstract class BaseDialog {
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
+      background: ${COLOR_THEME.ui.background.overlay};
       /* Removed backdrop-filter to prevent blur issues */
       opacity: 0;
-      transition: opacity 200ms ease;
+      transition: opacity ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
       pointer-events: ${this.options.modal ? 'auto' : 'none'};
     `;
     return overlay;
@@ -117,20 +121,20 @@ export abstract class BaseDialog {
       will-change: transform, opacity;
       width: ${this.options.width};
       max-height: clamp(400px, 85vh, 800px);
-      background: rgba(20, 20, 20, 0.95);
-      border: 2px solid #4CAF50;
-      border-radius: 12px;
+      background: ${COLOR_THEME.ui.background.primary}e6;
+      border: ${UI_CONSTANTS.floatingUI.borderWidth}px solid ${COLOR_THEME.ui.text.success};
+      border-radius: ${UI_CONSTANTS.dialog.borderRadius}px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
       display: flex;
       flex-direction: column;
       opacity: 0;
-      transition: all 200ms ease;
+      transition: all ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
       pointer-events: auto;
       overflow: hidden;
     `;
     
     // Mobile fullscreen mode
-    if (window.innerWidth <= 768) {
+    if (isMobile(window.innerWidth)) {
       dialog.style.width = '100vw';
       dialog.style.height = '100vh';
       dialog.style.maxHeight = '100vh';
@@ -148,9 +152,9 @@ export abstract class BaseDialog {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 20px;
-      border-bottom: 1px solid rgba(76, 175, 80, 0.3);
-      background: rgba(76, 175, 80, 0.1);
+      padding: ${UI_CONSTANTS.dialog.padding / 2}px ${UI_CONSTANTS.dialog.padding}px;
+      border-bottom: 1px solid ${COLOR_THEME.ui.text.success}4d;
+      background: ${COLOR_THEME.ui.text.success}1a;
       flex-shrink: 0;
     `;
     
@@ -160,7 +164,7 @@ export abstract class BaseDialog {
       margin: 0;
       font-size: clamp(18px, 4vw, 22px);
       font-weight: bold;
-      color: #4CAF50;
+      color: ${COLOR_THEME.ui.text.success};
     `;
     title.textContent = this.options.title;
     header.appendChild(title);
@@ -180,12 +184,12 @@ export abstract class BaseDialog {
       width: clamp(32px, 8vw, 40px);
       height: clamp(32px, 8vw, 40px);
       padding: 0;
-      background: rgba(244, 67, 54, 0.2);
-      border: 1px solid #F44336;
-      border-radius: 6px;
-      color: #F44336;
+      background: ${COLOR_THEME.ui.button.danger}33;
+      border: 1px solid ${COLOR_THEME.ui.button.danger};
+      border-radius: ${UI_CONSTANTS.dialog.borderRadius / 2}px;
+      color: ${COLOR_THEME.ui.button.danger};
       cursor: pointer;
-      transition: all 150ms ease;
+      transition: all ${ANIMATION_CONFIG.durations.buttonHover}ms ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -195,12 +199,12 @@ export abstract class BaseDialog {
     button.innerHTML = icon;
     
     button.addEventListener('mouseenter', () => {
-      button.style.background = 'rgba(244, 67, 54, 0.3)';
+      button.style.background = '${COLOR_THEME.ui.button.danger}4d';
       button.style.transform = 'scale(1.05)';
     });
     
     button.addEventListener('mouseleave', () => {
-      button.style.background = 'rgba(244, 67, 54, 0.2)';
+      button.style.background = '${COLOR_THEME.ui.button.danger}33';
       button.style.transform = 'scale(1)';
     });
     
@@ -217,7 +221,7 @@ export abstract class BaseDialog {
     content.className = 'dialog-content';
     content.style.cssText = `
       flex: 1;
-      padding: 20px;
+      padding: ${UI_CONSTANTS.dialog.padding}px;
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
@@ -229,11 +233,11 @@ export abstract class BaseDialog {
     const footer = document.createElement('div');
     footer.className = 'dialog-footer';
     footer.style.cssText = `
-      padding: 16px 20px;
-      border-top: 1px solid rgba(76, 175, 80, 0.3);
-      background: rgba(40, 40, 40, 0.8);
+      padding: ${UI_CONSTANTS.dialog.padding / 2}px ${UI_CONSTANTS.dialog.padding}px;
+      border-top: 1px solid ${COLOR_THEME.ui.text.success}4d;
+      background: ${COLOR_THEME.ui.background.secondary}cc;
       display: flex;
-      gap: 12px;
+      gap: ${UI_CONSTANTS.dialog.button.spacing}px;
       justify-content: center;
       flex-shrink: 0;
     `;
@@ -265,7 +269,7 @@ export abstract class BaseDialog {
       font-size: clamp(14px, 3vw, 16px);
       font-weight: bold;
       cursor: pointer;
-      transition: all 150ms ease;
+      transition: all ${ANIMATION_CONFIG.durations.buttonHover}ms ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -446,7 +450,7 @@ export abstract class BaseDialog {
         this.container.parentNode.removeChild(this.container);
       }
       this.afterHide();
-    }, 200);
+    }, ANIMATION_CONFIG.durations.dialogClose);
   }
   
   public toggle(): void {
@@ -513,7 +517,7 @@ export abstract class BaseDialog {
       right: 0;
       bottom: 0;
       background-color: ${checked ? '#4CAF50' : '#666'};
-      transition: background-color 200ms ease;
+      transition: background-color ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
       border-radius: 28px;
     `;
     
@@ -525,7 +529,7 @@ export abstract class BaseDialog {
       width: clamp(20px, 5vw, 24px);
       height: clamp(20px, 5vw, 24px);
       background-color: white;
-      transition: left 200ms ease;
+      transition: left ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
       border-radius: 50%;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     `;

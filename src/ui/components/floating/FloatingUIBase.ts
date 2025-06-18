@@ -1,4 +1,6 @@
 import { createSvgIcon, IconType } from '../../icons/SvgIcons';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
 
 export type FloatingUIPosition = {
   top?: number;
@@ -45,15 +47,15 @@ export abstract class FloatingUIBase {
   protected applyStyles(): void {
     const {
       position,
-      backgroundColor = 'rgba(0, 0, 0, 0.8)',
-      borderColor = '#FFD700',
-      borderWidth = 2,
-      borderRadius = 8,
-      padding = '8px 12px',
-      textColor = '#FFD700',
+      backgroundColor = COLOR_THEME.ui.background.overlay,
+      borderColor = COLOR_THEME.ui.currency,
+      borderWidth = UI_CONSTANTS.floatingUI.borderWidth,
+      borderRadius = UI_CONSTANTS.floatingUI.borderRadius,
+      padding = `${UI_CONSTANTS.floatingUI.padding}px`,
+      textColor = COLOR_THEME.ui.currency,
       fontSize = 'clamp(14px, 3vw, 18px)',
       fontWeight = 'bold',
-      zIndex = 100
+      zIndex = UI_CONSTANTS.zIndex.ui
     } = this.options;
     
     // Build position string

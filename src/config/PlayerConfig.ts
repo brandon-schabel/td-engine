@@ -6,8 +6,9 @@
 // Player ability configuration
 export const PLAYER_ABILITIES = {
   heal: {
-    amount: 20,
+    amount: 30, // Amount of health restored by heal ability
     cooldown: 8000, // 8 seconds
+    initialCooldown: 5000, // Start on cooldown for 5 seconds
     lowHealthThreshold: 0.25, // 25% health
     criticalHealthThreshold: 0.1 // 10% health
   },

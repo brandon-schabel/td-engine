@@ -2,6 +2,7 @@ import { BaseDialog } from './BaseDialog';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export interface PauseDialogOptions {
   audioManager?: AudioManager;
@@ -129,7 +130,7 @@ export class PauseDialog extends BaseDialog {
       font-size: clamp(16px, 4vw, 18px);
       font-weight: bold;
       cursor: pointer;
-      transition: all 150ms ease;
+      transition: all ${ANIMATION_CONFIG.durations.buttonHover}ms ease;
       display: flex;
       align-items: center;
       justify-content: center;

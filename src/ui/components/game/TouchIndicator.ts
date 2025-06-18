@@ -1,3 +1,7 @@
+import { COLOR_THEME } from '@/config/ColorTheme';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
+
 export class TouchIndicator {
   private container: HTMLElement;
   private indicators: Map<number, HTMLElement> = new Map();
@@ -12,14 +16,14 @@ export class TouchIndicator {
     style.textContent = `
       .touch-indicator {
         position: fixed;
-        width: 60px;
-        height: 60px;
+        width: ${UI_CONSTANTS.mobileControls.button.size}px;
+        height: ${UI_CONSTANTS.mobileControls.button.size}px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
-        border: 2px solid rgba(255, 255, 255, 0.6);
+        background: radial-gradient(circle, ${COLOR_THEME.ui.text.primary}4d, transparent);
+        border: 2px solid ${COLOR_THEME.ui.text.primary}99;
         pointer-events: none;
         transform: translate(-50%, -50%);
-        animation: touchPulse 0.5s ease-out;
+        animation: touchPulse ${ANIMATION_CONFIG.durations.powerUpCollect}ms ease-out;
         z-index: 10000;
       }
       
@@ -39,10 +43,10 @@ export class TouchIndicator {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.4);
+        background: ${COLOR_THEME.ui.text.primary}66;
         pointer-events: none;
         transform: translate(-50%, -50%);
-        animation: rippleEffect 0.6s ease-out forwards;
+        animation: rippleEffect ${ANIMATION_CONFIG.particles.explosionDuration * 0.6}ms ease-out forwards;
         z-index: 10000;
       }
       
@@ -76,7 +80,7 @@ export class TouchIndicator {
     // Auto-remove after animation
     setTimeout(() => {
       this.hideTouch(touchId);
-    }, 500);
+    }, ANIMATION_CONFIG.durations.powerUpCollect);
   }
   
   showRipple(x: number, y: number): void {
@@ -90,7 +94,7 @@ export class TouchIndicator {
     // Remove after animation
     setTimeout(() => {
       ripple.remove();
-    }, 600);
+    }, ANIMATION_CONFIG.particles.explosionDuration * 0.6);
   }
   
   updateTouch(touchId: number, x: number, y: number): void {

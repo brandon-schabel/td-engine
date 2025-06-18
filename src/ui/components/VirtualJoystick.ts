@@ -1,5 +1,8 @@
 import type { Point } from '@/types/geometry';
 import { SettingsManager } from '@/config/GameSettings';
+import { UI_CONSTANTS } from '@/config/UIConstants';
+import { COLOR_THEME } from '@/config/ColorTheme';
+import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export interface JoystickEvent {
   direction: Point | null;
@@ -13,10 +16,10 @@ export class VirtualJoystick {
   private isActive = false;
   private touchId: number | null = null;
   
-  // Configuration
-  private readonly baseSize = 120;
-  private readonly knobSize = 40;
-  private readonly maxDistance = 60;
+  // Configuration from UI_CONSTANTS
+  private readonly baseSize = UI_CONSTANTS.virtualJoystick.base.size;
+  private readonly knobSize = UI_CONSTANTS.virtualJoystick.knob.size;
+  private readonly maxDistance = UI_CONSTANTS.virtualJoystick.knob.maxDistance;
   private readonly deadZone = 0.2;
   
   private onMove: (event: JoystickEvent) => void;
@@ -42,8 +45,8 @@ export class VirtualJoystick {
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.2);
       border: 2px solid rgba(255, 255, 255, 0.4);
-      opacity: 0.6;
-      transition: opacity 0.2s;
+      opacity: ${UI_CONSTANTS.virtualJoystick.base.opacity};
+      transition: opacity ${ANIMATION_CONFIG.durations.uiTransition}ms;
       pointer-events: auto;
       touch-action: none;
       -webkit-user-select: none;
@@ -95,7 +98,7 @@ export class VirtualJoystick {
     this.touchId = touch.identifier;
     this.isActive = true;
     
-    this.base.style.opacity = '0.8';
+    this.base.style.opacity = String(UI_CONSTANTS.virtualJoystick.base.activeOpacity);
     
     const point = this.getTouchPoint(touch);
     this.updateKnobPosition(point);
@@ -134,7 +137,7 @@ export class VirtualJoystick {
   private handleMouseStart(event: MouseEvent): void {
     event.preventDefault();
     this.isActive = true;
-    this.base.style.opacity = '0.8';
+    this.base.style.opacity = String(UI_CONSTANTS.virtualJoystick.base.activeOpacity);
     
     const point = this.getMousePoint(event);
     this.updateKnobPosition(point);
@@ -210,15 +213,15 @@ export class VirtualJoystick {
   private reset(): void {
     this.isActive = false;
     this.touchId = null;
-    this.base.style.opacity = '0.6';
+    this.base.style.opacity = String(UI_CONSTANTS.virtualJoystick.base.opacity);
     
     // Animate knob back to center
-    this.knob.style.transition = 'transform 0.2s ease-out';
+    this.knob.style.transition = `transform ${ANIMATION_CONFIG.durations.uiTransition}ms ease-out`;
     this.knob.style.transform = 'translate(-50%, -50%)';
     
     setTimeout(() => {
       this.knob.style.transition = 'none';
-    }, 200);
+    }, ANIMATION_CONFIG.durations.uiTransition);
     
     // Send null direction
     this.onMove({
@@ -231,11 +234,10 @@ export class VirtualJoystick {
     const settings = this.settings.getSettings();
     const isLefty = settings.touchControlsLayout === 'lefty';
     
-    // Position in bottom corner
-    const margin = 40;
-    this.base.style.left = isLefty ? 'auto' : `${margin}px`;
-    this.base.style.right = isLefty ? `${margin}px` : 'auto';
-    this.base.style.bottom = `${margin}px`;
+    // Position in bottom corner using UI_CONSTANTS
+    this.base.style.left = isLefty ? 'auto' : `${UI_CONSTANTS.virtualJoystick.position.left}px`;
+    this.base.style.right = isLefty ? `${UI_CONSTANTS.virtualJoystick.position.left}px` : 'auto';
+    this.base.style.bottom = `${UI_CONSTANTS.virtualJoystick.position.bottom}px`;
   }
   
   private triggerHapticFeedback(intensity: 'light' | 'medium' | 'heavy'): void {

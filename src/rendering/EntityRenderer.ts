@@ -12,7 +12,9 @@ import { HealthPickup } from '@/entities/HealthPickup';
 import { PowerUp } from '@/entities/PowerUp';
 import { Entity } from '@/entities/Entity';
 import { UpgradeType } from '@/entities/Tower';
-import { COLOR_CONFIG, RENDER_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
+import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
+import { ENTITY_RENDER, TOWER_RENDER, ENEMY_RENDER, PLAYER_RENDER, ANIMATION_CONFIG } from '../config/RenderingConfig';
+import { COLOR_THEME } from '../config/ColorTheme';
 import type { Vector2 } from '@/utils/Vector2';
 
 export class EntityRenderer extends BaseRenderer {
@@ -58,15 +60,15 @@ export class EntityRenderer extends BaseRenderer {
     this.fillCircle(screenPos, tower.radius, color);
     
     // Tower outline - thicker for upgraded towers
-    const strokeColor = upgradeLevel > 1 ? '#222222' : '#333333';
-    const lineWidth = upgradeLevel > 1 ? RENDER_CONFIG.upgradeOutlineThickness.upgraded : RENDER_CONFIG.upgradeOutlineThickness.normal;
+    const strokeColor = upgradeLevel > 1 ? COLOR_THEME.ui.background.primary : COLOR_THEME.ui.border.default;
+    const lineWidth = upgradeLevel > 1 ? TOWER_RENDER.upgradedOutlineWidth : TOWER_RENDER.baseOutlineWidth;
     this.strokeCircle(screenPos, tower.radius, strokeColor, lineWidth);
   }
 
   private renderTowerUpgradeDots(tower: Tower, screenPos: Vector2): void {
     const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
-    const colors = COLOR_CONFIG.upgradeDots;
-    const dotRadius = RENDER_CONFIG.upgradeDotRadius;
+    const colors = ENTITY_RENDER.upgradeDots.colors;
+    const dotRadius = ENTITY_RENDER.upgradeDots.radius;
     
     upgradeTypes.forEach((upgradeType, index) => {
       const level = tower.getUpgradeLevel(upgradeType);
@@ -81,7 +83,7 @@ export class EntityRenderer extends BaseRenderer {
           const y = screenPos.y + Math.sin(angle) * dotDistance;
           
           this.fillCircle({ x, y }, dotRadius, colors[index] || colors[0]);
-          this.strokeCircle({ x, y }, dotRadius, '#000000', 1);
+          this.strokeCircle({ x, y }, dotRadius, COLOR_THEME.towers.upgradeDots.stroke, ENTITY_RENDER.lineWidths.thin);
         }
       }
     });
@@ -110,16 +112,16 @@ export class EntityRenderer extends BaseRenderer {
     let color: string;
     switch (enemy.enemyType) {
       case 'BASIC':
-        color = '#F44336';
+        color = COLOR_THEME.enemies.outline;
         break;
       case 'FAST':
-        color = '#FF5722';
+        color = COLOR_THEME.effects.explosion;
         break;
       case 'TANK':
-        color = '#9C27B0';
+        color = COLOR_THEME.ui.button.primary;
         break;
       default:
-        color = '#F44336';
+        color = COLOR_THEME.enemies.outline;
     }
     
     this.fillCircle(screenPos, enemy.radius, color);
@@ -131,14 +133,14 @@ export class EntityRenderer extends BaseRenderer {
     let lineWidth: number;
 
     if (targetType === 'tower') {
-      strokeColor = '#FFD700'; // Gold outline for tower attackers
-      lineWidth = 2;
+      strokeColor = COLOR_THEME.ui.currency; // Gold outline for tower attackers
+      lineWidth = ENTITY_RENDER.lineWidths.normal;
     } else if (targetType === 'player') {
-      strokeColor = '#FF4444'; // Red outline for player attackers  
-      lineWidth = 2;
+      strokeColor = COLOR_THEME.ui.text.danger; // Red outline for player attackers  
+      lineWidth = ENTITY_RENDER.lineWidths.normal;
     } else {
-      strokeColor = '#000000';
-      lineWidth = 1;
+      strokeColor = COLOR_THEME.ui.background.primary;
+      lineWidth = ENTITY_RENDER.lineWidths.thin;
     }
 
     this.ctx.strokeStyle = strokeColor;
@@ -154,8 +156,8 @@ export class EntityRenderer extends BaseRenderer {
     const target = enemy.getTarget();
     if (target && this.isVisible(target.position, 10)) {
       const targetScreenPos = this.getScreenPosition(target);
-      const lineColor = targetType === 'tower' ? 'rgba(255, 215, 0, 0.5)' : 'rgba(255, 68, 68, 0.5)';
-      this.renderDashedLine(screenPos, targetScreenPos, lineColor, 1, [3, 3]);
+      const lineColor = targetType === 'tower' ? this.hexToRgba(COLOR_THEME.ui.currency, 0.5) : this.hexToRgba(COLOR_THEME.ui.text.danger, 0.5);
+      this.renderDashedLine(screenPos, targetScreenPos, lineColor, ENTITY_RENDER.lineWidths.thin, ENTITY_RENDER.dashPatterns.dotted);
     }
   }
 
@@ -170,8 +172,8 @@ export class EntityRenderer extends BaseRenderer {
     if (texture && texture.loaded) {
       this.renderTextureAt(texture, screenPos, projectile.radius * 2, projectile.radius * 2);
     } else {
-      this.fillCircle(screenPos, projectile.radius, '#FFEB3B');
-      this.strokeCircle(screenPos, projectile.radius, '#FFC107', 1);
+      this.fillCircle(screenPos, projectile.radius, COLOR_THEME.ui.currency);
+      this.strokeCircle(screenPos, projectile.radius, COLOR_THEME.ui.warning, ENTITY_RENDER.lineWidths.thin);
     }
   }
 
@@ -199,7 +201,7 @@ export class EntityRenderer extends BaseRenderer {
     const color = `hsl(${hue}, 70%, 60%)`;
     
     this.fillCircle(screenPos, player.radius, color);
-    this.strokeCircle(screenPos, player.radius, '#FFFFFF', 2);
+    this.strokeCircle(screenPos, player.radius, COLOR_THEME.ui.text.primary, ENTITY_RENDER.lineWidths.normal);
   }
 
   private renderPlayerIndicators(player: Player, screenPos: Vector2): void {
@@ -209,7 +211,7 @@ export class EntityRenderer extends BaseRenderer {
       const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
       
       if (speed > 0) {
-        this.strokeCircle(screenPos, player.radius + 3, 'rgba(255, 255, 255, 0.3)', 1);
+        this.strokeCircle(screenPos, player.radius + 3, this.hexToRgba(COLOR_THEME.ui.text.primary, 0.3), ENTITY_RENDER.lineWidths.thin);
       }
     }
     
@@ -220,7 +222,7 @@ export class EntityRenderer extends BaseRenderer {
         level.toString(),
         screenPos.x,
         screenPos.y + 4,
-        '#FFFFFF',
+        COLOR_THEME.ui.text.primary,
         'bold 10px Arial',
         'center'
       );
@@ -255,15 +257,15 @@ export class EntityRenderer extends BaseRenderer {
     
     // Glow effect
     this.renderWithGlow(() => {
-      this.strokeCircle({ x: 0, y: 0 }, pickup.radius, 'rgba(0, 255, 0, 0.3)', 1);
-    }, '#00FF00', 10);
+      this.strokeCircle({ x: 0, y: 0 }, pickup.radius, this.hexToRgba(COLOR_THEME.player.fill, 0.3), ENTITY_RENDER.lineWidths.thin);
+    }, COLOR_THEME.player.fill, 10);
     
     this.restoreContext();
   }
 
   private renderHealthPickupPrimitive(): void {
-    this.ctx.strokeStyle = '#00FF00';
-    this.ctx.lineWidth = 3;
+    this.ctx.strokeStyle = COLOR_THEME.player.fill;
+    this.ctx.lineWidth = ENTITY_RENDER.lineWidths.thick;
     this.ctx.lineCap = 'round';
     
     // Vertical line
@@ -310,7 +312,7 @@ export class EntityRenderer extends BaseRenderer {
     
     // Glow effect
     this.renderWithGlow(() => {
-      this.strokeCircle({ x: 0, y: 0 }, powerUp.radius, this.hexToRgba(config.color, 0.3), 2);
+      this.strokeCircle({ x: 0, y: 0 }, powerUp.radius, this.hexToRgba(config.color, 0.3), ENTITY_RENDER.lineWidths.normal);
     }, config.color, 15);
     
     this.restoreContext();
@@ -320,8 +322,8 @@ export class EntityRenderer extends BaseRenderer {
     const config = powerUp.getConfig();
     
     this.ctx.fillStyle = config.color;
-    this.ctx.strokeStyle = '#FFFFFF';
-    this.ctx.lineWidth = 2;
+    this.ctx.strokeStyle = COLOR_THEME.ui.text.primary;
+    this.ctx.lineWidth = ENTITY_RENDER.lineWidths.normal;
     
     switch (powerUp.powerUpType) {
       case 'EXTRA_DAMAGE':
@@ -365,8 +367,8 @@ export class EntityRenderer extends BaseRenderer {
 
   private renderCoinIcon(): void {
     this.fillCircle({ x: 0, y: 0 }, 8, this.ctx.fillStyle as string);
-    this.strokeCircle({ x: 0, y: 0 }, 8, this.ctx.strokeStyle as string, 2);
-    this.ctx.fillStyle = '#FFFFFF';
+    this.strokeCircle({ x: 0, y: 0 }, 8, this.ctx.strokeStyle as string, ENTITY_RENDER.lineWidths.normal);
+    this.ctx.fillStyle = COLOR_THEME.ui.text.primary;
     this.ctx.font = 'bold 10px Arial';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('$', 0, 3);
@@ -398,13 +400,13 @@ export class EntityRenderer extends BaseRenderer {
     if (!this.isVisible(entity.position, entity.radius + 10)) return;
 
     const screenPos = this.getScreenPosition(entity);
-    const barWidth = RENDER_CONFIG.healthBarWidth;
-    const barHeight = RENDER_CONFIG.healthBarHeight;
+    const barWidth = ENTITY_RENDER.healthBar.width;
+    const barHeight = ENTITY_RENDER.healthBar.height;
     const x = screenPos.x - barWidth / 2;
     const y = screenPos.y - entity.radius - 10;
     
     // Background
-    this.ctx.fillStyle = '#222222';
+    this.ctx.fillStyle = ENTITY_RENDER.healthBar.backgroundColor;
     this.ctx.fillRect(x, y, barWidth, barHeight);
     
     // Health bar
@@ -424,8 +426,8 @@ export class EntityRenderer extends BaseRenderer {
     this.ctx.fillRect(x, y, healthWidth, barHeight);
     
     // Health bar outline
-    this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = ENTITY_RENDER.healthBar.borderColor;
+    this.ctx.lineWidth = ENTITY_RENDER.healthBar.borderWidth;
     this.ctx.strokeRect(x, y, barWidth, barHeight);
   }
 
@@ -433,10 +435,10 @@ export class EntityRenderer extends BaseRenderer {
     const screenStart = this.getScreenPosition(aimerLine.start);
     const screenEnd = this.getScreenPosition(aimerLine.end);
     
-    this.renderDashedLine(screenStart, screenEnd, 'rgba(255, 255, 255, 0.7)', 2, RENDER_CONFIG.dashPattern);
+    this.renderDashedLine(screenStart, screenEnd, TOWER_RENDER.targetLine.color, TOWER_RENDER.targetLine.width, TOWER_RENDER.targetLine.dashPattern);
     
     // Aim point
-    this.fillCircle(screenEnd, 3, 'rgba(255, 255, 255, 0.8)');
+    this.fillCircle(screenEnd, PLAYER_RENDER.aimer.dotSize / 2, this.hexToRgba(COLOR_THEME.ui.text.primary, 0.8));
   }
 
   // Batch rendering methods for performance
