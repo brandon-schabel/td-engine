@@ -95,49 +95,10 @@
       -webkit-backdrop-filter: blur(10px);
     }
     
-    /* Mobile landscape split layout - ONLY for Safari Mobile (iPhone with home indicator) */
-    @supports (-webkit-touch-callout: none) {
-      @media (orientation: landscape) and (max-width: 1024px) {
-        #bottom-ui-container {
-          justify-content: space-between; /* Override to split layout only on Safari */
-          gap: 0; /* Remove default gap */
-          padding-left: max(var(--safe-area-left, 10px), 15px);
-          padding-right: max(var(--safe-area-right, 10px), 15px);
-        }
-        
-        /* Create distinct button groups with max width to avoid center collision */
-        #bottom-ui-container .button-group-left,
-        #bottom-ui-container > *:first-child {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          max-width: 35%;
-          justify-content: flex-start;
-        }
-        
-        #bottom-ui-container .button-group-right,
-        #bottom-ui-container > *:last-child {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          max-width: 35%;
-          justify-content: flex-end;
-        }
-        
-        /* Ensure center area stays clear (30% for iPhone home indicator) */
-        #bottom-ui-container::before {
-          content: '';
-          flex: 0 0 30%;
-          min-width: 80px; /* Minimum safe zone */
-        }
-      }
-    }
-    
-    /* Non-Safari landscape mode - keep buttons centered */
+    /* Mobile landscape - centered buttons for all devices */
     @media (orientation: landscape) and (max-width: 1024px) {
-      /* This will be overridden by Safari-specific rules above when applicable */
       #bottom-ui-container {
-        justify-content: center; /* Keep centered for non-Safari browsers */
+        justify-content: center; /* Center buttons for all landscape devices */
         gap: 8px; /* Normal gap between buttons */
         padding-left: 10px;
         padding-right: 10px;
@@ -350,34 +311,30 @@
         --ui-bottom-height: 42px; /* Slightly increased for better fit */
       }
       
-      /* Default landscape behavior - centered buttons */
+      /* All devices get centered layout in landscape */
       #bottom-ui-container {
         height: calc(var(--ui-bottom-height) + var(--safe-area-bottom));
         padding: 6px 8px;
         font-size: 10px;
-        justify-content: center; /* Default: centered for non-Safari */
+        justify-content: center; /* Centered for all devices */
         gap: 8px; /* Normal gap between buttons */
         align-items: center;
       }
       
-      /* Safari-specific landscape adjustments */
+      /* Safari-specific height and safe area adjustments only */
       @supports (-webkit-touch-callout: none) {
         :root {
-          --ui-bottom-height: 40px; /* Increased but not as tall as before */
+          --ui-bottom-height: 40px;
         }
         
         #bottom-ui-container {
           height: calc(40px + env(safe-area-inset-bottom, 0px)) !important;
           min-height: calc(40px + env(safe-area-inset-bottom, 0px)) !important;
           max-height: calc(40px + env(safe-area-inset-bottom, 0px)) !important;
-          /* Keep safe area padding for iPhone home indicator */
           padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-          /* Split layout for Safari only */
-          padding: 6px max(var(--safe-area-left, 8px), 15px) 6px max(var(--safe-area-right, 8px), 15px);
-          justify-content: space-between !important;
-          gap: 0 !important; /* Remove center gap for split layout */
-          display: flex;
-          flex-direction: row;
+          /* Keep centered layout but with safe area padding */
+          padding-left: max(env(safe-area-inset-left, 8px), 8px) !important;
+          padding-right: max(env(safe-area-inset-right, 8px), 8px) !important;
         }
       }
       
@@ -468,22 +425,22 @@
     /* Very small mobile devices in landscape - ultra compact */
     @media (orientation: landscape) and (max-height: 450px) {
       :root {
-        --ui-bottom-height: 37px; /* Slightly increased from 35px */
+        --ui-bottom-height: 37px;
       }
       
-      /* Default for non-Safari small screens */
+      /* Centered layout for all small screen devices */
       #bottom-ui-container {
         height: calc(var(--ui-bottom-height) + var(--safe-area-bottom));
         padding: 4px 6px;
         font-size: 8px;
-        justify-content: center; /* Centered for non-Safari */
+        justify-content: center; /* Centered for all devices */
         gap: 6px;
       }
       
-      /* Safari-specific fixes for very small screens */
+      /* Safari-specific height adjustments only */
       @supports (-webkit-touch-callout: none) {
         :root {
-          --ui-bottom-height: 35px; /* Increased from 33px but not too tall */
+          --ui-bottom-height: 35px;
         }
         
         #bottom-ui-container {
@@ -491,20 +448,8 @@
           min-height: calc(35px + env(safe-area-inset-bottom, 0px)) !important;
           max-height: calc(35px + env(safe-area-inset-bottom, 0px)) !important;
           padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-          padding: 4px max(var(--safe-area-left, 6px), 12px) 4px max(var(--safe-area-right, 6px), 12px);
-          justify-content: space-between !important; /* Split only on Safari */
-          gap: 0 !important; /* Remove center gap for split layout */
-        }
-        
-        /* Tighter button groups for small screens - Safari only */
-        #bottom-ui-container .button-group-left,
-        #bottom-ui-container .button-group-right {
-          gap: 4px;
-          max-width: 38%; /* Slightly more room on very small screens */
-        }
-        
-        #bottom-ui-container .center-spacer {
-          min-width: 60px; /* Smaller but still safe */
+          padding-left: max(env(safe-area-inset-left, 6px), 6px) !important;
+          padding-right: max(env(safe-area-inset-right, 6px), 6px) !important;
         }
       }
       
@@ -599,22 +544,13 @@
           min-height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
           max-height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
           padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-          /* Ensure split layout with safe spacing - ONLY in landscape */
-          justify-content: space-between !important;
-          gap: 0 !important; /* Remove center gap for split layout */
-          /* Account for iPhone notch/safe areas with extra padding */
-          padding-left: max(env(safe-area-inset-left, 10px), 20px) !important;
-          padding-right: max(env(safe-area-inset-right, 10px), 20px) !important;
+          /* Keep centered layout */
+          justify-content: center !important;
+          gap: 8px !important;
+          /* Account for iPhone notch/safe areas */
+          padding-left: max(env(safe-area-inset-left, 10px), 10px) !important;
+          padding-right: max(env(safe-area-inset-right, 10px), 10px) !important;
           box-sizing: border-box !important;
-          display: flex !important;
-          flex-direction: row !important;
-        }
-        
-        /* Ensure button groups don't expand too much - ONLY in landscape */
-        #bottom-ui-container .button-group-left,
-        #bottom-ui-container .button-group-right {
-          flex: 0 0 auto !important;
-          max-width: 35% !important;
         }
         
         /* Force proper button sizes on Safari */
