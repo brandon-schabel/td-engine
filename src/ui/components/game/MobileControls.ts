@@ -90,8 +90,8 @@ export class MobileControls {
       height: ${this.controlsHeight + this.safeAreaBottom}px;
       padding-bottom: ${this.safeAreaBottom}px;
       pointer-events: none;
-      z-index: 1000;
-      display: none;
+      z-index: 9999;
+      display: block !important;
     `;
 
     // Movement joystick (left side)
@@ -106,10 +106,14 @@ export class MobileControls {
       width: ${this.joystickRadius * 2}px;
       height: ${this.joystickRadius * 2}px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.2);
+      border: 3px solid rgba(255, 255, 255, 0.5);
       pointer-events: auto;
       touch-action: none;
+      display: block;
+      visibility: visible;
+      opacity: 0.8;
+      z-index: 10000;
     `;
 
     const joystickKnob = document.createElement('div');
@@ -152,10 +156,14 @@ export class MobileControls {
       width: ${this.joystickRadius * 2}px;
       height: ${this.joystickRadius * 2}px;
       border-radius: 50%;
-      background: rgba(255, 0, 0, 0.1);
-      border: 2px solid rgba(255, 0, 0, 0.3);
+      background: rgba(255, 0, 0, 0.2);
+      border: 3px solid rgba(255, 0, 0, 0.5);
       pointer-events: auto;
       touch-action: none;
+      display: block;
+      visibility: visible;
+      opacity: 0.8;
+      z-index: 10000;
     `;
 
     const aimJoystickKnob = document.createElement('div');
@@ -192,6 +200,13 @@ export class MobileControls {
     controls.appendChild(moveJoystick);
     controls.appendChild(aimJoystick);
     this.container.appendChild(controls);
+    
+    // Debug: log creation
+    console.log('[MobileControls] Created and appended to container');
+    console.log('[MobileControls] Container:', this.container);
+    console.log('[MobileControls] Controls element:', controls);
+    console.log('[MobileControls] Move joystick:', moveJoystick);
+    console.log('[MobileControls] Aim joystick:', aimJoystick);
 
     // Add styles for active states and safe areas
     const style = document.createElement('style');
@@ -219,6 +234,7 @@ export class MobileControls {
         margin-bottom: 60px;
       }
       
+      /* Always show on touch devices */
       @media (max-width: 768px) {
         .mobile-controls {
           display: block !important;
@@ -226,6 +242,13 @@ export class MobileControls {
       }
       
       @media (hover: none) and (pointer: coarse) {
+        .mobile-controls {
+          display: block !important;
+        }
+      }
+      
+      /* Force display on any touch-capable device */
+      @supports (-webkit-touch-callout: none) {
         .mobile-controls {
           display: block !important;
         }

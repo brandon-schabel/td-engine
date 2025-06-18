@@ -12,7 +12,8 @@ import {
   UpgradeDialogAdapter,
   InventoryDialogAdapter,
   SettingsDialog,
-  PauseDialog
+  PauseDialog,
+  TowerInfoDialogAdapter
 } from './components/dialogs';
 import { DebugDialogWrapper } from './DebugDialogWrapper';
 import { DialogShowFix } from './DialogShowFix';
@@ -33,7 +34,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   
   // Dialog instances
   let buildMenuDialog: BuildMenuDialogAdapter;
-  let towerUpgradeDialog: UpgradeDialogAdapter | null = null;
+  let towerInfoDialog: TowerInfoDialogAdapter | null = null;
   let inventoryDialog: InventoryDialogAdapter;
   let settingsDialog: SettingsDialog;
   let pauseDialog: PauseDialog;
@@ -325,35 +326,27 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     updateTowerPlacementIndicator();
   });
 
-  // Show tower upgrade dialog when a tower is selected
-  const showTowerUpgradeDialog = (tower: Tower) => {
-    // Close existing tower upgrade dialog if any
-    if (towerUpgradeDialog) {
-      dialogManager.unregister('towerUpgrade');
-      towerUpgradeDialog = null;
+  // Show tower info dialog when a tower is selected
+  const showTowerInfoDialog = (tower: Tower) => {
+    // Close existing tower info dialog if any
+    if (towerInfoDialog) {
+      dialogManager.unregister('towerInfo');
+      towerInfoDialog = null;
     }
 
-    // Create new upgrade dialog for the selected tower
-    towerUpgradeDialog = new UpgradeDialogAdapter({
+    // Create new tower info dialog for the selected tower
+    towerInfoDialog = new TowerInfoDialogAdapter({
       game,
-      target: tower,
+      tower,
       audioManager,
-      onUpgraded: (type, cost) => {
-        // Additional upgrade logic if needed
-      },
-      onSold: () => {
-        dialogManager.hide('towerUpgrade');
-        dialogManager.unregister('towerUpgrade');
-        towerUpgradeDialog = null;
-      },
       onClosed: () => {
-        dialogManager.unregister('towerUpgrade');
-        towerUpgradeDialog = null;
+        dialogManager.unregister('towerInfo');
+        towerInfoDialog = null;
       }
     });
 
-    dialogManager.register('towerUpgrade', towerUpgradeDialog);
-    dialogManager.show('towerUpgrade');
+    dialogManager.register('towerInfo', towerInfoDialog);
+    dialogManager.show('towerInfo');
   };
 
   // Show player upgrade dialog
@@ -366,18 +359,18 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const handleTowerSelected = (event: CustomEvent) => {
     const tower = event.detail.tower;
     console.log('[SimpleGameUI] Tower selected:', tower.towerType, 'at', tower.position);
-    showTowerUpgradeDialog(tower);
+    showTowerInfoDialog(tower);
   };
 
   const handleTowerDeselected = (event: CustomEvent) => {
     const tower = event.detail.tower;
     console.log('[SimpleGameUI] Tower deselected:', tower.towerType);
     
-    // Close tower upgrade dialog if it's for this tower
-    if (towerUpgradeDialog && game.isTowerSelected(tower) === false) {
-      dialogManager.hide('towerUpgrade');
-      dialogManager.unregister('towerUpgrade');
-      towerUpgradeDialog = null;
+    // Close tower info dialog if it's for this tower
+    if (towerInfoDialog && game.isTowerSelected(tower) === false) {
+      dialogManager.hide('towerInfo');
+      dialogManager.unregister('towerInfo');
+      towerInfoDialog = null;
     }
   };
 
@@ -657,7 +650,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   healthDisplay.id = 'health-display';
   healthDisplay.style.cssText = `
     position: absolute;
-    top: 50px;
+    top: 55px;
     left: 10px;
     background: rgba(0, 0, 0, 0.8);
     border: 2px solid #FF4444;
@@ -698,8 +691,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   gameContainer.appendChild(healthDisplay);
 
   // Create power-up display
-  const powerUpDisplay = new PowerUpDisplay(game, audioManager);
-  gameContainer.appendChild(powerUpDisplay.getElement());
+  const powerUpDisplay = new PowerUpDisplay({ game });
+  powerUpDisplay.mount(gameContainer);
 
   // Camera controls are now created right after wave display
 
@@ -710,11 +703,48 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Update button states periodically AFTER dialogs are initialized
   setInterval(updateButtonStates, 100);
 
-  // Mobile controls
-  const isMobile = 'ontouchstart' in window;
-  if (isMobile) {
-    const mobileControls = new MobileControls(game, audioManager);
-    gameContainer.appendChild(mobileControls.getElement());
+  // Mobile controls - use multiple detection methods
+  const isMobile = 'ontouchstart' in window || 
+                   navigator.maxTouchPoints > 0 || 
+                   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  console.log('[SimpleGameUI] Mobile detection:', {
+    isMobile,
+    ontouchstart: 'ontouchstart' in window,
+    maxTouchPoints: navigator.maxTouchPoints,
+    userAgent: navigator.userAgent
+  });
+  
+  if (isMobile || window.location.hostname === 'localhost') { // Also enable on localhost for testing
+    console.log('[SimpleGameUI] Creating mobile controls...');
+    // Use document.body instead of gameContainer to ensure controls are on top
+    const mobileControls = new MobileControls({
+      game,
+      container: document.body,
+      onShootStart: () => {
+        // Shooting is handled by the player entity
+      },
+      onShootEnd: () => {
+        // Shooting is handled by the player entity
+      },
+      enableHaptic: true
+    });
+    // MobileControls appends itself to the container, so we don't need to do anything else
+    // Also call show() to ensure it's visible
+    mobileControls.show();
+    console.log('[SimpleGameUI] Mobile controls created and shown');
+    
+    // Force visibility after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      const controlsEl = document.querySelector('.mobile-controls');
+      if (controlsEl) {
+        (controlsEl as HTMLElement).style.display = 'block';
+        (controlsEl as HTMLElement).style.visibility = 'visible';
+        console.log('[SimpleGameUI] Forced mobile controls visibility');
+      } else {
+        console.log('[SimpleGameUI] Mobile controls element not found in DOM!');
+      }
+    }, 100);
   }
 
   // Game event listeners
@@ -766,6 +796,39 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     // Re-initialize dialogs
     initializeDialogs();
     console.log('[Debug] Dialogs re-initialized');
+  };
+  
+  // Add debug command to toggle mobile controls
+  (window as any).toggleMobileControls = () => {
+    const controlsEl = document.querySelector('.mobile-controls') as HTMLElement;
+    if (controlsEl) {
+      const currentDisplay = window.getComputedStyle(controlsEl).display;
+      controlsEl.style.display = currentDisplay === 'none' ? 'block' : 'none';
+      console.log('[Debug] Mobile controls display:', controlsEl.style.display);
+      
+      // Log all joystick elements
+      const moveJoystick = controlsEl.querySelector('.move-joystick');
+      const aimJoystick = controlsEl.querySelector('.aim-joystick');
+      console.log('[Debug] Move joystick:', moveJoystick);
+      console.log('[Debug] Aim joystick:', aimJoystick);
+      console.log('[Debug] Controls rect:', controlsEl.getBoundingClientRect());
+      
+      // Log computed styles
+      if (moveJoystick) {
+        const moveStyles = window.getComputedStyle(moveJoystick as HTMLElement);
+        console.log('[Debug] Move joystick computed styles:', {
+          display: moveStyles.display,
+          visibility: moveStyles.visibility,
+          width: moveStyles.width,
+          height: moveStyles.height,
+          position: moveStyles.position,
+          bottom: moveStyles.bottom,
+          left: moveStyles.left
+        });
+      }
+    } else {
+      console.log('[Debug] Mobile controls element not found!');
+    }
   };
 
   // Cleanup function

@@ -622,10 +622,9 @@ export class Game {
       this.renderer.renderTowerRange(this.hoverTower);
     }
 
-    // Render selected tower upgrade panel
+    // Render selected tower range only (upgrade panel is handled by dialog system)
     if (this.selectedTower) {
       this.renderer.renderTowerRange(this.selectedTower);
-      this.renderer.renderTowerUpgradePanel(this.selectedTower, 10, 150);
     }
 
     // Render tower ghost preview when placing towers
@@ -1331,6 +1330,19 @@ export class Game {
       detail: { tower } 
     });
     document.dispatchEvent(selectEvent);
+  }
+
+  deselectTower(): void {
+    if (this.selectedTower) {
+      const tower = this.selectedTower;
+      this.selectedTower = null;
+      
+      // Dispatch deselect event
+      const deselectEvent = new CustomEvent('towerDeselected', { 
+        detail: { tower } 
+      });
+      document.dispatchEvent(deselectEvent);
+    }
   }
 
   getUpgradeCost(tower: Tower, upgradeType: UpgradeType): number {

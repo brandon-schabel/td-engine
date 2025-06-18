@@ -1698,10 +1698,10 @@ export class Renderer {
     const fontSize = 18;
     const lineHeight = 25;
     
-    this.renderText(`Currency: $${currency}`, padding, padding + fontSize, COLOR_CONFIG.ui.currency, `${fontSize}px Arial`);
-    this.renderText(`Lives: ${lives}`, padding, padding + fontSize + lineHeight, COLOR_CONFIG.ui.lives, `${fontSize}px Arial`);
-    this.renderText(`Score: ${score}`, padding, padding + fontSize + lineHeight * 2, COLOR_CONFIG.ui.score, `${fontSize}px Arial`);
-    this.renderText(`Wave: ${wave}`, padding, padding + fontSize + lineHeight * 3, COLOR_CONFIG.ui.wave, `${fontSize}px Arial`);
+    // this.renderText(`Currency: $${currency}`, padding, padding + fontSize, COLOR_CONFIG.ui.currency, `${fontSize}px Arial`);
+    // this.renderText(`Lives: ${lives}`, padding, padding + fontSize + lineHeight, COLOR_CONFIG.ui.lives, `${fontSize}px Arial`);
+    // this.renderText(`Score: ${score}`, padding, padding + fontSize + lineHeight * 2, COLOR_CONFIG.ui.score, `${fontSize}px Arial`);
+    // this.renderText(`Wave: ${wave}`, padding, padding + fontSize + lineHeight * 3, COLOR_CONFIG.ui.wave, `${fontSize}px Arial`);
   }
 
   renderGameOver(): void {
@@ -1777,80 +1777,10 @@ export class Renderer {
     );
   }
 
-  renderTowerUpgradePanel(tower: Tower, x: number, y: number): void {
-    const panelWidth = 250;
-    const panelHeight = 180;
-    
-    // Panel background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(x, y, panelWidth, panelHeight);
-    }
-    
-    // Panel border
-    this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = 2;
-    if (typeof this.ctx.strokeRect === 'function') {
-      this.ctx.strokeRect(x, y, panelWidth, panelHeight);
-    }
-    
-    // Tower info
-    const padding = 10;
-    let currentY = y + padding + 20;
-    
-    this.renderText(
-      `${tower.towerType} Tower (Level ${tower.getLevel()})`,
-      x + padding,
-      currentY,
-      '#FFFFFF',
-      'bold 16px Arial'
-    );
-    
-    currentY += 25;
-    
-    // Stats
-    this.renderText(
-      `Damage: ${tower.damage} | Range: ${tower.range} | Fire Rate: ${tower.fireRate.toFixed(1)}`,
-      x + padding,
-      currentY,
-      '#CCCCCC',
-      '12px Arial'
-    );
-    
-    currentY += 25;
-    
-    // Upgrade options
-    const upgradeTypes = ['DAMAGE', 'RANGE', 'FIRE_RATE'];
-    const upgradeNames = ['Damage', 'Range', 'Fire Rate'];
-    
-    upgradeTypes.forEach((upgradeType, index) => {
-      const level = tower.getUpgradeLevel(upgradeType as any);
-      const cost = tower.getUpgradeCost(upgradeType as any);
-      const canUpgrade = tower.canUpgrade(upgradeType as any);
-      
-      const color = canUpgrade ? COLOR_CONFIG.health.high : '#666666';
-      const text = `${upgradeNames[index]}: Lv.${level}/${UPGRADE_CONFIG.maxLevel} (${cost > 0 ? `$${cost}` : 'MAX'})`;
-      
-      this.renderText(
-        text,
-        x + padding,
-        currentY,
-        color,
-        '14px Arial'
-      );
-      
-      currentY += 20;
-    });
-    
-    // Instructions
-    this.renderText(
-      'Click tower upgrades in UI panel',
-      x + padding,
-      y + panelHeight - 15,
-      '#888888',
-      '12px Arial'
-    );
-  }
+  // DEPRECATED: Tower upgrade panel is now handled by the dialog system
+  // renderTowerUpgradePanel(tower: Tower, x: number, y: number): void {
+  //   // Old implementation removed - see TowerInfoDialog for new UI
+  // }
 
   // Getter methods for viewport dimensions
   getViewportWidth(): number {

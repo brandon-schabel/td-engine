@@ -61,85 +61,25 @@ export class UIRenderer extends BaseRenderer {
     }
   }
 
-  renderTowerUpgradePanel(tower: Tower, x: number, y: number, upgradeManager: any): void {
-    const panelWidth = 250;
-    const panelHeight = 180;
-    
-    // Panel background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-    this.ctx.fillRect(x, y, panelWidth, panelHeight);
-    
-    // Panel border
-    this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = 2;
-    this.ctx.strokeRect(x, y, panelWidth, panelHeight);
-    
-    this.renderTowerInfo(tower, x, y);
-    this.renderUpgradeOptions(tower, x, y, upgradeManager);
-    this.renderPanelInstructions(x, y, panelHeight);
-  }
+  // DEPRECATED: Tower upgrade panel is now handled by the dialog system
+  // renderTowerUpgradePanel(tower: Tower, x: number, y: number, upgradeManager: any): void {
+  //   // Old implementation removed - see TowerInfoDialog for new UI
+  // }
 
-  private renderTowerInfo(tower: Tower, x: number, y: number): void {
-    const padding = 10;
-    let currentY = y + padding + 20;
-    
-    this.renderText(
-      `${tower.towerType} Tower (Level ${tower.getLevel()})`,
-      x + padding,
-      currentY,
-      '#FFFFFF',
-      'bold 16px Arial'
-    );
-    
-    currentY += 25;
-    
-    // Stats
-    this.renderText(
-      `Damage: ${tower.damage} | Range: ${tower.range} | Fire Rate: ${tower.fireRate.toFixed(1)}`,
-      x + padding,
-      currentY,
-      '#CCCCCC',
-      '12px Arial'
-    );
-  }
+  // DEPRECATED: Part of old tower upgrade panel system
+  // private renderTowerInfo(tower: Tower, x: number, y: number): void {
+  //   // Old implementation removed - see TowerInfoDialog for new UI
+  // }
 
-  private renderUpgradeOptions(tower: Tower, x: number, y: number, upgradeManager: any): void {
-    const padding = 10;
-    let currentY = y + padding + 70;
-    
-    const upgradeTypes = ['DAMAGE', 'RANGE', 'FIRE_RATE'];
-    const upgradeNames = ['Damage', 'Range', 'Fire Rate'];
-    
-    upgradeTypes.forEach((upgradeType, index) => {
-      const level = tower.getUpgradeLevel(upgradeType as any);
-      const cost = upgradeManager?.getUpgradeCost(tower, upgradeType) || 0;
-      const canUpgrade = tower.canUpgrade(upgradeType as any);
-      
-      const color = canUpgrade ? COLOR_CONFIG.health.high : '#666666';
-      const text = `${upgradeNames[index]}: Lv.${level}/${UPGRADE_CONFIG.maxLevel} (${cost > 0 ? `$${cost}` : 'MAX'})`;
-      
-      this.renderText(
-        text,
-        x + padding,
-        currentY,
-        color,
-        '14px Arial'
-      );
-      
-      currentY += 20;
-    });
-  }
+  // DEPRECATED: Part of old tower upgrade panel system
+  // private renderUpgradeOptions(tower: Tower, x: number, y: number, upgradeManager: any): void {
+  //   // Old implementation removed - see TowerInfoDialog for new UI
+  // }
 
-  private renderPanelInstructions(x: number, y: number, panelHeight: number): void {
-    const padding = 10;
-    this.renderText(
-      'Click tower upgrades in UI panel',
-      x + padding,
-      y + panelHeight - 15,
-      '#888888',
-      '12px Arial'
-    );
-  }
+  // DEPRECATED: Part of old tower upgrade panel system
+  // private renderPanelInstructions(x: number, y: number, panelHeight: number): void {
+  //   // Old implementation removed - see TowerInfoDialog for new UI
+  // }
 
   renderNotification(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info', duration?: number): void {
     const colors = {

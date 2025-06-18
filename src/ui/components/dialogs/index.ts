@@ -7,11 +7,13 @@ export { LeaderboardDialog } from './LeaderboardDialog';
 export { BuildMenuDialog } from './BuildMenuDialog';
 export { UpgradeDialog } from './UpgradeDialog';
 export { PauseDialog } from './PauseDialog';
+export { TowerInfoDialog } from './TowerInfoDialog';
 
 // Export adapters
 export { BuildMenuDialogAdapter } from './BuildMenuDialogAdapter';
 export { UpgradeDialogAdapter } from './UpgradeDialogAdapter';
 export { InventoryDialogAdapter } from './InventoryDialogAdapter';
+export { TowerInfoDialogAdapter } from './TowerInfoDialogAdapter';
 
 // Re-export types
 export type { BaseDialogOptions } from './BaseDialog';
@@ -28,3 +30,5 @@ export type { PauseDialogOptions } from './PauseDialog';
 export type { BuildMenuDialogAdapterOptions } from './BuildMenuDialogAdapter';
 export type { UpgradeDialogAdapterOptions } from './UpgradeDialogAdapter';
 export type { InventoryDialogAdapterOptions } from './InventoryDialogAdapter';
+export type { TowerInfoDialogOptions } from './TowerInfoDialog';
+export type { TowerInfoDialogAdapterOptions } from './TowerInfoDialogAdapter';
