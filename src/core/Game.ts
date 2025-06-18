@@ -789,35 +789,15 @@ export class Game {
 
     if (clickedTower) {
       console.log('[DEBUG] Clicked on tower:', clickedTower.towerType, 'at', clickedTower.position);
-      // Select/deselect tower
-      const wasSelected = this.selectedTower === clickedTower;
-      const previousTower = this.selectedTower;
-      this.selectedTower = wasSelected ? null : clickedTower;
-      this.selectedTowerType = null; // Clear tower placement mode
-      console.log('[DEBUG] Tower selection changed:', wasSelected ? 'deselected' : 'selected');
-      
-      // Dispatch tower selection events
-      if (previousTower && previousTower !== clickedTower) {
-        // Deselect previous tower
-        const deselectEvent = new CustomEvent('towerDeselected', { 
-          detail: { tower: previousTower } 
-        });
-        document.dispatchEvent(deselectEvent);
-      }
-      
-      if (!wasSelected) {
-        // Select new tower
-        const selectEvent = new CustomEvent('towerSelected', { 
-          detail: { tower: clickedTower } 
-        });
-        document.dispatchEvent(selectEvent);
+      // Use the selectTower/deselectTower methods for consistency
+      if (this.selectedTower === clickedTower) {
+        console.log('[DEBUG] Deselecting tower');
+        this.deselectTower();
       } else {
-        // Deselect current tower
-        const deselectEvent = new CustomEvent('towerDeselected', { 
-          detail: { tower: clickedTower } 
-        });
-        document.dispatchEvent(deselectEvent);
+        console.log('[DEBUG] Selecting tower');
+        this.selectTower(clickedTower);
       }
+      this.selectedTowerType = null; // Clear tower placement mode
     } else if (this.selectedTowerType) {
       // Place new tower
       if (this.placeTower(this.selectedTowerType, worldPos)) {
@@ -1614,11 +1594,6 @@ export class Game {
       }
     }
     return MapSize.MEDIUM; // fallback
-  }
-
-  // Camera and zoom control methods
-  getCamera(): Camera {
-    return this.camera;
   }
 
   // Zoom controls

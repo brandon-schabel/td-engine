@@ -7,7 +7,7 @@ export enum UpgradeType {
   RANGE = 'RANGE',
   FIRE_RATE = 'FIRE_RATE'
 }
-import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, RENDER_CONFIG } from '../config/GameConfig';
+import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, RENDER_CONFIG, TOWER_COSTS } from '../config/GameConfig';
 import { TOWER_STATS, TOWER_UPGRADES, TOWER_VISUALS } from '../config/TowerConfig';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
@@ -313,5 +313,28 @@ export class Tower extends Entity implements ShootingCapable {
         }
       }
     });
+  }
+  
+  getSellValue(): number {
+    // Base cost of the tower
+    const baseCost = TOWER_COSTS[this.towerType];
+    
+    // Calculate total upgrade cost spent
+    let upgradeCostSpent = 0;
+    const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
+    
+    upgradeTypes.forEach(type => {
+      const level = this.getUpgradeLevel(type);
+      const baseCost = TOWER_UPGRADES.baseCosts[type];
+      
+      // Sum up costs for each upgrade level
+      for (let i = 1; i <= level; i++) {
+        upgradeCostSpent += Math.floor(baseCost * Math.pow(TOWER_UPGRADES.costMultiplier, i - 1));
+      }
+    });
+    
+    // Sell value is 60% of total invested cost
+    const totalInvested = baseCost + upgradeCostSpent;
+    return Math.floor(totalInvested * 0.6);
   }
 }

@@ -6,6 +6,12 @@ import { AudioManager, SoundType } from '../audio/AudioManager';
 import { PowerUpDisplay } from './components/game/SimplePowerUpDisplay';
 import { CameraControls } from './components/game/SimpleCameraControls';
 import { MobileControls } from './components/game/MobileControls';
+import { 
+  CurrencyDisplay,
+  WaveDisplay,
+  HealthDisplay,
+  FloatingCameraControls
+} from './components/floating';
 import { DialogManager } from './systems/DialogManager';
 import { 
   BuildMenuDialogAdapter,
@@ -272,8 +278,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   controlBar.appendChild(pauseButton);
   controlBar.appendChild(settingsButton);
   
-  // Only append if we created a new control bar
-  if (!document.getElementById('bottom-ui-container')) {
+  // Ensure control bar is in the DOM
+  if (!controlBar.parentNode) {
     console.log('[SimpleGameUI] Appending control bar to game container...');
     gameContainer.appendChild(controlBar);
     console.log('[SimpleGameUI] Control bar added to DOM');
@@ -328,25 +334,39 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   // Show tower info dialog when a tower is selected
   const showTowerInfoDialog = (tower: Tower) => {
+    console.log('[SimpleGameUI] showTowerInfoDialog called for tower:', tower);
+    
     // Close existing tower info dialog if any
     if (towerInfoDialog) {
+      console.log('[SimpleGameUI] Closing existing tower info dialog');
       dialogManager.unregister('towerInfo');
       towerInfoDialog = null;
     }
 
-    // Create new tower info dialog for the selected tower
-    towerInfoDialog = new TowerInfoDialogAdapter({
-      game,
-      tower,
-      audioManager,
-      onClosed: () => {
-        dialogManager.unregister('towerInfo');
-        towerInfoDialog = null;
-      }
-    });
+    try {
+      // Create new tower info dialog for the selected tower
+      console.log('[SimpleGameUI] Creating new TowerInfoDialogAdapter');
+      towerInfoDialog = new TowerInfoDialogAdapter({
+        game,
+        tower,
+        audioManager,
+        onClosed: () => {
+          console.log('[SimpleGameUI] Tower info dialog closed');
+          dialogManager.unregister('towerInfo');
+          towerInfoDialog = null;
+        }
+      });
 
-    dialogManager.register('towerInfo', towerInfoDialog);
-    dialogManager.show('towerInfo');
+      console.log('[SimpleGameUI] Registering tower info dialog');
+      dialogManager.register('towerInfo', towerInfoDialog);
+      
+      console.log('[SimpleGameUI] Showing tower info dialog');
+      dialogManager.show('towerInfo');
+      
+      console.log('[SimpleGameUI] Tower info dialog should now be visible');
+    } catch (error) {
+      console.error('[SimpleGameUI] Error creating/showing tower info dialog:', error);
+    }
   };
 
   // Show player upgrade dialog
@@ -358,7 +378,12 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Listen for tower selection events
   const handleTowerSelected = (event: CustomEvent) => {
     const tower = event.detail.tower;
-    console.log('[SimpleGameUI] Tower selected:', tower.towerType, 'at', tower.position);
+    console.log('[SimpleGameUI] Tower selected event received');
+    console.log('[SimpleGameUI] Tower details:', {
+      type: tower.towerType || tower.type,
+      position: tower.position,
+      level: tower.getLevel ? tower.getLevel() : 'N/A'
+    });
     showTowerInfoDialog(tower);
   };
 
@@ -494,207 +519,39 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     }
   };
 
-  // Removed duplicate setInterval - it's now after initializeDialogs()
+  // Create resource display using CurrencyDisplay
+  console.log('[SimpleGameUI] Creating CurrencyDisplay...');
+  const currencyDisplay = new CurrencyDisplay(game);
+  currencyDisplay.mount(gameContainer);
+  console.log('[SimpleGameUI] CurrencyDisplay mounted');
 
-  // Create resource display
-  const resourceDisplay = document.createElement('div');
-  resourceDisplay.id = 'resource-display';
-  resourceDisplay.style.cssText = `
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid #FFD700;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #FFD700;
-    font-weight: bold;
-    font-size: clamp(14px, 3vw, 18px);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  `;
-
-  const currencyIcon = createSvgIcon(IconType.COINS, { size: 20 });
-  const updateResourceDisplay = () => {
-    const currency = game.getCurrency();
-    resourceDisplay.innerHTML = `${currencyIcon}<span>$${currency}</span>`;
-  };
-
-  setInterval(updateResourceDisplay, 100);
-  gameContainer.appendChild(resourceDisplay);
-
-  // Create wave display
-  const waveDisplay = document.createElement('div');
-  waveDisplay.id = 'wave-display';
-  waveDisplay.style.cssText = `
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid #4CAF50;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #4CAF50;
-    font-weight: bold;
-    font-size: clamp(14px, 3vw, 18px);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  `;
-
-  const waveIcon = createSvgIcon(IconType.WAVE, { size: 20 });
-  const updateWaveDisplay = () => {
-    const waveNumber = game.getCurrentWave();
-    const enemiesRemaining = game.getEnemies().length;
-    let waveText = `Wave ${waveNumber}`;
-    if (enemiesRemaining > 0) {
-      waveText += ` - ${enemiesRemaining} enemies`;
-    } else if (game.isWaveComplete()) {
-      waveText += ' - Complete!';
-    }
-    waveDisplay.innerHTML = `${waveIcon}<span>${waveText}</span>`;
-  };
-
-  setInterval(updateWaveDisplay, 100);
-  gameContainer.appendChild(waveDisplay);
+  // Create wave display using WaveDisplay
+  console.log('[SimpleGameUI] Creating WaveDisplay...');
+  const waveDisplay = new WaveDisplay(game);
+  waveDisplay.mount(gameContainer);
+  console.log('[SimpleGameUI] WaveDisplay mounted');
   
-  // Create camera controls right after wave display - they should appear directly below it
-  const cameraControlsDisplay = document.createElement('div');
-  cameraControlsDisplay.id = 'camera-controls-display';
-  cameraControlsDisplay.style.cssText = `
-    position: absolute;
-    top: 60px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid #00BCD4;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #00BCD4;
-    font-weight: bold;
-    font-size: clamp(14px, 3vw, 18px);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  `;
+  // Create camera controls using FloatingCameraControls
+  console.log('[SimpleGameUI] Creating FloatingCameraControls...');
+  const cameraControls = new FloatingCameraControls({
+    position: { top: 60, right: 10 },
+    game,
+    audioManager
+  });
+  cameraControls.mount(gameContainer);
+  console.log('[SimpleGameUI] FloatingCameraControls mounted');
 
-  // Camera icon and controls
-  const cameraIcon = createSvgIcon(IconType.CAMERA, { size: 20 });
-  const zoomInIcon = createSvgIcon(IconType.ZOOM_IN, { size: 18 });
-  const zoomOutIcon = createSvgIcon(IconType.ZOOM_OUT, { size: 18 });
-  const resetIcon = createSvgIcon(IconType.RESET_ZOOM, { size: 18 });
-  
-  cameraControlsDisplay.innerHTML = `
-    <span>${cameraIcon}</span>
-    <span style="display: flex; align-items: center; gap: 6px;">
-      <button class="zoom-btn zoom-in" style="background: none; border: none; color: #00BCD4; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" title="Zoom In">${zoomInIcon}</button>
-      <button class="zoom-btn zoom-out" style="background: none; border: none; color: #00BCD4; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" title="Zoom Out">${zoomOutIcon}</button>
-      <button class="zoom-btn reset" style="background: none; border: none; color: #00BCD4; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" title="Reset">${resetIcon}</button>
-      <span class="zoom-level" style="margin-left: 4px; font-size: clamp(12px, 2.5vw, 16px);">100%</span>
-    </span>
-  `;
-
-  const updateCameraZoomLevel = () => {
-    const camera = game.getCamera();
-    const zoomLevel = Math.round(camera.getZoom() * 100);
-    const zoomDisplay = cameraControlsDisplay.querySelector('.zoom-level');
-    if (zoomDisplay) {
-      zoomDisplay.textContent = `${zoomLevel}%`;
-    }
-  };
-
-  // Add click handlers and hover effects
-  setTimeout(() => {
-    const buttons = cameraControlsDisplay.querySelectorAll('button');
-    
-    // Add hover effects to all buttons
-    buttons.forEach(button => {
-      button.addEventListener('mouseenter', () => {
-        button.style.background = 'rgba(0, 188, 212, 0.2)';
-        button.style.transform = 'scale(1.1)';
-      });
-      button.addEventListener('mouseleave', () => {
-        button.style.background = 'none';
-        button.style.transform = 'scale(1)';
-      });
-    });
-    
-    // Add click handlers
-    buttons[0].addEventListener('click', () => {
-      game.getCamera().zoomIn();
-      updateCameraZoomLevel();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-    });
-    buttons[1].addEventListener('click', () => {
-      game.getCamera().zoomOut();
-      updateCameraZoomLevel();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-    });
-    buttons[2].addEventListener('click', () => {
-      game.getCamera().reset();
-      updateCameraZoomLevel();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-    });
-    
-    // Initialize zoom level display
-    updateCameraZoomLevel();
-  }, 100);
-
-  gameContainer.appendChild(cameraControlsDisplay);
-
-  // Create player health display
-  const healthDisplay = document.createElement('div');
-  healthDisplay.id = 'health-display';
-  healthDisplay.style.cssText = `
-    position: absolute;
-    top: 55px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid #FF4444;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #FF4444;
-    font-weight: bold;
-    font-size: clamp(14px, 3vw, 18px);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  `;
-
-  const healthIcon = createSvgIcon(IconType.HEART, { size: 20 });
-  const updateHealthDisplay = () => {
-    const player = game.getPlayer();
-    if (player) {
-      const health = Math.max(0, player.health);
-      const maxHealth = player.maxHealth;
-      const healthPercent = (health / maxHealth) * 100;
-      
-      // Update color based on health percentage
-      let color = '#4CAF50'; // Green
-      if (healthPercent <= 25) {
-        color = '#FF4444'; // Red
-      } else if (healthPercent <= 50) {
-        color = '#FF9800'; // Orange
-      }
-      
-      healthDisplay.style.borderColor = color;
-      healthDisplay.style.color = color;
-      healthDisplay.innerHTML = `${healthIcon}<span>${health}/${maxHealth}</span>`;
-    }
-  };
-
-  setInterval(updateHealthDisplay, 100);
-  gameContainer.appendChild(healthDisplay);
+  // Create player health display using HealthDisplay
+  console.log('[SimpleGameUI] Creating HealthDisplay...');
+  const healthDisplay = new HealthDisplay(game);
+  healthDisplay.mount(gameContainer);
+  console.log('[SimpleGameUI] HealthDisplay mounted');
 
   // Create power-up display
   const powerUpDisplay = new PowerUpDisplay({ game });
   powerUpDisplay.mount(gameContainer);
 
-  // Camera controls are now created right after wave display
+  // All floating displays are now created using their respective components
 
   // Initialize all dialogs FIRST before setting up any UI that depends on them
   initializeDialogs();
@@ -798,6 +655,35 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     console.log('[Debug] Dialogs re-initialized');
   };
   
+  // Add debug command to test tower info dialog
+  (window as any).testTowerInfo = () => {
+    console.log('[Debug] Testing tower info dialog...');
+    const towers = game.getTowers();
+    if (towers.length > 0) {
+      console.log('[Debug] Found', towers.length, 'towers, selecting first one');
+      const tower = towers[0];
+      console.log('[Debug] Tower details:', {
+        towerType: tower.towerType,
+        position: tower.position,
+        level: tower.getLevel()
+      });
+      showTowerInfoDialog(tower);
+    } else {
+      console.log('[Debug] No towers found! Place a tower first.');
+    }
+  };
+  
+  // Add direct selection test
+  (window as any).selectFirstTower = () => {
+    const towers = game.getTowers();
+    if (towers.length > 0) {
+      console.log('[Debug] Selecting first tower via game.selectTower()');
+      game.selectTower(towers[0]);
+    } else {
+      console.log('[Debug] No towers to select');
+    }
+  };
+  
   // Add debug command to toggle mobile controls
   (window as any).toggleMobileControls = () => {
     const controlsEl = document.querySelector('.mobile-controls') as HTMLElement;
@@ -837,6 +723,14 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     document.removeEventListener('towerPlaced', updateTowerPlacementIndicator);
     document.removeEventListener('towerSelected', handleTowerSelected as EventListener);
     document.removeEventListener('towerDeselected', handleTowerDeselected as EventListener);
+    
+    // Clean up floating UI elements
+    currencyDisplay.destroy();
+    waveDisplay.destroy();
+    healthDisplay.destroy();
+    cameraControls.destroy();
+    powerUpDisplay.cleanup();
+    
     dialogManager.destroy();
   };
 }

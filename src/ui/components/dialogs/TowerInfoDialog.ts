@@ -24,7 +24,7 @@ export class TowerInfoDialog extends BaseDialog {
   
   constructor(options: TowerInfoDialogOptions) {
     super({
-      title: `${options.tower.type} Tower`,
+      title: `${options.tower.towerType} Tower`,
       width: DIALOG_CONFIG.sizes.small,
       closeable: true,
       modal: false,
@@ -43,6 +43,8 @@ export class TowerInfoDialog extends BaseDialog {
   }
   
   protected buildContent(): void {
+    console.log('[TowerInfoDialog] buildContent called for tower:', this.tower.towerType);
+    
     // Tower icon and basic info
     const headerSection = document.createElement('div');
     headerSection.style.cssText = `
@@ -67,7 +69,7 @@ export class TowerInfoDialog extends BaseDialog {
       border: 2px solid #4CAF50;
     `;
     
-    const towerIcon = this.getTowerIcon(this.tower.type);
+    const towerIcon = this.getTowerIcon(this.tower.towerType);
     iconContainer.innerHTML = createSvgIcon(towerIcon, { size: 48 });
     headerSection.appendChild(iconContainer);
     
@@ -83,7 +85,7 @@ export class TowerInfoDialog extends BaseDialog {
       color: #4CAF50;
       margin-bottom: 4px;
     `;
-    towerName.textContent = this.getTowerName(this.tower.type);
+    towerName.textContent = this.getTowerName(this.tower.towerType);
     infoContainer.appendChild(towerName);
     
     const towerLevel = document.createElement('div');

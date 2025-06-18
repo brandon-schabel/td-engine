@@ -1,11 +1,13 @@
 import { Game } from '@/core/Game';
 import { CollectibleType } from '@/entities/items/ItemTypes';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { FloatingUIElement } from './FloatingUIElement';
 
 export class PowerUpDisplay {
   private container: HTMLElement | null = null;
   private game: Game;
   private updateInterval: number | null = null;
+  private powerUpElements: Map<string, FloatingUIElement> = new Map();
 
   constructor(options: { game: Game; visible?: boolean }) {
     this.game = options.game;
@@ -15,7 +17,7 @@ export class PowerUpDisplay {
     this.container = document.createElement('div');
     this.container.style.cssText = `
       position: absolute;
-      top: 10px;
+      top: 110px;
       right: 10px;
       display: flex;
       flex-direction: column;
@@ -34,39 +36,46 @@ export class PowerUpDisplay {
     const player = this.game.getPlayer();
     const activePowerUps = player.getActivePowerUps();
     
-    // Clear existing display
-    this.container.innerHTML = '';
+    // Remove power-ups that are no longer active
+    for (const [type, element] of this.powerUpElements) {
+      if (!activePowerUps.has(type)) {
+        element.cleanup();
+        this.powerUpElements.delete(type);
+      }
+    }
     
-    // Display each active power-up
+    // Update or create elements for active power-ups
+    let index = 0;
     activePowerUps.forEach((duration, type) => {
-      const powerUpEl = document.createElement('div');
-      powerUpEl.style.cssText = `
-        background: rgba(0, 0, 0, 0.8);
-        border: 2px solid #4CAF50;
-        border-radius: 8px;
-        padding: 8px 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: white;
-        font-family: Arial, sans-serif;
-        font-size: 12px;
-      `;
+      let element = this.powerUpElements.get(type);
       
-      // Get icon for power-up type
-      const iconType = this.getPowerUpIcon(type);
-      const icon = createSvgIcon(iconType, { size: 20 });
+      if (!element) {
+        // Create new element for this power-up
+        element = new FloatingUIElement({
+          position: { top: 0, left: 0, right: 0 },
+          borderColor: '#4CAF50',
+          icon: this.getPowerUpIcon(type),
+          iconSize: 20,
+          additionalStyles: `
+            position: relative;
+            color: white;
+            font-size: 14px;
+          `,
+          updateInterval: 0 // We'll update manually
+        });
+        
+        element.mount(this.container);
+        this.powerUpElements.set(type, element);
+      }
       
-      // Calculate remaining time
+      // Update content
       const remainingTime = Math.ceil(duration / 1000);
-      
-      powerUpEl.innerHTML = `
-        ${icon}
+      element.setContent(`
         <span>${this.getPowerUpName(type)}</span>
-        <span style="color: #FFD700;">${remainingTime}s</span>
-      `;
+        <span style="color: #FFD700; margin-left: 8px;">${remainingTime}s</span>
+      `);
       
-      this.container.appendChild(powerUpEl);
+      index++;
     });
   }
 
@@ -99,6 +108,13 @@ export class PowerUpDisplay {
       window.clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
+    
+    // Clean up all power-up elements
+    for (const element of this.powerUpElements.values()) {
+      element.cleanup();
+    }
+    this.powerUpElements.clear();
+    
     if (this.container && this.container.parentElement) {
       this.container.parentElement.removeChild(this.container);
     }
