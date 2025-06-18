@@ -41,7 +41,7 @@ export class CameraControls {
       this.updateZoomDisplay();
     });
 
-    const resetBtn = this.createButton(IconType.RESET, 'Reset View', () => {
+    const resetBtn = this.createButton(IconType.RESET_ZOOM, 'Reset View', () => {
       const camera = this.game.getCamera();
       camera.reset();
       this.updateZoomDisplay();
