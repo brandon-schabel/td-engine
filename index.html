@@ -94,6 +94,25 @@
       -webkit-backdrop-filter: blur(10px);
     }
     
+    /* Mobile landscape split layout */
+    @media (orientation: landscape) and (max-width: 1024px) {
+      #bottom-ui-container {
+        justify-content: space-between;
+        padding-left: var(--safe-area-left, 10px);
+        padding-right: var(--safe-area-right, 10px);
+      }
+      
+      #bottom-ui-container > *:first-child {
+        display: flex;
+        gap: 8px;
+      }
+      
+      #bottom-ui-container > *:last-child {
+        display: flex;
+        gap: 8px;
+      }
+    }
+    
     /* Ensure UI panels inside bottom container display correctly */
     #bottom-ui-container .build-panel,
     #bottom-ui-container .action-panel {
@@ -297,43 +316,59 @@
     /* Mobile landscape mode - smaller UI for better game view */
     @media (orientation: landscape) and (max-height: 600px) {
       :root {
-        --ui-bottom-height: 35px;
+        --ui-bottom-height: 40px; /* Increased from 35px for better button fit */
       }
       
       /* Safari-specific fixes */
       @supports (-webkit-touch-callout: none) {
         :root {
-          --ui-bottom-height: 30px;
+          --ui-bottom-height: 38px; /* Increased from 30px */
         }
         
         #bottom-ui-container {
-          height: 30px !important;
-          min-height: 30px !important;
-          max-height: 30px !important;
-          padding-bottom: 0px !important;
+          height: calc(38px + env(safe-area-inset-bottom, 0px)) !important;
+          min-height: calc(38px + env(safe-area-inset-bottom, 0px)) !important;
+          max-height: calc(38px + env(safe-area-inset-bottom, 0px)) !important;
+          /* Keep safe area padding for iPhone home indicator */
+          padding-bottom: env(safe-area-inset-bottom, 0px) !important;
         }
       }
       
       #bottom-ui-container {
         height: calc(var(--ui-bottom-height) + var(--safe-area-bottom));
-        padding: 4px 8px;
+        padding: 4px var(--safe-area-left, 8px) 4px var(--safe-area-right, 8px);
         font-size: 10px;
+        /* Split layout for landscape */
+        justify-content: space-between;
+      }
+      
+      /* Create button groups */
+      #bottom-ui-container .button-group-left {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      
+      #bottom-ui-container .button-group-right {
+        display: flex;
+        gap: 6px;
+        align-items: center;
       }
       
       .ui-button {
-        min-height: 30px !important;
-        max-height: 30px !important;
+        min-height: 32px !important;
+        max-height: 32px !important;
         font-size: 9px !important;
         padding: 4px 6px !important;
-        border-radius: 15px !important; /* More circular for space efficiency */
+        border-radius: 16px !important; /* More circular for space efficiency */
       }
       
       .ui-button.icon-only {
         padding: 4px !important;
-        min-width: 30px !important;
-        max-width: 30px !important;
-        width: 30px !important;
-        height: 30px !important;
+        min-width: 32px !important;
+        max-width: 32px !important;
+        width: 32px !important;
+        height: 32px !important;
         border-radius: 50% !important;
       }
       
@@ -358,19 +393,19 @@
         height: 12px !important;
       }
       
-      /* Make the action buttons in the bottom row even smaller */
+      /* Make the action buttons in the bottom row properly sized */
       #bottom-ui-container .ui-button {
-        min-height: 28px !important;
-        max-height: 28px !important;
+        min-height: 30px !important;
+        max-height: 30px !important;
         font-size: 8px !important;
         padding: 3px 5px !important;
       }
       
       #bottom-ui-container .ui-button.icon-only {
-        width: 28px !important;
-        height: 28px !important;
-        min-width: 28px !important;
-        max-width: 28px !important;
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        max-width: 30px !important;
         padding: 3px !important;
       }
       
@@ -383,27 +418,28 @@
     /* Very small mobile devices in landscape - ultra compact */
     @media (orientation: landscape) and (max-height: 450px) {
       :root {
-        --ui-bottom-height: 30px;
+        --ui-bottom-height: 35px; /* Increased from 30px */
       }
       
       /* Safari-specific fixes for very small screens */
       @supports (-webkit-touch-callout: none) {
         :root {
-          --ui-bottom-height: 25px;
+          --ui-bottom-height: 33px; /* Increased from 25px */
         }
         
         #bottom-ui-container {
-          height: 25px !important;
-          min-height: 25px !important;
-          max-height: 25px !important;
-          padding-bottom: 0px !important;
+          height: calc(33px + env(safe-area-inset-bottom, 0px)) !important;
+          min-height: calc(33px + env(safe-area-inset-bottom, 0px)) !important;
+          max-height: calc(33px + env(safe-area-inset-bottom, 0px)) !important;
+          padding-bottom: env(safe-area-inset-bottom, 0px) !important;
         }
       }
       
       #bottom-ui-container {
         height: calc(var(--ui-bottom-height) + var(--safe-area-bottom));
-        padding: 2px 6px;
+        padding: 2px var(--safe-area-left, 6px) 2px var(--safe-area-right, 6px);
         font-size: 8px;
+        justify-content: space-between;
       }
       
       .ui-button {
@@ -439,19 +475,19 @@
         height: 10px !important;
       }
       
-      /* Bottom container buttons even more compact */
+      /* Bottom container buttons for very small screens */
       #bottom-ui-container .ui-button {
-        min-height: 22px !important;
-        max-height: 22px !important;
+        min-height: 26px !important;
+        max-height: 26px !important;
         font-size: 7px !important;
         padding: 2px 3px !important;
       }
       
       #bottom-ui-container .ui-button.icon-only {
-        width: 22px !important;
-        height: 22px !important;
-        min-width: 22px !important;
-        max-width: 22px !important;
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+        max-width: 26px !important;
         padding: 2px !important;
       }
       
@@ -492,39 +528,43 @@
     @supports (-webkit-touch-callout: none) {
       @media (orientation: landscape) {
         #bottom-ui-container {
-          /* Force override Safari's safe area calculations in landscape */
-          height: 30px !important;
-          min-height: 30px !important;
-          max-height: 30px !important;
-          padding-bottom: 0 !important;
-          /* Ensure it doesn't expand beyond our intended size */
+          /* Keep safe area calculations for iPhone home indicator */
+          height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
+          min-height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
+          max-height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
+          padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+          /* Ensure split layout */
+          justify-content: space-between !important;
+          /* Account for iPhone notch/safe areas */
+          padding-left: env(safe-area-inset-left, 10px) !important;
+          padding-right: env(safe-area-inset-right, 10px) !important;
           box-sizing: border-box !important;
         }
         
         /* Extra small for very compact landscapes */
         @media (max-height: 450px) {
           #bottom-ui-container {
-            height: 25px !important;
-            min-height: 25px !important;
-            max-height: 25px !important;
+            height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
+            min-height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
+            max-height: calc(var(--ui-bottom-height) + env(safe-area-inset-bottom, 0px)) !important;
           }
         }
         
-        /* Force button sizes on Safari */
+        /* Force proper button sizes on Safari */
         #bottom-ui-container .ui-button {
-          height: 24px !important;
-          min-height: 24px !important;
-          max-height: 24px !important;
+          height: 28px !important;
+          min-height: 28px !important;
+          max-height: 28px !important;
           line-height: 1 !important;
         }
         
         #bottom-ui-container .ui-button.icon-only {
-          width: 24px !important;
-          height: 24px !important;
-          min-width: 24px !important;
-          max-width: 24px !important;
-          min-height: 24px !important;
-          max-height: 24px !important;
+          width: 28px !important;
+          height: 28px !important;
+          min-width: 28px !important;
+          max-width: 28px !important;
+          min-height: 28px !important;
+          max-height: 28px !important;
         }
       }
     }
