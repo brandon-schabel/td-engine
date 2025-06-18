@@ -39,6 +39,7 @@ export const GAMEPLAY_CONSTANTS = {
   waves: {
     startDelay: 3000,
     betweenWaveDelay: 5000,
+    infiniteWaveDelay: 2000,    // Delay between infinite waves
     spawnInterval: {
       min: 500,
       max: 2000,
@@ -51,6 +52,14 @@ export const GAMEPLAY_CONSTANTS = {
       healthMultiplier: 1.1,
       speedMultiplier: 1.05,
       rewardMultiplier: 1.15,
+    },
+    // Infinite wave specific
+    infinite: {
+      baseEnemyCount: 8,
+      swarmMultiplier: 1.5,      // 50% more enemies in swarm waves
+      eliteReduction: 0.7,       // 30% fewer enemies in elite waves
+      swarmHealthMultiplier: 0.7,   // Weaker enemies in swarms
+      eliteHealthMultiplier: 1.5,   // Stronger elite enemies
     },
   },
 
@@ -76,7 +85,7 @@ export const GAMEPLAY_CONSTANTS = {
       tank: 15,
       boss: 50,
     },
-    sellRefund: 0.7, // 70% refund on tower sell
+    sellRefund: 0.6, // 60% refund on tower sell
     interestRate: 0.02, // 2% interest per wave
     maxInterest: 50,
   },
@@ -146,6 +155,10 @@ export const GAMEPLAY_CONSTANTS = {
     dashCooldown: 2000,
     dashDistance: 100,
     pickupRadius: 30,
+    healthThresholds: {
+      low: 0.25,
+      critical: 0.1,
+    },
   },
 
   // Difficulty scaling

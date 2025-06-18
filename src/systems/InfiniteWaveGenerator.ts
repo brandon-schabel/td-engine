@@ -11,6 +11,7 @@
 import type { WaveConfig, EnemySpawnConfig } from './WaveManager';
 import { SpawnPattern } from './WaveManager';
 import { EnemyType } from '@/entities/Enemy';
+import { GAMEPLAY_CONSTANTS } from '@/config/GameplayConstants';
 
 export interface InfiniteWaveGeneratorConfig {
   healthScalingRate: number;
@@ -58,7 +59,7 @@ export class InfiniteWaveGenerator {
     const enemyMix = this.getEnemyMix(waveNumber);
     const enemies = this.generateEnemies(enemyCount, enemyMix, waveNumber);
     const spawnPattern = this.getSpawnPattern(waveNumber);
-    const startDelay = 2000; // 2 seconds between waves
+    const startDelay = GAMEPLAY_CONSTANTS.waves.infiniteWaveDelay;
 
     return {
       waveNumber,
@@ -74,13 +75,13 @@ export class InfiniteWaveGenerator {
 
   private calculateEnemyCount(waveNumber: number): number {
     const specialBehavior = this.getSpecialBehavior(waveNumber);
-    let baseCount = 8 + Math.floor(this.config.enemyCountScalingRate * Math.log10(waveNumber + 1));
+    let baseCount = GAMEPLAY_CONSTANTS.waves.infinite.baseEnemyCount + Math.floor(this.config.enemyCountScalingRate * Math.log10(waveNumber + 1));
     
     // Adjust for special waves
     if (specialBehavior === 'swarm_wave') {
-      baseCount = Math.floor(baseCount * 1.5); // 50% more enemies
+      baseCount = Math.floor(baseCount * GAMEPLAY_CONSTANTS.waves.infinite.swarmMultiplier);
     } else if (specialBehavior === 'elite_wave') {
-      baseCount = Math.floor(baseCount * 0.7); // 30% fewer enemies
+      baseCount = Math.floor(baseCount * GAMEPLAY_CONSTANTS.waves.infinite.eliteReduction);
     }
     
     return Math.min(baseCount, this.config.maxEnemyCount);
@@ -98,9 +99,9 @@ export class InfiniteWaveGenerator {
     // Special wave adjustments
     const specialBehavior = this.getSpecialBehavior(waveNumber);
     if (specialBehavior === 'swarm_wave') {
-      return adjusted * 0.7; // Weaker enemies in swarms
+      return adjusted * GAMEPLAY_CONSTANTS.waves.infinite.swarmHealthMultiplier;
     } else if (specialBehavior === 'elite_wave') {
-      return adjusted * 1.5; // Stronger elite enemies
+      return adjusted * GAMEPLAY_CONSTANTS.waves.infinite.eliteHealthMultiplier;
     }
     
     return adjusted;

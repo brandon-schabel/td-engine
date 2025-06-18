@@ -7,6 +7,7 @@ import { CooldownManager } from '@/utils/CooldownManager';
 import { GAME_MECHANICS } from '../../config/GameConfig';
 import { PLAYER_ABILITIES } from '../../config/PlayerConfig';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
+import { GAMEPLAY_CONSTANTS } from '@/config/GameplayConstants';
 
 export interface HealthInfo {
   current: number;
@@ -210,11 +211,11 @@ export class PlayerHealth {
   }
 
   // Health status checks
-  isLowHealth(threshold: number = 0.25): boolean {
+  isLowHealth(threshold: number = GAMEPLAY_CONSTANTS.playerMechanics.healthThresholds.low): boolean {
     return this.getHealthPercentage() <= threshold;
   }
 
-  isCriticalHealth(threshold: number = 0.1): boolean {
+  isCriticalHealth(threshold: number = GAMEPLAY_CONSTANTS.playerMechanics.healthThresholds.critical): boolean {
     return this.getHealthPercentage() <= threshold;
   }
 

@@ -37,7 +37,9 @@ export const ENTITY_RENDER = {
     spacing: 8,
     spacingCompact: 4,
     colors: ['#FF4444', '#44FF44', '#4444FF'], // Red, Green, Blue
-    maxVisible: 5
+    maxVisible: 5,
+    distanceOffset: 8,
+    angleSpacing: 120
   },
   
   // Selection and hover effects
@@ -46,7 +48,9 @@ export const ENTITY_RENDER = {
     strokeColor: '#4CAF50',
     glowRadius: 20,
     glowColor: 'rgba(76, 175, 80, 0.5)',
-    animationSpeed: 0.002
+    animationSpeed: 0.002,
+    radiusOffset: 8,
+    glowRadiusOffset: 12
   },
   
   // Shadow configuration
@@ -79,6 +83,31 @@ export const ENTITY_RENDER = {
     pathColor: 'rgba(0, 255, 255, 0.5)',
     gridColor: 'rgba(255, 255, 255, 0.2)',
     vectorColor: 'rgba(255, 255, 0, 0.8)'
+  },
+  
+  // Visibility settings
+  visibility: {
+    minTargetDistance: 10
+  },
+  
+  // Glow effects
+  glowEffects: {
+    healthPickup: 10,
+    powerUp: 15
+  },
+  
+  // Pickup rendering
+  pickups: {
+    health: {
+      crossSize: 6
+    }
+  },
+  
+  // Power-up icon dimensions
+  powerUpIcons: {
+    size: 8,
+    shieldRadius: 8,
+    textOffset: 3
   }
 } as const;
 
@@ -102,6 +131,9 @@ export const TOWER_RENDER = {
     width: 2,
     dashPattern: [5, 3],
     color: 'rgba(255, 255, 255, 0.5)'
+  },
+  selection: {
+    dashPattern: [5, 3]
   }
 } as const;
 
@@ -126,6 +158,15 @@ export const ENEMY_RENDER = {
     opacity: 0.3,
     width: 2,
     color: 'rgba(255, 255, 255, 0.3)'
+  },
+  outline: {
+    towerAttacker: 2,
+    playerAttacker: 2,
+    default: 1
+  },
+  targetLine: {
+    dashPattern: [3, 3],
+    width: 1
   }
 } as const;
 
@@ -143,7 +184,16 @@ export const PLAYER_RENDER = {
     shield: { color: 'rgba(0, 100, 255, 0.3)', particleCount: 5 }
   },
   healthBarOffset: 20,
-  upgradeIndicatorSize: 8
+  upgradeIndicatorSize: 8,
+  levelProgression: {
+    baseHue: 180,
+    huePerLevel: 20,
+    maxHue: 280,
+    saturation: 70,
+    lightness: 60
+  },
+  movementIndicatorOffset: 3,
+  levelTextOffset: 4
 } as const;
 
 // Projectile rendering
@@ -261,5 +311,26 @@ export const RENDER_OPTIMIZATION = {
   LOD: {
     enabled: false,
     distances: [100, 300, 600]
+  }
+} as const;
+
+// UI rendering configuration
+export const UI_RENDER = {
+  notification: {
+    width: 320,
+    height: 60,
+    x: 50,         // Distance from right edge
+    y: 50,         // Distance from top
+    padding: 15,
+    iconRadius: 8,
+    fadeInDuration: 300,
+    displayDuration: 3000,
+    fadeOutDuration: 300
+  },
+  fps: {
+    thresholds: {
+      good: 45,    // Green color threshold
+      warning: 30  // Yellow color threshold
+    }
   }
 } as const;

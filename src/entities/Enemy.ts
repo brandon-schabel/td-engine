@@ -4,6 +4,8 @@ import { Tower } from './Tower';
 import type { Vector2 } from '@/utils/Vector2';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ENEMY_STATS, ENEMY_BEHAVIOR, ENEMY_VISUALS, EnemyBehavior } from '../config/EnemyConfig';
+import { COLOR_THEME } from '@/config/ColorTheme';
+import { ENEMY_RENDER } from '@/config/RenderingConfig';
 
 export enum EnemyType {
   BASIC = 'BASIC',
@@ -229,16 +231,16 @@ export class Enemy extends Entity {
       // Different colors for different enemy types
       switch (this.enemyType) {
         case EnemyType.BASIC:
-          ctx.fillStyle = '#F44336';
+          ctx.fillStyle = COLOR_THEME.enemies.basic;
           break;
         case EnemyType.FAST:
-          ctx.fillStyle = '#FF5722';
+          ctx.fillStyle = COLOR_THEME.enemies.fast;
           break;
         case EnemyType.TANK:
-          ctx.fillStyle = '#9C27B0';
+          ctx.fillStyle = COLOR_THEME.enemies.tank;
           break;
         default:
-          ctx.fillStyle = '#F44336';
+          ctx.fillStyle = COLOR_THEME.enemies.default;
       }
       
       ctx.fill();
@@ -247,14 +249,14 @@ export class Enemy extends Entity {
     // Enemy outline - different color based on target
     const targetType = this.getTargetType();
     if (targetType === 'tower') {
-      ctx.strokeStyle = '#FFD700'; // Gold outline for tower attackers
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = COLOR_THEME.enemies.outlines.tower;
+      ctx.lineWidth = ENEMY_RENDER.outline.towerAttacker;
     } else if (targetType === 'player') {
-      ctx.strokeStyle = '#FF4444'; // Red outline for player attackers  
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = COLOR_THEME.enemies.outlines.player;
+      ctx.lineWidth = ENEMY_RENDER.outline.playerAttacker;
     } else {
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = COLOR_THEME.enemies.outlines.default;
+      ctx.lineWidth = ENEMY_RENDER.outline.default;
     }
     ctx.strokeRect(
       screenPos.x - this.radius,
@@ -274,9 +276,9 @@ export class Enemy extends Entity {
       ctx.beginPath();
       ctx.moveTo(screenPos.x, screenPos.y);
       ctx.lineTo(targetScreenPos.x, targetScreenPos.y);
-      ctx.setLineDash([3, 3]);
-      ctx.strokeStyle = targetType === 'tower' ? 'rgba(255, 215, 0, 0.5)' : 'rgba(255, 68, 68, 0.5)';
-      ctx.lineWidth = 1;
+      ctx.setLineDash(ENEMY_RENDER.targetLine.dashPattern);
+      ctx.strokeStyle = targetType === 'tower' ? COLOR_THEME.enemies.targetLine.tower : COLOR_THEME.enemies.targetLine.player;
+      ctx.lineWidth = ENEMY_RENDER.targetLine.width;
       ctx.stroke();
       ctx.setLineDash([]);
     }

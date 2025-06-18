@@ -2,6 +2,7 @@ import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import type { Vector2 } from '@/utils/Vector2';
 import { GAMEPLAY_CONSTANTS } from '@/config/GameplayConstants';
+import { PROJECTILE_RENDER } from '@/config/RenderingConfig';
 
 export class Projectile extends Entity {
   public readonly damage: number;
@@ -19,7 +20,7 @@ export class Projectile extends Entity {
     speed: number = GAMEPLAY_CONSTANTS.projectiles.defaultSpeed,
     velocity?: Vector2
   ) {
-    super(EntityType.PROJECTILE, position, 1, 3); // Small radius, 1 health
+    super(EntityType.PROJECTILE, position, 1, PROJECTILE_RENDER.basic.radius);
     
     this.damage = damage;
     this.target = target;

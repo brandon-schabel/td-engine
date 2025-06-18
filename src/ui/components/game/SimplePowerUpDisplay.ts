@@ -3,6 +3,7 @@ import { CollectibleType } from '@/entities/items/ItemTypes';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { FloatingUIElement } from './FloatingUIElement';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
+import { UI_CONSTANTS } from '@/config/UIConstants';
 
 export class PowerUpDisplay {
   private container: HTMLElement | null = null;
@@ -18,11 +19,11 @@ export class PowerUpDisplay {
     this.container = document.createElement('div');
     this.container.style.cssText = `
       position: absolute;
-      top: 110px;
-      right: 10px;
+      top: ${UI_CONSTANTS.powerUpDisplay.position.top}px;
+      right: ${UI_CONSTANTS.powerUpDisplay.position.right}px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: ${UI_CONSTANTS.spacing.sm}px;
       pointer-events: none;
     `;
     parent.appendChild(this.container);

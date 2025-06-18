@@ -9,7 +9,9 @@ export enum UpgradeType {
 }
 import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, TOWER_COSTS } from '../config/GameConfig';
 import { TOWER_STATS, TOWER_UPGRADES, TOWER_VISUALS } from '../config/TowerConfig';
-import { ENTITY_RENDER } from '../config/RenderingConfig';
+import { ENTITY_RENDER, TOWER_RENDER } from '../config/RenderingConfig';
+import { COLOR_THEME } from '../config/ColorTheme';
+import { GAMEPLAY_CONSTANTS } from '../config/GameplayConstants';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 import { calculateUpgradeCost, calculateSellValue } from '@/utils/MathUtils';
@@ -215,18 +217,18 @@ export class Tower extends Entity implements ShootingCapable {
     if (isSelected) {
       ctx.save();
       ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, this.radius + 8, 0, Math.PI * 2);
-      ctx.strokeStyle = '#4CAF50';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([5, 3]);
+      ctx.arc(screenPos.x, screenPos.y, this.radius + ENTITY_RENDER.selection.radiusOffset, 0, Math.PI * 2);
+      ctx.strokeStyle = COLOR_THEME.towers.selection.indicator;
+      ctx.lineWidth = ENTITY_RENDER.selection.strokeWidth;
+      ctx.setLineDash(TOWER_RENDER.selection.dashPattern);
       ctx.stroke();
       ctx.setLineDash([]);
       
       // Glowing effect
       ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, this.radius + 12, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(76, 175, 80, 0.3)';
-      ctx.lineWidth = 2;
+      ctx.arc(screenPos.x, screenPos.y, this.radius + ENTITY_RENDER.selection.glowRadiusOffset, 0, Math.PI * 2);
+      ctx.strokeStyle = COLOR_THEME.towers.selection.glow;
+      ctx.lineWidth = ENTITY_RENDER.lineWidths.normal;
       ctx.stroke();
       ctx.restore();
     }
@@ -259,7 +261,7 @@ export class Tower extends Entity implements ShootingCapable {
           break;
         case TowerType.WALL:
           // Walls are gray/stone colored
-          ctx.fillStyle = '#666666';
+          ctx.fillStyle = COLOR_THEME.towers.wall;
           break;
         default:
           ctx.fillStyle = COLOR_CONFIG.health.high;
@@ -268,8 +270,8 @@ export class Tower extends Entity implements ShootingCapable {
       ctx.fill();
       
       // Tower outline - thicker for upgraded towers
-      ctx.strokeStyle = upgradeLevel > 1 ? '#222222' : '#333333';
-      ctx.lineWidth = upgradeLevel > 1 ? ENTITY_RENDER.lineWidths.thick : ENTITY_RENDER.lineWidths.normal;
+      ctx.strokeStyle = upgradeLevel > 1 ? COLOR_THEME.towers.outline.upgraded : COLOR_THEME.towers.outline.base;
+      ctx.lineWidth = upgradeLevel > 1 ? TOWER_RENDER.upgradedOutlineWidth : TOWER_RENDER.baseOutlineWidth;
       ctx.stroke();
     }
     
@@ -289,11 +291,11 @@ export class Tower extends Entity implements ShootingCapable {
       
       if (level > 0) {
         // Position dots around the tower
-        const angle = (index * 120) * (Math.PI / 180); // 120 degrees apart
-        const distance = this.radius + 8;
+        const angle = (index * ENTITY_RENDER.upgradeDots.angleSpacing) * (Math.PI / 180);
+        const distance = this.radius + ENTITY_RENDER.upgradeDots.distanceOffset;
         
         for (let i = 0; i < level; i++) {
-          const dotDistance = distance + (i * 4);
+          const dotDistance = distance + (i * ENTITY_RENDER.upgradeDots.spacingCompact);
           const x = screenPos.x + Math.cos(angle) * dotDistance;
           const y = screenPos.y + Math.sin(angle) * dotDistance;
           
@@ -303,8 +305,8 @@ export class Tower extends Entity implements ShootingCapable {
           ctx.fill();
           
           // Dot outline
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = COLOR_THEME.towers.upgradeDots.stroke;
+          ctx.lineWidth = ENTITY_RENDER.lineWidths.thin;
           ctx.stroke();
         }
       }
@@ -329,7 +331,7 @@ export class Tower extends Entity implements ShootingCapable {
       }
     });
     
-    // Sell value is 60% of total invested cost
-    return calculateSellValue(baseCost, upgradeCostSpent, 0.4);
+    // Sell value is based on economy sell refund configuration
+    return calculateSellValue(baseCost, upgradeCostSpent, 1 - GAMEPLAY_CONSTANTS.economy.sellRefund);
   }
 }

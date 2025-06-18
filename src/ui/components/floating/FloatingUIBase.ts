@@ -77,7 +77,7 @@ export abstract class FloatingUIBase {
       z-index: ${zIndex};
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: ${UI_CONSTANTS.spacing.sm}px;
     `;
   }
   

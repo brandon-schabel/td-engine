@@ -29,7 +29,7 @@ export class IconButton {
       border: 'none',
       color: 'inherit',
       cursor: 'pointer',
-      padding: '4px',
+      padding: `${UI_CONSTANTS.spacing.xs}px`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -41,7 +41,7 @@ export class IconButton {
     Object.assign(button.style, defaultStyles, this.options.styles);
     
     // Add icon
-    const iconSize = this.options.iconSize || 18;
+    const iconSize = this.options.iconSize || UI_CONSTANTS.iconButton.defaultSize;
     button.innerHTML = createSvgIcon(this.options.iconType, { size: iconSize });
     
     // Add title if provided

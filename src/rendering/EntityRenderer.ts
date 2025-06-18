@@ -15,6 +15,7 @@ import { UpgradeType } from '@/entities/Tower';
 import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
 import { ENTITY_RENDER, TOWER_RENDER, ENEMY_RENDER, PLAYER_RENDER, ANIMATION_CONFIG } from '../config/RenderingConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
+import { UI_CONSTANTS } from '../config/UIConstants';
 import type { Vector2 } from '@/utils/Vector2';
 
 export class EntityRenderer extends BaseRenderer {
@@ -74,11 +75,11 @@ export class EntityRenderer extends BaseRenderer {
       const level = tower.getUpgradeLevel(upgradeType);
       
       if (level > 0) {
-        const angle = (index * 120) * (Math.PI / 180); // 120 degrees apart
-        const distance = tower.radius + 8;
+        const angle = (index * ENTITY_RENDER.upgradeDots.angleSpacing) * (Math.PI / 180);
+        const distance = tower.radius + ENTITY_RENDER.upgradeDots.distanceOffset;
         
         for (let i = 0; i < level; i++) {
-          const dotDistance = distance + (i * 4);
+          const dotDistance = distance + (i * ENTITY_RENDER.upgradeDots.spacingCompact);
           const x = screenPos.x + Math.cos(angle) * dotDistance;
           const y = screenPos.y + Math.sin(angle) * dotDistance;
           
@@ -154,7 +155,7 @@ export class EntityRenderer extends BaseRenderer {
     
     // Draw target indicator line if enemy has a target
     const target = enemy.getTarget();
-    if (target && this.isVisible(target.position, 10)) {
+    if (target && this.isVisible(target.position, ENTITY_RENDER.visibility.minTargetDistance)) {
       const targetScreenPos = this.getScreenPosition(target);
       const lineColor = targetType === 'tower' ? this.hexToRgba(COLOR_THEME.ui.currency, 0.5) : this.hexToRgba(COLOR_THEME.ui.text.danger, 0.5);
       this.renderDashedLine(screenPos, targetScreenPos, lineColor, ENTITY_RENDER.lineWidths.thin, ENTITY_RENDER.dashPatterns.dotted);
@@ -197,8 +198,11 @@ export class EntityRenderer extends BaseRenderer {
 
   private renderPlayerPrimitive(player: Player, screenPos: Vector2): void {
     const level = player.getLevel();
-    const hue = Math.min(180 + level * 20, 280); // Blue to purple progression
-    const color = `hsl(${hue}, 70%, 60%)`;
+    const hue = Math.min(
+      PLAYER_RENDER.levelProgression.baseHue + level * PLAYER_RENDER.levelProgression.huePerLevel, 
+      PLAYER_RENDER.levelProgression.maxHue
+    );
+    const color = `hsl(${hue}, ${PLAYER_RENDER.levelProgression.saturation}%, ${PLAYER_RENDER.levelProgression.lightness}%)`;
     
     this.fillCircle(screenPos, player.radius, color);
     this.strokeCircle(screenPos, player.radius, COLOR_THEME.ui.text.primary, ENTITY_RENDER.lineWidths.normal);
@@ -211,7 +215,7 @@ export class EntityRenderer extends BaseRenderer {
       const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
       
       if (speed > 0) {
-        this.strokeCircle(screenPos, player.radius + 3, this.hexToRgba(COLOR_THEME.ui.text.primary, 0.3), ENTITY_RENDER.lineWidths.thin);
+        this.strokeCircle(screenPos, player.radius + PLAYER_RENDER.movementIndicatorOffset, this.hexToRgba(COLOR_THEME.ui.text.primary, 0.3), ENTITY_RENDER.lineWidths.thin);
       }
     }
     
@@ -221,9 +225,9 @@ export class EntityRenderer extends BaseRenderer {
       this.renderText(
         level.toString(),
         screenPos.x,
-        screenPos.y + 4,
+        screenPos.y + PLAYER_RENDER.levelTextOffset,
         COLOR_THEME.ui.text.primary,
-        'bold 10px Arial',
+        UI_CONSTANTS.fonts.levelIndicator,
         'center'
       );
     }
@@ -258,7 +262,7 @@ export class EntityRenderer extends BaseRenderer {
     // Glow effect
     this.renderWithGlow(() => {
       this.strokeCircle({ x: 0, y: 0 }, pickup.radius, this.hexToRgba(COLOR_THEME.player.fill, 0.3), ENTITY_RENDER.lineWidths.thin);
-    }, COLOR_THEME.player.fill, 10);
+    }, COLOR_THEME.player.fill, ENTITY_RENDER.glowEffects.healthPickup);
     
     this.restoreContext();
   }
@@ -270,14 +274,14 @@ export class EntityRenderer extends BaseRenderer {
     
     // Vertical line
     this.ctx.beginPath();
-    this.ctx.moveTo(0, -6);
-    this.ctx.lineTo(0, 6);
+    this.ctx.moveTo(0, -ENTITY_RENDER.pickups.health.crossSize);
+    this.ctx.lineTo(0, ENTITY_RENDER.pickups.health.crossSize);
     this.ctx.stroke();
     
     // Horizontal line  
     this.ctx.beginPath();
-    this.ctx.moveTo(-6, 0);
-    this.ctx.lineTo(6, 0);
+    this.ctx.moveTo(-ENTITY_RENDER.pickups.health.crossSize, 0);
+    this.ctx.lineTo(ENTITY_RENDER.pickups.health.crossSize, 0);
     this.ctx.stroke();
   }
 
@@ -313,7 +317,7 @@ export class EntityRenderer extends BaseRenderer {
     // Glow effect
     this.renderWithGlow(() => {
       this.strokeCircle({ x: 0, y: 0 }, powerUp.radius, this.hexToRgba(config.color, 0.3), ENTITY_RENDER.lineWidths.normal);
-    }, config.color, 15);
+    }, config.color, ENTITY_RENDER.glowEffects.powerUp);
     
     this.restoreContext();
   }
@@ -345,53 +349,58 @@ export class EntityRenderer extends BaseRenderer {
   }
 
   private renderSwordIcon(): void {
+    const size = ENTITY_RENDER.powerUpIcons.size;
     this.ctx.beginPath();
-    this.ctx.moveTo(-8, 8);
-    this.ctx.lineTo(8, -8);
-    this.ctx.lineTo(6, -10);
-    this.ctx.lineTo(-10, 6);
+    this.ctx.moveTo(-size, size);
+    this.ctx.lineTo(size, -size);
+    this.ctx.lineTo(size - 2, -size - 2);
+    this.ctx.lineTo(-size - 2, size - 2);
     this.ctx.closePath();
     this.ctx.fill();
     this.ctx.stroke();
   }
 
   private renderArrowIcon(): void {
+    const size = ENTITY_RENDER.powerUpIcons.size;
     this.ctx.beginPath();
-    this.ctx.moveTo(-8, 0);
-    this.ctx.lineTo(8, 0);
-    this.ctx.moveTo(4, -4);
-    this.ctx.lineTo(8, 0);
-    this.ctx.lineTo(4, 4);
+    this.ctx.moveTo(-size, 0);
+    this.ctx.lineTo(size, 0);
+    this.ctx.moveTo(size / 2, -size / 2);
+    this.ctx.lineTo(size, 0);
+    this.ctx.lineTo(size / 2, size / 2);
     this.ctx.stroke();
   }
 
   private renderCoinIcon(): void {
-    this.fillCircle({ x: 0, y: 0 }, 8, this.ctx.fillStyle as string);
-    this.strokeCircle({ x: 0, y: 0 }, 8, this.ctx.strokeStyle as string, ENTITY_RENDER.lineWidths.normal);
+    const size = ENTITY_RENDER.powerUpIcons.size;
+    this.fillCircle({ x: 0, y: 0 }, size, this.ctx.fillStyle as string);
+    this.strokeCircle({ x: 0, y: 0 }, size, this.ctx.strokeStyle as string, ENTITY_RENDER.lineWidths.normal);
     this.ctx.fillStyle = COLOR_THEME.ui.text.primary;
-    this.ctx.font = 'bold 10px Arial';
+    this.ctx.font = UI_CONSTANTS.fonts.coinIcon;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('$', 0, 3);
+    this.ctx.fillText('$', 0, ENTITY_RENDER.powerUpIcons.textOffset);
   }
 
   private renderShieldIcon(): void {
+    const radius = ENTITY_RENDER.powerUpIcons.shieldRadius;
     this.ctx.beginPath();
-    this.ctx.arc(0, 0, 8, 0, Math.PI);
-    this.ctx.lineTo(-8, 8);
-    this.ctx.lineTo(8, 8);
+    this.ctx.arc(0, 0, radius, 0, Math.PI);
+    this.ctx.lineTo(-radius, radius);
+    this.ctx.lineTo(radius, radius);
     this.ctx.closePath();
     this.ctx.fill();
     this.ctx.stroke();
   }
 
   private renderSpeedIcon(): void {
+    const size = ENTITY_RENDER.powerUpIcons.size;
     this.ctx.beginPath();
-    this.ctx.moveTo(-8, -4);
-    this.ctx.lineTo(8, -4);
-    this.ctx.moveTo(-6, 0);
-    this.ctx.lineTo(8, 0);
-    this.ctx.moveTo(-8, 4);
-    this.ctx.lineTo(8, 4);
+    this.ctx.moveTo(-size, -size / 2);
+    this.ctx.lineTo(size, -size / 2);
+    this.ctx.moveTo(-size * 0.75, 0);
+    this.ctx.lineTo(size, 0);
+    this.ctx.moveTo(-size, size / 2);
+    this.ctx.lineTo(size, size / 2);
     this.ctx.stroke();
   }
 
@@ -403,7 +412,7 @@ export class EntityRenderer extends BaseRenderer {
     const barWidth = ENTITY_RENDER.healthBar.width;
     const barHeight = ENTITY_RENDER.healthBar.height;
     const x = screenPos.x - barWidth / 2;
-    const y = screenPos.y - entity.radius - 10;
+    const y = screenPos.y - entity.radius - ENTITY_RENDER.healthBar.offset;
     
     // Background
     this.ctx.fillStyle = ENTITY_RENDER.healthBar.backgroundColor;

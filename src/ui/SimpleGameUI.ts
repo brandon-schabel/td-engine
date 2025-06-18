@@ -294,18 +294,18 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   towerPlacementIndicator.id = 'tower-placement-indicator';
   towerPlacementIndicator.style.cssText = `
     position: fixed;
-    top: 10px;
+    top: ${UI_CONSTANTS.towerPlacementIndicator.top}px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(76, 175, 80, 0.9);
+    background: ${UI_CONSTANTS.towerPlacementIndicator.background};
     color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 14px;
+    padding: ${UI_CONSTANTS.towerPlacementIndicator.padding.vertical}px ${UI_CONSTANTS.towerPlacementIndicator.padding.horizontal}px;
+    border-radius: ${UI_CONSTANTS.towerPlacementIndicator.borderRadius}px;
+    font-size: ${UI_CONSTANTS.towerPlacementIndicator.fontSize}px;
     font-weight: bold;
     display: none;
     pointer-events: none;
-    z-index: 100;
+    z-index: ${UI_CONSTANTS.zIndex.ui};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     transition: opacity 0.3s ease;
   `;

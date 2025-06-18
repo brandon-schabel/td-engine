@@ -572,11 +572,35 @@
         }
       }
       
-      /* Ensure portrait mode stays centered on Safari */
+      /* Ensure portrait mode stays centered on Safari with shorter navbar */
       @media (orientation: portrait) {
+        :root {
+          --ui-bottom-height: 45px; /* Shorter than default 60px for portrait Safari */
+        }
+        
         #bottom-ui-container {
           justify-content: center !important;
           gap: 8px !important;
+          height: calc(45px + env(safe-area-inset-bottom, 0px)) !important;
+          min-height: calc(45px + env(safe-area-inset-bottom, 0px)) !important;
+          max-height: calc(45px + env(safe-area-inset-bottom, 0px)) !important;
+          padding: 4px 10px !important;
+        }
+        
+        /* Smaller buttons for portrait Safari */
+        #bottom-ui-container .ui-button {
+          min-height: 32px !important;
+          max-height: 32px !important;
+          font-size: 10px !important;
+          padding: 4px 8px !important;
+        }
+        
+        #bottom-ui-container .ui-button.icon-only {
+          width: 32px !important;
+          height: 32px !important;
+          min-width: 32px !important;
+          max-width: 32px !important;
+          padding: 4px !important;
         }
       }
     }

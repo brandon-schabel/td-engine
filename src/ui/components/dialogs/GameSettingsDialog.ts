@@ -19,7 +19,7 @@ export class GameSettingsDialog extends BaseDialog {
     super({
       title: 'Game Settings',
       width: DIALOG_CONFIG.sizes.large,
-      closeable: true,
+      closeable: false,
       modal: true,
       audioManager: options.audioManager,
       className: 'game-settings-dialog'

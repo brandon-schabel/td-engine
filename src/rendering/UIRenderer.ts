@@ -10,7 +10,7 @@ import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
 import { HUD_CONFIG } from '../config/UIConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
 import { UI_CONSTANTS } from '../config/UIConstants';
-import { ENTITY_RENDER } from '../config/RenderingConfig';
+import { ENTITY_RENDER, UI_RENDER } from '../config/RenderingConfig';
 
 export class UIRenderer extends BaseRenderer {
 
@@ -93,10 +93,10 @@ export class UIRenderer extends BaseRenderer {
       success: COLOR_THEME.ui.text.success
     };
 
-    const x = this.canvas.width - 320;
-    const y = 50;
-    const width = UI_CONSTANTS.floatingUI.maxWidth;
-    const height = 60;
+    const x = this.canvas.width - UI_RENDER.notification.width - UI_RENDER.notification.x;
+    const y = UI_RENDER.notification.y;
+    const width = UI_RENDER.notification.width;
+    const height = UI_RENDER.notification.height;
 
     // Background
     this.ctx.fillStyle = COLOR_THEME.ui.background.overlay;
@@ -108,9 +108,9 @@ export class UIRenderer extends BaseRenderer {
     this.ctx.strokeRect(x, y, width, height);
 
     // Icon
-    const iconX = x + 15;
+    const iconX = x + UI_RENDER.notification.padding;
     const iconY = y + height / 2;
-    this.fillCircle({ x: iconX, y: iconY }, 8, colors[type]);
+    this.fillCircle({ x: iconX, y: iconY }, UI_RENDER.notification.iconRadius, colors[type]);
 
     // Message
     this.renderText(
@@ -286,7 +286,9 @@ export class UIRenderer extends BaseRenderer {
     const x = this.canvas.width - 80;
     const y = 30;
     
-    const color = fps > 45 ? COLOR_THEME.ui.text.success : fps > 30 ? COLOR_THEME.ui.text.warning : COLOR_THEME.ui.text.danger;
+    const color = fps > UI_RENDER.fps.thresholds.good ? COLOR_THEME.ui.text.success : 
+                   fps > UI_RENDER.fps.thresholds.warning ? COLOR_THEME.ui.text.warning : 
+                   COLOR_THEME.ui.text.danger;
     
     this.renderText(
       `FPS: ${Math.round(fps)}`,

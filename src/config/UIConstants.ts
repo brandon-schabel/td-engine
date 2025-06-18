@@ -19,6 +19,7 @@ export const UI_CONSTANTS = {
       bottom: 30,
       left: 30,
     },
+    deadZone: 0.2,
   },
 
   // Mobile controls
@@ -184,8 +185,8 @@ export const UI_CONSTANTS = {
 
   // General spacing
   spacing: {
-    xs: 5,
-    sm: 10,
+    xs: 4,
+    sm: 8,
     md: 15,
     lg: 20,
     xl: 30,
@@ -201,6 +202,45 @@ export const UI_CONSTANTS = {
     modal: 400,
     tooltip: 500,
     debug: 1000,
+  },
+  
+  // Haptic feedback
+  hapticFeedback: {
+    light: 10,
+    medium: 25,
+    heavy: 50,
+  },
+  
+  // Font definitions
+  fonts: {
+    levelIndicator: 'bold 10px Arial',
+    coinIcon: 'bold 10px Arial',
+    debug: '14px monospace',
+  },
+  
+  // Power-up display
+  powerUpDisplay: {
+    position: {
+      top: 110,
+      right: 10,
+    },
+  },
+  
+  // Tower placement indicator
+  towerPlacementIndicator: {
+    background: 'rgba(76, 175, 80, 0.9)',
+    padding: {
+      vertical: 8,
+      horizontal: 16,
+    },
+    borderRadius: 20,
+    fontSize: 14,
+    top: 10,
+  },
+  
+  // Icon button defaults
+  iconButton: {
+    defaultSize: 18,
   },
 } as const;
 

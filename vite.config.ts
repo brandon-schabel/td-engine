@@ -7,6 +7,7 @@ export default defineConfig({
   base: "/td-engine/",
   server: {
     port: 4020,
+    host: "0.0.0.0",
   },
   test: {
     globals: true,

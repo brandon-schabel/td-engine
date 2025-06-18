@@ -20,7 +20,7 @@ export class VirtualJoystick {
   private readonly baseSize = UI_CONSTANTS.virtualJoystick.base.size;
   private readonly knobSize = UI_CONSTANTS.virtualJoystick.knob.size;
   private readonly maxDistance = UI_CONSTANTS.virtualJoystick.knob.maxDistance;
-  private readonly deadZone = 0.2;
+  private readonly deadZone = UI_CONSTANTS.virtualJoystick.deadZone;
   
   private onMove: (event: JoystickEvent) => void;
   private settings = SettingsManager.getInstance();
@@ -43,8 +43,8 @@ export class VirtualJoystick {
       width: ${this.baseSize}px;
       height: ${this.baseSize}px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.4);
+      background: ${COLOR_THEME.ui.controls.joystick.base};
+      border: 2px solid ${COLOR_THEME.ui.controls.joystick.baseBorder};
       opacity: ${UI_CONSTANTS.virtualJoystick.base.opacity};
       transition: opacity ${ANIMATION_CONFIG.durations.uiTransition}ms;
       pointer-events: auto;
@@ -61,8 +61,8 @@ export class VirtualJoystick {
       width: ${this.knobSize}px;
       height: ${this.knobSize}px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.5);
-      border: 2px solid rgba(255, 255, 255, 0.8);
+      background: ${COLOR_THEME.ui.controls.joystick.knob};
+      border: 2px solid ${COLOR_THEME.ui.controls.joystick.knobBorder};
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
@@ -245,7 +245,9 @@ export class VirtualJoystick {
     if (!settings.hapticFeedbackEnabled) return;
     
     if ('vibrate' in navigator) {
-      const duration = intensity === 'light' ? 10 : intensity === 'medium' ? 25 : 50;
+      const duration = intensity === 'light' ? UI_CONSTANTS.hapticFeedback.light : 
+                       intensity === 'medium' ? UI_CONSTANTS.hapticFeedback.medium : 
+                       UI_CONSTANTS.hapticFeedback.heavy;
       navigator.vibrate(duration);
     }
   }
