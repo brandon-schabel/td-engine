@@ -113,6 +113,7 @@ export class Game {
       maxZoom: 3.0,
       zoomSpeed: 0.15,
       zoomSmoothing: 0.12,
+      smoothing: 0.04,
     };
     
     // Get logical dimensions for camera (accounting for pixel ratio scaling)
@@ -798,6 +799,19 @@ export class Game {
       // Place new tower
       if (this.placeTower(this.selectedTowerType, worldPos)) {
         console.log('[DEBUG] Tower placed successfully');
+        // Clear selection after successful placement on mobile
+        if ('ontouchstart' in window) {
+          this.selectedTowerType = null;
+          // Dispatch event to update UI
+          const towerPlacedEvent = new CustomEvent('towerPlaced');
+          document.dispatchEvent(towerPlacedEvent);
+        }
+      } else {
+        console.log('[DEBUG] Tower placement failed');
+        // Provide feedback for failed placement
+        if ('vibrate' in navigator) {
+          navigator.vibrate([50, 50, 50]); // Error vibration pattern
+        }
       }
     } else {
       // Manual shooting - start click and hold

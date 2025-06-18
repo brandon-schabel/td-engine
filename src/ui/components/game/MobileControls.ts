@@ -257,6 +257,11 @@ export class MobileControls {
 
     // Global touch events on window for better multi-touch tracking
     window.addEventListener('touchmove', (e: TouchEvent) => {
+      // Don't handle if we're in tower placement mode
+      if (this.game.getSelectedTowerType()) {
+        return;
+      }
+      
       if (this.isAimActive) {
         this.handleAimUpdate(e);
       }
@@ -308,6 +313,11 @@ export class MobileControls {
   }
 
   private handleAimStart(e: TouchEvent | MouseEvent): void {
+    // Don't start aiming if we're in tower placement mode
+    if (this.game.getSelectedTowerType()) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     
@@ -433,6 +443,11 @@ export class MobileControls {
   }
 
   private handleMoveStart(e: TouchEvent | MouseEvent): void {
+    // Don't start movement if we're in tower placement mode
+    if (this.game.getSelectedTowerType()) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     

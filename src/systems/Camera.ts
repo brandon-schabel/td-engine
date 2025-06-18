@@ -30,7 +30,7 @@ export class Camera {
   
   // Following settings
   private followTarget: boolean = true;
-  private smoothing: number = 0.15;
+  private smoothing: number = 0.04;
   
   // Zoom system
   private zoom: number = 1.0;

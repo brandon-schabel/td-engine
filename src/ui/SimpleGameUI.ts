@@ -160,6 +160,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         selectedTowerButton = null;
         game.setSelectedTowerType(null);
         audioManager.playUISound(SoundType.DESELECT);
+        updateTowerPlacementIndicator();
       } else {
         // Select new tower type
         selectedTowerButton = button;
@@ -169,6 +170,9 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         // Auto-close build panel after selection
         buildPanel.style.display = 'none';
         activePanel = null;
+        
+        // Update mobile indicator immediately
+        updateTowerPlacementIndicator();
       }
     });
     
@@ -200,6 +204,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     }
     game.setSelectedTowerType(null);
     audioManager.playUISound(SoundType.DESELECT);
+    updateTowerPlacementIndicator();
   });
   buildPanel.appendChild(cancelButton);
 
@@ -440,6 +445,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   setInterval(() => {
     updateTowerUpgradePanel();
     updatePlayerUpgradePanel();
+    updateTowerPlacementIndicator();
   }, 100);
 
   // Create player upgrade panel (initially hidden)
@@ -1052,6 +1058,57 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   controlBar.appendChild(settingsButton);
 
   gameContainer.appendChild(controlBar);
+
+  // Create mobile tower placement indicator
+  const towerPlacementIndicator = document.createElement('div');
+  towerPlacementIndicator.id = 'tower-placement-indicator';
+  towerPlacementIndicator.style.cssText = `
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    display: none;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.3s ease;
+  `;
+  gameContainer.appendChild(towerPlacementIndicator);
+
+  // Update tower placement indicator when tower type changes
+  const updateTowerPlacementIndicator = () => {
+    const selectedType = game.getSelectedTowerType();
+    const isMobile = 'ontouchstart' in window;
+    
+    if (selectedType && isMobile) {
+      const towerNames: Record<string, string> = {
+        'BASIC': 'Basic Tower',
+        'SNIPER': 'Sniper Tower',
+        'RAPID': 'Rapid Tower',
+        'WALL': 'Wall'
+      };
+      const towerName = towerNames[selectedType] || selectedType;
+      towerPlacementIndicator.innerHTML = `📍 Tap to place ${towerName}`;
+      towerPlacementIndicator.style.display = 'block';
+    } else {
+      towerPlacementIndicator.style.display = 'none';
+    }
+  };
+
+  // Listen for tower placed event to clear selection
+  document.addEventListener('towerPlaced', () => {
+    if (selectedTowerButton) {
+      selectedTowerButton.classList.remove('selected');
+      selectedTowerButton = null;
+    }
+    updateTowerPlacementIndicator();
+  });
 
   // Create pause overlay (initially hidden)
   const pauseOverlay = document.createElement('div');

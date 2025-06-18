@@ -59,7 +59,7 @@ function resizeCanvas() {
       // Adjust zoom based on screen size
       const isMobile = window.innerWidth <= 768 || "ontouchstart" in window;
       if (isMobile) {
-        const baseZoom = Math.min(width / 1200, height / 800) * 0.9;
+        const baseZoom = Math.min(width / 1200, height / 800) * 0.7;
         camera.setZoom(Math.max(0.5, baseZoom));
       }
     }
