@@ -1305,9 +1305,6 @@ export class Game {
     return this.audioHandler;
   }
 
-  getProjectiles(): Projectile[] {
-    return this.projectiles;
-  }
 
   // Map generation methods
   getCurrentMapData(): MapData {

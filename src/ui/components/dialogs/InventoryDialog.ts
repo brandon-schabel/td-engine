@@ -47,10 +47,7 @@ export class InventoryDialog extends BaseDialog {
     this.game = options.game;
     this.inventory = options.inventory;
     
-    this.tooltip = new ItemTooltip({
-      game: options.game,
-      audioManager: options.audioManager
-    });
+    this.tooltip = new ItemTooltip();
     
     this.buildContent();
     this.setupInventoryListeners();
@@ -134,9 +131,6 @@ export class InventoryDialog extends BaseDialog {
     
     footer.appendChild(statsContainer);
     footer.appendChild(actionsContainer);
-    
-    // Mount tooltip to content
-    this.tooltip.mount(this.content);
     
     // Initial update
     this.updateSlots();
@@ -242,18 +236,27 @@ export class InventoryDialog extends BaseDialog {
     
     for (let i = 0; i < totalSlots; i++) {
       const slot = new ItemSlot({
-        slotIndex: i,
+        index: i,
         item: null,
-        game: this.game,
-        audioManager: this.options.audioManager!,
-        onClick: (index, item) => this.handleSlotClick(index, item),
-        onHover: (index, item, event) => this.handleSlotHover(index, item, event),
-        onDragStart: (index) => this.handleSlotDragStart(index),
-        onDragEnd: (fromSlot, toSlot) => this.handleSlotDragEnd(fromSlot, toSlot)
+        onSelect: (index) => this.handleSlotClick(index, null),
+        onHover: (index) => {
+          const slots = this.inventory.getSlots();
+          const item = slots[index]?.item || null;
+          if (item) {
+            // Show tooltip at mouse position
+            const mouseEvent = window.event as MouseEvent;
+            if (mouseEvent) {
+              this.tooltip.show(item, mouseEvent.clientX, mouseEvent.clientY);
+            }
+          } else {
+            this.tooltip.hide();
+          }
+        },
+        onDrop: (fromSlot, toSlot) => this.handleSlotDragEnd(fromSlot, toSlot)
       });
       
       this.itemSlots.push(slot);
-      slot.mount(this.grid!);
+      this.grid!.appendChild(slot.getElement());
     }
   }
   
@@ -308,19 +311,28 @@ export class InventoryDialog extends BaseDialog {
     while (this.itemSlots.length < slots.length) {
       const slotIndex = this.itemSlots.length;
       const slot = new ItemSlot({
-        slotIndex,
+        index: slotIndex,
         item: null,
-        game: this.game,
-        audioManager: this.options.audioManager!,
-        onClick: (index, item) => this.handleSlotClick(index, item),
-        onHover: (index, item, event) => this.handleSlotHover(index, item, event),
-        onDragStart: (index) => this.handleSlotDragStart(index),
-        onDragEnd: (fromSlot, toSlot) => this.handleSlotDragEnd(fromSlot, toSlot)
+        onSelect: (index) => this.handleSlotClick(index, null),
+        onHover: (index) => {
+          const slots = this.inventory.getSlots();
+          const item = slots[index]?.item || null;
+          if (item) {
+            // Show tooltip at mouse position
+            const mouseEvent = window.event as MouseEvent;
+            if (mouseEvent) {
+              this.tooltip.show(item, mouseEvent.clientX, mouseEvent.clientY);
+            }
+          } else {
+            this.tooltip.hide();
+          }
+        },
+        onDrop: (fromSlot, toSlot) => this.handleSlotDragEnd(fromSlot, toSlot)
       });
       
       this.itemSlots.push(slot);
       if (this.grid) {
-        slot.mount(this.grid);
+        this.grid.appendChild(slot.getElement());
       }
     }
     
@@ -332,15 +344,11 @@ export class InventoryDialog extends BaseDialog {
         
         // Apply tab filtering
         const shouldShow = this.shouldShowItem(item);
-        slot.updateProps({ 
-          item: shouldShow ? item : null,
-          visible: shouldShow
-        });
+        slot.setItem(shouldShow ? item : null);
+        slot.getElement().style.display = shouldShow ? 'block' : 'none';
       } else {
-        slot.updateProps({
-          item: null,
-          visible: false
-        });
+        slot.setItem(null);
+        slot.getElement().style.display = 'none';
       }
     });
     
@@ -398,9 +406,14 @@ export class InventoryDialog extends BaseDialog {
   
   private updateSlotSelection(): void {
     this.itemSlots.forEach((slot, index) => {
-      slot.updateProps({ 
-        selected: index === this.selectedSlot 
-      });
+      const element = slot.getElement();
+      if (index === this.selectedSlot) {
+        element.style.borderColor = '#4CAF50';
+        element.style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.5)';
+      } else {
+        element.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        element.style.boxShadow = 'none';
+      }
     });
     
     // Update use button
@@ -434,7 +447,7 @@ export class InventoryDialog extends BaseDialog {
   }
   
   private useItem(slotIndex: number, item: InventoryItem): void {
-    const success = this.game.useInventoryItem(slotIndex);
+    const success = this.game.useInventoryItem(slotIndex, 1);
     
     if (success) {
       this.playSound(SoundType.TOWER_UPGRADE);
@@ -471,7 +484,10 @@ export class InventoryDialog extends BaseDialog {
   }
   
   protected onDestroy(): void {
-    this.tooltip.unmount();
-    this.itemSlots.forEach(slot => slot.unmount());
+    // Clean up tooltip if it has a cleanup method
+    if ('cleanup' in this.tooltip && typeof this.tooltip.cleanup === 'function') {
+      this.tooltip.cleanup();
+    }
+    this.itemSlots.forEach(slot => slot.cleanup());
   }
 }

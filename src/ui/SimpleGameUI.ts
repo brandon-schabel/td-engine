@@ -39,7 +39,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   // Initialize dialogs
   const initializeDialogs = () => {
-    console.log('[SimpleGameUI] Checking for existing dialogs...');
+    console.log('[SimpleGameUI] Initializing dialogs...');
+    try {
     
     // Check if dialogs are already registered from main.ts
     // If they are, just get references to them
@@ -99,7 +100,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
           audioManager.setMuted(muted);
         }
       });
-      dialogManager.register('settings', settingsDialog);
+      dialogManager.register('gameSettings', settingsDialog);
     }
 
     // Pause Dialog - should already be registered
@@ -115,12 +116,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
           game.resume();
         },
         onSettings: () => {
-          // Try gameSettings first, then settings
-          if (dialogManager.getDialog('gameSettings')) {
-            dialogManager.show('gameSettings');
-          } else {
-            dialogManager.show('settings');
-          }
+          // Always show gameSettings dialog (it should exist from early initialization)
+          dialogManager.show('gameSettings');
         },
         onRestart: () => {
           if (confirm('Are you sure you want to restart the game?')) {
@@ -138,26 +135,43 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     
     console.log('[SimpleGameUI] Dialog initialization complete');
     // Note: We can't directly access private dialogs Map, but we know what should be registered
+    } catch (error) {
+      console.error('[SimpleGameUI] Error initializing dialogs:', error);
+    }
   };
 
-  // Create bottom control bar
-  const controlBar = document.createElement('div');
-  controlBar.className = 'control-bar';
-  controlBar.style.cssText = `
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: clamp(50px, 10vh, 60px);
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
-    border-top: 2px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(8px, 2vw, 12px);
-    padding: 0 clamp(10px, 2vw, 20px);
-    z-index: 1000;
-  `;
+  // Use the existing bottom UI container if available, otherwise create control bar
+  let controlBar = document.getElementById('bottom-ui-container');
+  if (!controlBar) {
+    console.log('[SimpleGameUI] Creating new control bar (bottom-ui-container not found)');
+    controlBar = document.createElement('div');
+    controlBar.className = 'control-bar';
+    controlBar.style.cssText = `
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: clamp(50px, 10vh, 60px);
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+      border-top: 2px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(8px, 2vw, 12px);
+      padding: 0 clamp(10px, 2vw, 20px);
+      z-index: 1000;
+    `;
+    gameContainer.appendChild(controlBar);
+  } else {
+    console.log('[SimpleGameUI] Using existing bottom-ui-container');
+    // Clear existing content
+    controlBar.innerHTML = '';
+    // Ensure it has the right styles
+    controlBar.style.display = 'flex';
+    controlBar.style.alignItems = 'center';
+    controlBar.style.justifyContent = 'center';
+    controlBar.style.gap = 'clamp(8px, 2vw, 12px)';
+  }
 
   // Create control buttons
   const createControlButton = (iconType: IconType, title: string, onClick: () => void) => {
@@ -191,6 +205,21 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       console.warn('[SimpleGameUI] Game not initialized yet');
       return;
     }
+    // Check if build menu dialog exists, create if needed
+    if (!dialogManager.getDialog('buildMenu')) {
+      console.warn('[SimpleGameUI] Build menu dialog not found, creating...');
+      const tempBuildDialog = new BuildMenuDialogAdapter({
+        game,
+        audioManager,
+        onTowerSelected: (type) => {
+          updateTowerPlacementIndicator();
+        },
+        onClosed: () => {
+          updateTowerPlacementIndicator();
+        }
+      });
+      dialogManager.register('buildMenu', tempBuildDialog);
+    }
     dialogManager.toggle('buildMenu');
   });
 
@@ -201,6 +230,27 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   const inventoryButton = createControlButton(IconType.INVENTORY, 'Inventory (E)', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
+    if (!game) {
+      console.warn('[SimpleGameUI] Game not initialized yet');
+      return;
+    }
+    // Check if inventory dialog exists, create if needed
+    if (!dialogManager.getDialog('inventory')) {
+      console.warn('[SimpleGameUI] Inventory dialog not found, creating...');
+      try {
+        const tempInventoryDialog = new InventoryDialogAdapter({
+          game,
+          audioManager,
+          onItemSelected: (item, slot) => {
+            // Additional item selection logic if needed
+          }
+        });
+        dialogManager.register('inventory', tempInventoryDialog);
+      } catch (error) {
+        console.error('[SimpleGameUI] Failed to create inventory dialog:', error);
+        return;
+      }
+    }
     dialogManager.toggle('inventory');
   });
 
@@ -224,12 +274,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   const settingsButton = createControlButton(IconType.SETTINGS, 'Settings', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
-    // Try gameSettings first, then settings
-    if (dialogManager.getDialog('gameSettings')) {
-      dialogManager.toggle('gameSettings');
-    } else {
-      dialogManager.toggle('settings');
-    }
+    // Always use gameSettings for consistency
+    dialogManager.toggle('gameSettings');
   });
 
   // Add buttons to control bar
@@ -239,8 +285,13 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   controlBar.appendChild(startWaveButton);
   controlBar.appendChild(pauseButton);
   controlBar.appendChild(settingsButton);
-
-  gameContainer.appendChild(controlBar);
+  
+  // Only append if we created a new control bar
+  if (!document.getElementById('bottom-ui-container')) {
+    console.log('[SimpleGameUI] Appending control bar to game container...');
+    gameContainer.appendChild(controlBar);
+    console.log('[SimpleGameUI] Control bar added to DOM');
+  }
 
   // Create mobile tower placement indicator
   const towerPlacementIndicator = document.createElement('div');
@@ -382,12 +433,47 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
     switch (e.key.toLowerCase()) {
       case 'b':
+        if (!game) {
+          console.warn('[SimpleGameUI] Game not initialized yet');
+          return;
+        }
+        // Check if build menu dialog exists, create if needed
+        if (!dialogManager.getDialog('buildMenu')) {
+          console.warn('[SimpleGameUI] Build menu dialog not found, creating...');
+          const tempBuildDialog = new BuildMenuDialogAdapter({
+            game,
+            audioManager,
+            onTowerSelected: (type) => {
+              updateTowerPlacementIndicator();
+            },
+            onClosed: () => {
+              updateTowerPlacementIndicator();
+            }
+          });
+          dialogManager.register('buildMenu', tempBuildDialog);
+        }
         dialogManager.toggle('buildMenu');
         break;
       case 'u':
         showPlayerUpgradeDialog();
         break;
       case 'e':
+        if (!game) {
+          console.warn('[SimpleGameUI] Game not initialized yet');
+          return;
+        }
+        // Check if inventory dialog exists, create if needed
+        if (!dialogManager.getDialog('inventory')) {
+          console.warn('[SimpleGameUI] Inventory dialog not found, creating...');
+          const tempInventoryDialog = new InventoryDialogAdapter({
+            game,
+            audioManager,
+            onItemSelected: (item, slot) => {
+              // Additional item selection logic if needed
+            }
+          });
+          dialogManager.register('inventory', tempInventoryDialog);
+        }
         dialogManager.toggle('inventory');
         break;
       case ' ':

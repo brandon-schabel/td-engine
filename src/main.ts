@@ -136,44 +136,54 @@ function initializeEarlyDialogs() {
   });
   dialogManager.register('pause', pauseDialog);
   
-  console.log('[Main] Early dialogs initialized');
+  console.log('[Main] Early dialogs initialized: gameSettings, pause');
 }
 
 // Initialize dialogs that require a game instance
 function initializeGameDialogs(gameInstance: GameWithEvents) {
   console.log('[Main] Initializing game-dependent dialogs...');
   
-  // Build Menu Dialog
-  if (buildMenuDialog) {
-    dialogManager.unregister('buildMenu');
-  }
-  buildMenuDialog = new BuildMenuDialogAdapter({
-    game: gameInstance,
-    audioManager,
-    onTowerSelected: (type) => {
-      // Tower selection is handled by the adapter
-    },
-    onClosed: () => {
-      // Additional cleanup if needed
+  try {
+    // Build Menu Dialog
+    if (buildMenuDialog) {
+      dialogManager.unregister('buildMenu');
     }
-  });
-  dialogManager.register('buildMenu', buildMenuDialog);
+    buildMenuDialog = new BuildMenuDialogAdapter({
+      game: gameInstance,
+      audioManager,
+      onTowerSelected: (type) => {
+        // Tower selection is handled by the adapter
+      },
+      onClosed: () => {
+        // Additional cleanup if needed
+      }
+    });
+    dialogManager.register('buildMenu', buildMenuDialog);
+    console.log('[Main] Build menu dialog registered successfully');
+  } catch (error) {
+    console.error('[Main] Failed to initialize build menu dialog:', error);
+  }
 
-  // Inventory Dialog
-  if (inventoryDialog) {
-    dialogManager.unregister('inventory');
-  }
-  inventoryDialog = new InventoryDialogAdapter({
-    game: gameInstance,
-    audioManager,
-    onItemSelected: (item, slot) => {
-      // Item selection is handled by the adapter
+  try {
+    // Inventory Dialog
+    if (inventoryDialog) {
+      dialogManager.unregister('inventory');
     }
-  });
-  dialogManager.register('inventory', inventoryDialog);
+    inventoryDialog = new InventoryDialogAdapter({
+      game: gameInstance,
+      audioManager,
+      onItemSelected: (item, slot) => {
+        // Item selection is handled by the adapter
+      }
+    });
+    dialogManager.register('inventory', inventoryDialog);
+    console.log('[Main] Inventory dialog registered successfully');
+  } catch (error) {
+    console.error('[Main] Failed to initialize inventory dialog:', error);
+  }
   
-  console.log('[Main] Game dialogs initialized');
-  // Note: dialogs is private, but we know what we've registered
+  console.log('[Main] Game dialogs initialization complete');
+  console.log('[Main] All registered dialogs: buildMenu, inventory, gameSettings, pause');
 }
 
 // Initialize game with settings
