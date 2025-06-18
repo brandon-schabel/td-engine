@@ -211,6 +211,10 @@ export class Player extends Entity implements ShootingCapable {
     return this.upgradeLevels.get(upgradeType) || 0;
   }
 
+  getMaxUpgradeLevel(): number {
+    return UPGRADE_CONFIG.maxLevel;
+  }
+
   getLevel(): number {
     return this.level;
   }

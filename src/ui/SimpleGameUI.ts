@@ -14,6 +14,8 @@ import {
   SettingsDialog,
   PauseDialog
 } from './components/dialogs';
+import { DebugDialogWrapper } from './DebugDialogWrapper';
+import { DialogShowFix } from './DialogShowFix';
 
 export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById('game-container');
@@ -32,7 +34,6 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Dialog instances
   let buildMenuDialog: BuildMenuDialogAdapter;
   let towerUpgradeDialog: UpgradeDialogAdapter | null = null;
-  let playerUpgradeDialog: UpgradeDialogAdapter | null = null;
   let inventoryDialog: InventoryDialogAdapter;
   let settingsDialog: SettingsDialog;
   let pauseDialog: PauseDialog;
@@ -229,29 +230,13 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   });
 
   const inventoryButton = createControlButton(IconType.INVENTORY, 'Inventory (E)', () => {
+    console.log('[SimpleGameUI] Inventory button clicked - using DialogShowFix');
     audioManager.playUISound(SoundType.BUTTON_CLICK);
     if (!game) {
       console.warn('[SimpleGameUI] Game not initialized yet');
       return;
     }
-    // Check if inventory dialog exists, create if needed
-    if (!dialogManager.getDialog('inventory')) {
-      console.warn('[SimpleGameUI] Inventory dialog not found, creating...');
-      try {
-        const tempInventoryDialog = new InventoryDialogAdapter({
-          game,
-          audioManager,
-          onItemSelected: (item, slot) => {
-            // Additional item selection logic if needed
-          }
-        });
-        dialogManager.register('inventory', tempInventoryDialog);
-      } catch (error) {
-        console.error('[SimpleGameUI] Failed to create inventory dialog:', error);
-        return;
-      }
-    }
-    dialogManager.toggle('inventory');
+    DialogShowFix.ensureInventoryDialog(game, audioManager);
   });
 
   const startWaveButton = createControlButton(IconType.PLAY, 'Start Next Wave (Enter)', () => {
@@ -373,51 +358,32 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   // Show player upgrade dialog
   const showPlayerUpgradeDialog = () => {
-    const player = game.getPlayer();
-    if (!player) return;
-
-    // Create or update player upgrade dialog
-    if (!playerUpgradeDialog) {
-      playerUpgradeDialog = new UpgradeDialogAdapter({
-        game,
-        target: player,
-        audioManager,
-        onUpgraded: (type, cost) => {
-          // Additional upgrade logic if needed
-        },
-        onClosed: () => {
-          // Keep the dialog instance for reuse
-        }
-      });
-      dialogManager.register('playerUpgrade', playerUpgradeDialog);
-    }
-
-    dialogManager.toggle('playerUpgrade');
+    console.log('[SimpleGameUI] showPlayerUpgradeDialog called - using DialogShowFix');
+    DialogShowFix.ensurePlayerUpgradeDialog(game, audioManager);
   };
 
   // Listen for tower selection events
-  let currentSelectedTower: Tower | null = null;
-  
-  const handleTowerSelection = () => {
-    const selectedTower = game.getSelectedTower();
+  const handleTowerSelected = (event: CustomEvent) => {
+    const tower = event.detail.tower;
+    console.log('[SimpleGameUI] Tower selected:', tower.towerType, 'at', tower.position);
+    showTowerUpgradeDialog(tower);
+  };
+
+  const handleTowerDeselected = (event: CustomEvent) => {
+    const tower = event.detail.tower;
+    console.log('[SimpleGameUI] Tower deselected:', tower.towerType);
     
-    if (selectedTower !== currentSelectedTower) {
-      // Close current tower upgrade dialog if open
-      if (currentSelectedTower && towerUpgradeDialog) {
-        dialogManager.hide('towerUpgrade');
-      }
-      
-      currentSelectedTower = selectedTower;
-      
-      // Open new dialog for selected tower
-      if (selectedTower) {
-        showTowerUpgradeDialog(selectedTower);
-      }
+    // Close tower upgrade dialog if it's for this tower
+    if (towerUpgradeDialog && game.isTowerSelected(tower) === false) {
+      dialogManager.hide('towerUpgrade');
+      dialogManager.unregister('towerUpgrade');
+      towerUpgradeDialog = null;
     }
   };
 
-  // Check for tower selection changes periodically
-  setInterval(handleTowerSelection, 100);
+  // Add event listeners for tower selection
+  document.addEventListener('towerSelected', handleTowerSelected as EventListener);
+  document.addEventListener('towerDeselected', handleTowerDeselected as EventListener);
 
   // Keyboard shortcuts
   const handleKeyPress = (e: KeyboardEvent) => {
@@ -462,19 +428,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
           console.warn('[SimpleGameUI] Game not initialized yet');
           return;
         }
-        // Check if inventory dialog exists, create if needed
-        if (!dialogManager.getDialog('inventory')) {
-          console.warn('[SimpleGameUI] Inventory dialog not found, creating...');
-          const tempInventoryDialog = new InventoryDialogAdapter({
-            game,
-            audioManager,
-            onItemSelected: (item, slot) => {
-              // Additional item selection logic if needed
-            }
-          });
-          dialogManager.register('inventory', tempInventoryDialog);
-        }
-        dialogManager.toggle('inventory');
+        DialogShowFix.ensureInventoryDialog(game, audioManager);
         break;
       case ' ':
         e.preventDefault();
@@ -613,6 +567,90 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   setInterval(updateWaveDisplay, 100);
   gameContainer.appendChild(waveDisplay);
+  
+  // Create camera controls right after wave display - they should appear directly below it
+  const cameraControlsDisplay = document.createElement('div');
+  cameraControlsDisplay.id = 'camera-controls-display';
+  cameraControlsDisplay.style.cssText = `
+    position: absolute;
+    top: 60px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #00BCD4;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #00BCD4;
+    font-weight: bold;
+    font-size: clamp(14px, 3vw, 18px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+
+  // Camera icon and controls
+  const cameraIcon = createSvgIcon(IconType.CAMERA, { size: 20 });
+  const zoomInIcon = createSvgIcon(IconType.ZOOM_IN, { size: 18 });
+  const zoomOutIcon = createSvgIcon(IconType.ZOOM_OUT, { size: 18 });
+  const resetIcon = createSvgIcon(IconType.RESET_ZOOM, { size: 18 });
+  
+  cameraControlsDisplay.innerHTML = `
+    <span>${cameraIcon}</span>
+    <span style="display: flex; align-items: center; gap: 6px;">
+      <button class="zoom-btn zoom-in" style="background: none; border: none; color: #00BCD4; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" title="Zoom In">${zoomInIcon}</button>
+      <button class="zoom-btn zoom-out" style="background: none; border: none; color: #00BCD4; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" title="Zoom Out">${zoomOutIcon}</button>
+      <button class="zoom-btn reset" style="background: none; border: none; color: #00BCD4; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" title="Reset">${resetIcon}</button>
+      <span class="zoom-level" style="margin-left: 4px; font-size: clamp(12px, 2.5vw, 16px);">100%</span>
+    </span>
+  `;
+
+  const updateCameraZoomLevel = () => {
+    const camera = game.getCamera();
+    const zoomLevel = Math.round(camera.getZoom() * 100);
+    const zoomDisplay = cameraControlsDisplay.querySelector('.zoom-level');
+    if (zoomDisplay) {
+      zoomDisplay.textContent = `${zoomLevel}%`;
+    }
+  };
+
+  // Add click handlers and hover effects
+  setTimeout(() => {
+    const buttons = cameraControlsDisplay.querySelectorAll('button');
+    
+    // Add hover effects to all buttons
+    buttons.forEach(button => {
+      button.addEventListener('mouseenter', () => {
+        button.style.background = 'rgba(0, 188, 212, 0.2)';
+        button.style.transform = 'scale(1.1)';
+      });
+      button.addEventListener('mouseleave', () => {
+        button.style.background = 'none';
+        button.style.transform = 'scale(1)';
+      });
+    });
+    
+    // Add click handlers
+    buttons[0].addEventListener('click', () => {
+      game.getCamera().zoomIn();
+      updateCameraZoomLevel();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+    });
+    buttons[1].addEventListener('click', () => {
+      game.getCamera().zoomOut();
+      updateCameraZoomLevel();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+    });
+    buttons[2].addEventListener('click', () => {
+      game.getCamera().reset();
+      updateCameraZoomLevel();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+    });
+    
+    // Initialize zoom level display
+    updateCameraZoomLevel();
+  }, 100);
+
+  gameContainer.appendChild(cameraControlsDisplay);
 
   // Create player health display
   const healthDisplay = document.createElement('div');
@@ -663,9 +701,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const powerUpDisplay = new PowerUpDisplay(game, audioManager);
   gameContainer.appendChild(powerUpDisplay.getElement());
 
-  // Create camera controls
-  const cameraControls = new CameraControls(game, audioManager);
-  gameContainer.appendChild(cameraControls.getElement());
+  // Camera controls are now created right after wave display
 
   // Initialize all dialogs FIRST before setting up any UI that depends on them
   initializeDialogs();
@@ -707,10 +743,37 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   });
   */
 
+  // Add debug test command
+  (window as any).testDialogs = () => {
+    DebugDialogWrapper.testDialogSystem();
+  };
+  
+  // Add specific dialog test
+  (window as any).testPlayerUpgrade = () => {
+    console.log('[Debug] Testing player upgrade dialog...');
+    showPlayerUpgradeDialog();
+  };
+  
+  // Add inventory dialog test
+  (window as any).testInventory = () => {
+    console.log('[Debug] Testing inventory dialog...');
+    DialogShowFix.ensureInventoryDialog(game, audioManager);
+  };
+  
+  // Add force fix command
+  (window as any).fixDialogs = () => {
+    console.log('[Debug] Forcing dialog fixes...');
+    // Re-initialize dialogs
+    initializeDialogs();
+    console.log('[Debug] Dialogs re-initialized');
+  };
+
   // Cleanup function
   return () => {
     document.removeEventListener('keydown', handleKeyPress);
     document.removeEventListener('towerPlaced', updateTowerPlacementIndicator);
+    document.removeEventListener('towerSelected', handleTowerSelected as EventListener);
+    document.removeEventListener('towerDeselected', handleTowerDeselected as EventListener);
     dialogManager.destroy();
   };
 }

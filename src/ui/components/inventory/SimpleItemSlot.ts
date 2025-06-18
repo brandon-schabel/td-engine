@@ -24,6 +24,7 @@ export class ItemSlot {
     this.index = options.index;
     this.item = options.item;
     this.element = this.createElement();
+    this.updateDisplay();
   }
 
   private createElement(): HTMLElement {
@@ -102,7 +103,6 @@ export class ItemSlot {
       slot.style.borderColor = 'rgba(255, 255, 255, 0.2)';
     });
     
-    this.updateDisplay();
     return slot;
   }
 

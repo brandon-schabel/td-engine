@@ -92,7 +92,7 @@ export enum IconType {
   // Mobile Control Icons
   ARROW_UP = "ARROW_UP",
   CROSSHAIR = "CROSSHAIR",
-  
+
   // Settings Icons
   DIFFICULTY = "DIFFICULTY",
   MAP = "MAP",
@@ -194,9 +194,41 @@ const ICON_PATHS: Record<IconType, string> = {
   `,
 
   [IconType.BUILD]: `
-    <path d="M14.7 6.3 C15.1 5.9 15.7 5.9 16.1 6.3 L17.7 7.9 C18.1 8.3 18.1 8.9 17.7 9.3 L9 18 L2 22 L6 15 Z" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M11 13 L13 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M16 3 L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wrench (behind hammer) -->
+  <g transform="rotate(-45 50 50)">
+    <!-- Wrench handle -->
+    <rect x="45" y="20" width="10" height="50" fill="currentColor" rx="1"/>
+    <!-- Wrench head -->
+    <path d="M 42 15 L 42 5 L 45 5 L 45 8 L 55 8 L 55 5 L 58 5 L 58 15 L 55 15 L 55 20 L 45 20 L 45 15 Z" fill="currentColor"/>
+    <!-- Wrench jaw detail -->
+    <rect x="47" y="12" width="6" height="3" fill="currentColor" opacity="0.3"/>
+  </g>
+  
+  <!-- Hammer (in front) -->
+  <g transform="rotate(45 50 50)">
+    <!-- Hammer handle -->
+    <rect x="48" y="35" width="4" height="40" fill="currentColor" rx="0.5"/>
+    <!-- Handle grip texture -->
+    <rect x="48" y="60" width="4" height="3" fill="currentColor" opacity="0.4"/>
+    <rect x="48" y="65" width="4" height="3" fill="currentColor" opacity="0.4"/>
+    <rect x="48" y="70" width="4" height="3" fill="currentColor" opacity="0.4"/>
+    
+    <!-- Hammer head -->
+    <rect x="40" y="25" width="20" height="12" fill="currentColor" rx="1"/>
+    <!-- Hammer claw -->
+    <path d="M 40 25 L 40 22 Q 40 20 42 20 L 44 20 L 44 25 Z" fill="currentColor"/>
+    <path d="M 40 37 L 40 40 Q 40 42 42 42 L 44 42 L 44 37 Z" fill="currentColor"/>
+    <!-- Hammer face detail -->
+    <rect x="56" y="27" width="3" height="8" fill="currentColor" opacity="0.3"/>
+    
+    <!-- Center mounting hole -->
+    <circle cx="50" cy="31" r="2" fill="currentColor" opacity="0.5"/>
+  </g>
+  
+  <!-- Optional outer ring for better icon framing -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+</svg>
   `,
 
   [IconType.SETTINGS]: `
@@ -522,19 +554,19 @@ const ICON_PATHS: Record<IconType, string> = {
     <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
     <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>
   `,
-  
+
   // Settings Icons
   [IconType.DIFFICULTY]: `
     <path d="M12 2 L14 8 L20 8 L15 12 L17 18 L12 14 L7 18 L9 12 L4 8 L10 8 Z" fill="none" stroke="currentColor" stroke-width="2"/>
     <circle cx="12" cy="12" r="3" fill="currentColor"/>
   `,
-  
+
   [IconType.MAP]: `
     <path d="M1 6 L1 18 L8 21 L16 18 L23 21 L23 9 L16 6 L8 9 L1 6" fill="none" stroke="currentColor" stroke-width="2"/>
     <line x1="8" y1="9" x2="8" y2="21" stroke="currentColor" stroke-width="2"/>
     <line x1="16" y1="6" x2="16" y2="18" stroke="currentColor" stroke-width="2"/>
   `,
-  
+
   [IconType.RESET]: `
     <path d="M20 11 A8 8 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     <path d="M20 3 L20 11 L12 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

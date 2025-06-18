@@ -67,9 +67,9 @@ export const DIFFICULTY_PRESETS = {
 
 // Map size configurations
 export const MAP_SIZE_CONFIGS = {
-  SMALL: { width: 60, height: 60, cellSize: 32 },
-  MEDIUM: { width: 80, height: 80, cellSize: 32 },
-  LARGE: { width: 120, height: 120, cellSize: 32 }
+  SMALL: { width: 30, height: 22, cellSize: 32 },
+  MEDIUM: { width: 45, height: 33, cellSize: 32 },
+  LARGE: { width: 60, height: 45, cellSize: 32 }
 } as const;
 
 // Visual quality settings

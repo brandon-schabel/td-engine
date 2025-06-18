@@ -53,7 +53,7 @@ export class MapGenerator {
     // Get biome configuration
     const biomeConfig = BIOME_PRESETS[config.biome];
 
-    // Generate metadata
+    // Generate metadata 
     const metadata = this.generateMetadata(config);
 
     // Generate paths

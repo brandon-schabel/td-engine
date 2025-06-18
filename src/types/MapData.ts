@@ -250,38 +250,38 @@ export const BIOME_PRESETS: Record<BiomeType, BiomeConfig> = {
 // Map size presets for different gameplay experiences
 export const MAP_SIZE_PRESETS: Record<MapSize, MapSizePreset> = {
   [MapSize.SMALL]: {
-    width: 40,
-    height: 30,
-    baseObstacles: 40,
-    baseChokePoints: 4,
-    baseOpenAreas: 6,
-    baseAdvantageSpots: 4
+    width: 30,
+    height: 22,
+    baseObstacles: 35,
+    baseChokePoints: 3,
+    baseOpenAreas: 5,
+    baseAdvantageSpots: 3
   },
   
   [MapSize.MEDIUM]: {
-    width: 60,
-    height: 44,
-    baseObstacles: 70,
-    baseChokePoints: 8,
-    baseOpenAreas: 10,
-    baseAdvantageSpots: 6
+    width: 45,
+    height: 33,
+    baseObstacles: 60,
+    baseChokePoints: 7,
+    baseOpenAreas: 8,
+    baseAdvantageSpots: 5
   },
   
   [MapSize.LARGE]: {
-    width: 80,
-    height: 60,
-    baseObstacles: 110,
-    baseChokePoints: 12,
-    baseOpenAreas: 14,
-    baseAdvantageSpots: 10
+    width: 60,
+    height: 45,
+    baseObstacles: 90,
+    baseChokePoints: 10,
+    baseOpenAreas: 12,
+    baseAdvantageSpots: 8
   },
   
   [MapSize.HUGE]: {
-    width: 100,
-    height: 70,
-    baseObstacles: 150,
-    baseChokePoints: 16,
-    baseOpenAreas: 20,
-    baseAdvantageSpots: 14
+    width: 80,
+    height: 60,
+    baseObstacles: 130,
+    baseChokePoints: 14,
+    baseOpenAreas: 18,
+    baseAdvantageSpots: 12
   }
 };

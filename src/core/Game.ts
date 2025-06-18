@@ -792,9 +792,33 @@ export class Game {
       console.log('[DEBUG] Clicked on tower:', clickedTower.towerType, 'at', clickedTower.position);
       // Select/deselect tower
       const wasSelected = this.selectedTower === clickedTower;
+      const previousTower = this.selectedTower;
       this.selectedTower = wasSelected ? null : clickedTower;
       this.selectedTowerType = null; // Clear tower placement mode
       console.log('[DEBUG] Tower selection changed:', wasSelected ? 'deselected' : 'selected');
+      
+      // Dispatch tower selection events
+      if (previousTower && previousTower !== clickedTower) {
+        // Deselect previous tower
+        const deselectEvent = new CustomEvent('towerDeselected', { 
+          detail: { tower: previousTower } 
+        });
+        document.dispatchEvent(deselectEvent);
+      }
+      
+      if (!wasSelected) {
+        // Select new tower
+        const selectEvent = new CustomEvent('towerSelected', { 
+          detail: { tower: clickedTower } 
+        });
+        document.dispatchEvent(selectEvent);
+      } else {
+        // Deselect current tower
+        const deselectEvent = new CustomEvent('towerDeselected', { 
+          detail: { tower: clickedTower } 
+        });
+        document.dispatchEvent(deselectEvent);
+      }
     } else if (this.selectedTowerType) {
       // Place new tower
       if (this.placeTower(this.selectedTowerType, worldPos)) {
@@ -819,8 +843,19 @@ export class Game {
       if (projectile) {
         this.projectiles.push(projectile);
       }
-      this.selectedTower = null; // Deselect tower
-      console.log('[DEBUG] Deselected tower (clicked empty space)');
+      
+      // Deselect tower if one was selected
+      if (this.selectedTower) {
+        const previousTower = this.selectedTower;
+        this.selectedTower = null;
+        console.log('[DEBUG] Deselected tower (clicked empty space)');
+        
+        // Dispatch deselect event
+        const deselectEvent = new CustomEvent('towerDeselected', { 
+          detail: { tower: previousTower } 
+        });
+        document.dispatchEvent(deselectEvent);
+      }
     }
   }
 
@@ -1254,6 +1289,50 @@ export class Game {
     return this.selectedTower;
   }
 
+  // Tower selection management
+  clearSelectedTower(): void {
+    if (this.selectedTower) {
+      const previousTower = this.selectedTower;
+      this.selectedTower = null;
+      
+      // Dispatch deselect event
+      const deselectEvent = new CustomEvent('towerDeselected', { 
+        detail: { tower: previousTower } 
+      });
+      document.dispatchEvent(deselectEvent);
+    }
+  }
+
+  isTowerSelected(tower: Tower): boolean {
+    return this.selectedTower === tower;
+  }
+
+  selectTower(tower: Tower): void {
+    if (!this.towers.includes(tower)) {
+      console.warn('[Game] Attempted to select a tower that is not in the game');
+      return;
+    }
+
+    const previousTower = this.selectedTower;
+    
+    // Deselect previous tower if different
+    if (previousTower && previousTower !== tower) {
+      const deselectEvent = new CustomEvent('towerDeselected', { 
+        detail: { tower: previousTower } 
+      });
+      document.dispatchEvent(deselectEvent);
+    }
+    
+    this.selectedTower = tower;
+    this.selectedTowerType = null; // Clear tower placement mode
+    
+    // Dispatch select event
+    const selectEvent = new CustomEvent('towerSelected', { 
+      detail: { tower } 
+    });
+    document.dispatchEvent(selectEvent);
+  }
+
   getUpgradeCost(tower: Tower, upgradeType: UpgradeType): number {
     return tower.getUpgradeCost(upgradeType);
   }
@@ -1305,6 +1384,13 @@ export class Game {
     return this.audioHandler;
   }
 
+  getCamera(): Camera {
+    return this.camera;
+  }
+
+  getGrid(): Grid {
+    return this.grid;
+  }
 
   // Map generation methods
   getCurrentMapData(): MapData {
@@ -1388,7 +1474,7 @@ export class Game {
 
   // Enhanced default configuration with more interesting parameters
   private generateEnhancedDefaultConfig(): MapGenerationConfig {
-    const mapSize = MapSize.LARGE; // Default to large size for rich gameplay
+    const mapSize = MapSize.MEDIUM; // Default to medium size for better gameplay pacing
     const preset = MAP_SIZE_PRESETS[mapSize];
 
     if (!preset) {

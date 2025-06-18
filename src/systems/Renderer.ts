@@ -919,6 +919,30 @@ export class Renderer {
     const screenPos = this.getScreenPosition(tower);
     const zoom = this.camera.getZoom();
     
+    // Draw selection ring if selected
+    if (isSelected) {
+      this.ctx.save();
+      
+      // Pulsing effect
+      const pulseScale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+      
+      // Outer selection ring
+      this.ctx.beginPath();
+      this.ctx.arc(screenPos.x, screenPos.y, (tower.radius + 10) * zoom * pulseScale, 0, Math.PI * 2);
+      this.ctx.strokeStyle = '#FFD700'; // Gold color
+      this.ctx.lineWidth = 3 * zoom;
+      this.ctx.stroke();
+      
+      // Inner selection ring
+      this.ctx.beginPath();
+      this.ctx.arc(screenPos.x, screenPos.y, (tower.radius + 5) * zoom * pulseScale, 0, Math.PI * 2);
+      this.ctx.strokeStyle = '#FFA500'; // Orange color
+      this.ctx.lineWidth = 2 * zoom;
+      this.ctx.stroke();
+      
+      this.ctx.restore();
+    }
+    
     // Apply zoom scaling to context
     this.ctx.save();
     this.ctx.translate(screenPos.x, screenPos.y);

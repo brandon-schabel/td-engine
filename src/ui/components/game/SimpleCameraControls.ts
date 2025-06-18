@@ -1,103 +1,127 @@
 import { Game } from '@/core/Game';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { AudioManager, SoundType } from '@/audio/AudioManager';
 
 export class CameraControls {
-  private container: HTMLElement | null = null;
+  private container: HTMLElement;
   private game: Game;
+  private audioManager: AudioManager;
   private zoomDisplay: HTMLElement | null = null;
 
-  constructor(options: { 
-    game: Game; 
-    position?: string;
-    showLabels?: boolean;
-    showZoomLevel?: boolean;
-    compact?: boolean;
-  }) {
-    this.game = options.game;
+  constructor(game: Game, audioManager: AudioManager) {
+    this.game = game;
+    this.audioManager = audioManager;
+    this.container = this.createContainer();
   }
 
-  mount(parent: HTMLElement): void {
-    this.container = document.createElement('div');
-    this.container.style.cssText = `
+  getElement(): HTMLElement {
+    return this.container;
+  }
+
+  private createContainer(): HTMLElement {
+    const container = document.createElement('div');
+    container.style.cssText = `
       position: absolute;
-      top: 10px;
+      top: 50px;
       right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #00BCD4;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #00BCD4;
+      font-weight: bold;
+      font-size: clamp(14px, 3vw, 18px);
+      z-index: 100;
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-      z-index: 1000;
+      align-items: center;
+      gap: 12px;
     `;
 
-    // Create zoom controls
-    const zoomInBtn = this.createButton(IconType.ZOOM_IN, 'Zoom In', () => {
+    // Create camera icon
+    const cameraIcon = createSvgIcon(IconType.CAMERA, { size: 20 });
+    const iconSpan = document.createElement('span');
+    iconSpan.innerHTML = cameraIcon;
+    container.appendChild(iconSpan);
+
+    // Create zoom controls wrapper
+    const controlsWrapper = document.createElement('div');
+    controlsWrapper.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+
+    // Create zoom in button
+    const zoomInBtn = this.createIconButton(IconType.ZOOM_IN, 'Zoom In', () => {
       const camera = this.game.getCamera();
       camera.zoomIn();
       this.updateZoomDisplay();
+      this.audioManager.playUISound(SoundType.BUTTON_CLICK);
     });
 
-    const zoomOutBtn = this.createButton(IconType.ZOOM_OUT, 'Zoom Out', () => {
+    // Create zoom out button
+    const zoomOutBtn = this.createIconButton(IconType.ZOOM_OUT, 'Zoom Out', () => {
       const camera = this.game.getCamera();
       camera.zoomOut();
       this.updateZoomDisplay();
+      this.audioManager.playUISound(SoundType.BUTTON_CLICK);
     });
 
-    const resetBtn = this.createButton(IconType.RESET_ZOOM, 'Reset View', () => {
+    // Create reset button
+    const resetBtn = this.createIconButton(IconType.RESET_ZOOM, 'Reset View', () => {
       const camera = this.game.getCamera();
       camera.reset();
       this.updateZoomDisplay();
+      this.audioManager.playUISound(SoundType.BUTTON_CLICK);
     });
 
     // Create zoom level display
-    this.zoomDisplay = document.createElement('div');
+    this.zoomDisplay = document.createElement('span');
     this.zoomDisplay.style.cssText = `
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid #FFD700;
-      border-radius: 4px;
-      padding: 4px 8px;
-      color: #FFD700;
-      font-family: Arial, sans-serif;
-      font-size: 11px;
-      text-align: center;
+      margin-left: 4px;
+      font-size: clamp(12px, 2.5vw, 16px);
     `;
     this.updateZoomDisplay();
 
-    // Add controls to container
-    this.container.appendChild(zoomInBtn);
-    this.container.appendChild(zoomOutBtn);
-    this.container.appendChild(resetBtn);
-    this.container.appendChild(this.zoomDisplay);
+    // Add controls to wrapper
+    controlsWrapper.appendChild(zoomInBtn);
+    controlsWrapper.appendChild(zoomOutBtn);
+    controlsWrapper.appendChild(resetBtn);
+    controlsWrapper.appendChild(this.zoomDisplay);
 
-    parent.appendChild(this.container);
+    // Add wrapper to container
+    container.appendChild(controlsWrapper);
+
+    return container;
   }
 
-  private createButton(iconType: IconType, title: string, onClick: () => void): HTMLElement {
+  private createIconButton(iconType: IconType, title: string, onClick: () => void): HTMLElement {
     const button = document.createElement('button');
-    button.className = 'camera-control-button';
+    button.className = 'camera-icon-button';
     button.style.cssText = `
-      width: 36px;
-      height: 36px;
-      border-radius: 4px;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid #FFD700;
-      color: #FFD700;
+      background: none;
+      border: none;
+      color: #00BCD4;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: all 0.2s ease;
+      padding: 4px;
+      border-radius: 4px;
     `;
     button.title = title;
-    button.innerHTML = createSvgIcon(iconType, { size: 20 });
+    button.innerHTML = createSvgIcon(iconType, { size: 18 });
     
     button.addEventListener('click', onClick);
     
     button.addEventListener('mouseenter', () => {
-      button.style.background = 'rgba(0, 0, 0, 0.9)';
-      button.style.transform = 'scale(1.05)';
+      button.style.background = 'rgba(0, 188, 212, 0.2)';
+      button.style.transform = 'scale(1.1)';
     });
     
     button.addEventListener('mouseleave', () => {
-      button.style.background = 'rgba(0, 0, 0, 0.8)';
+      button.style.background = 'none';
       button.style.transform = 'scale(1)';
     });
     
