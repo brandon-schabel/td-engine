@@ -4,6 +4,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
+  base: "/td-engine/",
   server: {
     port: 4020,
   },

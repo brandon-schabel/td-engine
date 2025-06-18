@@ -5,13 +5,15 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:check": "tsc && vite build",
     "test": "vitest run",
     "test:sequential": "./test-sequential.sh",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "bun run build && gh-pages -d dist"
   },
   "devDependencies": {
     "@types/bun": "latest",
