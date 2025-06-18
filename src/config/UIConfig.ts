@@ -131,3 +131,44 @@ export const ANIMATION_TIMINGS = {
   scoreCountUp: 1000,
   currencyChange: 500
 } as const;
+
+// Dialog configuration
+export const DIALOG_CONFIG = {
+  sizes: {
+    small: 'clamp(300px, 85vw, 400px)',
+    medium: 'clamp(320px, 90vw, 600px)',
+    large: 'clamp(400px, 95vw, 800px)',
+    fullscreen: '100vw'
+  },
+  mobile: {
+    breakpoint: 768,
+    fullscreenThreshold: 600,
+    minTouchTarget: 44,
+    gridColumns: {
+      phone: 4,
+      tablet: 6,
+      desktop: 8
+    }
+  },
+  animations: {
+    fadeIn: 200,
+    fadeOut: 200,
+    scaleIn: 0.9,
+    scaleOut: 0.9,
+    swipeThreshold: 100
+  },
+  colors: {
+    overlay: 'rgba(0, 0, 0, 0.8)',
+    background: 'rgba(20, 20, 20, 0.95)',
+    border: '#4CAF50',
+    headerBg: 'rgba(76, 175, 80, 0.1)',
+    footerBg: 'rgba(40, 40, 40, 0.8)'
+  },
+  spacing: {
+    padding: 20,
+    headerPadding: 16,
+    footerPadding: 16,
+    buttonGap: 12,
+    itemGap: 4
+  }
+} as const;

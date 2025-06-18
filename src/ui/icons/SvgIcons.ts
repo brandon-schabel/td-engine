@@ -9,6 +9,7 @@ export enum IconType {
   SNIPER_TOWER = "SNIPER_TOWER",
   RAPID_TOWER = "RAPID_TOWER",
   WALL = "WALL",
+  TOWER = "TOWER",
 
   // Action Icons
   PLAY = "PLAY",
@@ -26,14 +27,17 @@ export enum IconType {
   DAMAGE = "DAMAGE",
   RANGE = "RANGE",
   FIRE_RATE = "FIRE_RATE",
+  RAPID_FIRE = "RAPID_FIRE",
   SPEED = "SPEED",
   HEALTH = "HEALTH",
+  HEART = "HEART",
 
   // Audio Icons
   AUDIO_ON = "AUDIO_ON",
   AUDIO_OFF = "AUDIO_OFF",
   MUSIC = "MUSIC",
   SFX = "SFX",
+  SOUND = "SOUND",
 
   // Control Icons
   KEYBOARD = "KEYBOARD",
@@ -66,6 +70,7 @@ export enum IconType {
   // Game state icons
   VICTORY = "VICTORY",
   GAME_OVER = "GAME_OVER",
+  SKULL = "SKULL",
   TROPHY = "TROPHY",
   LEADERBOARD = "LEADERBOARD",
   SCORE = "SCORE",
@@ -87,6 +92,11 @@ export enum IconType {
   // Mobile Control Icons
   ARROW_UP = "ARROW_UP",
   CROSSHAIR = "CROSSHAIR",
+  
+  // Settings Icons
+  DIFFICULTY = "DIFFICULTY",
+  MAP = "MAP",
+  RESET = "RESET",
 }
 
 interface SvgIconOptions {
@@ -134,6 +144,12 @@ const ICON_PATHS: Record<IconType, string> = {
     <line x1="12" y1="6" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
     <line x1="8" y1="12" x2="8" y2="18" stroke="currentColor" stroke-width="2"/>
     <line x1="16" y1="12" x2="16" y2="18" stroke="currentColor" stroke-width="2"/>
+  `,
+
+  [IconType.TOWER]: `
+    <path d="M5 21L19 21L17 7L7 7Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M10 7V3H14V7" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="14" r="3" fill="currentColor"/>
   `,
 
   // Action Icons
@@ -204,6 +220,12 @@ const ICON_PATHS: Record<IconType, string> = {
     <path d="M13 2 L11 9 L16 9 L10 22 L12 13 L7 13 Z" fill="currentColor"/>
   `,
 
+  [IconType.RAPID_FIRE]: `
+    <path d="M5 12L7 8L9 12L7 16Z" fill="currentColor"/>
+    <path d="M10 12L12 8L14 12L12 16Z" fill="currentColor" opacity="0.7"/>
+    <path d="M15 12L17 8L19 12L17 16Z" fill="currentColor" opacity="0.4"/>
+  `,
+
   [IconType.SPEED]: `
     <path d="M12 2 C6 2 2 8 2 12 C2 16 4 18 6 18 C8 18 9 16 9 16 C9 16 10 18 12 18 C14 18 15 16 15 16 C15 16 16 18 18 18 C20 18 22 16 22 12 C22 8 18 2 12 2" fill="none" stroke="currentColor" stroke-width="2"/>
     <line x1="8" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -212,6 +234,10 @@ const ICON_PATHS: Record<IconType, string> = {
 
   [IconType.HEALTH]: `
     <path d="M12 21 C12 21 3 13.5 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 12 4 12 4 C12 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 13.5 12 21 12 21 Z" fill="currentColor"/>
+  `,
+
+  [IconType.HEART]: `
+    <path d="M12 21 C12 21 3 13.5 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 12 4 12 4 C12 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 13.5 12 21 12 21 Z" fill="none" stroke="currentColor" stroke-width="2"/>
   `,
 
   // Audio Icons
@@ -235,6 +261,12 @@ const ICON_PATHS: Record<IconType, string> = {
   [IconType.SFX]: `
     <path d="M12 3 L12 10 L16 14 L12 18 L8 14 L12 10" fill="currentColor"/>
     <circle cx="12" cy="20" r="2" fill="currentColor"/>
+  `,
+
+  [IconType.SOUND]: `
+    <path d="M11 5 L6 9 L2 9 L2 15 L6 15 L11 19 Z" fill="currentColor"/>
+    <path d="M15.5 8.5 A4.5 4.5 0 0 1 15.5 15.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M19 6 A8 8 0 0 1 19 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
   `,
 
   // Control Icons
@@ -374,6 +406,15 @@ const ICON_PATHS: Record<IconType, string> = {
     <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
   `,
 
+  [IconType.SKULL]: `
+    <path d="M9.5 2 C5.9 2 3 4.9 3 8.5 C3 10.5 3.8 12.3 5 13.6 L5 18 C5 19.1 5.9 20 7 20 L17 20 C18.1 20 19 19.1 19 18 L19 13.6 C20.2 12.3 21 10.5 21 8.5 C21 4.9 18.1 2 14.5 2 L9.5 2 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+    <circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/>
+    <path d="M10 14 L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M12 14 L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M14 14 L14 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+
   [IconType.TROPHY]: `
     <path d="M6 9H4.5A2.5 2.5 0 0 1 2 6.5V4A2 2 0 0 1 4 2H20A2 2 0 0 1 22 4V6.5A2.5 2.5 0 0 1 19.5 9H18" fill="none" stroke="currentColor" stroke-width="2"/>
     <path d="M6 9H18V15A6 6 0 0 1 6 15V9Z" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -480,6 +521,23 @@ const ICON_PATHS: Record<IconType, string> = {
     <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
     <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
     <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>
+  `,
+  
+  // Settings Icons
+  [IconType.DIFFICULTY]: `
+    <path d="M12 2 L14 8 L20 8 L15 12 L17 18 L12 14 L7 18 L9 12 L4 8 L10 8 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="12" r="3" fill="currentColor"/>
+  `,
+  
+  [IconType.MAP]: `
+    <path d="M1 6 L1 18 L8 21 L16 18 L23 21 L23 9 L16 6 L8 9 L1 6" fill="none" stroke="currentColor" stroke-width="2"/>
+    <line x1="8" y1="9" x2="8" y2="21" stroke="currentColor" stroke-width="2"/>
+    <line x1="16" y1="6" x2="16" y2="18" stroke="currentColor" stroke-width="2"/>
+  `,
+  
+  [IconType.RESET]: `
+    <path d="M20 11 A8 8 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M20 3 L20 11 L12 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   `,
 };
 

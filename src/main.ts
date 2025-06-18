@@ -1,9 +1,12 @@
 import { GameWithEvents } from "./core/GameWithEvents";
 import { TowerType } from "./entities/Tower";
 import { AudioManager, SoundType } from "./audio/AudioManager";
-import { SimpleSettingsMenu } from "./ui/SimpleSettingsMenu";
+import { GameSettingsDialog } from "./ui/components/dialogs/GameSettingsDialog";
+import { GameOverDialog } from "./ui/components/dialogs/GameOverDialog";
+import { DialogManager } from "./ui/systems/DialogManager";
 // Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from "./config/SettingsIntegration";
+import { SettingsManager, type GameSettings } from "./config/GameSettings";
 import {
   type MapGenerationConfig,
   BiomeType,
@@ -12,8 +15,14 @@ import {
 } from "./types/MapData";
 import { createSvgIcon, IconType } from "./ui/icons/SvgIcons";
 import { setupGameUI } from "./ui/setupGameUI";
-import { GameOverScreen } from "./ui/components/GameOverScreen";
 import { TouchIndicator } from "./ui/components/game/TouchIndicator";
+import { 
+  BuildMenuDialogAdapter,
+  UpgradeDialogAdapter,
+  InventoryDialogAdapter,
+  SettingsDialog,
+  PauseDialog
+} from "./ui/components/dialogs";
 
 // Get canvas element
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
@@ -77,11 +86,101 @@ window.addEventListener("resize", () => {
 });
 // Touch input is now handled within the SimpleGameUI
 const audioManager = new AudioManager();
-let gameOverScreen: GameOverScreen;
-let settingsMenu: SimpleSettingsMenu;
+const dialogManager = DialogManager.getInstance();
+const settingsManager = SettingsManager.getInstance();
+
+// Placeholder game object for dialogs that need it before game initialization
+let placeholderGame: any = null;
+
+// Dialog instances that need to be accessible throughout the app
+let buildMenuDialog: BuildMenuDialogAdapter | null = null;
+let inventoryDialog: InventoryDialogAdapter | null = null;
+let settingsDialogInstance: SettingsDialog | null = null;
+let pauseDialog: PauseDialog | null = null;
+
+// Early initialization of dialogs that don't require a game instance
+function initializeEarlyDialogs() {
+  console.log('[Main] Initializing early dialogs...');
+  
+  // Settings Dialog (doesn't need game instance)
+  settingsDialogInstance = new SettingsDialog({
+    audioManager,
+    onVolumeChange: (volume) => {
+      audioManager.setMasterVolume(volume);
+    },
+    onMuteToggle: (muted) => {
+      audioManager.setMuted(muted);
+    }
+  });
+  dialogManager.register('gameSettings', settingsDialogInstance);
+  
+  // Pause Dialog (doesn't need game instance initially)
+  pauseDialog = new PauseDialog({
+    audioManager,
+    onResume: () => {
+      if (game) game.resume();
+    },
+    onSettings: () => {
+      dialogManager.show('gameSettings');
+    },
+    onRestart: () => {
+      if (confirm('Are you sure you want to restart the game?')) {
+        window.location.reload();
+      }
+    },
+    onQuit: () => {
+      if (confirm('Are you sure you want to quit to main menu?')) {
+        window.location.reload();
+      }
+    }
+  });
+  dialogManager.register('pause', pauseDialog);
+  
+  console.log('[Main] Early dialogs initialized');
+}
+
+// Initialize dialogs that require a game instance
+function initializeGameDialogs(gameInstance: GameWithEvents) {
+  console.log('[Main] Initializing game-dependent dialogs...');
+  
+  // Build Menu Dialog
+  if (buildMenuDialog) {
+    dialogManager.unregister('buildMenu');
+  }
+  buildMenuDialog = new BuildMenuDialogAdapter({
+    game: gameInstance,
+    audioManager,
+    onTowerSelected: (type) => {
+      // Tower selection is handled by the adapter
+    },
+    onClosed: () => {
+      // Additional cleanup if needed
+    }
+  });
+  dialogManager.register('buildMenu', buildMenuDialog);
+
+  // Inventory Dialog
+  if (inventoryDialog) {
+    dialogManager.unregister('inventory');
+  }
+  inventoryDialog = new InventoryDialogAdapter({
+    game: gameInstance,
+    audioManager,
+    onItemSelected: (item, slot) => {
+      // Item selection is handled by the adapter
+    }
+  });
+  dialogManager.register('inventory', inventoryDialog);
+  
+  console.log('[Main] Game dialogs initialized');
+  // Note: dialogs is private, but we know what we've registered
+}
 
 // Initialize game with settings
 function initializeGame() {
+  console.log('[Main] initializeGame called');
+  console.log('[Main] gameSettings:', (window as any).gameSettings);
+  
   // Get applied game configuration from settings
   const gameConfig = applySettingsToGame(
     (window as any).gameSettings || {
@@ -95,6 +194,8 @@ function initializeGame() {
       pathComplexity: "SIMPLE",
     }
   );
+  
+  console.log('[Main] gameConfig:', gameConfig);
 
   // Convert to map generation config
   const mapGenConfig: MapGenerationConfig = {
@@ -119,6 +220,7 @@ function initializeGame() {
   // Create game instance with configuration
   game = new GameWithEvents(canvas, mapGenConfig);
   gameInitialized = true;
+  console.log('[Main] Game instance created successfully');
 
   //  @ts-ignore
   if (typeof window !== "undefined") {
@@ -126,31 +228,34 @@ function initializeGame() {
     (window as any).game = game;
   }
 
-  // Create game over screen if not exists
-  if (!gameOverScreen) {
-    gameOverScreen = new GameOverScreen();
-  }
+  // Initialize game-dependent dialogs now that we have a game instance
+  initializeGameDialogs(game);
 
   // Setup game end event listener
   document.addEventListener("gameEnd", handleGameEnd);
 
   // Start the main game setup
+  console.log('[Main] Setting up game UI...');
   setupModernGameUI();
 }
 
 function handleGameEnd(event: CustomEvent) {
   const { stats, victory, scoreEntry } = event.detail;
 
-  gameOverScreen.show({
+  const gameOverDialog = new GameOverDialog({
     victory,
     stats,
     scoreEntry,
+    audioManager,
     onRestart: () => {
       // Restart with same settings
       initializeGame();
     },
     onMainMenu: showMainMenu,
   });
+
+  dialogManager.register('gameOver', gameOverDialog);
+  dialogManager.show('gameOver');
 }
 
 function showMainMenu() {
@@ -162,26 +267,59 @@ function showMainMenu() {
     // Touch controls are cleaned up automatically by SimpleGameUI
   }
 
-  // Hide game over screen if visible
-  if (gameOverScreen?.isVisible()) {
-    gameOverScreen.hide();
-  }
+  // Close any open dialogs
+  dialogManager.hideAll();
 
-  // Show settings menu
-  if (settingsMenu) {
-    settingsMenu = new SimpleSettingsMenu(document.body, () => {
-      const settings = settingsMenu.getSettings();
-      (window as any).gameSettings = settings;
-      initializeGame();
-    });
-  }
+  // Show settings dialog
+  showSettingsDialog();
 }
 
-// Show settings menu on startup
-settingsMenu = new SimpleSettingsMenu(document.body, () => {
-  const settings = settingsMenu.getSettings();
-  (window as any).gameSettings = settings;
-  initializeGame();
+// Function to show settings dialog
+function showSettingsDialog() {
+  console.log('[Main] showSettingsDialog called');
+  
+  const settingsDialog = new GameSettingsDialog({
+    audioManager,
+    onStartGame: (settings: GameSettings) => {
+      console.log('[Main] onStartGame callback triggered with settings:', settings);
+      (window as any).gameSettings = settings;
+      initializeGame();
+    }
+  });
+  
+  console.log('[Main] Registering settings dialog');
+  dialogManager.register('settings', settingsDialog);
+  console.log('[Main] Showing settings dialog');
+  dialogManager.show('settings');
+}
+
+// Initialize early dialogs before showing settings
+initializeEarlyDialogs();
+
+// Show settings dialog on startup
+showSettingsDialog();
+
+// Debug: Make initializeGame available globally for testing
+(window as any).initializeGame = initializeGame;
+(window as any).dialogManager = dialogManager;
+
+// Debug: Add keyboard shortcut to start game
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F1') {
+    console.log('[Debug] F1 pressed - starting game with default settings');
+    (window as any).gameSettings = {
+      difficulty: "NORMAL",
+      masterVolume: 0.7,
+      soundEnabled: true,
+      visualQuality: "MEDIUM",
+      showFPS: false,
+      mapSize: "MEDIUM",
+      terrain: "FOREST",
+      pathComplexity: "SIMPLE"
+    };
+    dialogManager.hide('settings');
+    initializeGame();
+  }
 });
 
 // Global variables for UI state
@@ -465,10 +603,14 @@ document.addEventListener("keyup", (e) => {
 });
 
 async function setupModernGameUI() {
+  console.log('[Main] setupModernGameUI called');
+  
   // Setup game handlers
   setupGameHandlers();
+  console.log('[Main] Game handlers setup complete');
 
   // Use the simple UI system
+  console.log('[Main] Calling setupGameUI...');
   const ui = await setupGameUI({
     game,
     container: document.body,
@@ -479,4 +621,10 @@ async function setupModernGameUI() {
     enableHapticFeedback: true,
     debugMode: false,
   });
+  
+  console.log('[Main] Game UI setup complete');
+  
+  // Start the game
+  console.log('[Main] Starting game...');
+  game.start();
 }

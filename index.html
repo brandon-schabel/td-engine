@@ -306,6 +306,20 @@
         padding-top: env(safe-area-inset-top);
       }
     }
+    
+    /* Dialog container fixes - less aggressive */
+    .dialog-container {
+      position: fixed;
+      z-index: 10000;
+    }
+    
+    /* Prevent blur on dialogs */
+    .dialog-panel, .dialog-container * {
+      -webkit-filter: none !important;
+      filter: none !important;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
   </style>
 </head>
 <body>

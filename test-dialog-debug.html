@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dialog Debug Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    #console {
+      margin-top: 20px;
+      padding: 10px;
+      background: #000;
+      border: 1px solid #333;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .log { margin: 2px 0; }
+    .error { color: #ff6b6b; }
+    .warn { color: #ffd93d; }
+    .info { color: #4ecdc4; }
+    .success { color: #4CAF50; }
+  </style>
+</head>
+<body>
+  <h1>Dialog System Debug Test</h1>
+  <p>This page tests the dialog system in isolation to debug visibility issues.</p>
+  
+  <div>
+    <button onclick="testBaseDialog()">Test BaseDialog</button>
+    <button onclick="testDialogManager()">Test DialogManager</button>
+    <button onclick="testBuildMenuDialog()">Test BuildMenuDialog</button>
+    <button onclick="checkBodyContent()">Check Body Content</button>
+    <button onclick="clearConsole()">Clear Console</button>
+  </div>
+  
+  <div id="console"></div>
+  
+  <script type="module">
+    const consoleDiv = document.getElementById('console');
+    
+    // Override console methods
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn
+    };
+    
+    function addToConsole(message, type = 'log') {
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log ${type}`;
+      div.textContent = `[${time}] ${message}`;
+      consoleDiv.appendChild(div);
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
+      originalConsole[type](message);
+    }
+    
+    console.log = (msg) => addToConsole(msg, 'log');
+    console.error = (msg) => addToConsole(msg, 'error');
+    console.warn = (msg) => addToConsole(msg, 'warn');
+    
+    // Test functions
+    window.testBaseDialog = async function() {
+      console.log('Testing BaseDialog...');
+      
+      try {
+        const { BaseDialog } = await import('./src/ui/components/dialogs/BaseDialog.js');
+        
+        class TestDialog extends BaseDialog {
+          constructor() {
+            super({
+              title: 'Test Dialog',
+              width: '400px',
+              closeable: true
+            });
+            console.log('TestDialog constructor called');
+          }
+          
+          buildContent() {
+            this.content.innerHTML = '<p>This is a test dialog content.</p>';
+            console.log('TestDialog content built');
+          }
+        }
+        
+        const dialog = new TestDialog();
+        addToConsole('Dialog created successfully', 'success');
+        
+        console.log('Showing dialog...');
+        dialog.show();
+        
+        // Check if visible
+        setTimeout(() => {
+          const visible = dialog.isVisible();
+          addToConsole(`Dialog visible: ${visible}`, visible ? 'success' : 'error');
+          
+          // Check DOM
+          const containers = document.querySelectorAll('.dialog-container');
+          addToConsole(`Dialog containers in DOM: ${containers.length}`, containers.length > 0 ? 'success' : 'warn');
+        }, 500);
+        
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+      }
+    };
+    
+    window.testDialogManager = async function() {
+      console.log('Testing DialogManager...');
+      
+      try {
+        const { DialogManager } = await import('./src/ui/systems/DialogManager.js');
+        const { BaseDialog } = await import('./src/ui/components/dialogs/BaseDialog.js');
+        
+        class TestDialog extends BaseDialog {
+          constructor() {
+            super({ title: 'Manager Test Dialog', width: '400px' });
+          }
+          buildContent() {
+            this.content.innerHTML = '<p>DialogManager test content.</p>';
+          }
+        }
+        
+        const manager = DialogManager.getInstance();
+        const dialog = new TestDialog();
+        
+        console.log('Registering dialog...');
+        manager.register('test', dialog);
+        
+        console.log('Showing dialog via manager...');
+        manager.show('test');
+        
+        // Check status
+        setTimeout(() => {
+          const isOpen = manager.isAnyDialogOpen();
+          const openDialogs = manager.getOpenDialogs();
+          addToConsole(`Any dialog open: ${isOpen}`, isOpen ? 'success' : 'error');
+          addToConsole(`Open dialogs: [${openDialogs.join(', ')}]`, openDialogs.length > 0 ? 'success' : 'warn');
+        }, 500);
+        
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+      }
+    };
+    
+    window.testBuildMenuDialog = async function() {
+      console.log('Testing BuildMenuDialog...');
+      
+      try {
+        const { BuildMenuDialog } = await import('./src/ui/components/dialogs/BuildMenuDialog.js');
+        
+        const dialog = new BuildMenuDialog({
+          currentCurrency: 100,
+          onTowerSelect: (type) => console.log(`Tower selected: ${type}`),
+          onCancel: () => console.log('Dialog cancelled')
+        });
+        
+        addToConsole('BuildMenuDialog created', 'success');
+        
+        console.log('Showing BuildMenuDialog...');
+        dialog.show();
+        
+        // Check visibility
+        setTimeout(() => {
+          const visible = dialog.isVisible();
+          addToConsole(`BuildMenuDialog visible: ${visible}`, visible ? 'success' : 'error');
+        }, 500);
+        
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+      }
+    };
+    
+    window.checkBodyContent = function() {
+      console.log('Checking document.body content...');
+      
+      const dialogs = document.querySelectorAll('.dialog-container');
+      console.log(`Found ${dialogs.length} dialog containers`);
+      
+      dialogs.forEach((dialog, index) => {
+        const display = window.getComputedStyle(dialog).display;
+        const zIndex = window.getComputedStyle(dialog).zIndex;
+        const opacity = window.getComputedStyle(dialog).opacity;
+        console.log(`Dialog ${index + 1}: display=${display}, z-index=${zIndex}, opacity=${opacity}`);
+      });
+      
+      // Check for any elements with high z-index
+      const allElements = document.querySelectorAll('*');
+      const highZIndexElements = [];
+      allElements.forEach(el => {
+        const zIndex = window.getComputedStyle(el).zIndex;
+        if (zIndex && !isNaN(zIndex) && parseInt(zIndex) > 1000) {
+          highZIndexElements.push({ element: el, zIndex });
+        }
+      });
+      
+      if (highZIndexElements.length > 0) {
+        console.log(`Found ${highZIndexElements.length} elements with z-index > 1000:`);
+        highZIndexElements.forEach(({ element, zIndex }) => {
+          console.log(`  ${element.tagName}.${element.className}: z-index=${zIndex}`);
+        });
+      }
+    };
+    
+    window.clearConsole = function() {
+      consoleDiv.innerHTML = '';
+      addToConsole('Console cleared', 'info');
+    };
+    
+    // Initial message
+    addToConsole('Dialog debug page loaded. Click buttons to test.', 'info');
+  </script>
+</body>
+</html>

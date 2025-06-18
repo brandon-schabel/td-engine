@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dialog Integration Test</title>
+  <link rel="stylesheet" href="/src/ui/styles/mobile-fix.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+    }
+    
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #canvas-container {
+      flex: 1;
+      background: #000;
+      position: relative;
+    }
+    
+    #game-canvas {
+      width: 100%;
+      height: 100%;
+      background: #222;
+    }
+    
+    .control-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+      border-top: 2px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 0 20px;
+      z-index: 1000;
+    }
+    
+    .ui-button {
+      padding: 10px 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    #status {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      max-width: 300px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    /* Dialog styles from index.html */
+    .dialog-container {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 100000 !important;
+      pointer-events: auto !important;
+    }
+    
+    .dialog-overlay {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(0, 0, 0, 0.6) !important;
+      z-index: 1 !important;
+    }
+    
+    .dialog {
+      position: absolute !important;
+      z-index: 2 !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="canvas-container">
+      <canvas id="game-canvas"></canvas>
+    </div>
+  </div>
+  
+  <div id="status"></div>
+  
+  <script type="module">
+    const status = document.getElementById('status');
+    
+    function log(message) {
+      const time = new Date().toLocaleTimeString();
+      status.innerHTML += `[${time}] ${message}<br>`;
+      status.scrollTop = status.scrollHeight;
+      console.log(message);
+    }
+    
+    // Mock game object
+    const mockGame = {
+      getCurrency: () => 500,
+      setSelectedTowerType: (type) => log(`Game: setSelectedTowerType(${type})`),
+      getPlayer: () => ({ health: 100, maxHealth: 100 }),
+      isPaused: () => false,
+      pause: () => log('Game: pause()'),
+      resume: () => log('Game: resume()'),
+      isWaveComplete: () => true,
+      isGameOver: () => false,
+      startNextWave: () => log('Game: startNextWave()'),
+      getSelectedTowerType: () => null,
+      getSelectedTower: () => null,
+      getEnemies: () => [],
+      getCurrentWave: () => 1
+    };
+    
+    // Mock audio manager
+    const mockAudioManager = {
+      playUISound: (sound) => log(`Audio: playUISound(${sound})`),
+      setMasterVolume: (vol) => log(`Audio: setMasterVolume(${vol})`),
+      setMuted: (muted) => log(`Audio: setMuted(${muted})`)
+    };
+    
+    async function setupTest() {
+      log('Starting dialog integration test...');
+      
+      try {
+        // Import the UI setup
+        const { setupSimpleGameUI } = await import('./src/ui/SimpleGameUI.js');
+        
+        log('Setting up game UI...');
+        const cleanup = setupSimpleGameUI(mockGame, mockAudioManager);
+        
+        // Check if UI was created
+        const controlBar = document.querySelector('.control-bar');
+        if (controlBar) {
+          log('✅ Control bar created');
+          
+          // Find buttons
+          const buttons = controlBar.querySelectorAll('button');
+          log(`Found ${buttons.length} control buttons`);
+          
+          // Test build button (first button)
+          if (buttons[0]) {
+            log('Clicking build button...');
+            buttons[0].click();
+            
+            // Wait for dialog
+            setTimeout(() => {
+              const dialogs = document.querySelectorAll('.dialog-container');
+              if (dialogs.length > 0) {
+                log('✅ Dialog created!');
+                const visible = window.getComputedStyle(dialogs[0]).display !== 'none';
+                log(`Dialog visible: ${visible}`);
+              } else {
+                log('❌ No dialog found in DOM');
+              }
+            }, 500);
+          }
+        } else {
+          log('❌ Control bar not found');
+        }
+        
+      } catch (error) {
+        log(`ERROR: ${error.message}`);
+        console.error(error);
+      }
+    }
+    
+    // Run test after page loads
+    window.addEventListener('load', () => {
+      setTimeout(setupTest, 100);
+    });
+  </script>
+</body>
+</html>

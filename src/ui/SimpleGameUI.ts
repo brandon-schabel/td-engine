@@ -1,31 +1,143 @@
 import { Game } from '../core/Game';
-import { TowerType, UpgradeType } from '@/entities/Tower';
+import { TowerType, UpgradeType, Tower } from '@/entities/Tower';
 import { PlayerUpgradeType } from '@/entities/Player';
 import { createSvgIcon, IconType } from './icons/SvgIcons';
 import { AudioManager, SoundType } from '../audio/AudioManager';
 import { PowerUpDisplay } from './components/game/SimplePowerUpDisplay';
 import { CameraControls } from './components/game/SimpleCameraControls';
-import { InventoryPanel } from './components/inventory/InventoryPanel';
 import { MobileControls } from './components/game/MobileControls';
+import { DialogManager } from './systems/DialogManager';
+import { 
+  BuildMenuDialogAdapter,
+  UpgradeDialogAdapter,
+  InventoryDialogAdapter,
+  SettingsDialog,
+  PauseDialog
+} from './components/dialogs';
 
 export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById('game-container');
-  if (!gameContainer) return;
+  if (!gameContainer) {
+    console.error('[SimpleGameUI] ERROR: game-container element not found!');
+    return;
+  }
 
-  // Panel management
-  let activePanel: HTMLElement | null = null;
-  const panels: HTMLElement[] = [];
-  let selectedTowerButton: HTMLElement | null = null;
+  console.log('[SimpleGameUI] Setting up game UI...');
+  console.log('[SimpleGameUI] Game object:', game);
+  console.log('[SimpleGameUI] AudioManager:', audioManager);
 
-  const togglePanel = (panel: HTMLElement) => {
-    if (activePanel === panel) {
-      panel.style.display = 'none';
-      activePanel = null;
+  // Dialog management
+  const dialogManager = DialogManager.getInstance();
+  
+  // Dialog instances
+  let buildMenuDialog: BuildMenuDialogAdapter;
+  let towerUpgradeDialog: UpgradeDialogAdapter | null = null;
+  let playerUpgradeDialog: UpgradeDialogAdapter | null = null;
+  let inventoryDialog: InventoryDialogAdapter;
+  let settingsDialog: SettingsDialog;
+  let pauseDialog: PauseDialog;
+
+  // Initialize dialogs
+  const initializeDialogs = () => {
+    console.log('[SimpleGameUI] Checking for existing dialogs...');
+    
+    // Check if dialogs are already registered from main.ts
+    // If they are, just get references to them
+    
+    // Build Menu Dialog - should already be registered
+    const existingBuildMenu = dialogManager.getDialog('buildMenu');
+    if (existingBuildMenu) {
+      buildMenuDialog = existingBuildMenu as BuildMenuDialogAdapter;
+      console.log('[SimpleGameUI] Using existing buildMenu dialog');
     } else {
-      panels.forEach(p => p.style.display = 'none');
-      panel.style.display = 'block';
-      activePanel = panel;
+      console.log('[SimpleGameUI] buildMenu dialog not found - this should not happen');
+      // Fallback: create it here
+      buildMenuDialog = new BuildMenuDialogAdapter({
+        game,
+        audioManager,
+        onTowerSelected: (type) => {
+          updateTowerPlacementIndicator();
+        },
+        onClosed: () => {
+          updateTowerPlacementIndicator();
+        }
+      });
+      dialogManager.register('buildMenu', buildMenuDialog);
     }
+
+    // Inventory Dialog - should already be registered
+    const existingInventory = dialogManager.getDialog('inventory');
+    if (existingInventory) {
+      inventoryDialog = existingInventory as InventoryDialogAdapter;
+      console.log('[SimpleGameUI] Using existing inventory dialog');
+    } else {
+      console.log('[SimpleGameUI] inventory dialog not found - this should not happen');
+      // Fallback: create it here
+      inventoryDialog = new InventoryDialogAdapter({
+        game,
+        audioManager,
+        onItemSelected: (item, slot) => {
+          // Additional item selection logic if needed
+        }
+      });
+      dialogManager.register('inventory', inventoryDialog);
+    }
+
+    // Settings Dialog - may use gameSettings instead of settings
+    const existingSettings = dialogManager.getDialog('gameSettings') || dialogManager.getDialog('settings');
+    if (existingSettings) {
+      settingsDialog = existingSettings as SettingsDialog;
+      console.log('[SimpleGameUI] Using existing settings dialog');
+    } else {
+      console.log('[SimpleGameUI] Settings dialog not found - creating new one');
+      settingsDialog = new SettingsDialog({
+        audioManager,
+        onVolumeChange: (volume) => {
+          audioManager.setMasterVolume(volume);
+        },
+        onMuteToggle: (muted) => {
+          audioManager.setMuted(muted);
+        }
+      });
+      dialogManager.register('settings', settingsDialog);
+    }
+
+    // Pause Dialog - should already be registered
+    const existingPause = dialogManager.getDialog('pause');
+    if (existingPause) {
+      pauseDialog = existingPause as PauseDialog;
+      console.log('[SimpleGameUI] Using existing pause dialog');
+    } else {
+      console.log('[SimpleGameUI] pause dialog not found - creating new one');
+      pauseDialog = new PauseDialog({
+        audioManager,
+        onResume: () => {
+          game.resume();
+        },
+        onSettings: () => {
+          // Try gameSettings first, then settings
+          if (dialogManager.getDialog('gameSettings')) {
+            dialogManager.show('gameSettings');
+          } else {
+            dialogManager.show('settings');
+          }
+        },
+        onRestart: () => {
+          if (confirm('Are you sure you want to restart the game?')) {
+            window.location.reload();
+          }
+        },
+        onQuit: () => {
+          if (confirm('Are you sure you want to quit to main menu?')) {
+            window.location.reload();
+          }
+        }
+      });
+      dialogManager.register('pause', pauseDialog);
+    }
+    
+    console.log('[SimpleGameUI] Dialog initialization complete');
+    // Note: We can't directly access private dialogs Map, but we know what should be registered
   };
 
   // Create bottom control bar
@@ -72,954 +184,24 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     return button;
   };
 
-  // Create build panel (initially hidden)
-  const buildPanel = document.createElement('div');
-  buildPanel.className = 'ui-panel popup-panel';
-  buildPanel.style.cssText = `
-    position: absolute;
-    bottom: clamp(60px, 12vh, 70px);
-    left: clamp(10px, 2vw, 20px);
-    min-width: min(280px, 70vw);
-    display: none;
-    animation: slideUp 0.2s ease-out;
-    max-height: 50vh;
-    overflow-y: auto;
-  `;
-  panels.push(buildPanel);
-
-  // Build panel header
-  const buildHeader = document.createElement('div');
-  buildHeader.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  `;
-
-  const buildTitle = document.createElement('div');
-  buildTitle.textContent = 'Build Menu';
-  buildTitle.style.cssText = 'font-weight: bold; color: #4CAF50; font-size: clamp(14px, 3vw, 16px);';
-
-  const closeBuildBtn = document.createElement('button');
-  closeBuildBtn.className = 'ui-button icon-only';
-  closeBuildBtn.style.cssText = `
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #4CAF50;
-    color: #4CAF50;
-  `;
-  const closeIcon = createSvgIcon(IconType.CLOSE, { size: 16 });
-  closeBuildBtn.innerHTML = closeIcon;
-  closeBuildBtn.addEventListener('click', () => {
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
-    buildPanel.style.display = 'none';
-    activePanel = null;
-  });
-
-  buildHeader.appendChild(buildTitle);
-  buildHeader.appendChild(closeBuildBtn);
-  buildPanel.appendChild(buildHeader);
-
-  // Tower grid
-  const towerGrid = document.createElement('div');
-  towerGrid.style.cssText = `
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
-  `;
-
-  const createTowerButton = (name: string, type: TowerType, cost: number, iconType: IconType) => {
-    const button = document.createElement('button');
-    button.className = 'ui-button tower-button has-icon';
-    button.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 12px;
-      gap: 4px;
-      min-height: 80px;
-    `;
-    
-    const icon = createSvgIcon(iconType, { size: 32 });
-    const text = `<div style="font-weight: bold;">${name}</div><div style="color: #FFD700;">$${cost}</div>`;
-    button.innerHTML = `${icon}${text}`;
-    
-    button.addEventListener('click', () => {
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-      
-      // Update selection state
-      if (selectedTowerButton) {
-        selectedTowerButton.classList.remove('selected');
-      }
-      
-      if (selectedTowerButton === button) {
-        // Deselect if clicking the same button
-        selectedTowerButton = null;
-        game.setSelectedTowerType(null);
-        audioManager.playUISound(SoundType.DESELECT);
-        updateTowerPlacementIndicator();
-      } else {
-        // Select new tower type
-        selectedTowerButton = button;
-        button.classList.add('selected');
-        game.setSelectedTowerType(type);
-        audioManager.playUISound(SoundType.SELECT);
-        // Auto-close build panel after selection
-        buildPanel.style.display = 'none';
-        activePanel = null;
-        
-        // Update mobile indicator immediately
-        updateTowerPlacementIndicator();
-      }
-    });
-    
-    return button;
-  };
-
-  const basicTowerBtn = createTowerButton('Basic', TowerType.BASIC, 20, IconType.BASIC_TOWER);
-  const sniperTowerBtn = createTowerButton('Sniper', TowerType.SNIPER, 50, IconType.SNIPER_TOWER);
-  const rapidTowerBtn = createTowerButton('Rapid', TowerType.RAPID, 30, IconType.RAPID_TOWER);
-  const wallBtn = createTowerButton('Wall', TowerType.WALL, 10, IconType.WALL);
-
-  towerGrid.appendChild(basicTowerBtn);
-  towerGrid.appendChild(sniperTowerBtn);
-  towerGrid.appendChild(rapidTowerBtn);
-  towerGrid.appendChild(wallBtn);
-  buildPanel.appendChild(towerGrid);
-
-  // Cancel selection button
-  const cancelButton = document.createElement('button');
-  cancelButton.className = 'ui-button close-button has-icon';
-  const cancelIcon = createSvgIcon(IconType.CANCEL, { size: 14 });
-  cancelButton.innerHTML = `${cancelIcon}<span class="button-text">Cancel Selection (ESC)</span>`;
-  cancelButton.style.width = '100%';
-  cancelButton.addEventListener('click', () => {
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
-    if (selectedTowerButton) {
-      selectedTowerButton.classList.remove('selected');
-      selectedTowerButton = null;
-    }
-    game.setSelectedTowerType(null);
-    audioManager.playUISound(SoundType.DESELECT);
-    updateTowerPlacementIndicator();
-  });
-  buildPanel.appendChild(cancelButton);
-
-  gameContainer.appendChild(buildPanel);
-
-  // Create tower upgrade panel (position-aware)
-  const towerUpgradePanel = document.createElement('div');
-  towerUpgradePanel.className = 'ui-panel popup-panel';
-  towerUpgradePanel.style.cssText = `
-    position: absolute;
-    display: none;
-    min-width: 200px;
-    animation: slideUp 0.2s ease-out;
-    z-index: 1000;
-    background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #4CAF50;
-    border-radius: 4px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  `;
-  
-  // Tower upgrade header
-  const towerUpgradeHeader = document.createElement('div');
-  towerUpgradeHeader.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  `;
-  
-  const towerUpgradeTitle = document.createElement('div');
-  towerUpgradeTitle.textContent = 'Tower Upgrades';
-  towerUpgradeTitle.style.cssText = 'font-weight: bold; color: #4CAF50;';
-  
-  const closeTowerUpgradeBtn = document.createElement('button');
-  closeTowerUpgradeBtn.className = 'ui-button icon-only';
-  closeTowerUpgradeBtn.style.cssText = `
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #4CAF50;
-    color: #4CAF50;
-  `;
-  const closeTowerIcon = createSvgIcon(IconType.CLOSE, { size: 16 });
-  closeTowerUpgradeBtn.innerHTML = closeTowerIcon;
-  closeTowerUpgradeBtn.addEventListener('click', () => {
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
-    towerUpgradePanel.style.display = 'none';
-  });
-  
-  towerUpgradeHeader.appendChild(towerUpgradeTitle);
-  towerUpgradeHeader.appendChild(closeTowerUpgradeBtn);
-  towerUpgradePanel.appendChild(towerUpgradeHeader);
-  
-  // Add tower stats section
-  const towerStatsSection = document.createElement('div');
-  towerStatsSection.style.cssText = `
-    background: rgba(40, 40, 40, 0.9);
-    border: 1px solid #4CAF50;
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 8px;
-  `;
-  towerStatsSection.id = 'tower-stats-section';
-
-  const towerStatsTitle = document.createElement('div');
-  towerStatsTitle.textContent = 'Tower Stats';
-  towerStatsTitle.style.cssText = 'font-weight: bold; color: #4CAF50; font-size: 12px; margin-bottom: 6px; text-align: center;';
-  towerStatsSection.appendChild(towerStatsTitle);
-
-  const towerStatsGrid = document.createElement('div');
-  towerStatsGrid.style.cssText = `
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 3px;
-    font-size: 10px;
-  `;
-  towerStatsGrid.id = 'tower-stats-grid';
-  towerStatsSection.appendChild(towerStatsGrid);
-
-  towerUpgradePanel.appendChild(towerStatsSection);
-  
-  // Create tower upgrade buttons
-  const createTowerUpgradeButton = (name: string, type: UpgradeType, iconType: IconType) => {
-    const button = document.createElement('button');
-    button.className = 'ui-button tower-button has-icon';
-    button.style.cssText = `
-      display: block;
-      width: 100%;
-      margin: 5px 0;
-      font-size: 11px;
-    `;
-    
-    let upgrading = false;
-    button.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-      
-      if (upgrading || button.disabled) {
-        audioManager.playUISound(SoundType.ERROR);
-        return;
-      }
-      
-      const selectedTower = game.getSelectedTower();
-      if (selectedTower) {
-        upgrading = true;
-        const success = game.upgradeTower(selectedTower, type);
-        
-        if (success) {
-          updateTowerUpgradePanel();
-        } else {
-          audioManager.playUISound(SoundType.ERROR);
-        }
-        
-        setTimeout(() => {
-          upgrading = false;
-        }, 100);
-      }
-    });
-    return button;
-  };
-  
-  const damageUpgradeBtn = createTowerUpgradeButton('Damage', UpgradeType.DAMAGE, IconType.DAMAGE);
-  const rangeUpgradeBtn = createTowerUpgradeButton('Range', UpgradeType.RANGE, IconType.RANGE);
-  const fireRateUpgradeBtn = createTowerUpgradeButton('Fire Rate', UpgradeType.FIRE_RATE, IconType.FIRE_RATE);
-  
-  towerUpgradePanel.appendChild(damageUpgradeBtn);
-  towerUpgradePanel.appendChild(rangeUpgradeBtn);
-  towerUpgradePanel.appendChild(fireRateUpgradeBtn);
-  
-  // Append to document.body for better positioning
-  document.body.appendChild(towerUpgradePanel);
-  
-  // Update tower upgrade panel function
-  const updateTowerUpgradePanel = () => {
-    const selectedTower = game.getSelectedTower();
-    if (selectedTower) {
-      console.log('[DEBUG] Updating tower upgrade panel for:', selectedTower.towerType);
-      // Update tower stats section
-      const statsGrid = document.getElementById('tower-stats-grid');
-      if (statsGrid) {
-        statsGrid.innerHTML = `
-          <div style="color: #ff6b6b; display: flex; align-items: center; gap: 4px;">
-            ${createSvgIcon(IconType.DAMAGE, { size: 12 })}
-            <span>Damage: ${selectedTower.damage}</span>
-          </div>
-          <div style="color: #4ecdc4; display: flex; align-items: center; gap: 4px;">
-            ${createSvgIcon(IconType.RANGE, { size: 12 })}
-            <span>Range: ${Math.round(selectedTower.range)}</span>
-          </div>
-          <div style="color: #ffe66d; display: flex; align-items: center; gap: 4px;">
-            ${createSvgIcon(IconType.FIRE_RATE, { size: 12 })}
-            <span>Fire Rate: ${selectedTower.fireRate.toFixed(1)}/s</span>
-          </div>
-          <div style="color: #a8e6cf; text-align: center; font-size: 9px; margin-top: 2px;">
-            Type: ${selectedTower.towerType} | Total Upgrades: ${selectedTower.getTotalUpgrades()}
-          </div>
-        `;
-      }
-      // Position panel near the tower - need to convert world coordinates to screen coordinates
-      const towerWorldPos = selectedTower.getPosition();
-      const camera = game.getCamera();
-      const towerScreenPos = camera.worldToScreen(towerWorldPos);
-      const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-      const canvasRect = canvas.getBoundingClientRect();
-      const x = towerScreenPos.x + canvasRect.left;
-      const y = towerScreenPos.y + canvasRect.top;
-      
-      console.log('[DEBUG] Tower position - World:', towerWorldPos, 'Screen:', towerScreenPos, 'Final:', {x, y});
-      
-      // Adjust position to keep panel on screen
-      const panelWidth = 200;
-      const panelHeight = 150;
-      let panelX = x + 20;
-      let panelY = y - panelHeight / 2;
-      
-      if (panelX + panelWidth > window.innerWidth) {
-        panelX = x - panelWidth - 20;
-      }
-      if (panelY < 0) {
-        panelY = 10;
-      }
-      if (panelY + panelHeight > window.innerHeight) {
-        panelY = window.innerHeight - panelHeight - 10;
-      }
-      
-      towerUpgradePanel.style.left = `${panelX}px`;
-      towerUpgradePanel.style.top = `${panelY}px`;
-      towerUpgradePanel.style.display = 'block';
-      
-      console.log('[DEBUG] Tower upgrade panel shown at:', { x: panelX, y: panelY });
-      console.log('[DEBUG] Panel element:', towerUpgradePanel);
-      console.log('[DEBUG] Panel parent:', towerUpgradePanel.parentElement);
-      
-      // Update damage button
-      const damageCost = game.getUpgradeCost(selectedTower, UpgradeType.DAMAGE);
-      const damageLevel = selectedTower.getUpgradeLevel(UpgradeType.DAMAGE);
-      const canUpgradeDamage = selectedTower.canUpgrade(UpgradeType.DAMAGE) && game.canAffordUpgrade(selectedTower, UpgradeType.DAMAGE);
-      
-      const damageIcon = createSvgIcon(IconType.DAMAGE, { size: 16 });
-      const nextDamage = damageLevel < 5 ? Math.floor(selectedTower.damage * 1.2) : selectedTower.damage;
-      const damageIncrease = nextDamage - selectedTower.damage;
-      damageUpgradeBtn.innerHTML = `${damageIcon}<span class="button-text">Damage Lv.${damageLevel}/5<br>${damageCost > 0 ? `$${damageCost} (+${damageIncrease} dmg)` : 'MAX'}</span>`;
-      damageUpgradeBtn.style.background = canUpgradeDamage ? '#4CAF50' : '#666';
-      damageUpgradeBtn.disabled = !canUpgradeDamage;
-      
-      // Update range button
-      const rangeCost = game.getUpgradeCost(selectedTower, UpgradeType.RANGE);
-      const rangeLevel = selectedTower.getUpgradeLevel(UpgradeType.RANGE);
-      const canUpgradeRange = selectedTower.canUpgrade(UpgradeType.RANGE) && game.canAffordUpgrade(selectedTower, UpgradeType.RANGE);
-      
-      const rangeIcon = createSvgIcon(IconType.RANGE, { size: 16 });
-      const nextRange = rangeLevel < 5 ? Math.floor(selectedTower.range * 1.15) : selectedTower.range;
-      const rangeIncrease = nextRange - selectedTower.range;
-      rangeUpgradeBtn.innerHTML = `${rangeIcon}<span class="button-text">Range Lv.${rangeLevel}/5<br>${rangeCost > 0 ? `$${rangeCost} (+${rangeIncrease} rng)` : 'MAX'}</span>`;
-      rangeUpgradeBtn.style.background = canUpgradeRange ? '#4CAF50' : '#666';
-      rangeUpgradeBtn.disabled = !canUpgradeRange;
-      
-      // Update fire rate button
-      const fireRateCost = game.getUpgradeCost(selectedTower, UpgradeType.FIRE_RATE);
-      const fireRateLevel = selectedTower.getUpgradeLevel(UpgradeType.FIRE_RATE);
-      const canUpgradeFireRate = selectedTower.canUpgrade(UpgradeType.FIRE_RATE) && game.canAffordUpgrade(selectedTower, UpgradeType.FIRE_RATE);
-      
-      const fireRateIcon = createSvgIcon(IconType.FIRE_RATE, { size: 16 });
-      const nextFireRate = fireRateLevel < 5 ? (selectedTower.fireRate * 1.25) : selectedTower.fireRate;
-      const fireRateIncrease = (nextFireRate - selectedTower.fireRate).toFixed(1);
-      fireRateUpgradeBtn.innerHTML = `${fireRateIcon}<span class="button-text">Fire Rate Lv.${fireRateLevel}/5<br>${fireRateCost > 0 ? `$${fireRateCost} (+${fireRateIncrease}/s)` : 'MAX'}</span>`;
-      fireRateUpgradeBtn.style.background = canUpgradeFireRate ? '#4CAF50' : '#666';
-      fireRateUpgradeBtn.disabled = !canUpgradeFireRate;
-    } else {
-      console.log('[DEBUG] No tower selected, hiding panel');
-      towerUpgradePanel.style.display = 'none';
-    }
-  };
-  
-  // Listen for tower selection
-  setInterval(() => {
-    updateTowerUpgradePanel();
-    updatePlayerUpgradePanel();
-    updateTowerPlacementIndicator();
-  }, 100);
-
-  // Create player upgrade panel (initially hidden)
-  const playerUpgradePanel = document.createElement('div');
-  playerUpgradePanel.className = 'ui-panel popup-panel';
-  playerUpgradePanel.style.cssText = `
-    position: absolute;
-    bottom: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 240px;
-    display: none;
-    animation: slideUp 0.2s ease-out;
-  `;
-  panels.push(playerUpgradePanel);
-
-  // Player upgrade panel header
-  const playerUpgradeHeader = document.createElement('div');
-  playerUpgradeHeader.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  `;
-
-  const playerUpgradeTitle = document.createElement('div');
-  playerUpgradeTitle.textContent = 'Player Upgrades';
-  playerUpgradeTitle.style.cssText = 'font-weight: bold; color: #2196F3; font-size: 16px;';
-
-  const closePlayerUpgradeBtn = document.createElement('button');
-  closePlayerUpgradeBtn.className = 'ui-button icon-only';
-  closePlayerUpgradeBtn.style.cssText = `
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #2196F3;
-    color: #2196F3;
-  `;
-  const closePlayerIcon = createSvgIcon(IconType.CLOSE, { size: 16 });
-  closePlayerUpgradeBtn.innerHTML = closePlayerIcon;
-  closePlayerUpgradeBtn.addEventListener('click', () => {
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
-    playerUpgradePanel.style.display = 'none';
-    activePanel = null;
-  });
-
-  playerUpgradeHeader.appendChild(playerUpgradeTitle);
-  playerUpgradeHeader.appendChild(closePlayerUpgradeBtn);
-  playerUpgradePanel.appendChild(playerUpgradeHeader);
-
-  // Add player stats section
-  const playerStatsSection = document.createElement('div');
-  playerStatsSection.style.cssText = `
-    background: rgba(40, 40, 40, 0.9);
-    border: 1px solid #2196F3;
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 12px;
-  `;
-
-  const playerStatsTitle = document.createElement('div');
-  playerStatsTitle.textContent = 'Current Stats';
-  playerStatsTitle.style.cssText = 'font-weight: bold; color: #2196F3; font-size: 12px; margin-bottom: 6px; text-align: center;';
-  playerStatsSection.appendChild(playerStatsTitle);
-
-  const playerStatsGrid = document.createElement('div');
-  playerStatsGrid.style.cssText = `
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    font-size: 10px;
-  `;
-  playerStatsGrid.id = 'player-stats-grid';
-  playerStatsSection.appendChild(playerStatsGrid);
-
-  playerUpgradePanel.appendChild(playerStatsSection);
-
-  // Create player upgrade buttons
-  const createPlayerUpgradeButton = (name: string, type: PlayerUpgradeType, iconType: IconType) => {
-    const button = document.createElement('button');
-    button.className = 'ui-button action-button has-icon';
-    button.style.cssText = `
-      display: block;
-      width: 100%;
-      margin: 4px 0;
-      font-size: 11px;
-      padding: 8px;
-    `;
-    
-    let upgrading = false;
-    button.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-      
-      if (upgrading || button.disabled) {
-        audioManager.playUISound(SoundType.ERROR);
-        return;
-      }
-      
-      upgrading = true;
-      const success = game.upgradePlayer(type);
-      
-      if (success) {
-        updatePlayerUpgradePanel();
-      } else {
-        audioManager.playUISound(SoundType.ERROR);
-      }
-      
-      setTimeout(() => {
-        upgrading = false;
-      }, 100);
-    });
-    return button;
-  };
-
-  const playerDamageBtn = createPlayerUpgradeButton('Damage', PlayerUpgradeType.DAMAGE, IconType.DAMAGE);
-  const playerSpeedBtn = createPlayerUpgradeButton('Speed', PlayerUpgradeType.SPEED, IconType.SPEED);
-  const playerFireRateBtn = createPlayerUpgradeButton('Fire Rate', PlayerUpgradeType.FIRE_RATE, IconType.FIRE_RATE);
-  const playerHealthBtn = createPlayerUpgradeButton('Health', PlayerUpgradeType.HEALTH, IconType.HEALTH);
-
-  playerUpgradePanel.appendChild(playerDamageBtn);
-  playerUpgradePanel.appendChild(playerSpeedBtn);
-  playerUpgradePanel.appendChild(playerFireRateBtn);
-  playerUpgradePanel.appendChild(playerHealthBtn);
-
-  gameContainer.appendChild(playerUpgradePanel);
-
-  // Update player upgrade panel function
-  const updatePlayerUpgradePanel = () => {
-    const player = game.getPlayer();
-    
-    // Update player stats section
-    const statsGrid = document.getElementById('player-stats-grid');
-    if (statsGrid) {
-      const activePowerUps = player.getActivePowerUps();
-      const hasExtraDamage = activePowerUps.has('EXTRA_DAMAGE');
-      const hasSpeedBoost = activePowerUps.has('SPEED_BOOST');
-      const hasFasterShooting = activePowerUps.has('FASTER_SHOOTING');
-      const hasShield = activePowerUps.has('SHIELD');
-      
-      statsGrid.innerHTML = `
-        <div style="color: #ff6b6b;">
-          ${createSvgIcon(IconType.DAMAGE, { size: 12 })}
-          <span style="margin-left: 2px;">Damage: ${player.damage}${hasExtraDamage ? ' (+50%)' : ''}</span>
-        </div>
-        <div style="color: #4ecdc4;">
-          ${createSvgIcon(IconType.SPEED, { size: 12 })}
-          <span style="margin-left: 2px;">Speed: ${Math.round(player.speed)}${hasSpeedBoost ? ' (+50%)' : ''}</span>
-        </div>
-        <div style="color: #ffe66d;">
-          ${createSvgIcon(IconType.FIRE_RATE, { size: 12 })}
-          <span style="margin-left: 2px;">Fire Rate: ${player.fireRate.toFixed(1)}/s${hasFasterShooting ? ' (+100%)' : ''}</span>
-        </div>
-        <div style="color: #51cf66;">
-          ${createSvgIcon(IconType.HEALTH, { size: 12 })}
-          <span style="margin-left: 2px;">Health: ${player.health}/${player.getMaxHealth()}${hasShield ? ' (🛡️)' : ''}</span>
-        </div>
-        <div style="color: #a8e6cf; grid-column: 1 / -1; text-align: center; font-size: 9px; margin-top: 2px;">
-          Level: ${player.getLevel()} | Total Upgrades: ${player.getTotalUpgrades()}
-        </div>
-      `;
-    }
-    
-    // Update damage button
-    const damageCost = game.getPlayerUpgradeCost(PlayerUpgradeType.DAMAGE);
-    const damageLevel = player.getUpgradeLevel(PlayerUpgradeType.DAMAGE);
-    const canUpgradeDamage = player.canUpgrade(PlayerUpgradeType.DAMAGE) && game.canAffordPlayerUpgrade(PlayerUpgradeType.DAMAGE);
-    
-    const damageIcon = createSvgIcon(IconType.DAMAGE, { size: 16 });
-    const nextDamage = damageLevel < 5 ? Math.floor(player.damage * 1.4) : player.damage;
-    const damageIncrease = nextDamage - player.damage;
-    playerDamageBtn.innerHTML = `${damageIcon}<span class="button-text">Damage Lv.${damageLevel}/5<br>${damageCost > 0 ? `$${damageCost} (+${damageIncrease} dmg)` : 'MAX'}</span>`;
-    playerDamageBtn.style.background = canUpgradeDamage ? '#2196F3' : '#666';
-    playerDamageBtn.disabled = !canUpgradeDamage;
-    
-    // Update speed button
-    const speedCost = game.getPlayerUpgradeCost(PlayerUpgradeType.SPEED);
-    const speedLevel = player.getUpgradeLevel(PlayerUpgradeType.SPEED);
-    const canUpgradeSpeed = player.canUpgrade(PlayerUpgradeType.SPEED) && game.canAffordPlayerUpgrade(PlayerUpgradeType.SPEED);
-    
-    const speedIcon = createSvgIcon(IconType.SPEED, { size: 16 });
-    const nextSpeed = speedLevel < 5 ? Math.floor(player.speed * 1.3) : player.speed;
-    const speedIncrease = nextSpeed - player.speed;
-    playerSpeedBtn.innerHTML = `${speedIcon}<span class="button-text">Speed Lv.${speedLevel}/5<br>${speedCost > 0 ? `$${speedCost} (+${speedIncrease} spd)` : 'MAX'}</span>`;
-    playerSpeedBtn.style.background = canUpgradeSpeed ? '#2196F3' : '#666';
-    playerSpeedBtn.disabled = !canUpgradeSpeed;
-    
-    // Update fire rate button
-    const fireRateCost = game.getPlayerUpgradeCost(PlayerUpgradeType.FIRE_RATE);
-    const fireRateLevel = player.getUpgradeLevel(PlayerUpgradeType.FIRE_RATE);
-    const canUpgradeFireRate = player.canUpgrade(PlayerUpgradeType.FIRE_RATE) && game.canAffordPlayerUpgrade(PlayerUpgradeType.FIRE_RATE);
-    
-    const fireRateIcon = createSvgIcon(IconType.FIRE_RATE, { size: 16 });
-    const nextFireRate = fireRateLevel < 5 ? (player.fireRate * 1.25) : player.fireRate;
-    const fireRateIncrease = (nextFireRate - player.fireRate).toFixed(1);
-    playerFireRateBtn.innerHTML = `${fireRateIcon}<span class="button-text">Fire Rate Lv.${fireRateLevel}/5<br>${fireRateCost > 0 ? `$${fireRateCost} (+${fireRateIncrease}/s)` : 'MAX'}</span>`;
-    playerFireRateBtn.style.background = canUpgradeFireRate ? '#2196F3' : '#666';
-    playerFireRateBtn.disabled = !canUpgradeFireRate;
-    
-    // Update health button
-    const healthCost = game.getPlayerUpgradeCost(PlayerUpgradeType.HEALTH);
-    const healthLevel = player.getUpgradeLevel(PlayerUpgradeType.HEALTH);
-    const canUpgradeHealth = player.canUpgrade(PlayerUpgradeType.HEALTH) && game.canAffordPlayerUpgrade(PlayerUpgradeType.HEALTH);
-    
-    const healthIcon = createSvgIcon(IconType.HEALTH, { size: 16 });
-    const nextMaxHealth = healthLevel < 5 ? Math.floor(player.getMaxHealth() * 1.5) : player.getMaxHealth();
-    const healthIncrease = nextMaxHealth - player.getMaxHealth();
-    playerHealthBtn.innerHTML = `${healthIcon}<span class="button-text">Health Lv.${healthLevel}/5<br>${healthCost > 0 ? `$${healthCost} (+${healthIncrease} hp)` : 'MAX'}</span>`;
-    playerHealthBtn.style.background = canUpgradeHealth ? '#2196F3' : '#666';
-    playerHealthBtn.disabled = !canUpgradeHealth;
-  };
-
-  // Create settings panel (initially hidden)
-  const settingsPanel = document.createElement('div');
-  settingsPanel.className = 'ui-panel popup-panel';
-  settingsPanel.style.cssText = `
-    position: absolute;
-    bottom: 70px;
-    right: 20px;
-    min-width: 300px;
-    display: none;
-    animation: slideUp 0.2s ease-out;
-  `;
-  panels.push(settingsPanel);
-
-  // Settings panel header
-  const settingsHeader = document.createElement('div');
-  settingsHeader.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  `;
-
-  const settingsTitle = document.createElement('div');
-  settingsTitle.textContent = 'Settings';
-  settingsTitle.style.cssText = 'font-weight: bold; color: #FFD700; font-size: 16px;';
-
-  const closeSettingsBtn = document.createElement('button');
-  closeSettingsBtn.className = 'ui-button icon-only';
-  closeSettingsBtn.style.cssText = `
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #FFD700;
-    color: #FFD700;
-  `;
-  const closeSettingsIcon = createSvgIcon(IconType.CLOSE, { size: 16 });
-  closeSettingsBtn.innerHTML = closeSettingsIcon;
-  closeSettingsBtn.addEventListener('click', () => {
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
-    settingsPanel.style.display = 'none';
-    activePanel = null;
-  });
-
-  settingsHeader.appendChild(settingsTitle);
-  settingsHeader.appendChild(closeSettingsBtn);
-  settingsPanel.appendChild(settingsHeader);
-
-  // Add settings content
-  const settingsContent = document.createElement('div');
-  settingsContent.style.cssText = 'padding: 8px 0;';
-
-  // Audio section
-  const audioSection = document.createElement('div');
-  audioSection.style.cssText = 'margin-bottom: 16px;';
-  
-  const audioSectionTitle = document.createElement('div');
-  audioSectionTitle.textContent = 'Audio';
-  audioSectionTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #FFD700;';
-  audioSection.appendChild(audioSectionTitle);
-
-  // Volume slider
-  const volumeContainer = document.createElement('div');
-  volumeContainer.style.marginBottom = '8px';
-  
-  const volumeLabel = document.createElement('label');
-  volumeLabel.textContent = 'Master Volume: ';
-  volumeLabel.style.display = 'block';
-  volumeLabel.style.marginBottom = '4px';
-
-  const volumeSlider = document.createElement('input');
-  volumeSlider.type = 'range';
-  volumeSlider.min = '0';
-  volumeSlider.max = '100';
-  volumeSlider.value = '30';
-  volumeSlider.style.width = '100%';
-  
-  volumeSlider.addEventListener('input', (e) => {
-    const volume = parseInt((e.target as HTMLInputElement).value) / 100;
-    audioManager.setMasterVolume(volume);
-    game.getAudioManager().setMasterVolume(volume);
-  });
-
-  volumeContainer.appendChild(volumeLabel);
-  volumeContainer.appendChild(volumeSlider);
-  audioSection.appendChild(volumeContainer);
-
-  // Mute toggle
-  const muteButton = document.createElement('button');
-  muteButton.className = 'ui-button has-icon';
-  let isMuted = false;
-  const updateMuteButton = () => {
-    const icon = createSvgIcon(isMuted ? IconType.AUDIO_OFF : IconType.AUDIO_ON, { size: 16 });
-    muteButton.innerHTML = `${icon}<span class="button-text">${isMuted ? 'Unmute' : 'Mute'}</span>`;
-  };
-  updateMuteButton();
-  muteButton.style.width = '100%';
-  muteButton.style.fontSize = '12px';
-  
-  muteButton.addEventListener('click', () => {
-    isMuted = !isMuted;
-    audioManager.setEnabled(!isMuted);
-    game.getAudioManager().setEnabled(!isMuted);
-    volumeSlider.disabled = isMuted;
-    updateMuteButton();
-  });
-  
-  audioSection.appendChild(muteButton);
-  settingsContent.appendChild(audioSection);
-
-  // Controls section
-  const controlsSection = document.createElement('div');
-  const controlsSectionTitle = document.createElement('div');
-  controlsSectionTitle.textContent = 'Controls Reference';
-  controlsSectionTitle.style.cssText = 'font-weight: bold; margin-bottom: 8px; color: #FFD700;';
-  controlsSection.appendChild(controlsSectionTitle);
-
-  const controlsList = document.createElement('div');
-  controlsList.style.cssText = 'font-size: 11px; line-height: 1.4;';
-  const keyboardIcon = createSvgIcon(IconType.KEYBOARD, { size: 14 });
-  const mouseIcon = createSvgIcon(IconType.MOUSE, { size: 16 });
-
-  controlsList.innerHTML = `
-    <div style="margin-bottom: 4px;">${keyboardIcon} <strong>Keyboard:</strong></div>
-    <div>WASD/Arrows - Move Player</div>
-    <div>1-4 - Select Tower Type</div>
-    <div>B - Toggle Build Menu</div>
-    <div>U - Toggle Player Upgrades</div>
-    <div>Enter - Start Next Wave</div>
-    <div>Space - Pause/Resume</div>
-    <div>ESC - Cancel Selection</div>
-        <div style="margin-top: 6px; color: #4CAF50;">
-      <strong>Camera/Zoom:</strong>
-    </div>
-    <div>+/- - Zoom In/Out</div>
-    <div>0 - Reset Zoom</div>
-    <div>F - Fit to Screen</div>
-    <div>C - Toggle Follow Player</div>
-    <div style="margin-top: 8px; font-size: 12px; color: #FFD700; display: flex; align-items: center; gap: 6px;">
-      ${mouseIcon}
-      <strong>Mouse wheel to zoom • Click audio icon for settings</strong>
-    </div>
-  `;
-  controlsSection.appendChild(controlsList);
-  settingsContent.appendChild(controlsSection);
-
-  settingsPanel.appendChild(settingsContent);
-  gameContainer.appendChild(settingsPanel);
-
   // Control bar buttons
   const buildButton = createControlButton(IconType.BUILD, 'Build Menu (B)', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
-    togglePanel(buildPanel);
+    if (!game) {
+      console.warn('[SimpleGameUI] Game not initialized yet');
+      return;
+    }
+    dialogManager.toggle('buildMenu');
   });
 
   const playerUpgradeButton = createControlButton(IconType.PLAYER, 'Player Upgrades (U)', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
-    togglePanel(playerUpgradePanel);
-    updatePlayerUpgradePanel();
+    showPlayerUpgradeDialog();
   });
-
-  // Create inventory panel container
-  const inventoryPanelContainer = document.createElement('div');
-  inventoryPanelContainer.id = 'inventory-panel-container';
-  inventoryPanelContainer.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 2000;
-  `;
-  gameContainer.appendChild(inventoryPanelContainer);
-
-  // Create a simple inventory panel for now
-  let inventoryPanel: any = null;
-  try {
-    // Try to create the complex InventoryPanel
-    console.log('Attempting to create InventoryPanel...');
-    console.log('Game inventory:', game.getInventory());
-    inventoryPanel = new InventoryPanel({
-      game: game,
-      inventory: game.getInventory(),
-      audioManager: audioManager,
-      visible: false,
-      position: 'center'
-    });
-    console.log('InventoryPanel instance created, mounting...');
-    inventoryPanel.mount(inventoryPanelContainer);
-    console.log('InventoryPanel created successfully');
-  } catch (error) {
-    console.error('Failed to create InventoryPanel, creating simple fallback:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    
-    // Create a simple fallback inventory display
-    inventoryPanel = {
-      isVisible: false,
-      toggle: function() {
-        this.isVisible = !this.isVisible;
-        const panel = document.getElementById('simple-inventory-panel');
-        if (panel) {
-          panel.style.display = this.isVisible ? 'block' : 'none';
-          if (this.isVisible) {
-            updateInventoryDisplay();
-          }
-        }
-      },
-      show: function() {
-        this.isVisible = true;
-        const panel = document.getElementById('simple-inventory-panel');
-        if (panel) {
-          panel.style.display = 'block';
-          updateInventoryDisplay();
-        }
-      },
-      hide: function() {
-        this.isVisible = false;
-        const panel = document.getElementById('simple-inventory-panel');
-        if (panel) panel.style.display = 'none';
-      }
-    };
-    
-    // Create simple inventory panel HTML
-    const simplePanel = document.createElement('div');
-    simplePanel.id = 'simple-inventory-panel';
-    simplePanel.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 600px;
-      height: 400px;
-      background: rgba(20, 20, 20, 0.95);
-      border: 2px solid #4CAF50;
-      border-radius: 8px;
-      display: none;
-      padding: 20px;
-      pointer-events: auto;
-      z-index: 2001;
-    `;
-    
-    // Create a functional inventory display
-    const inventory = game.getInventory();
-    const stats = inventory.getStatistics();
-    
-    simplePanel.innerHTML = `
-      <div class="inventory-header" style="color: #4CAF50; font-size: 18px; font-weight: bold; margin-bottom: 20px;">
-        Inventory (${stats.usedSlots}/${stats.totalSlots})
-      </div>
-      <div id="inventory-grid" style="
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 8px;
-        margin-bottom: 20px;
-        max-height: 300px;
-        overflow-y: auto;
-      "></div>
-      <button id="close-simple-inventory" style="
-        background: #F44336;
-        border: none;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 4px;
-        cursor: pointer;
-      ">Close</button>
-    `;
-    
-    // Function to update inventory display
-    const updateInventoryDisplay = () => {
-      const grid = simplePanel.querySelector('#inventory-grid');
-      const headerDiv = simplePanel.querySelector('.inventory-header');
-      if (!grid) return;
-      
-      // Update header with current stats
-      const currentStats = inventory.getStatistics();
-      if (headerDiv) {
-        headerDiv.textContent = `Inventory (${currentStats.usedSlots}/${currentStats.totalSlots})`;
-      }
-      
-      grid.innerHTML = '';
-      const state = inventory.getState();
-      const slots = state.slots;
-      
-      // Show all slots
-      for (let i = 0; i < currentStats.totalSlots; i++) {
-        const slot = slots[i];
-        const slotEl = document.createElement('div');
-        slotEl.style.cssText = `
-          width: 80px;
-          height: 80px;
-          background: rgba(255, 255, 255, 0.1);
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-radius: 4px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          position: relative;
-        `;
-        
-        if (slot && slot.item) {
-          const item = slot.item;
-          slotEl.innerHTML = `
-            <div style="color: #FFF; font-size: 12px; text-align: center; padding: 4px;">
-              ${item.name}
-            </div>
-            <div style="color: #FFD700; font-size: 10px;">
-              ${item.quantity > 1 ? 'x' + item.quantity : ''}
-            </div>
-          `;
-          
-          // Color based on rarity
-          const rarityColors = {
-            'COMMON': '#CCCCCC',
-            'RARE': '#4169E1',
-            'EPIC': '#9370DB',
-            'LEGENDARY': '#FFD700'
-          };
-          slotEl.style.borderColor = rarityColors[item.rarity] || '#CCCCCC';
-          
-          // Add click handler to use item
-          slotEl.addEventListener('click', () => {
-            if (item.type === 'CONSUMABLE') {
-              const result = inventory.useItem(item.id);
-              if (result.success) {
-                audioManager.playUISound(SoundType.POWERUP_COLLECTED);
-                updateInventoryDisplay();
-              }
-            }
-          });
-        }
-        
-        grid.appendChild(slotEl);
-      }
-    };
-    
-    // Initial display
-    updateInventoryDisplay();
-    
-    // Listen for inventory changes
-    inventory.on('inventoryChanged', updateInventoryDisplay);
-    
-    inventoryPanelContainer.appendChild(simplePanel);
-    
-    // Add close button functionality
-    const closeBtn = simplePanel.querySelector('#close-simple-inventory');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        inventoryPanel.hide();
-      });
-    }
-  }
 
   const inventoryButton = createControlButton(IconType.INVENTORY, 'Inventory (E)', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
-    if (inventoryPanel) {
-      inventoryPanel.toggle();
-    }
+    dialogManager.toggle('inventory');
   });
 
   const startWaveButton = createControlButton(IconType.PLAY, 'Start Next Wave (Enter)', () => {
@@ -1033,20 +215,21 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
     if (game.isPaused()) {
       game.resume();
-      pauseOverlay.style.display = 'none';
-      pauseOverlay.style.visibility = 'hidden';
-      pauseOverlay.style.opacity = '0';
+      dialogManager.hide('pause');
     } else {
       game.pause();
-      pauseOverlay.style.display = 'flex';
-      pauseOverlay.style.visibility = 'visible';
-      pauseOverlay.style.opacity = '1';
+      dialogManager.show('pause');
     }
   });
 
   const settingsButton = createControlButton(IconType.SETTINGS, 'Settings', () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
-    togglePanel(settingsPanel);
+    // Try gameSettings first, then settings
+    if (dialogManager.getDialog('gameSettings')) {
+      dialogManager.toggle('gameSettings');
+    } else {
+      dialogManager.toggle('settings');
+    }
   });
 
   // Add buttons to control bar
@@ -1103,323 +286,345 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   // Listen for tower placed event to clear selection
   document.addEventListener('towerPlaced', () => {
-    if (selectedTowerButton) {
-      selectedTowerButton.classList.remove('selected');
-      selectedTowerButton = null;
-    }
     updateTowerPlacementIndicator();
   });
 
-  // Create pause overlay (initially hidden)
-  const pauseOverlay = document.createElement('div');
-  pauseOverlay.id = 'pause-overlay';
-  pauseOverlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.85);
-    display: none;
-    visibility: hidden;
-    opacity: 0;
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 30px;
-    transition: opacity 0.3s ease;
-  `;
-  
-
-  // Pause title
-  const pauseTitle = document.createElement('div');
-  pauseTitle.style.cssText = `
-    font-size: clamp(32px, 8vw, 64px);
-    font-weight: bold;
-    color: #FFD700;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-    font-family: Arial, sans-serif;
-    letter-spacing: clamp(4px, 1vw, 8px);
-  `;
-  pauseTitle.textContent = 'PAUSED';
-
-  // Unpause button
-  const unpauseButton = document.createElement('button');
-  unpauseButton.style.cssText = `
-    width: clamp(150px, 40vw, 200px);
-    height: clamp(60px, 15vw, 80px);
-    border-radius: 40px;
-    background: linear-gradient(145deg, #4CAF50, #45a049);
-    border: 3px solid #FFD700;
-    color: white;
-    font-size: clamp(18px, 4vw, 24px);
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    font-family: Arial, sans-serif;
-  `;
-  
-  const playIcon = createSvgIcon(IconType.PLAY, { size: 32 });
-  unpauseButton.innerHTML = `${playIcon} RESUME`;
-  
-  unpauseButton.addEventListener('mouseenter', () => {
-    unpauseButton.style.transform = 'scale(1.05)';
-    unpauseButton.style.boxShadow = '0 12px 35px rgba(0, 0, 0, 0.4)';
-    unpauseButton.style.background = 'linear-gradient(145deg, #5CBF60, #4CAF50)';
-  });
-  
-  unpauseButton.addEventListener('mouseleave', () => {
-    unpauseButton.style.transform = 'scale(1)';
-    unpauseButton.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.3)';
-    unpauseButton.style.background = 'linear-gradient(145deg, #4CAF50, #45a049)';
-  });
-  
-  unpauseButton.addEventListener('click', () => {
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
-    game.resume();
-    pauseOverlay.style.display = 'none';
-  });
-
-  // Instructions text
-  const instructionsText = document.createElement('div');
-  instructionsText.style.cssText = `
-    color: #CCCCCC;
-    font-size: clamp(14px, 3vw, 18px);
-    text-align: center;
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    padding: 0 20px;
-  `;
-  instructionsText.innerHTML = `
-    <div style="margin-bottom: 10px;">Click the button above or press <span style="color: #FFD700; font-weight: bold;">SPACE</span> to resume</div>
-    <div>Press <span style="color: #FFD700; font-weight: bold;">ESC</span> to cancel tower selection</div>
-  `;
-
-  pauseOverlay.appendChild(pauseTitle);
-  pauseOverlay.appendChild(unpauseButton);
-  pauseOverlay.appendChild(instructionsText);
-  document.body.appendChild(pauseOverlay);
-  
-
-  // Add keyboard listener for game controls
-  document.addEventListener('keydown', (e) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-      if (game.isPaused()) {
-        game.resume();
-        pauseOverlay.style.display = 'none';
-        pauseOverlay.style.visibility = 'hidden';
-        pauseOverlay.style.opacity = '0';
-      } else {
-        game.pause();
-        pauseOverlay.style.display = 'flex';
-        pauseOverlay.style.visibility = 'visible';
-        pauseOverlay.style.opacity = '1';
-      }
-    } else if (e.key === 'e' || e.key === 'E') {
-      e.preventDefault();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-      inventoryPanel.toggle();
+  // Show tower upgrade dialog when a tower is selected
+  const showTowerUpgradeDialog = (tower: Tower) => {
+    // Close existing tower upgrade dialog if any
+    if (towerUpgradeDialog) {
+      dialogManager.unregister('towerUpgrade');
+      towerUpgradeDialog = null;
     }
-  });
 
-  // Create and mount PowerUpDisplay
-  const powerUpDisplayContainer = document.createElement('div');
-  powerUpDisplayContainer.id = 'powerup-display-container';
-  powerUpDisplayContainer.style.cssText = `
-    position: fixed;
-    top: 0;
-    right: 0;
-    pointer-events: none;
-    z-index: 1200;
-  `;
-  gameContainer.appendChild(powerUpDisplayContainer);
-
-  const powerUpDisplay = new PowerUpDisplay({
-    game: game,
-    uiManager: null, // Not using the main UI manager
-    visible: true
-  });
-  powerUpDisplay.mount(powerUpDisplayContainer);
-
-  // Create and mount CameraControls
-  const cameraControlsContainer = document.createElement('div');
-  cameraControlsContainer.id = 'camera-controls-container';
-  gameContainer.appendChild(cameraControlsContainer);
-
-  const cameraControls = new CameraControls({
-    game: game,
-    position: 'top-right',
-    showLabels: false,
-    showZoomLevel: true,
-    compact: true
-  });
-  cameraControls.mount(cameraControlsContainer);
-
-  // Close panels when clicking outside
-  document.addEventListener('click', (e) => {
-    if (activePanel && !activePanel.contains(e.target as Node) && 
-        !controlBar.contains(e.target as Node)) {
-      activePanel.style.display = 'none';
-      activePanel = null;
-    }
-  });
-
-  // Update control buttons state
-  const updateControlButtons = () => {
-    try {
-      // Update tower buttons
-      basicTowerBtn.disabled = !game.canAffordTower(TowerType.BASIC);
-      sniperTowerBtn.disabled = !game.canAffordTower(TowerType.SNIPER);
-      rapidTowerBtn.disabled = !game.canAffordTower(TowerType.RAPID);
-      wallBtn.disabled = !game.canAffordTower(TowerType.WALL);
-      
-      // Update start wave button
-      startWaveButton.disabled = !game.isWaveComplete() || game.isGameOver();
-      const waveIcon = createSvgIcon(game.isWaveComplete() ? IconType.PLAY : IconType.WAVE, { size: 24 });
-      startWaveButton.innerHTML = waveIcon;
-      startWaveButton.title = game.isWaveComplete() ? 'Start Next Wave (Enter)' : 'Wave in Progress';
-      
-      // Update pause button
-      const isPaused = game.isPaused();
-      const pauseIcon = createSvgIcon(isPaused ? IconType.PLAY : IconType.PAUSE, { size: 24 });
-      pauseButton.innerHTML = pauseIcon;
-      pauseButton.title = isPaused ? 'Resume (Space)' : 'Pause (Space)';
-      
-      // Show/hide pause overlay
-      if (isPaused) {
-        pauseOverlay.style.display = 'flex';
-        pauseOverlay.style.visibility = 'visible';
-        pauseOverlay.style.opacity = '1';
-      } else {
-        pauseOverlay.style.display = 'none';
-        pauseOverlay.style.visibility = 'hidden';
-        pauseOverlay.style.opacity = '0';
+    // Create new upgrade dialog for the selected tower
+    towerUpgradeDialog = new UpgradeDialogAdapter({
+      game,
+      target: tower,
+      audioManager,
+      onUpgraded: (type, cost) => {
+        // Additional upgrade logic if needed
+      },
+      onSold: () => {
+        dialogManager.hide('towerUpgrade');
+        dialogManager.unregister('towerUpgrade');
+        towerUpgradeDialog = null;
+      },
+      onClosed: () => {
+        dialogManager.unregister('towerUpgrade');
+        towerUpgradeDialog = null;
       }
-    } catch (error) {
-      console.error('Error in updateControlButtons:', error);
+    });
+
+    dialogManager.register('towerUpgrade', towerUpgradeDialog);
+    dialogManager.show('towerUpgrade');
+  };
+
+  // Show player upgrade dialog
+  const showPlayerUpgradeDialog = () => {
+    const player = game.getPlayer();
+    if (!player) return;
+
+    // Create or update player upgrade dialog
+    if (!playerUpgradeDialog) {
+      playerUpgradeDialog = new UpgradeDialogAdapter({
+        game,
+        target: player,
+        audioManager,
+        onUpgraded: (type, cost) => {
+          // Additional upgrade logic if needed
+        },
+        onClosed: () => {
+          // Keep the dialog instance for reuse
+        }
+      });
+      dialogManager.register('playerUpgrade', playerUpgradeDialog);
+    }
+
+    dialogManager.toggle('playerUpgrade');
+  };
+
+  // Listen for tower selection events
+  let currentSelectedTower: Tower | null = null;
+  
+  const handleTowerSelection = () => {
+    const selectedTower = game.getSelectedTower();
+    
+    if (selectedTower !== currentSelectedTower) {
+      // Close current tower upgrade dialog if open
+      if (currentSelectedTower && towerUpgradeDialog) {
+        dialogManager.hide('towerUpgrade');
+      }
+      
+      currentSelectedTower = selectedTower;
+      
+      // Open new dialog for selected tower
+      if (selectedTower) {
+        showTowerUpgradeDialog(selectedTower);
+      }
     }
   };
 
-  // Add CSS animations and responsive styles
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    .popup-panel {
-      animation: slideUp 0.2s ease-out;
-    }
-    
-    .control-button:hover {
-      transform: scale(1.1);
-      background: rgba(0, 0, 0, 0.9);
-      border-color: #FFE066;
-    }
-    
-    .control-button:active {
-      transform: scale(0.95);
-    }
-    
-    .control-button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    /* Responsive UI styles */
-    .ui-panel {
-      font-size: clamp(12px, 2.5vw, 14px);
-    }
-    
-    .ui-panel h3 {
-      font-size: clamp(14px, 3vw, 16px);
-    }
-    
-    /* Mobile-specific adjustments */
-    @media (max-width: 768px) {
-      .ui-panel {
-        padding: clamp(8px, 2vw, 12px);
-      }
-      
-      .popup-panel {
-        max-width: 90vw !important;
-        left: 5vw !important;
-        right: 5vw !important;
-      }
-      
-      .tower-button {
-        min-height: clamp(60px, 12vw, 80px) !important;
-        font-size: clamp(11px, 2.5vw, 13px) !important;
-      }
-      
-      .inventory-panel {
-        width: 100vw !important;
-        height: 100vh !important;
-        max-width: none !important;
-        max-height: none !important;
-        inset: 0 !important;
-      }
-    }
-    
-    /* Touch-friendly sizes */
-    @media (hover: none) and (pointer: coarse) {
-      button, .clickable {
-        min-width: 44px;
-        min-height: 44px;
-      }
-    }
-  `;
-  document.head.appendChild(style);
+  // Check for tower selection changes periodically
+  setInterval(handleTowerSelection, 100);
 
-  // Create mobile controls for touch devices
-  let mobileControls: MobileControls | null = null;
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  // Keyboard shortcuts
+  const handleKeyPress = (e: KeyboardEvent) => {
+    // Ignore if typing in an input field
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    // Don't handle shortcuts when dialogs are open (except for ESC)
+    if (dialogManager.getIsInputBlocked && dialogManager.getIsInputBlocked() && e.key !== 'Escape') {
+      return;
+    }
+
+    switch (e.key.toLowerCase()) {
+      case 'b':
+        dialogManager.toggle('buildMenu');
+        break;
+      case 'u':
+        showPlayerUpgradeDialog();
+        break;
+      case 'e':
+        dialogManager.toggle('inventory');
+        break;
+      case ' ':
+        e.preventDefault();
+        if (game.isPaused()) {
+          game.resume();
+          dialogManager.hide('pause');
+        } else {
+          game.pause();
+          dialogManager.show('pause');
+        }
+        break;
+      case 'enter':
+        if (game.isWaveComplete() && !game.isGameOver()) {
+          game.startNextWave();
+        }
+        break;
+      case 'escape':
+        // Cancel tower placement
+        if (game.getSelectedTowerType()) {
+          game.setSelectedTowerType(null);
+          audioManager.playUISound(SoundType.DESELECT);
+          updateTowerPlacementIndicator();
+        }
+        // Close top dialog
+        else if (dialogManager.isAnyDialogOpen()) {
+          dialogManager.closeTopDialog();
+        }
+        break;
+      case '1':
+        game.setSelectedTowerType(TowerType.BASIC);
+        dialogManager.hide('buildMenu');
+        updateTowerPlacementIndicator();
+        break;
+      case '2':
+        game.setSelectedTowerType(TowerType.SNIPER);
+        dialogManager.hide('buildMenu');
+        updateTowerPlacementIndicator();
+        break;
+      case '3':
+        game.setSelectedTowerType(TowerType.RAPID);
+        dialogManager.hide('buildMenu');
+        updateTowerPlacementIndicator();
+        break;
+      case '4':
+        game.setSelectedTowerType(TowerType.WALL);
+        dialogManager.hide('buildMenu');
+        updateTowerPlacementIndicator();
+        break;
+    }
+  };
+
+  document.addEventListener('keydown', handleKeyPress);
+
+  // Click outside to close panels (handled by DialogManager now)
   
-  if (isTouchDevice) {
-    mobileControls = new MobileControls({
-      game: game,
-      container: gameContainer,
-      enableHaptic: true,
-      onShootStart: () => {
-        // Optional: Add visual feedback
-        console.log('Mobile shooting started');
-      },
-      onShootEnd: () => {
-        // Optional: Add visual feedback
-        console.log('Mobile shooting stopped');
+  // Helper function to update button states
+  const updateButtonStates = () => {
+    // Update start wave button state
+    if (game.isWaveComplete() && !game.isGameOver()) {
+      startWaveButton.style.opacity = '1';
+      startWaveButton.style.pointerEvents = 'auto';
+    } else {
+      startWaveButton.style.opacity = '0.5';
+      startWaveButton.style.pointerEvents = 'none';
+    }
+
+    // Update currency display in build menu - add null check
+    if (buildMenuDialog) {
+      buildMenuDialog.updateCurrency(game.getCurrency());
+    }
+  };
+
+  // Removed duplicate setInterval - it's now after initializeDialogs()
+
+  // Create resource display
+  const resourceDisplay = document.createElement('div');
+  resourceDisplay.id = 'resource-display';
+  resourceDisplay.style.cssText = `
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #FFD700;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #FFD700;
+    font-weight: bold;
+    font-size: clamp(14px, 3vw, 18px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+
+  const currencyIcon = createSvgIcon(IconType.COINS, { size: 20 });
+  const updateResourceDisplay = () => {
+    const currency = game.getCurrency();
+    resourceDisplay.innerHTML = `${currencyIcon}<span>$${currency}</span>`;
+  };
+
+  setInterval(updateResourceDisplay, 100);
+  gameContainer.appendChild(resourceDisplay);
+
+  // Create wave display
+  const waveDisplay = document.createElement('div');
+  waveDisplay.id = 'wave-display';
+  waveDisplay.style.cssText = `
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: clamp(14px, 3vw, 18px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+
+  const waveIcon = createSvgIcon(IconType.WAVE, { size: 20 });
+  const updateWaveDisplay = () => {
+    const waveNumber = game.getCurrentWave();
+    const enemiesRemaining = game.getEnemies().length;
+    let waveText = `Wave ${waveNumber}`;
+    if (enemiesRemaining > 0) {
+      waveText += ` - ${enemiesRemaining} enemies`;
+    } else if (game.isWaveComplete()) {
+      waveText += ' - Complete!';
+    }
+    waveDisplay.innerHTML = `${waveIcon}<span>${waveText}</span>`;
+  };
+
+  setInterval(updateWaveDisplay, 100);
+  gameContainer.appendChild(waveDisplay);
+
+  // Create player health display
+  const healthDisplay = document.createElement('div');
+  healthDisplay.id = 'health-display';
+  healthDisplay.style.cssText = `
+    position: absolute;
+    top: 50px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #FF4444;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #FF4444;
+    font-weight: bold;
+    font-size: clamp(14px, 3vw, 18px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+
+  const healthIcon = createSvgIcon(IconType.HEART, { size: 20 });
+  const updateHealthDisplay = () => {
+    const player = game.getPlayer();
+    if (player) {
+      const health = Math.max(0, player.health);
+      const maxHealth = player.maxHealth;
+      const healthPercent = (health / maxHealth) * 100;
+      
+      // Update color based on health percentage
+      let color = '#4CAF50'; // Green
+      if (healthPercent <= 25) {
+        color = '#FF4444'; // Red
+      } else if (healthPercent <= 50) {
+        color = '#FF9800'; // Orange
       }
-    });
+      
+      healthDisplay.style.borderColor = color;
+      healthDisplay.style.color = color;
+      healthDisplay.innerHTML = `${healthIcon}<span>${health}/${maxHealth}</span>`;
+    }
+  };
+
+  setInterval(updateHealthDisplay, 100);
+  gameContainer.appendChild(healthDisplay);
+
+  // Create power-up display
+  const powerUpDisplay = new PowerUpDisplay(game, audioManager);
+  gameContainer.appendChild(powerUpDisplay.getElement());
+
+  // Create camera controls
+  const cameraControls = new CameraControls(game, audioManager);
+  gameContainer.appendChild(cameraControls.getElement());
+
+  // Initialize all dialogs FIRST before setting up any UI that depends on them
+  initializeDialogs();
+  
+  // Now that dialogs are initialized, we can set up the interval for button updates
+  // Update button states periodically AFTER dialogs are initialized
+  setInterval(updateButtonStates, 100);
+
+  // Mobile controls
+  const isMobile = 'ontouchstart' in window;
+  if (isMobile) {
+    const mobileControls = new MobileControls(game, audioManager);
+    gameContainer.appendChild(mobileControls.getElement());
   }
 
-  return {
-    updateControlButtons,
-    buildPanel,
-    playerUpgradePanel,
-    settingsPanel,
-    controlBar,
-    towerUpgradePanel,
-    powerUpDisplay,
-    cameraControls,
-    pauseOverlay,
-    inventoryButton,
-    inventoryPanel,
-    mobileControls
+  // Game event listeners
+  // Note: These events may not be implemented in the current Game class
+  // If the game has an event system, uncomment these:
+  /*
+  game.on('gameOver', () => {
+    // Game over is handled by main.ts with GameOverDialog
+  });
+
+  game.on('waveComplete', () => {
+    audioManager.playUISound(SoundType.WAVE_COMPLETE);
+  });
+
+  game.on('enemyKilled', () => {
+    updateResourceDisplay();
+  });
+
+  game.on('towerPlaced', () => {
+    updateResourceDisplay();
+    updateTowerPlacementIndicator();
+  });
+
+  game.on('towerSold', () => {
+    updateResourceDisplay();
+  });
+  */
+
+  // Cleanup function
+  return () => {
+    document.removeEventListener('keydown', handleKeyPress);
+    document.removeEventListener('towerPlaced', updateTowerPlacementIndicator);
+    dialogManager.destroy();
   };
 }

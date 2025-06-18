@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dialog Fixes Test</title>
+  <link rel="stylesheet" href="/src/ui/styles/mobile-fix.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    
+    /* Ensure dialog containers are always visible */
+    .dialog-container {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 100000 !important;
+      pointer-events: auto !important;
+    }
+    
+    .dialog-overlay {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(0, 0, 0, 0.6) !important;
+      z-index: 1 !important;
+    }
+    
+    .dialog {
+      position: absolute !important;
+      z-index: 2 !important;
+    }
+    
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      background: #000;
+      border: 1px solid #333;
+      border-radius: 5px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dialog Fixes Test</h1>
+  <p>This page tests if the dialog fixes are working properly.</p>
+  
+  <div>
+    <button onclick="testDialog()">Test Dialog Visibility</button>
+    <button onclick="checkZIndex()">Check Z-Index Issues</button>
+  </div>
+  
+  <div id="status"></div>
+  
+  <script type="module">
+    const status = document.getElementById('status');
+    
+    window.testDialog = function() {
+      // Create a test dialog container
+      const container = document.createElement('div');
+      container.className = 'dialog-container';
+      container.style.display = 'block';
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'dialog-overlay';
+      
+      const dialog = document.createElement('div');
+      dialog.className = 'dialog';
+      dialog.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #2a2a2a;
+        border: 2px solid #4CAF50;
+        border-radius: 8px;
+        padding: 20px;
+        min-width: 300px;
+      `;
+      dialog.innerHTML = `
+        <h2>Test Dialog</h2>
+        <p>If you can see this, the dialog fixes are working!</p>
+        <button onclick="this.closest('.dialog-container').remove()">Close</button>
+      `;
+      
+      container.appendChild(overlay);
+      container.appendChild(dialog);
+      document.body.appendChild(container);
+      
+      // Check computed styles
+      const computedStyle = window.getComputedStyle(container);
+      status.innerHTML = `
+        Dialog container added to DOM<br>
+        Computed styles:<br>
+        - position: ${computedStyle.position}<br>
+        - z-index: ${computedStyle.zIndex}<br>
+        - display: ${computedStyle.display}<br>
+        - width: ${computedStyle.width}<br>
+        - height: ${computedStyle.height}
+      `;
+    };
+    
+    window.checkZIndex = function() {
+      const elements = document.querySelectorAll('*');
+      const zIndexMap = new Map();
+      
+      elements.forEach(el => {
+        const zIndex = window.getComputedStyle(el).zIndex;
+        if (zIndex && zIndex !== 'auto' && !isNaN(parseInt(zIndex))) {
+          const z = parseInt(zIndex);
+          if (!zIndexMap.has(z)) {
+            zIndexMap.set(z, []);
+          }
+          zIndexMap.get(z).push({
+            tag: el.tagName,
+            class: el.className,
+            id: el.id
+          });
+        }
+      });
+      
+      // Sort by z-index descending
+      const sorted = Array.from(zIndexMap.entries()).sort((a, b) => b[0] - a[0]);
+      
+      let html = 'Z-Index Report:<br><br>';
+      sorted.forEach(([zIndex, elements]) => {
+        html += `z-index: ${zIndex}<br>`;
+        elements.forEach(el => {
+          const identifier = el.id ? `#${el.id}` : el.class ? `.${el.class}` : el.tag;
+          html += `  - ${identifier}<br>`;
+        });
+        html += '<br>';
+      });
+      
+      status.innerHTML = html;
+    };
+  </script>
+</body>
+</html>

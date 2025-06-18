@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Button Click Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    
+    .test-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    
+    .test-dialog {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px solid #4CAF50;
+      text-align: center;
+    }
+    
+    .test-button {
+      padding: 10px 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px;
+    }
+    
+    .test-button:hover {
+      background: #45a049;
+    }
+    
+    #output {
+      margin-top: 20px;
+      padding: 10px;
+      background: #000;
+      border-radius: 5px;
+      min-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Button Click Test</h1>
+  <p>This tests if button clicks work properly in a dialog-like structure.</p>
+  
+  <button class="test-button" onclick="showTestDialog()">Show Test Dialog</button>
+  
+  <div id="output"></div>
+  
+  <script>
+    const output = document.getElementById('output');
+    
+    function log(message) {
+      const time = new Date().toLocaleTimeString();
+      output.innerHTML += `[${time}] ${message}<br>`;
+      console.log(message);
+    }
+    
+    function showTestDialog() {
+      log('Creating test dialog...');
+      
+      // Create container
+      const container = document.createElement('div');
+      container.className = 'test-container';
+      
+      // Create dialog
+      const dialog = document.createElement('div');
+      dialog.className = 'test-dialog';
+      dialog.innerHTML = `
+        <h2>Test Dialog</h2>
+        <p>Click the button below to test if events work:</p>
+        <button class="test-button" id="dialog-button">Click Me!</button>
+        <button class="test-button" id="close-button">Close</button>
+      `;
+      
+      container.appendChild(dialog);
+      document.body.appendChild(container);
+      
+      // Add event listeners
+      const dialogButton = document.getElementById('dialog-button');
+      const closeButton = document.getElementById('close-button');
+      
+      dialogButton.addEventListener('click', (e) => {
+        log('Dialog button clicked!');
+        log('Event target: ' + e.target.tagName);
+        log('Event currentTarget: ' + e.currentTarget.tagName);
+        log('Event bubbles: ' + e.bubbles);
+        e.stopPropagation();
+      });
+      
+      closeButton.addEventListener('click', () => {
+        log('Close button clicked, removing dialog');
+        container.remove();
+      });
+      
+      // Test pointer-events
+      const containerStyle = window.getComputedStyle(container);
+      const dialogStyle = window.getComputedStyle(dialog);
+      const buttonStyle = window.getComputedStyle(dialogButton);
+      
+      log('Container pointer-events: ' + containerStyle.pointerEvents);
+      log('Dialog pointer-events: ' + dialogStyle.pointerEvents);
+      log('Button pointer-events: ' + buttonStyle.pointerEvents);
+      
+      // Add container click handler to test event bubbling
+      container.addEventListener('click', (e) => {
+        if (e.target === container) {
+          log('Container clicked (outside dialog)');
+        }
+      });
+    }
+    
+    log('Test page loaded');
+  </script>
+</body>
+</html>

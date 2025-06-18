@@ -10,11 +10,11 @@
 
 /* Fix for iOS Safari */
 @supports (-webkit-touch-callout: none) {
+  /* Removed body position fixed as it can interfere with dialogs */
   body {
-    /* Prevent bounce scrolling */
-    position: fixed;
-    width: 100%;
-    height: 100%;
+    /* Prevent bounce scrolling without fixed positioning */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
   
   #game-container {
@@ -141,8 +141,8 @@
   pointer-events: auto;
 }
 
-/* Ensure UI panels are properly layered */
-.build-panel, .action-panel {
+/* Ensure dialog panels are properly layered */
+.dialog-container {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 }
