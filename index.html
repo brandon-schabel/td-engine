@@ -300,6 +300,20 @@
         --ui-bottom-height: 35px;
       }
       
+      /* Safari-specific fixes */
+      @supports (-webkit-touch-callout: none) {
+        :root {
+          --ui-bottom-height: 30px;
+        }
+        
+        #bottom-ui-container {
+          height: 30px !important;
+          min-height: 30px !important;
+          max-height: 30px !important;
+          padding-bottom: 0px !important;
+        }
+      }
+      
       #bottom-ui-container {
         height: calc(var(--ui-bottom-height) + var(--safe-area-bottom));
         padding: 4px 8px;
@@ -370,6 +384,20 @@
     @media (orientation: landscape) and (max-height: 450px) {
       :root {
         --ui-bottom-height: 30px;
+      }
+      
+      /* Safari-specific fixes for very small screens */
+      @supports (-webkit-touch-callout: none) {
+        :root {
+          --ui-bottom-height: 25px;
+        }
+        
+        #bottom-ui-container {
+          height: 25px !important;
+          min-height: 25px !important;
+          max-height: 25px !important;
+          padding-bottom: 0px !important;
+        }
       }
       
       #bottom-ui-container {
