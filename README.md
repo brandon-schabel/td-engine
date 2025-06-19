@@ -1,15 +1,7 @@
-# claude-td
+# Tauri + Vanilla TS
 
-To install dependencies:
+This template should help get you started developing with Tauri in vanilla HTML, CSS and Typescript.
 
-```bash
-bun install
-```
+## Recommended IDE Setup
 
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.15. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
