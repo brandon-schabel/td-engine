@@ -43,20 +43,14 @@ export const TOWER_STATS = {
   }
 } as const;
 
-// Tower upgrade configuration
+// Tower upgrade configuration - imports from UpgradeConfig
+import { TOWER_UPGRADE_CONFIG, UPGRADE_CONSTANTS } from './UpgradeConfig';
+
 export const TOWER_UPGRADES = {
-  maxLevel: 5,
-  costMultiplier: 1.5,
-  baseCosts: {
-    DAMAGE: 15,
-    RANGE: 20,
-    FIRE_RATE: 25
-  },
-  bonusMultipliers: {
-    DAMAGE: 0.3,      // 30% increase per level
-    RANGE: 0.25,      // 25% increase per level
-    FIRE_RATE: 0.2    // 20% increase per level
-  }
+  maxLevel: UPGRADE_CONSTANTS.maxLevel,
+  costMultiplier: UPGRADE_CONSTANTS.defaultCostMultiplier,
+  baseCosts: TOWER_UPGRADE_CONFIG.baseCosts,
+  bonusMultipliers: TOWER_UPGRADE_CONFIG.bonusMultipliers
 } as const;
 
 // Tower visual configuration

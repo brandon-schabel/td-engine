@@ -51,7 +51,7 @@ export class FloatingCameraControls extends FloatingUIBase {
       iconType: IconType.ZOOM_IN,
       title: 'Zoom In',
       onClick: () => {
-        this.game.getCamera().zoomIn();
+        this.game.getCamera().zoomIn(0.25);
         this.audioManager.playUISound(SoundType.BUTTON_CLICK);
       }
     });
@@ -60,7 +60,7 @@ export class FloatingCameraControls extends FloatingUIBase {
       iconType: IconType.ZOOM_OUT,
       title: 'Zoom Out',
       onClick: () => {
-        this.game.getCamera().zoomOut();
+        this.game.getCamera().zoomOut(0.25);
         this.audioManager.playUISound(SoundType.BUTTON_CLICK);
       }
     });

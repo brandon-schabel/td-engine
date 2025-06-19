@@ -6,6 +6,7 @@ export { GameOverDialog } from './GameOverDialog';
 export { LeaderboardDialog } from './LeaderboardDialog';
 export { BuildMenuDialog } from './BuildMenuDialog';
 export { UpgradeDialog } from './UpgradeDialog';
+export { EnhancedUpgradeDialog } from './EnhancedUpgradeDialog';
 export { PauseDialog } from './PauseDialog';
 export { TowerInfoDialog } from './TowerInfoDialog';
 
@@ -24,6 +25,7 @@ export type { GameOverDialogOptions } from './GameOverDialog';
 export type { LeaderboardDialogOptions } from './LeaderboardDialog';
 export type { BuildMenuDialogOptions } from './BuildMenuDialog';
 export type { UpgradeDialogOptions } from './UpgradeDialog';
+export type { EnhancedUpgradeDialogOptions } from './EnhancedUpgradeDialog';
 export type { PauseDialogOptions } from './PauseDialog';
 
 // Export adapter types

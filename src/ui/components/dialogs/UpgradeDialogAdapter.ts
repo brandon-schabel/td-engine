@@ -20,6 +20,7 @@ export class UpgradeDialogAdapter extends UpgradeDialog {
   private game: Game;
   private upgradeTarget: Tower | Player;
   private updateInterval?: number;
+  private currencyUpdateInterval?: number;
   private lastPosition?: { x: number; y: number };
   private onUpgraded?: (type: UpgradeType | PlayerUpgradeType, cost: number) => void;
   private onSold?: () => void;
@@ -56,13 +57,23 @@ export class UpgradeDialogAdapter extends UpgradeDialog {
     // Perform the upgrade through the game
     if (target instanceof Tower) {
       const success = this.game.upgradeTower(target as Tower, type as UpgradeType);
-      if (success && this.onUpgraded) {
-        this.onUpgraded(type, cost);
+      if (success) {
+        // Update the dialog's currency display
+        this.updateCurrency(this.game.getCurrency());
+        
+        if (this.onUpgraded) {
+          this.onUpgraded(type, cost);
+        }
       }
     } else if (target instanceof Player) {
       const success = this.game.upgradePlayer(type as PlayerUpgradeType);
-      if (success && this.onUpgraded) {
-        this.onUpgraded(type, cost);
+      if (success) {
+        // Update the dialog's currency display
+        this.updateCurrency(this.game.getCurrency());
+        
+        if (this.onUpgraded) {
+          this.onUpgraded(type, cost);
+        }
       }
     }
   }
@@ -98,11 +109,15 @@ export class UpgradeDialogAdapter extends UpgradeDialog {
     if (this.upgradeTarget instanceof Tower) {
       this.startPositionTracking();
     }
+    
+    // Start currency tracking for all upgrade dialogs
+    this.startCurrencyTracking();
   }
   
   protected override beforeHide(): void {
     super.beforeHide();
     this.stopPositionTracking();
+    this.stopCurrencyTracking();
   }
   
   private startPositionTracking(): void {
@@ -170,8 +185,24 @@ export class UpgradeDialogAdapter extends UpgradeDialog {
     }
   }
   
+  private startCurrencyTracking(): void {
+    // Update currency every 500ms to catch changes from enemy kills, etc.
+    this.currencyUpdateInterval = window.setInterval(() => {
+      const currentCurrency = this.game.getCurrency();
+      this.updateCurrency(currentCurrency);
+    }, 500);
+  }
+  
+  private stopCurrencyTracking(): void {
+    if (this.currencyUpdateInterval) {
+      clearInterval(this.currencyUpdateInterval);
+      this.currencyUpdateInterval = undefined;
+    }
+  }
+  
   public override destroy(): void {
     this.stopPositionTracking();
+    this.stopCurrencyTracking();
     super.destroy();
   }
 }

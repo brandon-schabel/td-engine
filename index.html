@@ -604,6 +604,33 @@
         }
       }
     }
+    
+    /* Desktop adjustments - shorter navbar */
+    @media (min-width: 1025px) {
+      :root {
+        --ui-bottom-height: 50px; /* Shorter than default 60px for desktop */
+      }
+      
+      #bottom-ui-container {
+        height: var(--ui-bottom-height);
+        padding: 6px 15px;
+        font-size: 12px;
+      }
+      
+      .ui-button {
+        min-height: 36px !important;
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+      }
+      
+      .ui-button.icon-only {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        max-width: 36px !important;
+        padding: 6px !important;
+      }
+    }
   </style>
 </head>
 <body>

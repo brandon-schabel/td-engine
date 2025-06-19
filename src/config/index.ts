@@ -19,6 +19,7 @@ export * from './MapConfig';
 export * from './InventoryConfig';
 export * from './ItemConfig';
 export * from './RenderingConfig';
+export * from './UpgradeConfig';
 
 // New centralized configurations
 export * from './ColorTheme';

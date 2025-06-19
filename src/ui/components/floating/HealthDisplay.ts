@@ -7,7 +7,7 @@ import { COLOR_THEME } from '@/config/ColorTheme';
 export class HealthDisplay extends FloatingDisplay {
   constructor(game: Game) {
     super({
-      position: { top: UI_CONSTANTS.hud.padding + 45, left: UI_CONSTANTS.hud.padding },
+      position: { top: UI_CONSTANTS.hud.padding + 60, left: UI_CONSTANTS.hud.padding },
       borderColor: COLOR_THEME.ui.text.danger,
       textColor: COLOR_THEME.ui.text.danger,
       iconType: IconType.HEART,

@@ -203,25 +203,49 @@ export class SimpleTowerInfo {
       `;
       label.textContent = upgrade.name;
       
-      const progress = document.createElement('div');
-      progress.style.cssText = `
-        display: flex;
-        gap: 2px;
+      // Progress bar container
+      const progressContainer = document.createElement('div');
+      progressContainer.style.cssText = `
+        position: relative;
+        width: 60px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
       `;
       
-      for (let i = 0; i < maxLevel; i++) {
-        const pip = document.createElement('div');
-        pip.style.cssText = `
-          width: 8px;
-          height: 8px;
-          background: ${i < level ? COLOR_THEME.ui.text.success : 'rgba(255, 255, 255, 0.2)'};
-          border-radius: 2px;
-        `;
-        progress.appendChild(pip);
-      }
+      // Progress fill
+      const progressFill = document.createElement('div');
+      const percentage = (level / maxLevel) * 100;
+      progressFill.style.cssText = `
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: ${percentage}%;
+        background: ${COLOR_THEME.ui.text.success};
+        transition: width 0.3s ease;
+      `;
+      
+      // Progress text
+      const progressText = document.createElement('div');
+      progressText.style.cssText = `
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 10px;
+        color: white;
+        font-weight: bold;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+      `;
+      progressText.textContent = `${level}/${maxLevel}`;
+      
+      progressContainer.appendChild(progressFill);
+      progressContainer.appendChild(progressText);
       
       upgradeDiv.appendChild(label);
-      upgradeDiv.appendChild(progress);
+      upgradeDiv.appendChild(progressContainer);
       upgrades.appendChild(upgradeDiv);
     });
     

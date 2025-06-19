@@ -4,6 +4,7 @@ import { Player, PlayerUpgradeType } from '@/entities/Player';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
+import { COLOR_THEME } from '@/config/ColorTheme';
 
 export interface UpgradeDialogOptions {
   target: Tower | Player;
@@ -33,6 +34,8 @@ export class UpgradeDialog extends BaseDialog {
   private onSell?: () => void;
   private onClose: () => void;
   private upgradeOptions: UpgradeOption[] = [];
+  private bulkAmount: number | 'MAX' = 1;
+  private currencyDisplay: HTMLElement | null = null;
   
   constructor(options: UpgradeDialogOptions) {
     const isTower = options.target instanceof Tower;
@@ -163,6 +166,7 @@ export class UpgradeDialog extends BaseDialog {
       </div>
     `;
     
+    this.currencyDisplay = currencyDisplay;
     this.content.appendChild(currencyDisplay);
     
     // Current stats
@@ -194,6 +198,10 @@ export class UpgradeDialog extends BaseDialog {
       
       this.content.appendChild(statsDisplay);
     }
+    
+    // Bulk upgrade selector
+    const bulkSelector = this.createBulkSelector();
+    this.content.appendChild(bulkSelector);
     
     // Upgrade options
     const upgradesContainer = document.createElement('div');
@@ -247,7 +255,8 @@ export class UpgradeDialog extends BaseDialog {
   }
   
   private createUpgradeCard(option: UpgradeOption): HTMLElement {
-    const canAfford = this.currentCurrency >= option.cost && option.currentLevel < option.maxLevel;
+    const bulkCost = this.calculateBulkCost(option);
+    const canAfford = this.currentCurrency >= bulkCost && option.currentLevel < option.maxLevel;
     const isMaxed = option.currentLevel >= option.maxLevel;
     
     const card = document.createElement('div');
@@ -306,7 +315,7 @@ export class UpgradeDialog extends BaseDialog {
       color: #ccc;
       font-size: clamp(12px, 3vw, 14px);
     `;
-    level.textContent = isMaxed ? 'MAX' : `${option.currentLevel}/${option.maxLevel}`;
+    level.textContent = isMaxed ? 'MAX' : `Lvl ${option.currentLevel}/${option.maxLevel}`;
     
     header.appendChild(name);
     header.appendChild(level);
@@ -347,7 +356,13 @@ export class UpgradeDialog extends BaseDialog {
     
     if (!isMaxed) {
       const costIcon = createSvgIcon(IconType.CURRENCY, { size: 16 });
-      cost.innerHTML = `${costIcon}<span>${option.cost}</span>`;
+      const totalCost = this.calculateBulkCost(option);
+      const levels = this.calculateBulkLevels(option);
+      if (levels > 1) {
+        cost.innerHTML = `${costIcon}<span>${totalCost} (x${levels})</span>`;
+      } else {
+        cost.innerHTML = `${costIcon}<span>${totalCost}</span>`;
+      }
     }
     
     footer.appendChild(effect);
@@ -369,9 +384,19 @@ export class UpgradeDialog extends BaseDialog {
       });
       
       card.addEventListener('click', () => {
-        this.playSound(SoundType.TOWER_UPGRADE);
-        this.onUpgrade(option.type, option.cost);
-        this.hide();
+        const levels = this.calculateBulkLevels(option);
+        const totalCost = this.calculateBulkCost(option);
+        
+        if (this.currentCurrency >= totalCost) {
+          this.playSound(SoundType.TOWER_UPGRADE);
+          
+          // Upgrade multiple times
+          for (let i = 0; i < levels; i++) {
+            this.onUpgrade(option.type, Math.floor(option.cost * Math.pow(1.08, option.currentLevel + i)));
+          }
+          
+          // Don't hide the dialog - let the user continue upgrading
+        }
       });
     }
     
@@ -390,5 +415,108 @@ export class UpgradeDialog extends BaseDialog {
   
   protected beforeHide(): void {
     this.onClose();
+  }
+  
+  private createBulkSelector(): HTMLElement {
+    const container = document.createElement('div');
+    container.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    `;
+    
+    const label = document.createElement('span');
+    label.style.cssText = `
+      color: #ccc;
+      font-size: 14px;
+    `;
+    label.textContent = 'Upgrade:';
+    container.appendChild(label);
+    
+    const increments = [1, 5, 10, 25, 'MAX'] as const;
+    increments.forEach(increment => {
+      const button = document.createElement('button');
+      button.style.cssText = `
+        padding: 6px 12px;
+        background: ${this.bulkAmount === increment ? COLOR_THEME.ui.button.primary : 'rgba(255, 255, 255, 0.1)'};
+        border: 1px solid ${this.bulkAmount === increment ? COLOR_THEME.ui.text.success : 'rgba(255, 255, 255, 0.2)'};
+        border-radius: 4px;
+        color: white;
+        font-weight: ${this.bulkAmount === increment ? 'bold' : 'normal'};
+        cursor: pointer;
+        transition: all 0.2s ease;
+      `;
+      button.textContent = increment === 'MAX' ? 'MAX' : `x${increment}`;
+      
+      button.addEventListener('click', () => {
+        this.bulkAmount = increment;
+        this.updateCurrency(this.currentCurrency); // Refresh the dialog
+      });
+      
+      container.appendChild(button);
+    });
+    
+    return container;
+  }
+  
+  private calculateBulkLevels(option: UpgradeOption): number {
+    if (this.bulkAmount === 'MAX') {
+      return option.maxLevel - option.currentLevel;
+    }
+    return Math.min(this.bulkAmount, option.maxLevel - option.currentLevel);
+  }
+  
+  private calculateBulkCost(option: UpgradeOption): number {
+    const levels = this.calculateBulkLevels(option);
+    if (levels === 0) return 0;
+    
+    let totalCost = 0;
+    let currentLevel = option.currentLevel;
+    
+    // Calculate cost for each level
+    for (let i = 0; i < levels; i++) {
+      totalCost += Math.floor(option.cost * Math.pow(1.08, currentLevel));
+      currentLevel++;
+    }
+    
+    // Apply bulk discount
+    if (levels >= 20) {
+      totalCost *= 0.85; // 15% discount
+    } else if (levels >= 10) {
+      totalCost *= 0.90; // 10% discount  
+    } else if (levels >= 5) {
+      totalCost *= 0.95; // 5% discount
+    }
+    
+    return Math.floor(totalCost);
+  }
+  
+  public updateCurrency(newCurrency: number): void {
+    this.currentCurrency = newCurrency;
+    
+    // Update the currency display if it exists
+    if (this.currencyDisplay) {
+      const currencyIcon = createSvgIcon(IconType.CURRENCY, { size: 24 });
+      this.currencyDisplay.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+          ${currencyIcon}
+          <span style="font-size: clamp(18px, 4.5vw, 22px); font-weight: bold; color: #FFD700;">
+            ${this.currentCurrency}
+          </span>
+          <span style="color: #ccc; font-size: clamp(14px, 3.5vw, 16px);">
+            Available
+          </span>
+        </div>
+      `;
+    }
+    
+    // Refresh the entire content to update button states
+    this.setupUpgradeOptions();
+    this.buildContent();
   }
 }

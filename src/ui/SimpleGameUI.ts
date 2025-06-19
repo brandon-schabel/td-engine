@@ -1,15 +1,13 @@
 import { Game } from '../core/Game';
-import { TowerType, UpgradeType, Tower } from '@/entities/Tower';
-import { PlayerUpgradeType } from '@/entities/Player';
+import { TowerType, Tower } from '@/entities/Tower';
 import { createSvgIcon, IconType } from './icons/SvgIcons';
 import { AudioManager, SoundType } from '../audio/AudioManager';
 import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { PowerUpDisplay } from './components/game/SimplePowerUpDisplay';
-import { CameraControls } from './components/game/SimpleCameraControls';
 import { MobileControls } from './components/game/MobileControls';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
-import { RESPONSIVE_CONFIG, isMobile as checkIsMobile } from '@/config/ResponsiveConfig';
+import {  isMobile as checkIsMobile } from '@/config/ResponsiveConfig';
 import { 
   CurrencyDisplay,
   WaveDisplay,
@@ -23,7 +21,6 @@ import {
   InventoryDialogAdapter,
   SettingsDialog,
   PauseDialog,
-  TowerInfoDialogAdapter
 } from './components/dialogs';
 import { DebugDialogWrapper } from './DebugDialogWrapper';
 import { DialogShowFix } from './DialogShowFix';

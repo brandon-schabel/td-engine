@@ -24,6 +24,7 @@ import { INVENTORY_CONFIG, INVENTORY_UPGRADES } from "@/config/InventoryConfig";
 import { COLLECTIBLE_DROP_CHANCES } from "@/config/ItemConfig";
 import { TextureManager } from "@/systems/TextureManager";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
+import { CAMERA_CONFIG } from "@/config/UIConfig";
 import {
   BiomeType,
   MapDifficulty,
@@ -112,13 +113,13 @@ export class Game {
     const worldWidth = this.grid.width * this.grid.cellSize;
     const worldHeight = this.grid.height * this.grid.cellSize;
 
-    // Initialize camera with zoom options
+    // Initialize camera with zoom options from configuration
     const cameraOptions: CameraOptions = {
-      minZoom: 0.3,
-      maxZoom: 3.0,
-      zoomSpeed: 0.15,
-      zoomSmoothing: 0.12,
-      smoothing: 0.04,
+      minZoom: CAMERA_CONFIG.minZoom,
+      maxZoom: CAMERA_CONFIG.maxZoom,
+      zoomSpeed: CAMERA_CONFIG.zoomSpeed,
+      zoomSmoothing: CAMERA_CONFIG.zoomSmoothing,
+      smoothing: CAMERA_CONFIG.smoothing,
     };
     
     // Get logical dimensions for camera (accounting for pixel ratio scaling)
@@ -1879,9 +1880,9 @@ export class Game {
   handleMouseWheel(event: WheelEvent): void {
     event.preventDefault();
 
-    // Determine zoom direction and factor
+    // Determine zoom direction and factor from configuration
     const zoomIn = event.deltaY < 0;
-    const zoomFactor = 0.15;
+    const zoomFactor = CAMERA_CONFIG.zoomSpeed;
 
     // Simple zoom without center point for now (can be enhanced later)
     if (zoomIn) {

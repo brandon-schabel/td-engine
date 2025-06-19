@@ -19,23 +19,14 @@ export const PLAYER_ABILITIES = {
   }
 } as const;
 
-// Player upgrade configuration
+// Player upgrade configuration - imports from UpgradeConfig
+import { PLAYER_UPGRADE_CONFIG, UPGRADE_CONSTANTS } from './UpgradeConfig';
+
 export const PLAYER_UPGRADES = {
-  maxLevel: 5,
-  costMultiplier: 1.5,
-  baseCosts: {
-    DAMAGE: 25,
-    SPEED: 20,
-    FIRE_RATE: 30,
-    HEALTH: 35,
-    REGENERATION: 40
-  },
-  bonusMultipliers: {
-    DAMAGE: 0.4,      // 40% increase per level
-    SPEED: 0.3,       // 30% increase per level
-    FIRE_RATE: 0.25,  // 25% increase per level
-    HEALTH: 0.5,      // 50% increase per level
-  }
+  maxLevel: UPGRADE_CONSTANTS.maxLevel,
+  costMultiplier: UPGRADE_CONSTANTS.defaultCostMultiplier,
+  baseCosts: PLAYER_UPGRADE_CONFIG.baseCosts,
+  bonusMultipliers: PLAYER_UPGRADE_CONFIG.bonusMultipliers
 } as const;
 
 // Power-up configuration

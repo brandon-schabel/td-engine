@@ -66,10 +66,10 @@ export const OVERLAY_CONFIG = {
 
 // Camera configuration
 export const CAMERA_CONFIG = {
-  smoothing: 0.85, // Increased from 0.25 for much more responsive following
+  smoothing: 0.02, // Increased from 0.25 for much more responsive following
   minZoom: 0.3,
   maxZoom: 3.0,
-  zoomSpeed: 0.1,
+  zoomSpeed: 0.025, // Reduced from 0.1 for finer zoom control
   zoomSmoothing: 0.15,
   edgePanSpeed: 5,
   edgePanZone: 50, // pixels from edge
