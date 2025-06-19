@@ -395,7 +395,22 @@ export function getRandomItemTemplate(type?: ItemType, rarity?: ItemRarity): Ite
   }
   
   if (items.length === 0) {
-    throw new Error('No items match the specified criteria');
+    console.error(`No items found for type: ${type}, rarity: ${rarity}`);
+    console.error('Available items:', Object.values(ITEM_TEMPLATES).map(t => ({ id: t.id, type: t.type, rarity: t.rarity })));
+    
+    // Fallback: try to find any item of the requested type, ignoring rarity
+    if (type) {
+      items = Object.values(ITEM_TEMPLATES).filter(item => item.type === type);
+    }
+    
+    // If still no items, get any item
+    if (items.length === 0) {
+      items = Object.values(ITEM_TEMPLATES);
+    }
+    
+    if (items.length === 0) {
+      throw new Error('No items match the specified criteria');
+    }
   }
   
   return items[Math.floor(Math.random() * items.length)];
@@ -426,3 +441,24 @@ export const TYPE_DROP_WEIGHTS: Record<ItemType, number> = {
   [ItemType.MATERIAL]: 0.25,     // 25%
   [ItemType.SPECIAL]: 0.05       // 5%
 };
+
+// Valid combinations of item types and rarities based on existing items
+export const VALID_TYPE_RARITY_COMBINATIONS: Array<{ type: ItemType; rarity: ItemRarity }> = [
+  // Consumables
+  { type: ItemType.CONSUMABLE, rarity: ItemRarity.COMMON },
+  { type: ItemType.CONSUMABLE, rarity: ItemRarity.RARE },
+  { type: ItemType.CONSUMABLE, rarity: ItemRarity.EPIC },
+  // Equipment  
+  { type: ItemType.EQUIPMENT, rarity: ItemRarity.COMMON },
+  { type: ItemType.EQUIPMENT, rarity: ItemRarity.RARE },
+  { type: ItemType.EQUIPMENT, rarity: ItemRarity.EPIC },
+  { type: ItemType.EQUIPMENT, rarity: ItemRarity.LEGENDARY },
+  // Materials
+  { type: ItemType.MATERIAL, rarity: ItemRarity.COMMON },
+  { type: ItemType.MATERIAL, rarity: ItemRarity.RARE },
+  { type: ItemType.MATERIAL, rarity: ItemRarity.LEGENDARY },
+  // Special
+  { type: ItemType.SPECIAL, rarity: ItemRarity.COMMON },
+  { type: ItemType.SPECIAL, rarity: ItemRarity.RARE },
+  { type: ItemType.SPECIAL, rarity: ItemRarity.EPIC }
+];

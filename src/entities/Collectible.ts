@@ -4,7 +4,7 @@ import type { Vector2 } from '@/utils/Vector2';
 import { CURRENCY_CONFIG } from '../config/GameConfig';
 import { ANIMATION_CONFIG } from '../config/RenderingConfig';
 import { type InventoryItem, ItemType, ItemRarity } from '@/systems/Inventory';
-import { createItem, COLLECTIBLE_TO_ITEM_MAP, getRandomItemTemplate, RARITY_DROP_WEIGHTS, TYPE_DROP_WEIGHTS, CollectibleType } from './items/ItemTypes';
+import { createItem, COLLECTIBLE_TO_ITEM_MAP, getRandomItemTemplate, RARITY_DROP_WEIGHTS, TYPE_DROP_WEIGHTS, CollectibleType, VALID_TYPE_RARITY_COMBINATIONS } from './items/ItemTypes';
 
 interface CollectibleConfig {
   name: string;
@@ -175,33 +175,39 @@ export class Collectible extends Entity {
   }
 
   static generateRandomItem(): InventoryItem {
-    // First, determine item rarity
-    const rarityRoll = Math.random();
+    // Get a random valid combination based on weighted probabilities
+    const roll = Math.random();
+    
+    // Calculate total weight across all valid combinations
+    let totalWeight = 0;
+    const combinationWeights: Array<{ combo: { type: ItemType; rarity: ItemRarity }, weight: number }> = [];
+    
+    // Import valid combinations (we'll need to import this)
+    const validCombos = VALID_TYPE_RARITY_COMBINATIONS;
+    
+    for (const combo of validCombos) {
+      const typeWeight = TYPE_DROP_WEIGHTS[combo.type];
+      const rarityWeight = RARITY_DROP_WEIGHTS[combo.rarity];
+      const weight = typeWeight * rarityWeight;
+      totalWeight += weight;
+      combinationWeights.push({ combo, weight });
+    }
+    
+    // Select a combination based on weighted probability
+    let cumulativeWeight = 0;
+    let selectedType: ItemType = ItemType.CONSUMABLE;
     let selectedRarity: ItemRarity = ItemRarity.COMMON;
     
-    let cumulativeWeight = 0;
-    for (const [rarity, weight] of Object.entries(RARITY_DROP_WEIGHTS)) {
-      cumulativeWeight += weight;
-      if (rarityRoll <= cumulativeWeight) {
-        selectedRarity = ItemRarity[rarity as keyof typeof ItemRarity];
+    for (const { combo, weight } of combinationWeights) {
+      cumulativeWeight += weight / totalWeight;
+      if (roll <= cumulativeWeight) {
+        selectedType = combo.type;
+        selectedRarity = combo.rarity;
         break;
       }
     }
 
-    // Then, determine item type
-    const typeRoll = Math.random();
-    let selectedType: ItemType = ItemType.CONSUMABLE;
-    
-    cumulativeWeight = 0;
-    for (const [type, weight] of Object.entries(TYPE_DROP_WEIGHTS)) {
-      cumulativeWeight += weight;
-      if (typeRoll <= cumulativeWeight) {
-        selectedType = ItemType[type as keyof typeof ItemType];
-        break;
-      }
-    }
-
-    // Generate random item template with the selected rarity and type
+    // Generate random item template with the selected valid combination
     const template = getRandomItemTemplate(selectedType, selectedRarity);
     return createItem(template.id, 1);
   }
