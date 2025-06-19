@@ -12,7 +12,8 @@ import { HealthPickup } from '@/entities/HealthPickup';
 import { PowerUp } from '@/entities/PowerUp';
 import { Entity } from '@/entities/Entity';
 import { UpgradeType } from '@/entities/Tower';
-import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
+import { COLOR_CONFIG } from '../config/GameConfig';
+import { UPGRADE_CONSTANTS } from '../config/UpgradeConfig';
 import { ENTITY_RENDER, TOWER_RENDER, ENEMY_RENDER, PLAYER_RENDER, ANIMATION_CONFIG } from '../config/RenderingConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
 import { UI_CONSTANTS } from '../config/UIConstants';
@@ -41,7 +42,7 @@ export class EntityRenderer extends BaseRenderer {
 
   private renderTowerPrimitive(tower: Tower, screenPos: Vector2): void {
     const upgradeLevel = tower.getVisualLevel();
-    const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONFIG.visualUpgradeMultiplier, UPGRADE_CONFIG.visualIntensityMultiplier);
+    const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONSTANTS.visualUpgradeMultiplier, UPGRADE_CONSTANTS.visualIntensityMultiplier);
     
     let color: string;
     switch (tower.towerType) {

@@ -26,9 +26,13 @@ import {
   SettingsDialog,
   PauseDialog
 } from "./ui/components/dialogs";
+import { injectDialogStyles } from "./ui/styles/injectDialogStyles";
 
 // Inject responsive styles
 injectResponsiveStyles();
+
+// Inject dialog-specific CSS fixes
+injectDialogStyles();
 
 // Get canvas element
 const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;

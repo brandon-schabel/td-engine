@@ -22,7 +22,11 @@ export class DialogManager {
     // Prevent scrolling when dialogs are open on mobile
     document.addEventListener('touchmove', (e) => {
       if (this.isInputBlocked) {
-        e.preventDefault();
+        // Only prevent if the touch is not within dialog content
+        const target = e.target as HTMLElement;
+        if (!target.closest('.dialog-content')) {
+          e.preventDefault();
+        }
       }
     }, { passive: false });
     
@@ -78,9 +82,30 @@ export class DialogManager {
     // Show dialog
     console.log(`[DialogManager] Showing dialog "${id}" with z-index:`, this.currentZIndex);
     dialog.setZIndex(this.getNextZIndex());
-    dialog.show();
-    this.dialogStack.push(id);
-    console.log(`[DialogManager] Dialog stack after show:`, [...this.dialogStack]);
+    
+    // Ensure dialog show is called after z-index is set
+    try {
+      dialog.show();
+      this.dialogStack.push(id);
+      console.log(`[DialogManager] Dialog stack after show:`, [...this.dialogStack]);
+      
+      // Verify dialog is actually visible after a short delay
+      setTimeout(() => {
+        if (!dialog.isVisible()) {
+          console.error(`[DialogManager] Dialog "${id}" failed to show properly`);
+          // Try to force visibility
+          const container = (dialog as any).container;
+          if (container && container.style) {
+            console.log(`[DialogManager] Forcing visibility for "${id}"`);
+            container.style.display = 'block';
+            container.style.visibility = 'visible';
+          }
+        }
+      }, 100);
+    } catch (error) {
+      console.error(`[DialogManager] Error showing dialog "${id}":`, error);
+      return;
+    }
     
     // Update input blocking
     this.updateInputBlocking();
@@ -90,7 +115,13 @@ export class DialogManager {
     
     // iOS-specific: prevent body scrolling
     if (this.isIOS()) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.dataset.scrollPosition = scrollY.toString();
     }
   }
   
@@ -109,11 +140,17 @@ export class DialogManager {
     // Remove dialog-open class if no dialogs remain
     if (this.dialogStack.length === 0) {
       document.body.classList.remove('dialog-open');
-    }
-    
-    // Restore body scrolling if no dialogs open
-    if (this.dialogStack.length === 0 && this.isIOS()) {
-      document.body.style.overflow = '';
+      
+      // Restore body scrolling and position if no dialogs open
+      if (this.isIOS()) {
+        const scrollY = parseInt(document.body.dataset.scrollPosition || '0');
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+        delete document.body.dataset.scrollPosition;
+        window.scrollTo(0, scrollY);
+      }
     }
   }
   

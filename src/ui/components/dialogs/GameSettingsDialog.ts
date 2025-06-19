@@ -3,6 +3,8 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
 import { SettingsManager, DIFFICULTY_PRESETS, type GameSettings } from '@/config/GameSettings';
+import { isMobile } from '@/config/ResponsiveConfig';
+import { COLOR_THEME } from '@/config/ColorTheme';
 
 export interface GameSettingsDialogOptions {
   audioManager: AudioManager;
@@ -35,12 +37,30 @@ export class GameSettingsDialog extends BaseDialog {
   protected buildContent(): void {
     // Create scrollable content area
     const scrollContainer = document.createElement('div');
+    const isMobileDevice = isMobile(window.innerWidth);
+    
     scrollContainer.style.cssText = `
-      max-height: clamp(400px, 70vh, 600px);
+      max-height: ${isMobileDevice ? 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 180px)' : 'clamp(400px, 70vh, 600px)'};
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding-right: 8px;
+      overscroll-behavior: contain;
+      padding-right: ${isMobileDevice ? '0' : '8px'};
+      padding-bottom: ${isMobileDevice ? '20px' : '0'};
     `;
+    
+    // Add title for mobile to make it clear this is the main menu
+    if (isMobileDevice) {
+      const title = document.createElement('h1');
+      title.style.cssText = `
+        text-align: center;
+        color: ${COLOR_THEME.ui.text.success};
+        font-size: clamp(24px, 6vw, 32px);
+        margin: 0 0 20px 0;
+        font-weight: bold;
+      `;
+      title.textContent = 'Tower Defense';
+      scrollContainer.appendChild(title);
+    }
     
     // Difficulty section
     const difficultySection = this.createDifficultySection();
@@ -74,16 +94,13 @@ export class GameSettingsDialog extends BaseDialog {
     this.createFooter();
     const footer = this.footer!;
     
-    // Reset button
-    const resetButton = this.createButton('Reset to Defaults', {
-      icon: IconType.RESET,
-      color: '#FF9800',
-      onClick: () => {
-        this.resetToDefaults();
-      }
-    });
+    // Adjust footer layout for mobile
+    if (isMobileDevice) {
+      footer.style.flexDirection = 'column-reverse';
+      footer.style.gap = '12px';
+    }
     
-    // Start Game button
+    // Start Game button (primary action)
     const startButton = this.createButton('Start Game', {
       icon: IconType.PLAY,
       primary: true,
@@ -100,6 +117,26 @@ export class GameSettingsDialog extends BaseDialog {
         }
       }
     });
+    
+    // Make start button more prominent on mobile
+    if (isMobileDevice) {
+      startButton.style.width = '100%';
+      startButton.style.minHeight = '56px';
+      startButton.style.fontSize = 'clamp(16px, 4vw, 20px)';
+    }
+    
+    // Reset button
+    const resetButton = this.createButton('Reset to Defaults', {
+      icon: IconType.RESET,
+      color: '#FF9800',
+      onClick: () => {
+        this.resetToDefaults();
+      }
+    });
+    
+    if (isMobileDevice) {
+      resetButton.style.width = '100%';
+    }
     
     footer.appendChild(resetButton);
     footer.appendChild(startButton);

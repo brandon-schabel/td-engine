@@ -20,7 +20,7 @@ When changing/updating the architecture make sure to update the document files
 - **Testing**: TDD approach, update tests with new logic
 
 ## Unit Testing Philosophy
-Only unit test the engine. Avoid complex mocking, avoid integration tests, avoid functional tests, just do unit testing. If something can't be unit tested then break it out of the class or function until it can be unit tested. We're not going for 100% code coverage.
+**STRICTLY UNIT TESTING ONLY** - There will be NO integration tests OR functional tests, just strictly unit testing. Very strong unit testing is required. If something can't be unit tested then break it out of the class or function until it can be unit tested. We're not going for 100% code coverage, but we do require thorough unit test coverage for all business logic.
 
 ## Environment Setup
 - **Bun**: Version 1.2+ (always use bun)

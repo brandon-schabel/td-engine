@@ -2,7 +2,8 @@ import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
 import type { Vector2 } from '@/utils/Vector2';
-import { BASE_PLAYER_STATS, GAME_MECHANICS, UPGRADE_CONFIG } from '../config/GameConfig';
+import { BASE_PLAYER_STATS, GAME_MECHANICS } from '../config/GameConfig';
+import { UPGRADE_CONSTANTS } from '../config/UpgradeConfig';
 import { PLAYER_ABILITIES, PLAYER_UPGRADES, POWER_UP_CONFIG, PLAYER_VISUALS } from '../config/PlayerConfig';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
@@ -173,7 +174,7 @@ export class Player extends Entity implements ShootingCapable {
   // Upgrade system
   upgrade(upgradeType: PlayerUpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    const maxLevel = UPGRADE_CONFIG.maxLevel;
+    const maxLevel = UPGRADE_CONSTANTS.maxLevel;
     
     if (currentLevel >= maxLevel) {
       return false;
@@ -200,7 +201,7 @@ export class Player extends Entity implements ShootingCapable {
 
   canUpgrade(upgradeType: PlayerUpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    return currentLevel < UPGRADE_CONFIG.maxLevel;
+    return currentLevel < UPGRADE_CONSTANTS.maxLevel;
   }
 
   getUpgradeLevel(upgradeType: PlayerUpgradeType): number {
@@ -208,7 +209,7 @@ export class Player extends Entity implements ShootingCapable {
   }
 
   getMaxUpgradeLevel(): number {
-    return UPGRADE_CONFIG.maxLevel;
+    return UPGRADE_CONSTANTS.maxLevel;
   }
 
   getLevel(): number {

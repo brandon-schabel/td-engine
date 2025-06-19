@@ -142,6 +142,12 @@ export class UpgradeDialog extends BaseDialog {
   }
   
   protected buildContent(): void {
+    // Clear existing content to prevent duplication
+    this.content.innerHTML = '';
+    if (this.footer) {
+      this.footer.innerHTML = '';
+    }
+    
     // Currency display
     const currencyDisplay = document.createElement('div');
     currencyDisplay.style.cssText = `
@@ -205,6 +211,7 @@ export class UpgradeDialog extends BaseDialog {
     
     // Upgrade options
     const upgradesContainer = document.createElement('div');
+    upgradesContainer.className = 'upgrades-container';
     upgradesContainer.style.cssText = `
       display: flex;
       flex-direction: column;
@@ -222,8 +229,10 @@ export class UpgradeDialog extends BaseDialog {
     
     this.content.appendChild(upgradesContainer);
     
-    // Footer buttons
-    this.createFooter();
+    // Footer buttons - only create if it doesn't exist
+    if (!this.footer) {
+      this.createFooter();
+    }
     const footer = this.footer!;
     
     if (this.isTower && this.onSell) {
@@ -455,7 +464,16 @@ export class UpgradeDialog extends BaseDialog {
       
       button.addEventListener('click', () => {
         this.bulkAmount = increment;
-        this.updateCurrency(this.currentCurrency); // Refresh the dialog
+        // Just update the upgrade cards, not the entire dialog
+        this.setupUpgradeOptions();
+        this.updateUpgradeCards();
+        // Update bulk selector button styles
+        container.querySelectorAll('button').forEach(btn => {
+          const isSelected = btn.textContent === (increment === 'MAX' ? 'MAX' : `x${increment}`);
+          btn.style.background = isSelected ? COLOR_THEME.ui.button.primary : 'rgba(255, 255, 255, 0.1)';
+          btn.style.border = `1px solid ${isSelected ? COLOR_THEME.ui.text.success : 'rgba(255, 255, 255, 0.2)'}`;
+          btn.style.fontWeight = isSelected ? 'bold' : 'normal';
+        });
       });
       
       container.appendChild(button);
@@ -515,8 +533,25 @@ export class UpgradeDialog extends BaseDialog {
       `;
     }
     
-    // Refresh the entire content to update button states
+    // Update upgrade options without rebuilding entire content
     this.setupUpgradeOptions();
-    this.buildContent();
+    this.updateUpgradeCards();
+  }
+  
+  private updateUpgradeCards(): void {
+    // Find the upgrades container
+    const upgradesContainer = this.content.querySelector('.upgrades-container') as HTMLElement;
+    if (!upgradesContainer) {
+      // If container doesn't exist, rebuild content
+      this.buildContent();
+      return;
+    }
+    
+    // Clear and rebuild just the upgrade cards
+    upgradesContainer.innerHTML = '';
+    this.upgradeOptions.forEach(option => {
+      const upgradeCard = this.createUpgradeCard(option);
+      upgradesContainer.appendChild(upgradeCard);
+    });
   }
 }

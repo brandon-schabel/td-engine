@@ -221,7 +221,7 @@ export class InventoryDialog extends BaseDialog {
       padding: 8px;
       background: rgba(0, 0, 0, 0.3);
       border-radius: 8px;
-      max-height: clamp(200px, 50vh, 400px);
+      max-height: ${isMobile(window.innerWidth) ? 'calc(100vh - 300px)' : 'clamp(200px, 50vh, 400px)'};
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     `;

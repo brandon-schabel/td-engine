@@ -21,6 +21,7 @@ import {
   InventoryDialogAdapter,
   SettingsDialog,
   PauseDialog,
+  BaseDialog,
 } from './components/dialogs';
 import { DebugDialogWrapper } from './DebugDialogWrapper';
 import { DialogShowFix } from './DialogShowFix';
@@ -616,10 +617,24 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     userAgent: navigator.userAgent
   });
   
+  // Check saved settings for touch joystick preference
+  const savedSettings = localStorage.getItem('gameSettings');
+  let showTouchJoysticks = true; // Default to true
+  if (savedSettings) {
+    try {
+      const settings = JSON.parse(savedSettings);
+      showTouchJoysticks = settings.showTouchJoysticks !== false; // Default to true if not set
+    } catch (e) {
+      console.warn('[SimpleGameUI] Failed to parse saved settings:', e);
+    }
+  }
+  
+  let mobileControls: MobileControls | null = null;
+  
   if (isMobile || window.location.hostname === 'localhost') { // Also enable on localhost for testing
     console.log('[SimpleGameUI] Creating mobile controls...');
     // Use document.body instead of gameContainer to ensure controls are on top
-    const mobileControls = new MobileControls({
+    mobileControls = new MobileControls({
       game,
       container: document.body,
       onShootStart: () => {
@@ -631,22 +646,44 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       enableHaptic: true
     });
     // MobileControls appends itself to the container, so we don't need to do anything else
-    // Also call show() to ensure it's visible
-    mobileControls.show();
-    console.log('[SimpleGameUI] Mobile controls created and shown');
+    // Show or hide based on saved settings
+    if (showTouchJoysticks) {
+      mobileControls.show();
+      console.log('[SimpleGameUI] Mobile controls created and shown');
+    } else {
+      mobileControls.hide();
+      console.log('[SimpleGameUI] Mobile controls created but hidden (per settings)');
+    }
     
     // Force visibility after a short delay to ensure DOM is ready
-    setTimeout(() => {
-      const controlsEl = document.querySelector('.mobile-controls');
-      if (controlsEl) {
-        (controlsEl as HTMLElement).style.display = 'block';
-        (controlsEl as HTMLElement).style.visibility = 'visible';
-        console.log('[SimpleGameUI] Forced mobile controls visibility');
-      } else {
-        console.log('[SimpleGameUI] Mobile controls element not found in DOM!');
-      }
-    }, 100);
+    if (showTouchJoysticks) {
+      setTimeout(() => {
+        const controlsEl = document.querySelector('.mobile-controls');
+        if (controlsEl) {
+          (controlsEl as HTMLElement).style.display = 'block';
+          (controlsEl as HTMLElement).style.visibility = 'visible';
+          console.log('[SimpleGameUI] Forced mobile controls visibility');
+        } else {
+          console.log('[SimpleGameUI] Mobile controls element not found in DOM!');
+        }
+      }, 100);
+    }
   }
+  
+  // Listen for touch joystick toggle events
+  window.addEventListener('touchJoysticksToggled', (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const enabled = customEvent.detail.enabled;
+    console.log('[SimpleGameUI] Touch joysticks toggled:', enabled);
+    
+    if (mobileControls) {
+      if (enabled) {
+        mobileControls.show();
+      } else {
+        mobileControls.hide();
+      }
+    }
+  });
 
   // Game event listeners
   // Note: These events may not be implemented in the current Game class

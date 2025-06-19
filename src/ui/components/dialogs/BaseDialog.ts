@@ -113,34 +113,32 @@ export abstract class BaseDialog {
   private createDialog(): HTMLElement {
     const dialog = document.createElement('div');
     dialog.className = 'dialog-panel';
+    
+    // Check if mobile at creation time
+    const mobile = isMobile(window.innerWidth);
+    
     dialog.style.cssText = `
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate3d(-50%, -50%, 0) scale(0.9);
       will-change: transform, opacity;
-      width: ${this.options.width};
-      max-height: clamp(400px, 85vh, 800px);
+      width: ${mobile ? '100vw' : this.options.width};
+      height: ${mobile ? 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))' : this.options.height};
+      max-height: ${mobile ? 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))' : 'clamp(400px, 85vh, 800px)'};
       background: ${COLOR_THEME.ui.background.primary}e6;
-      border: ${UI_CONSTANTS.floatingUI.borderWidth}px solid ${COLOR_THEME.ui.text.success};
-      border-radius: ${UI_CONSTANTS.dialog.borderRadius}px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      border: ${mobile ? 'none' : `${UI_CONSTANTS.floatingUI.borderWidth}px solid ${COLOR_THEME.ui.text.success}`};
+      border-radius: ${mobile ? '0' : `${UI_CONSTANTS.dialog.borderRadius}px`};
+      box-shadow: ${mobile ? 'none' : '0 10px 30px rgba(0, 0, 0, 0.8)'};
       display: flex;
       flex-direction: column;
       opacity: 0;
       transition: all ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
       pointer-events: auto;
       overflow: hidden;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
     `;
-    
-    // Mobile fullscreen mode
-    if (isMobile(window.innerWidth)) {
-      dialog.style.width = '100vw';
-      dialog.style.height = '100vh';
-      dialog.style.maxHeight = '100vh';
-      dialog.style.borderRadius = '0';
-      dialog.style.border = 'none';
-    }
     
     return dialog;
   }
@@ -225,6 +223,9 @@ export abstract class BaseDialog {
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
+      min-height: 0; /* Important for flex children */
+      position: relative;
+      overscroll-behavior: contain;
     `;
     return content;
   }
@@ -339,55 +340,90 @@ export abstract class BaseDialog {
     let startY = 0;
     let currentY = 0;
     let isDragging = false;
+    let dialogTransform = '';
     
-    this.dialog.addEventListener('touchstart', (e) => {
-      if (e.target === this.dialog || (e.target as HTMLElement).closest('.dialog-header')) {
+    const handleTouchStart = (e: TouchEvent) => {
+      // Only enable swipe on mobile in fullscreen mode
+      if (!isMobile(window.innerWidth) || !this.options.closeable) return;
+      
+      const target = e.target as HTMLElement;
+      // Allow swipe from header or empty dialog areas
+      if (target === this.dialog || target.closest('.dialog-header')) {
         startY = e.touches[0].clientY;
+        currentY = startY;
         isDragging = true;
+        dialogTransform = this.dialog.style.transform;
+        // Disable transition during drag
+        this.dialog.style.transition = 'none';
       }
-    });
+    };
     
-    this.dialog.addEventListener('touchmove', (e) => {
+    const handleTouchMove = (e: TouchEvent) => {
       if (!isDragging) return;
       
+      // Only prevent default if we're actually dragging the dialog, not scrolling content
+      const target = e.target as HTMLElement;
+      if (target.closest('.dialog-content')) return;
+      
+      e.preventDefault(); // Prevent scrolling while dragging
       currentY = e.touches[0].clientY;
       const deltaY = currentY - startY;
       
+      // Only allow downward swipe
       if (deltaY > 0) {
-        this.dialog.style.transform = `translate(-50%, calc(-50% + ${deltaY}px)) scale(1)`;
-        this.dialog.style.opacity = `${1 - deltaY / 300}`;
+        const progress = Math.min(deltaY / 300, 1);
+        this.dialog.style.transform = `translate3d(-50%, calc(-50% + ${deltaY}px), 0) scale(${1 - progress * 0.05})`;
+        this.dialog.style.opacity = `${1 - progress * 0.3}`;
       }
-    });
+    };
     
-    this.dialog.addEventListener('touchend', () => {
+    const handleTouchEnd = () => {
       if (!isDragging) return;
       
-      const deltaY = currentY - startY;
+      // Re-enable transition
+      this.dialog.style.transition = `all ${ANIMATION_CONFIG.durations.uiTransition}ms ease`;
       
-      if (deltaY > 100 && this.options.closeable) {
+      const deltaY = currentY - startY;
+      const velocity = deltaY / 300; // Simple velocity calculation
+      
+      if ((deltaY > 100 || velocity > 0.5) && this.options.closeable) {
         this.hide();
       } else {
-        this.dialog.style.transform = 'translate(-50%, -50%) scale(1)';
+        // Snap back to original position
+        this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
         this.dialog.style.opacity = '1';
       }
       
       isDragging = false;
-    });
+      startY = 0;
+      currentY = 0;
+    };
+    
+    // Use passive: false for touchmove to allow preventDefault
+    this.dialog.addEventListener('touchstart', handleTouchStart, { passive: true });
+    this.dialog.addEventListener('touchmove', handleTouchMove, { passive: false });
+    this.dialog.addEventListener('touchend', handleTouchEnd, { passive: true });
   }
   
   private handleResize(): void {
-    if (window.innerWidth <= 768) {
+    const mobile = isMobile(window.innerWidth);
+    
+    if (mobile) {
       this.dialog.style.width = '100vw';
-      this.dialog.style.height = '100vh';
-      this.dialog.style.maxHeight = '100vh';
+      this.dialog.style.height = 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))';
+      this.dialog.style.maxHeight = 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))';
       this.dialog.style.borderRadius = '0';
       this.dialog.style.border = 'none';
+      this.dialog.style.boxShadow = 'none';
+      this.dialog.style.top = 'env(safe-area-inset-top)';
+      this.dialog.style.transform = 'translate3d(-50%, 0, 0)';
     } else {
       this.dialog.style.width = this.options.width;
       this.dialog.style.height = this.options.height;
       this.dialog.style.maxHeight = 'clamp(400px, 85vh, 800px)';
-      this.dialog.style.borderRadius = '12px';
-      this.dialog.style.border = '2px solid #4CAF50';
+      this.dialog.style.borderRadius = `${UI_CONSTANTS.dialog.borderRadius}px`;
+      this.dialog.style.border = `${UI_CONSTANTS.floatingUI.borderWidth}px solid ${COLOR_THEME.ui.text.success}`;
+      this.dialog.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.8)';
     }
     
     this.onResize();
@@ -403,9 +439,6 @@ export abstract class BaseDialog {
     if (this.visible) return;
     
     console.log(`[BaseDialog] Showing dialog: ${this.options.title}`);
-    console.log(`[BaseDialog] Container in DOM:`, this.container.parentNode !== null);
-    console.log(`[BaseDialog] Container display:`, this.container.style.display);
-    console.log(`[BaseDialog] Container element:`, this.container);
     
     this.visible = true;
     this.beforeShow();
@@ -416,32 +449,31 @@ export abstract class BaseDialog {
       document.body.appendChild(this.container);
     }
     
-    // Make container visible
+    // Make container visible immediately
     this.container.style.display = 'block';
     this.container.style.pointerEvents = 'auto';
-    
-    // Force visibility styles
     this.container.style.visibility = 'visible';
+    
+    // Set initial states for animation
     this.overlay.style.visibility = 'visible';
+    this.overlay.style.opacity = '0';
     this.dialog.style.visibility = 'visible';
+    this.dialog.style.opacity = '0';
+    this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(0.9)';
     
-    console.log(`[BaseDialog] Container after show - display:`, this.container.style.display, 'z-index:', this.container.style.zIndex);
+    // Force browser to calculate layout before animation
+    void this.container.offsetHeight;
     
-    // Trigger animations
+    // Trigger animations on next frame
     requestAnimationFrame(() => {
-      this.overlay.style.opacity = '1';
-      this.dialog.style.opacity = '1';
-      // Use translate3d for better performance and no blur
-      this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
-      console.log(`[BaseDialog] Animation triggered for: ${this.options.title}`);
-      
-      // Double-check visibility after animation frame
-      console.log(`[BaseDialog] Final visibility check:`, {
-        containerInDOM: !!this.container.parentNode,
-        containerDisplay: this.container.style.display,
-        overlayOpacity: this.overlay.style.opacity,
-        dialogOpacity: this.dialog.style.opacity
-      });
+      // Add a small delay to ensure the DOM has updated
+      setTimeout(() => {
+        this.overlay.style.opacity = '1';
+        this.dialog.style.opacity = '1';
+        this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
+        
+        console.log(`[BaseDialog] Animation complete for: ${this.options.title}`);
+      }, 10);
     });
     
     this.afterShow();
@@ -578,6 +610,11 @@ export abstract class BaseDialog {
     slider.max = max.toString();
     slider.step = step.toString();
     slider.value = value.toString();
+    
+    // Generate unique class name instead of using ID-based styles
+    const sliderClass = `dialog-slider-${Math.random().toString(36).substr(2, 9)}`;
+    slider.className = sliderClass;
+    
     slider.style.cssText = `
       flex: 1;
       height: 6px;
@@ -588,12 +625,17 @@ export abstract class BaseDialog {
       border-radius: 3px;
     `;
     
-    // Custom slider styles
-    const styleId = `slider-styles-${Date.now()}`;
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      #${styleId} + input[type="range"]::-webkit-slider-thumb {
+    // Add slider styles to existing dialog styles or create new style element
+    let dialogStyles = document.getElementById('dialog-slider-styles');
+    if (!dialogStyles) {
+      dialogStyles = document.createElement('style');
+      dialogStyles.id = 'dialog-slider-styles';
+      document.head.appendChild(dialogStyles);
+    }
+    
+    // Append new slider styles
+    dialogStyles.textContent += `
+      .${sliderClass}::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
         width: clamp(20px, 5vw, 24px);
@@ -604,7 +646,7 @@ export abstract class BaseDialog {
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       
-      #${styleId} + input[type="range"]::-moz-range-thumb {
+      .${sliderClass}::-moz-range-thumb {
         width: clamp(20px, 5vw, 24px);
         height: clamp(20px, 5vw, 24px);
         background: #4CAF50;
@@ -614,7 +656,6 @@ export abstract class BaseDialog {
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
     `;
-    document.head.appendChild(style);
     
     const valueLabel = document.createElement('span');
     valueLabel.style.cssText = `

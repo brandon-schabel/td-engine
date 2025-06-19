@@ -3,7 +3,7 @@ import { Player } from './Player';
 import type { Vector2 } from '@/utils/Vector2';
 import { CURRENCY_CONFIG } from '../config/GameConfig';
 import { ANIMATION_CONFIG } from '../config/RenderingConfig';
-import type { InventoryItem } from '@/systems/Inventory';
+import { type InventoryItem, ItemType, ItemRarity } from '@/systems/Inventory';
 import { createItem, COLLECTIBLE_TO_ITEM_MAP, getRandomItemTemplate, RARITY_DROP_WEIGHTS, TYPE_DROP_WEIGHTS, CollectibleType } from './items/ItemTypes';
 
 interface CollectibleConfig {
@@ -177,26 +177,26 @@ export class Collectible extends Entity {
   static generateRandomItem(): InventoryItem {
     // First, determine item rarity
     const rarityRoll = Math.random();
-    let selectedRarity: keyof typeof RARITY_DROP_WEIGHTS = 'COMMON';
+    let selectedRarity: ItemRarity = ItemRarity.COMMON;
     
     let cumulativeWeight = 0;
     for (const [rarity, weight] of Object.entries(RARITY_DROP_WEIGHTS)) {
       cumulativeWeight += weight;
       if (rarityRoll <= cumulativeWeight) {
-        selectedRarity = rarity as keyof typeof RARITY_DROP_WEIGHTS;
+        selectedRarity = ItemRarity[rarity as keyof typeof ItemRarity];
         break;
       }
     }
 
     // Then, determine item type
     const typeRoll = Math.random();
-    let selectedType: keyof typeof TYPE_DROP_WEIGHTS = 'CONSUMABLE';
+    let selectedType: ItemType = ItemType.CONSUMABLE;
     
     cumulativeWeight = 0;
     for (const [type, weight] of Object.entries(TYPE_DROP_WEIGHTS)) {
       cumulativeWeight += weight;
       if (typeRoll <= cumulativeWeight) {
-        selectedType = type as keyof typeof TYPE_DROP_WEIGHTS;
+        selectedType = ItemType[type as keyof typeof ItemType];
         break;
       }
     }

@@ -7,7 +7,8 @@ export enum UpgradeType {
   RANGE = 'RANGE',
   FIRE_RATE = 'FIRE_RATE'
 }
-import { GAME_MECHANICS, UPGRADE_CONFIG, COLOR_CONFIG, TOWER_COSTS } from '../config/GameConfig';
+import { GAME_MECHANICS, COLOR_CONFIG, TOWER_COSTS } from '../config/GameConfig';
+import { UPGRADE_CONSTANTS } from '../config/UpgradeConfig';
 import { TOWER_STATS, TOWER_UPGRADES, TOWER_VISUALS } from '../config/TowerConfig';
 import { ENTITY_RENDER, TOWER_RENDER } from '../config/RenderingConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
@@ -118,7 +119,7 @@ export class Tower extends Entity implements ShootingCapable {
   // Upgrade system methods
   upgrade(upgradeType: UpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    const maxLevel = UPGRADE_CONFIG.maxLevel;
+    const maxLevel = UPGRADE_CONSTANTS.maxLevel;
     
     if (currentLevel >= maxLevel) {
       return false;
@@ -132,7 +133,7 @@ export class Tower extends Entity implements ShootingCapable {
     }
     
     // Update visual level
-    this.level = 1 + Math.floor(this.getTotalUpgrades() / UPGRADE_CONFIG.levelCalculationDivisor.tower);
+    this.level = 1 + Math.floor(this.getTotalUpgrades() / UPGRADE_CONSTANTS.levelCalculationDivisor.tower);
     
     // Update radius based on new level
     this.radius = this.getVisualRadius();
@@ -146,7 +147,7 @@ export class Tower extends Entity implements ShootingCapable {
       return false;
     }
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    return currentLevel < UPGRADE_CONFIG.maxLevel;
+    return currentLevel < UPGRADE_CONSTANTS.maxLevel;
   }
 
   getUpgradeLevel(upgradeType: UpgradeType): number {
@@ -251,7 +252,7 @@ export class Tower extends Entity implements ShootingCapable {
       
       // Different colors for different tower types with upgrade intensity
       const upgradeLevel = this.getVisualLevel();
-      const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONFIG.visualUpgradeMultiplier, UPGRADE_CONFIG.visualIntensityMultiplier);
+      const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONSTANTS.visualUpgradeMultiplier, UPGRADE_CONSTANTS.visualIntensityMultiplier);
       
       switch (this.towerType) {
         case TowerType.BASIC:

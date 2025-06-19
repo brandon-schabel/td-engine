@@ -38,6 +38,7 @@ export class SettingsDialog extends BaseDialog {
     showFPS: boolean;
     showGrid: boolean;
     autoSave: boolean;
+    showTouchJoysticks: boolean;
   };
   
   private sections: SettingsSection[];
@@ -78,7 +79,8 @@ export class SettingsDialog extends BaseDialog {
       musicVolume: 0.5,
       showFPS: false,
       showGrid: false,
-      autoSave: true
+      autoSave: true,
+      showTouchJoysticks: true
     };
     
     return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
@@ -200,6 +202,23 @@ export class SettingsDialog extends BaseDialog {
             onChange: (value) => {
               this.settings.autoSave = value;
               this.saveSettings();
+            }
+          }
+        ]
+      },
+      {
+        title: 'Controls',
+        icon: IconType.GAME_CONTROLLER,
+        items: [
+          {
+            label: 'Touch Joysticks',
+            type: 'toggle',
+            value: this.settings.showTouchJoysticks,
+            onChange: (value) => {
+              this.settings.showTouchJoysticks = value;
+              this.saveSettings();
+              // Notify the game to update joystick visibility
+              window.dispatchEvent(new CustomEvent('touchJoysticksToggled', { detail: { enabled: value }}));
             }
           }
         ]
@@ -371,144 +390,7 @@ export class SettingsDialog extends BaseDialog {
     return itemElement;
   }
   
-  private createToggle(checked: boolean, onChange: (value: boolean) => void): HTMLElement {
-    const toggle = document.createElement('label');
-    toggle.className = 'setting-toggle';
-    toggle.style.cssText = `
-      position: relative;
-      display: inline-block;
-      width: clamp(44px, 10vw, 52px);
-      height: clamp(24px, 6vw, 28px);
-      cursor: pointer;
-    `;
-    
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = checked;
-    input.style.cssText = `
-      opacity: 0;
-      width: 0;
-      height: 0;
-    `;
-    
-    const slider = document.createElement('span');
-    slider.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: ${checked ? '#4CAF50' : '#666'};
-      transition: background-color ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
-      border-radius: 28px;
-    `;
-    
-    const knob = document.createElement('span');
-    knob.style.cssText = `
-      position: absolute;
-      top: 2px;
-      left: ${checked ? 'calc(100% - 22px)' : '2px'};
-      width: clamp(20px, 5vw, 24px);
-      height: clamp(20px, 5vw, 24px);
-      background-color: white;
-      transition: left ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
-      border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    `;
-    
-    slider.appendChild(knob);
-    toggle.appendChild(input);
-    toggle.appendChild(slider);
-    
-    input.addEventListener('change', () => {
-      const isChecked = input.checked;
-      slider.style.backgroundColor = isChecked ? '#4CAF50' : '#666';
-      knob.style.left = isChecked ? 'calc(100% - 22px)' : '2px';
-      onChange(isChecked);
-      this.playSound(SoundType.BUTTON_CLICK);
-    });
-    
-    return toggle;
-  }
   
-  private createSlider(value: number, min: number, max: number, step: number, onChange: (value: number) => void): HTMLElement {
-    const container = document.createElement('div');
-    container.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 0 0 clamp(120px, 30vw, 180px);
-    `;
-    
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.min = min.toString();
-    slider.max = max.toString();
-    slider.step = step.toString();
-    slider.value = value.toString();
-    slider.style.cssText = `
-      flex: 1;
-      height: 6px;
-      background: #333;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      border-radius: 3px;
-    `;
-    
-    // Custom slider styles
-    const styleId = `slider-styles-${Date.now()}`;
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      #${styleId} + input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: clamp(20px, 5vw, 24px);
-        height: clamp(20px, 5vw, 24px);
-        background: #4CAF50;
-        cursor: pointer;
-        border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-      
-      #${styleId} + input[type="range"]::-moz-range-thumb {
-        width: clamp(20px, 5vw, 24px);
-        height: clamp(20px, 5vw, 24px);
-        background: #4CAF50;
-        cursor: pointer;
-        border-radius: 50%;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-    `;
-    document.head.appendChild(style);
-    
-    const valueLabel = document.createElement('span');
-    valueLabel.style.cssText = `
-      min-width: 40px;
-      text-align: right;
-      color: #4CAF50;
-      font-size: clamp(12px, 3vw, 14px);
-      font-weight: bold;
-    `;
-    valueLabel.textContent = Math.round(value * 100) + '%';
-    
-    slider.addEventListener('input', () => {
-      const newValue = parseFloat(slider.value);
-      valueLabel.textContent = Math.round(newValue * 100) + '%';
-      onChange(newValue);
-    });
-    
-    slider.addEventListener('change', () => {
-      this.playSound(SoundType.SELECT);
-    });
-    
-    container.appendChild(slider);
-    container.appendChild(valueLabel);
-    
-    return container;
-  }
   
   public getSettings(): typeof this.settings {
     return { ...this.settings };

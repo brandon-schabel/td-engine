@@ -4,7 +4,7 @@
  */
 
 import { PlayerUpgradeType } from '../Player';
-import { UPGRADE_CONFIG } from '../../config/GameConfig';
+import { UPGRADE_CONSTANTS } from '../../config/UpgradeConfig';
 
 export interface UpgradeInfo {
   type: PlayerUpgradeType;
@@ -34,7 +34,7 @@ export class PlayerProgression {
   // Upgrade system
   upgrade(upgradeType: PlayerUpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    const maxLevel = UPGRADE_CONFIG.maxLevel;
+    const maxLevel = UPGRADE_CONSTANTS.maxLevel;
     
     if (currentLevel >= maxLevel) {
       return false;
@@ -48,7 +48,7 @@ export class PlayerProgression {
 
   canUpgrade(upgradeType: PlayerUpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    return currentLevel < UPGRADE_CONFIG.maxLevel;
+    return currentLevel < UPGRADE_CONSTANTS.maxLevel;
   }
 
   getUpgradeLevel(upgradeType: PlayerUpgradeType): number {
@@ -139,7 +139,7 @@ export class PlayerProgression {
     return Object.values(PlayerUpgradeType).map(upgradeType => ({
       type: upgradeType,
       level: this.getUpgradeLevel(upgradeType),
-      maxLevel: UPGRADE_CONFIG.maxLevel,
+      maxLevel: UPGRADE_CONSTANTS.maxLevel,
       canUpgrade: this.canUpgrade(upgradeType)
     }));
   }
@@ -195,7 +195,7 @@ export class PlayerProgression {
     experienceGained: number;
   } {
     const fullyMaxedUpgrades = Array.from(this.upgradeLevels.values())
-      .filter(level => level >= UPGRADE_CONFIG.maxLevel).length;
+      .filter(level => level >= UPGRADE_CONSTANTS.maxLevel).length;
 
     return {
       maxLevelReached: this.level,
