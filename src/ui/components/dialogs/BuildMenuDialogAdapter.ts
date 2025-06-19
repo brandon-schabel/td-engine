@@ -20,8 +20,6 @@ export class BuildMenuDialogAdapter extends BuildMenuDialog {
   private onClosed?: () => void;
   
   constructor(options: BuildMenuDialogAdapterOptions) {
-    console.log('[BuildMenuDialogAdapter] Creating dialog with currency:', options.game.getCurrency());
-    
     super({
       currentCurrency: options.game.getCurrency(),
       audioManager: options.audioManager,
@@ -32,8 +30,6 @@ export class BuildMenuDialogAdapter extends BuildMenuDialog {
     this.game = options.game;
     this.onTowerSelected = options.onTowerSelected;
     this.onClosed = options.onClosed;
-    
-    console.log('[BuildMenuDialogAdapter] Dialog created successfully');
   }
   
   private handleTowerSelect(type: TowerType): void {

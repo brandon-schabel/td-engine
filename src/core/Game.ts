@@ -819,15 +819,12 @@ export class Game {
     const worldPos = this.camera.screenToWorld(screenPos);
     this.isMouseDown = true;
 
-    console.log('[DEBUG] Mouse down at screen:', screenPos, 'world:', worldPos);
-
     if (this.engine.getState() !== GameState.PLAYING) {
       return;
     }
 
     // Check if clicking on player
     if (this.player.distanceTo(worldPos) <= this.player.radius) {
-      console.log('[DEBUG] Clicked on player');
       // Trigger player upgrade panel (handled by UI)
       const playerClickEvent = new CustomEvent("playerClicked");
       document.dispatchEvent(playerClickEvent);
@@ -841,21 +838,16 @@ export class Game {
     );
 
     if (clickedTower) {
-      console.log('[Game] Clicked on tower:', clickedTower.towerType, 'at', clickedTower.position);
-      console.log('[Game] Current selected tower:', this.selectedTower);
       // Use the selectTower/deselectTower methods for consistency
       if (this.selectedTower === clickedTower) {
-        console.log('[Game] Deselecting tower');
         this.deselectTower();
       } else {
-        console.log('[Game] Selecting tower');
         this.selectTower(clickedTower);
       }
       this.selectedTowerType = null; // Clear tower placement mode
     } else if (this.selectedTowerType) {
       // Place new tower
       if (this.placeTower(this.selectedTowerType, worldPos)) {
-        console.log('[DEBUG] Tower placed successfully');
         // Clear selection after successful placement on mobile
         if ('ontouchstart' in window) {
           this.selectedTowerType = null;
@@ -864,7 +856,6 @@ export class Game {
           document.dispatchEvent(towerPlacedEvent);
         }
       } else {
-        console.log('[DEBUG] Tower placement failed');
         // Provide feedback for failed placement
         if ('vibrate' in navigator) {
           navigator.vibrate([50, 50, 50]); // Error vibration pattern
@@ -881,7 +872,6 @@ export class Game {
       if (this.selectedTower) {
         const previousTower = this.selectedTower;
         this.selectedTower = null;
-        console.log('[DEBUG] Deselected tower (clicked empty space)');
         
         // Dispatch deselect event
         const deselectEvent = new CustomEvent('towerDeselected', { 
@@ -1341,22 +1331,17 @@ export class Game {
   }
 
   selectTower(tower: Tower): void {
-    console.log('[Game.selectTower] Called with tower:', tower.towerType);
-    
     if (!this.towers.includes(tower)) {
       console.warn('[Game] Attempted to select a tower that is not in the game');
       return;
     }
 
     const previousTower = this.selectedTower;
-    console.log('[Game.selectTower] Previous tower:', previousTower?.towerType || 'none');
-    
     // Deselect previous tower if different
     if (previousTower && previousTower !== tower) {
       const deselectEvent = new CustomEvent('towerDeselected', { 
         detail: { tower: previousTower } 
       });
-      console.log('[Game.selectTower] Dispatching towerDeselected event');
       document.dispatchEvent(deselectEvent);
     }
     
@@ -1367,7 +1352,6 @@ export class Game {
     const selectEvent = new CustomEvent('towerSelected', { 
       detail: { tower } 
     });
-    console.log('[Game.selectTower] Dispatching towerSelected event with tower:', tower.towerType);
     document.dispatchEvent(selectEvent);
   }
 

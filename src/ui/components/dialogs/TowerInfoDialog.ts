@@ -25,7 +25,6 @@ export class TowerInfoDialog extends BaseDialog {
   private updateInterval?: number;
   
   constructor(options: TowerInfoDialogOptions) {
-    console.log('[TowerInfoDialog] Constructor called');
     super({
       title: `${options.tower.towerType} Tower`,
       width: DIALOG_CONFIG.sizes.small,
@@ -34,8 +33,6 @@ export class TowerInfoDialog extends BaseDialog {
       audioManager: options.audioManager,
       className: 'tower-info-dialog'
     });
-    
-    console.log('[TowerInfoDialog] Base dialog constructed');
     
     this.tower = options.tower;
     this.game = options.game;
@@ -55,9 +52,6 @@ export class TowerInfoDialog extends BaseDialog {
   }
   
   protected buildContent(): void {
-    console.log('[TowerInfoDialog] buildContent called for tower:', this.tower.towerType);
-    console.log('[TowerInfoDialog] Dialog container exists:', !!this.container);
-    console.log('[TowerInfoDialog] Content element exists:', !!this.content);
     
     // Tower icon and basic info
     const headerSection = document.createElement('div');

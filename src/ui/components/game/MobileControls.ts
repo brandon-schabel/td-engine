@@ -209,12 +209,6 @@ export class MobileControls {
     controls.appendChild(aimJoystick);
     this.container.appendChild(controls);
     
-    // Debug: log creation
-    console.log('[MobileControls] Created and appended to container');
-    console.log('[MobileControls] Container:', this.container);
-    console.log('[MobileControls] Controls element:', controls);
-    console.log('[MobileControls] Move joystick:', moveJoystick);
-    console.log('[MobileControls] Aim joystick:', aimJoystick);
 
     // Add styles for active states and safe areas
     const style = document.createElement('style');

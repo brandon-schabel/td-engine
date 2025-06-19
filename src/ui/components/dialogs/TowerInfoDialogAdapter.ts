@@ -24,12 +24,6 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
   private upgradeDialog?: UpgradeDialogAdapter;
   
   constructor(options: TowerInfoDialogAdapterOptions) {
-    console.log('[TowerInfoDialogAdapter] Constructor called with options:', {
-      tower: options.tower?.towerType,
-      game: !!options.game,
-      audioManager: !!options.audioManager
-    });
-    
     super({
       tower: options.tower,
       game: options.game,
@@ -39,14 +33,10 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
       onClose: () => this.handleClose()
     });
     
-    console.log('[TowerInfoDialogAdapter] Super constructor completed');
-    
     this.game = options.game;
     this.tower = options.tower;
     this.dialogManager = DialogManager.getInstance();
     this.onClosed = options.onClosed;
-    
-    console.log('[TowerInfoDialogAdapter] Construction complete');
   }
   
   private handleUpgrade(): void {

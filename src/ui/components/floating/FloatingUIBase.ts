@@ -96,10 +96,7 @@ export abstract class FloatingUIBase {
   }
   
   public mount(container: HTMLElement): void {
-    console.log('[FloatingUIBase] Mounting element:', this.element.className, 'to container:', container.id);
     container.appendChild(this.element);
-    console.log('[FloatingUIBase] Element mounted. Parent:', this.element.parentNode?.nodeName);
-    console.log('[FloatingUIBase] Element styles:', this.element.style.cssText);
   }
   
   public unmount(): void {

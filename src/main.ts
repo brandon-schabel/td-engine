@@ -110,7 +110,6 @@ let pauseDialog: PauseDialog | null = null;
 
 // Early initialization of dialogs that don't require a game instance
 function initializeEarlyDialogs() {
-  console.log('[Main] Initializing early dialogs...');
   
   // Settings Dialog (doesn't need game instance)
   settingsDialogInstance = new SettingsDialog({
@@ -146,13 +145,10 @@ function initializeEarlyDialogs() {
   });
   dialogManager.register('pause', pauseDialog);
   
-  console.log('[Main] Early dialogs initialized: gameSettings, pause');
 }
 
 // Initialize dialogs that require a game instance
 function initializeGameDialogs(gameInstance: GameWithEvents) {
-  console.log('[Main] Initializing game-dependent dialogs...');
-  
   try {
     // Build Menu Dialog
     if (buildMenuDialog) {
@@ -169,7 +165,6 @@ function initializeGameDialogs(gameInstance: GameWithEvents) {
       }
     });
     dialogManager.register('buildMenu', buildMenuDialog);
-    console.log('[Main] Build menu dialog registered successfully');
   } catch (error) {
     console.error('[Main] Failed to initialize build menu dialog:', error);
   }
@@ -187,20 +182,13 @@ function initializeGameDialogs(gameInstance: GameWithEvents) {
       }
     });
     dialogManager.register('inventory', inventoryDialog);
-    console.log('[Main] Inventory dialog registered successfully');
   } catch (error) {
     console.error('[Main] Failed to initialize inventory dialog:', error);
   }
-  
-  console.log('[Main] Game dialogs initialization complete');
-  console.log('[Main] All registered dialogs: buildMenu, inventory, gameSettings, pause');
 }
 
 // Initialize game with settings
 function initializeGame() {
-  console.log('[Main] initializeGame called');
-  console.log('[Main] gameSettings:', (window as any).gameSettings);
-  
   // Get applied game configuration from settings
   const gameConfig = applySettingsToGame(
     (window as any).gameSettings || {
@@ -215,8 +203,6 @@ function initializeGame() {
     }
   );
   
-  console.log('[Main] gameConfig:', gameConfig);
-
   // Convert to map generation config
   const mapGenConfig: MapGenerationConfig = {
     width: gameConfig.mapConfig.width,
@@ -240,7 +226,6 @@ function initializeGame() {
   // Create game instance with configuration
   game = new GameWithEvents(canvas, mapGenConfig);
   gameInitialized = true;
-  console.log('[Main] Game instance created successfully');
 
   //  @ts-ignore
   if (typeof window !== "undefined") {
@@ -255,7 +240,6 @@ function initializeGame() {
   document.addEventListener("gameEnd", handleGameEnd);
 
   // Start the main game setup
-  console.log('[Main] Setting up game UI...');
   setupModernGameUI();
 }
 
@@ -296,20 +280,16 @@ function showMainMenu() {
 
 // Function to show settings dialog
 function showSettingsDialog() {
-  console.log('[Main] showSettingsDialog called');
   
   const settingsDialog = new GameSettingsDialog({
     audioManager,
     onStartGame: (settings: GameSettings) => {
-      console.log('[Main] onStartGame callback triggered with settings:', settings);
       (window as any).gameSettings = settings;
       initializeGame();
     }
   });
   
-  console.log('[Main] Registering settings dialog');
   dialogManager.register('settings', settingsDialog);
-  console.log('[Main] Showing settings dialog');
   dialogManager.show('settings');
 }
 
@@ -326,7 +306,6 @@ showSettingsDialog();
 // Debug: Add keyboard shortcut to start game
 document.addEventListener('keydown', (e) => {
   if (e.key === 'F1') {
-    console.log('[Debug] F1 pressed - starting game with default settings');
     (window as any).gameSettings = {
       difficulty: "NORMAL",
       masterVolume: 0.7,
@@ -623,14 +602,10 @@ document.addEventListener("keyup", (e) => {
 });
 
 async function setupModernGameUI() {
-  console.log('[Main] setupModernGameUI called');
-  
   // Setup game handlers
   setupGameHandlers();
-  console.log('[Main] Game handlers setup complete');
 
   // Use the simple UI system
-  console.log('[Main] Calling setupGameUI...');
   const ui = await setupGameUI({
     game,
     container: document.body,
@@ -642,9 +617,7 @@ async function setupModernGameUI() {
     debugMode: false,
   });
   
-  console.log('[Main] Game UI setup complete');
   
   // Start the game
-  console.log('[Main] Starting game...');
   game.start();
 }

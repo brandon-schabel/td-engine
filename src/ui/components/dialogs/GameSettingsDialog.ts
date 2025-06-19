@@ -105,11 +105,8 @@ export class GameSettingsDialog extends BaseDialog {
       icon: IconType.PLAY,
       primary: true,
       onClick: () => {
-        console.log('[GameSettingsDialog] Start button clicked');
         this.saveSettings();
-        console.log('[GameSettingsDialog] Settings saved:', this.settings);
         this.hide();
-        console.log('[GameSettingsDialog] Dialog hidden, calling onStartGame');
         if (this.onStartGame) {
           this.onStartGame(this.settings);
         } else {

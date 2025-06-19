@@ -40,14 +40,12 @@ export class DialogManager {
   }
   
   public register(id: string, dialog: BaseDialog): void {
-    console.log(`[DialogManager] Registering dialog: ${id}`);
     if (this.dialogs.has(id)) {
       console.warn(`[DialogManager] Dialog with id "${id}" already registered. Replacing.`);
       this.dialogs.get(id)?.destroy();
     }
     
     this.dialogs.set(id, dialog);
-    console.log('[DialogManager] Registered dialogs:', Array.from(this.dialogs.keys()));
   }
   
   public unregister(id: string): void {
@@ -64,14 +62,11 @@ export class DialogManager {
     const dialog = this.dialogs.get(id);
     if (!dialog) {
       console.error(`[DialogManager] Dialog with id "${id}" not found`);
-      console.log('[DialogManager] Available dialogs:', Array.from(this.dialogs.keys()));
       return;
     }
     
-    console.log(`[DialogManager] Dialog "${id}" visibility:`, dialog.isVisible());
     
     if (dialog.isVisible()) {
-      console.log(`[DialogManager] Dialog "${id}" already visible, moving to top`);
       // Move to top of stack
       this.removeFromStack(id);
       this.dialogStack.push(id);

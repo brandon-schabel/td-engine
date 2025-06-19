@@ -18,7 +18,6 @@ export class DebugDialogWrapper {
       const dialog = dialogManager.getDialog(dialogId);
       if (!dialog) {
         this.logOnce(`no-dialog-${dialogId}`, `❌ Dialog '${dialogId}' not registered!`);
-        console.log('[DebugDialog] Available dialogs:', this.getRegisteredDialogs());
         return;
       }
 
