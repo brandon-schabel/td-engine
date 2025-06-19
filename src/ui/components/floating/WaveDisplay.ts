@@ -7,7 +7,7 @@ import { COLOR_THEME } from '@/config/ColorTheme';
 export class WaveDisplay extends FloatingDisplay {
   constructor(game: Game) {
     super({
-      position: { top: UI_CONSTANTS.hud.padding, right: UI_CONSTANTS.hud.padding },
+      position: { top: UI_CONSTANTS.hud.padding + 50, right: UI_CONSTANTS.hud.padding },
       borderColor: COLOR_THEME.ui.wave,
       textColor: COLOR_THEME.ui.wave,
       iconType: IconType.WAVE,

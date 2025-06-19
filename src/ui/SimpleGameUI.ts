@@ -578,7 +578,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Create camera controls using FloatingCameraControls
   console.log('[SimpleGameUI] Creating FloatingCameraControls...');
   const cameraControls = new FloatingCameraControls({
-    position: { top: 60, right: 10 },
+    position: { top: 120, right: 10 },
     game,
     audioManager
   });

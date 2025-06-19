@@ -7,7 +7,7 @@ import { COLOR_THEME } from '@/config/ColorTheme';
 export class CurrencyDisplay extends FloatingDisplay {
   constructor(game: Game) {
     super({
-      position: { top: UI_CONSTANTS.hud.padding, left: UI_CONSTANTS.hud.padding },
+      position: { top: UI_CONSTANTS.hud.padding + 50, left: UI_CONSTANTS.hud.padding },
       borderColor: COLOR_THEME.ui.currency,
       textColor: COLOR_THEME.ui.currency,
       iconType: IconType.COINS,
