@@ -1,16 +1,17 @@
 import { Tower, TowerType } from '@/entities/Tower';
 import { Enemy } from '@/entities/Enemy';
 import { Projectile } from '@/entities/Projectile';
-import { Player, PlayerUpgradeType } from '@/entities/Player';
+import { Player } from '@/entities/Player';
 import { Collectible } from '@/entities/Collectible';
+import { HealthPickup } from '@/entities/HealthPickup';
 import { Entity } from '@/entities/Entity';
 import { Grid, CellType } from './Grid';
 import { Camera } from './Camera';
 import { UpgradeType } from '@/entities/Tower';
-import { TextureManager, type Texture, type SpriteFrame } from './TextureManager';
+import { TextureManager, type Texture } from './TextureManager';
 import type { Vector2 } from '@/utils/Vector2';
-import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
-import { RENDER_SETTINGS, GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER } from '../config/RenderingConfig';
+import { COLOR_CONFIG } from '../config/GameConfig';
+import { GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER } from '../config/RenderingConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
 import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
@@ -567,7 +568,7 @@ export class Renderer {
     }
   }
 
-  private renderIceFormation(variant: number): void {
+  private renderIceFormation(_variant: number): void {
     this.ctx.fillStyle = '#B3E5FC';
     if (typeof this.ctx.beginPath === 'function') {
       this.ctx.beginPath();
@@ -622,7 +623,7 @@ export class Renderer {
     }
   }
 
-  private renderFrozenTree(variant: number, animOffset: number): void {
+  private renderFrozenTree(_variant: number, animOffset: number): void {
     // Ice-covered tree
     this.ctx.fillStyle = '#A8D8EA';
     if (typeof this.ctx.beginPath === 'function') {
@@ -682,7 +683,7 @@ export class Renderer {
     }
   }
 
-  private renderSmallTree(variant: number, animOffset: number): void {
+  private renderSmallTree(_variant: number, animOffset: number): void {
     this.ctx.fillStyle = '#7CFC00';
     if (typeof this.ctx.beginPath === 'function') {
       this.ctx.beginPath();
@@ -899,7 +900,7 @@ export class Renderer {
     }
   }
 
-  private renderAnimationEffect(effect: EnvironmentalEffect): void {
+  private renderAnimationEffect(_effect: EnvironmentalEffect): void {
     // This would typically affect how decorations are rendered
     // For now, we'll skip implementation as decorations handle their own animation
   }
@@ -1208,201 +1209,8 @@ export class Renderer {
     collectible.render(this.ctx, screenPos);
   }
 
-  renderPowerUp(powerUp: PowerUp): void {
-    if (!powerUp.isActive || !this.camera.isVisible(powerUp.position, powerUp.radius)) return;
+  // PowerUp rendering removed - type not defined
 
-    const screenPos = this.getScreenPosition(powerUp);
-    const visualY = powerUp.getVisualY() - powerUp.position.y + screenPos.y;
-    const rotation = powerUp.getRotation();
-    const scale = powerUp.getPulseScale();
-    const config = powerUp.getConfig();
-    
-    // Try to render with texture first
-    const texture = this.textureManager.getTexture('power_up');
-    
-    if (typeof this.ctx.save === 'function') {
-      this.ctx.save();
-    }
-    if (typeof this.ctx.translate === 'function') {
-      this.ctx.translate(screenPos.x, visualY);
-    }
-    // Safety check for test environments
-    if (typeof this.ctx.rotate === 'function') {
-      this.ctx.rotate(rotation);
-    }
-    if (typeof this.ctx.scale === 'function') {
-      this.ctx.scale(scale, scale);
-    }
-    
-    if (texture && texture.loaded) {
-      if (typeof this.ctx.drawImage === 'function') {
-        this.ctx.drawImage(
-          texture.image,
-          -powerUp.radius,
-          -powerUp.radius,
-          powerUp.radius * 2,
-          powerUp.radius * 2
-        );
-      }
-    } else {
-      // Fallback to primitive rendering
-      this.ctx.fillStyle = config.color;
-      this.ctx.strokeStyle = '#FFFFFF';
-      this.ctx.lineWidth = 2;
-      
-      switch (powerUp.powerUpType) {
-        case 'EXTRA_DAMAGE':
-          // Draw sword/damage icon
-          if (typeof this.ctx.beginPath === 'function') {
-            this.ctx.beginPath();
-          }
-          if (typeof this.ctx.moveTo === 'function') {
-            this.ctx.moveTo(-8, 8);
-          }
-          if (typeof this.ctx.lineTo === 'function') {
-            this.ctx.lineTo(8, -8);
-            this.ctx.lineTo(6, -10);
-            this.ctx.lineTo(-10, 6);
-          }
-          if (typeof this.ctx.closePath === 'function') {
-            this.ctx.closePath();
-          }
-          if (typeof this.ctx.fill === 'function') {
-            this.ctx.fill();
-          }
-          if (typeof this.ctx.stroke === 'function') {
-            this.ctx.stroke();
-          }
-          break;
-          
-        case 'FASTER_SHOOTING':
-          // Draw rapid fire arrows
-          if (typeof this.ctx.beginPath === 'function') {
-            this.ctx.beginPath();
-          }
-          if (typeof this.ctx.moveTo === 'function') {
-            this.ctx.moveTo(-8, 0);
-          }
-          if (typeof this.ctx.lineTo === 'function') {
-            this.ctx.lineTo(8, 0);
-          }
-          if (typeof this.ctx.moveTo === 'function') {
-            this.ctx.moveTo(4, -4);
-          }
-          if (typeof this.ctx.lineTo === 'function') {
-            this.ctx.lineTo(8, 0);
-            this.ctx.lineTo(4, 4);
-          }
-          if (typeof this.ctx.stroke === 'function') {
-            this.ctx.stroke();
-          }
-          break;
-          
-        case 'EXTRA_CURRENCY':
-          // Draw coin
-          if (typeof this.ctx.beginPath === 'function') {
-            this.ctx.beginPath();
-          }
-          if (typeof this.ctx.arc === 'function') {
-            this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
-          }
-          if (typeof this.ctx.fill === 'function') {
-            this.ctx.fill();
-          }
-          if (typeof this.ctx.stroke === 'function') {
-            this.ctx.stroke();
-          }
-          this.ctx.fillStyle = '#FFFFFF';
-          this.ctx.font = 'bold 10px Arial';
-          this.ctx.textAlign = 'center';
-          if (typeof this.ctx.fillText === 'function') {
-            this.ctx.fillText('$', 0, 3);
-          }
-          break;
-          
-        case 'SHIELD':
-          // Draw shield
-          if (typeof this.ctx.beginPath === 'function') {
-            this.ctx.beginPath();
-          }
-          if (typeof this.ctx.arc === 'function') {
-            this.ctx.arc(0, 0, 8, 0, Math.PI);
-          }
-          if (typeof this.ctx.lineTo === 'function') {
-            this.ctx.lineTo(-8, 8);
-            this.ctx.lineTo(8, 8);
-          }
-          if (typeof this.ctx.closePath === 'function') {
-            this.ctx.closePath();
-          }
-          if (typeof this.ctx.fill === 'function') {
-            this.ctx.fill();
-          }
-          if (typeof this.ctx.stroke === 'function') {
-            this.ctx.stroke();
-          }
-          break;
-          
-        case 'SPEED_BOOST':
-          // Draw wing/speed lines
-          if (typeof this.ctx.beginPath === 'function') {
-            this.ctx.beginPath();
-          }
-          if (typeof this.ctx.moveTo === 'function') {
-            this.ctx.moveTo(-8, -4);
-          }
-          if (typeof this.ctx.lineTo === 'function') {
-            this.ctx.lineTo(8, -4);
-          }
-          if (typeof this.ctx.moveTo === 'function') {
-            this.ctx.moveTo(-6, 0);
-          }
-          if (typeof this.ctx.lineTo === 'function') {
-            this.ctx.lineTo(8, 0);
-          }
-          if (typeof this.ctx.moveTo === 'function') {
-            this.ctx.moveTo(-8, 4);
-          }
-          if (typeof this.ctx.lineTo === 'function') {
-            this.ctx.lineTo(8, 4);
-          }
-          if (typeof this.ctx.stroke === 'function') {
-            this.ctx.stroke();
-          }
-          break;
-      }
-    }
-    
-    // Glow effect
-    this.ctx.shadowColor = config.color;
-    this.ctx.shadowBlur = 15;
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(0, 0, powerUp.radius, 0, Math.PI * 2);
-    }
-    this.ctx.strokeStyle = `rgba(${this.hexToRgb(config.color)}, 0.3)`;
-    this.ctx.lineWidth = 2;
-    if (typeof this.ctx.stroke === 'function') {
-      this.ctx.stroke();
-    }
-    
-    if (typeof this.ctx.restore === 'function') {
-      this.ctx.restore();
-    }
-  }
-
-  private hexToRgb(hex: string): string {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (result) {
-      const r = parseInt(result[1], 16);
-      const g = parseInt(result[2], 16);
-      const b = parseInt(result[3], 16);
-      return `${r}, ${g}, ${b}`;
-    }
-    return '255, 255, 255';
-  }
 
   renderAimerLine(aimerLine: { start: Vector2; end: Vector2 }): void {
     // Safety check for undefined properties
@@ -1667,7 +1475,7 @@ export class Renderer {
     }
   }
 
-  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], effects: any[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
+  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], _effects: any[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
@@ -1691,10 +1499,7 @@ export class Renderer {
     }
   }
 
-  renderUI(currency: number, lives: number, score: number, wave: number): void {
-    const padding = 10;
-    const fontSize = 18;
-    const lineHeight = 25;
+  renderUI(_currency: number, _lives: number, _score: number, _wave: number): void {
     
     // this.renderText(`Currency: $${currency}`, padding, padding + fontSize, COLOR_CONFIG.ui.currency, `${fontSize}px Arial`);
     // this.renderText(`Lives: ${lives}`, padding, padding + fontSize + lineHeight, COLOR_CONFIG.ui.lives, `${fontSize}px Arial`);

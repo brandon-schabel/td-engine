@@ -15,7 +15,6 @@ export class FloatingCameraControls extends FloatingUIBase {
   private audioManager: AudioManager;
   private zoomLevelDisplay?: HTMLSpanElement;
   private buttons: IconButton[] = [];
-  private intervalId?: number;
   
   constructor(options: FloatingCameraControlsOptions) {
     const { game, audioManager, ...baseOptions } = options;
@@ -33,7 +32,8 @@ export class FloatingCameraControls extends FloatingUIBase {
     this.setupContent();
     
     // Start updates after everything is initialized
-    this.startUpdateInterval(100);
+    this.options.updateInterval = 100;
+    this.startUpdateInterval();
   }
   
   private setupContent(): void {
@@ -96,7 +96,8 @@ export class FloatingCameraControls extends FloatingUIBase {
     }
   }
   
-  private startUpdateInterval(interval: number): void {
+  protected startUpdateInterval(): void {
+    const interval = this.options.updateInterval || 100;
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }

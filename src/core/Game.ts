@@ -1,7 +1,7 @@
 import { GameEngine } from "./GameEngine";
 import { GameState } from "./GameState";
 import { Grid, CellType } from "@/systems/Grid";
-import { Pathfinder } from "@/systems/Pathfinder";
+// import { Pathfinder } from "@/systems/Pathfinder"; // Unused import removed
 import { WaveManager, SpawnPattern } from "@/systems/WaveManager";
 import type { WaveConfig } from "@/systems/WaveManager";
 import { SpawnZoneManager } from "@/systems/SpawnZoneManager";
@@ -49,7 +49,7 @@ import { TowerUpgradePopup } from "@/ui/components/floating/TowerUpgradePopup";
 export class Game {
   private engine: GameEngine;
   private grid: Grid;
-  private pathfinder: Pathfinder;
+  // private pathfinder: Pathfinder; // Unused - commented out to fix TypeScript error
   private waveManager: WaveManager;
   private spawnZoneManager: SpawnZoneManager;
   private canvas: HTMLCanvasElement;
@@ -87,7 +87,7 @@ export class Game {
   private selectedTower: Tower | null = null;
   private currentTowerUpgradePopup: TowerUpgradePopup | null = null;
   private mousePosition: Vector2 = { x: 0, y: 0 };
-  private isMouseDown: boolean = false;
+  // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
 
@@ -151,7 +151,7 @@ export class Game {
     this.cameraDiagnostics = new CameraDiagnostics(this.camera);
 
     // Initialize systems
-    this.pathfinder = new Pathfinder(this.grid);
+    // this.pathfinder = new Pathfinder(this.grid); // Unused - commented out to fix TypeScript error
 
     // Convert all spawn zones to world positions for wave manager
     const spawnWorldPositions = this.currentMapData.spawnZones.map((zone) =>
@@ -207,11 +207,13 @@ export class Game {
 
     // Add damage callback for player
     this.player.onDamage = (event) => {
-      this.popupManager.createDamageNumber(
-        event.entity,
-        event.actualDamage,
-        DamageType.NORMAL
-      );
+      if (event) {
+        this.popupManager.createDamageNumber(
+          event.entity,
+          event.actualDamage,
+          DamageType.NORMAL
+        );
+      }
     };
 
     // Initialize inventory and equipment systems
@@ -480,11 +482,13 @@ export class Game {
 
       // Add damage callback for floating damage numbers
       enemy.onDamage = (event) => {
-        this.popupManager.createDamageNumber(
-          event.entity,
-          event.actualDamage,
-          DamageType.NORMAL
-        );
+        if (event) {
+          this.popupManager.createDamageNumber(
+            event.entity,
+            event.actualDamage,
+            DamageType.NORMAL
+          );
+        }
       };
 
       this.enemies.push(enemy);
@@ -702,7 +706,7 @@ export class Game {
     return Math.max(1, totalUpgrades);
   }
 
-  render = (deltaTime: number): void => {
+  render = (_deltaTime: number): void => {
     // Render main scene including player
     this.renderer.renderScene(
       this.towers,
@@ -790,7 +794,7 @@ export class Game {
     const tower = new Tower(towerType, worldPosition);
 
     // Add damage callback for health bar display
-    tower.onDamage = (event) => {
+    tower.onDamage = (_event) => {
       // Could show damage numbers or flash effect for towers
       // For now, we'll let health bars handle the visual feedback
     };
@@ -870,7 +874,7 @@ export class Game {
     };
 
     const worldPos = this.camera.screenToWorld(screenPos);
-    this.isMouseDown = true;
+    // this.isMouseDown = true; // Unused variable commented out
 
     if (this.engine.getState() !== GameState.PLAYING) {
       return;
@@ -940,8 +944,8 @@ export class Game {
     }
   }
 
-  handleMouseUp(event: MouseEvent): void {
-    this.isMouseDown = false;
+  handleMouseUp(_event: MouseEvent): void {
+    // this.isMouseDown = false; // Unused variable commented out
     this.player.handleMouseUp();
   }
 
@@ -1607,7 +1611,7 @@ export class Game {
     this.applyMapToGrid();
 
     // Update systems
-    this.pathfinder = new Pathfinder(this.grid);
+    // this.pathfinder = new Pathfinder(this.grid); // Unused - commented out to fix TypeScript error
 
     // Update spawn positions (recreate WaveManager with all spawn positions)
     const spawnWorldPositions = this.currentMapData.spawnZones.map((zone) =>
@@ -1632,11 +1636,7 @@ export class Game {
     );
     this.player.position = playerWorldPos;
 
-    // Update camera bounds - note: this might need a method to update bounds
-    // For now, we'll recreate the renderer with new grid and camera
-    const worldWidth = this.grid.width * this.grid.cellSize;
-    const worldHeight = this.grid.height * this.grid.cellSize;
-    // Camera bounds should be updated through existing update method
+    // Update camera to handle new world size
     this.camera.update(this.player.position);
 
     // Update renderer with new environmental effects

@@ -3,7 +3,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
-import { RESPONSIVE_CONFIG, isMobile } from '@/config/ResponsiveConfig';
+import { isMobile } from '@/config/ResponsiveConfig';
 
 export interface BaseDialogOptions {
   title: string;
@@ -37,10 +37,10 @@ export abstract class BaseDialog {
       height: 'auto',
       closeable: true,
       modal: true,
-      audioManager: undefined,
+      audioManager: options.audioManager || ({} as AudioManager),
       className: '',
       ...options
-    };
+    } as Required<BaseDialogOptions>;
     
     this.container = this.createContainer();
     this.overlay = this.createOverlay();
@@ -340,7 +340,6 @@ export abstract class BaseDialog {
     let startY = 0;
     let currentY = 0;
     let isDragging = false;
-    let dialogTransform = '';
     
     const handleTouchStart = (e: TouchEvent) => {
       // Only enable swipe on mobile in fullscreen mode
@@ -352,7 +351,8 @@ export abstract class BaseDialog {
         startY = e.touches[0].clientY;
         currentY = startY;
         isDragging = true;
-        dialogTransform = this.dialog.style.transform;
+        // Store original transform for potential future use
+        // const originalTransform = this.dialog.style.transform;
         // Disable transition during drag
         this.dialog.style.transition = 'none';
       }

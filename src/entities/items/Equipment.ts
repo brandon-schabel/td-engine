@@ -55,8 +55,7 @@ export class EquipmentManager {
   private emit<K extends keyof EquipmentEvents>(event: K, ...args: Parameters<EquipmentEvents[K]>): void {
     const listener = this.eventListeners[event];
     if (listener) {
-      // @ts-ignore - TypeScript struggles with this pattern but it's safe
-      listener(...args);
+      (listener as (...args: any[]) => void)(...args);
     }
   }
 
@@ -312,8 +311,16 @@ export class EquipmentManager {
   getDebugInfo(): {
     equippedItems: Record<string, string | null>;
     totalStats: EquipmentStats;
-    validation: ReturnType<typeof this.validateEquipment>;
-    summary: ReturnType<typeof this.getEquipmentSummary>;
+    validation: { valid: boolean; errors: string[] };
+    summary: {
+      weapon: string | null;
+      armor: string | null;
+      accessory: string | null;
+      totalStats: EquipmentStats;
+      totalValue: number;
+      slotsUsed: number;
+      totalSlots: number;
+    };
   } {
     const equippedItems: Record<string, string | null> = {};
     

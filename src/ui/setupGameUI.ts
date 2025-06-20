@@ -27,26 +27,23 @@ export async function setupGameUI(options: GameUIOptions): Promise<any> {
   console.log('Initializing simple UI system...');
   
   // Use the simple UI implementation
-  const ui = setupSimpleGameUI(game, audioManager || new AudioManager());
+  const cleanup = setupSimpleGameUI(game, audioManager || new AudioManager());
   
-  // Store UI reference globally for keyboard access
-  (window as any).gameUI = ui;
+  // Store cleanup function globally for cleanup
+  (window as any).gameUICleanup = cleanup;
   
-  // Update control buttons periodically
-  setInterval(() => {
-    if (ui?.updateControlButtons) {
-      ui.updateControlButtons();
-    }
-  }, 100);
+  // No periodic updates needed for simple UI
   
-  return ui;
+  return cleanup;
 }
 
 /**
  * Cleanup function for UI system
  */
-export function cleanupGameUI(ui: any): void {
-  // Clean up any intervals or event listeners
-  // The simple UI doesn't need much cleanup
+export function cleanupGameUI(cleanup: any): void {
+  // Call the cleanup function if it exists
+  if (typeof cleanup === 'function') {
+    cleanup();
+  }
   console.log('UI cleanup complete');
 }

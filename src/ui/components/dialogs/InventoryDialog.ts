@@ -1,12 +1,13 @@
 import { BaseDialog } from './BaseDialog';
 import type { Game } from '@/core/Game';
-import type { Inventory, InventoryItem, ItemType } from '@/systems/Inventory';
+import type { Inventory, InventoryItem } from '@/systems/Inventory';
+import { ItemType } from '@/systems/Inventory';
 import { ItemSlot } from '../inventory/SimpleItemSlot';
 import { ItemTooltip } from '../inventory/SimpleItemTooltip';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
-import { RESPONSIVE_CONFIG, isMobile, isTablet } from '@/config/ResponsiveConfig';
+import { isMobile, isTablet } from '@/config/ResponsiveConfig';
 
 export interface InventoryDialogOptions {
   game: Game;
@@ -33,7 +34,7 @@ export class InventoryDialog extends BaseDialog {
   // Touch handling
   private touchStartX: number = 0;
   private currentTabIndex: number = 0;
-  private tabOrder: (ItemType | 'ALL')[] = ['ALL', 'CONSUMABLE', 'EQUIPMENT', 'MATERIAL', 'SPECIAL'];
+  private tabOrder: (ItemType | 'ALL')[] = ['ALL', ItemType.CONSUMABLE, ItemType.EQUIPMENT, ItemType.MATERIAL, ItemType.SPECIAL];
   
   constructor(options: InventoryDialogOptions) {
     super({
@@ -163,13 +164,13 @@ export class InventoryDialog extends BaseDialog {
     
     const tabData = [
       { id: 'ALL', name: 'All', icon: IconType.BUILD },
-      { id: 'CONSUMABLE', name: 'Items', icon: IconType.HEALTH },
-      { id: 'EQUIPMENT', name: 'Gear', icon: IconType.SHIELD },
-      { id: 'MATERIAL', name: 'Mats', icon: IconType.UPGRADE },
-      { id: 'SPECIAL', name: 'Special', icon: IconType.CROWN }
+      { id: ItemType.CONSUMABLE, name: 'Items', icon: IconType.HEALTH },
+      { id: ItemType.EQUIPMENT, name: 'Gear', icon: IconType.SHIELD },
+      { id: ItemType.MATERIAL, name: 'Mats', icon: IconType.UPGRADE },
+      { id: ItemType.SPECIAL, name: 'Special', icon: IconType.CROWN }
     ];
     
-    tabData.forEach((tab, index) => {
+    tabData.forEach((tab) => {
       const tabButton = document.createElement('button');
       tabButton.className = `inventory-tab ${this.activeTab === tab.id ? 'active' : ''}`;
       tabButton.style.cssText = `
@@ -195,7 +196,7 @@ export class InventoryDialog extends BaseDialog {
         this.setActiveTab(tab.id as any);
       });
       
-      this.tabs.appendChild(tabButton);
+      this.tabs!.appendChild(tabButton);
     });
     
     this.content.appendChild(this.tabs);
@@ -365,7 +366,7 @@ export class InventoryDialog extends BaseDialog {
     return item.type === this.activeTab;
   }
   
-  private handleSlotClick(slotIndex: number, item: InventoryItem | null): void {
+  private handleSlotClick(slotIndex: number, _item: InventoryItem | null): void {
     this.playSound(SoundType.SELECT);
     
     if (this.selectedSlot === slotIndex) {
@@ -375,24 +376,13 @@ export class InventoryDialog extends BaseDialog {
     } else {
       // Select
       this.selectedSlot = slotIndex;
-      this.selectedItem = item;
+      const slots = this.inventory.getSlots();
+      this.selectedItem = slots[slotIndex]?.item || null;
     }
     
     this.updateSlotSelection();
   }
   
-  private handleSlotHover(slotIndex: number, item: InventoryItem | null, event: MouseEvent): void {
-    if (item) {
-      const rect = this.content.getBoundingClientRect();
-      this.tooltip.show(item, event.clientX - rect.left, event.clientY - rect.top);
-    } else {
-      this.tooltip.hide();
-    }
-  }
-  
-  private handleSlotDragStart(slotIndex: number): void {
-    // Drag start logic
-  }
   
   private handleSlotDragEnd(fromSlot: number, toSlot: number): void {
     if (fromSlot !== toSlot) {
@@ -421,7 +411,7 @@ export class InventoryDialog extends BaseDialog {
     const useButton = document.getElementById('use-button') as HTMLButtonElement;
     if (useButton) {
       const canUse = this.selectedSlot !== null && this.selectedItem !== null &&
-        (this.selectedItem.type === 'CONSUMABLE' || this.selectedItem.type === 'EQUIPMENT');
+        (this.selectedItem.type === ItemType.CONSUMABLE || this.selectedItem.type === ItemType.EQUIPMENT);
       
       useButton.disabled = !canUse;
       useButton.style.opacity = canUse ? '1' : '0.5';
@@ -447,7 +437,7 @@ export class InventoryDialog extends BaseDialog {
     upgradeButton.style.opacity = upgradeButton.disabled ? '0.5' : '1';
   }
   
-  private useItem(slotIndex: number, item: InventoryItem): void {
+  private useItem(slotIndex: number, _item: InventoryItem): void {
     const success = this.game.useInventoryItem(slotIndex, 1);
     
     if (success) {

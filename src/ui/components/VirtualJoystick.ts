@@ -1,8 +1,12 @@
-import type { Point } from '@/types/geometry';
 import { SettingsManager } from '@/config/GameSettings';
 import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 export interface JoystickEvent {
   direction: Point | null;
@@ -11,8 +15,8 @@ export interface JoystickEvent {
 
 export class VirtualJoystick {
   private container: HTMLElement;
-  private base: HTMLElement;
-  private knob: HTMLElement;
+  private base!: HTMLElement;
+  private knob!: HTMLElement;
   private isActive = false;
   private touchId: number | null = null;
   

@@ -4,9 +4,6 @@
  */
 
 import { BaseRenderer } from './BaseRenderer';
-import { Tower } from '@/entities/Tower';
-import { UpgradeType } from '@/entities/Tower';
-import { COLOR_CONFIG, UPGRADE_CONFIG } from '../config/GameConfig';
 import { HUD_CONFIG } from '../config/UIConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
 import { UI_CONSTANTS } from '../config/UIConstants';
@@ -85,7 +82,7 @@ export class UIRenderer extends BaseRenderer {
   //   // Old implementation removed - see TowerInfoDialog for new UI
   // }
 
-  renderNotification(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info', duration?: number): void {
+  renderNotification(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info'): void {
     const colors = {
       info: COLOR_THEME.ui.button.primary,
       warning: COLOR_THEME.ui.text.warning,

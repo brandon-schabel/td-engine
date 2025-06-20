@@ -17,8 +17,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
 import { UpgradeService } from '@/services/UpgradeService';
-import { TowerUpgradeManager, PlayerUpgradeManager } from '@/systems/UnifiedUpgradeSystem';
-import { UPGRADE_SYNERGIES, UPGRADE_CONSTANTS } from '@/config/UpgradeConfig';
+import { UPGRADE_CONSTANTS } from '@/config/UpgradeConfig';
 
 export interface EnhancedUpgradeDialogOptions {
   target: Tower | Player;
@@ -178,6 +177,7 @@ export class EnhancedUpgradeDialog extends BaseDialog {
     bulkToggle.textContent = this.bulkMode ? 'Bulk Mode ON' : 'Bulk Mode OFF';
     bulkToggle.onclick = () => this.toggleBulkMode();
     
+    currencyDisplay.className = 'currency-display';
     header.appendChild(currencyDisplay);
     if (this.onBulkUpgrade) {
       header.appendChild(bulkToggle);
@@ -547,10 +547,10 @@ export class EnhancedUpgradeDialog extends BaseDialog {
       }
       
       // Apply bulk discount
-      if (levels >= 3) {
-        cost = Math.floor(cost * UPGRADE_CONSTANTS.bulkDiscounts.threeLevels);
-      } else if (levels >= 2) {
-        cost = Math.floor(cost * UPGRADE_CONSTANTS.bulkDiscounts.twoLevels);
+      if (levels >= 5) {
+        cost = Math.floor(cost * UPGRADE_CONSTANTS.bulkDiscounts.fiveLevels);
+      } else if (levels >= 10) {
+        cost = Math.floor(cost * UPGRADE_CONSTANTS.bulkDiscounts.tenLevels);
       }
       
       totalCost += cost;
@@ -598,11 +598,23 @@ export class EnhancedUpgradeDialog extends BaseDialog {
           
           this.selectedBulkUpgrades.forEach((levels, type) => {
             upgrades.push({ type, levels });
+            const option = this.upgradeOptions.find(o => o.type === type);
+            if (option) {
+              // Calculate cost for multiple levels
+              for (let i = 0; i < levels; i++) {
+                const levelCost = Math.floor(option.cost * Math.pow(UPGRADE_CONSTANTS.defaultCostMultiplier, i));
+                totalCost += levelCost;
+              }
+              // Apply bulk discount
+              if (levels >= 10) {
+                totalCost = Math.floor(totalCost * UPGRADE_CONSTANTS.bulkDiscounts.tenLevels);
+              } else if (levels >= 5) {
+                totalCost = Math.floor(totalCost * UPGRADE_CONSTANTS.bulkDiscounts.fiveLevels);
+              }
+            }
           });
           
-          if (upgrades.length > 0) {
-            // Calculate total cost with discounts
-            // ... (cost calculation logic)
+          if (upgrades.length > 0 && this.onBulkUpgrade) {
             this.playSound(SoundType.TOWER_UPGRADE);
             this.onBulkUpgrade(upgrades, totalCost);
             this.hide();
@@ -673,7 +685,7 @@ export class EnhancedUpgradeDialog extends BaseDialog {
       case 'FIRE_RATE': return IconType.SPEED;
       case 'HEALTH': return IconType.HEART;
       case 'SPEED': return IconType.SPEED;
-      case 'REGENERATION': return IconType.HEAL;
+      case 'REGENERATION': return IconType.HEART;
       default: return IconType.UPGRADE;
     }
   }
@@ -704,5 +716,16 @@ export class EnhancedUpgradeDialog extends BaseDialog {
   
   protected beforeHide(): void {
     this.onClose();
+  }
+  
+  public updateCurrency(newCurrency: number): void {
+    this.currentCurrency = newCurrency;
+    // Update currency display in header if it exists
+    const currencyEl = this.header.querySelector('.currency-display');
+    if (currencyEl) {
+      currencyEl.textContent = `${newCurrency} gold`;
+    }
+    // Rebuild content to reflect new upgrade availability
+    this.buildContent();
   }
 }

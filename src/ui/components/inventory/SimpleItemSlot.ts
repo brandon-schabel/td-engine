@@ -3,7 +3,6 @@
  */
 
 import type { InventoryItem } from '@/systems/Inventory';
-import { createSvgIcon, IconType } from '../../icons/SvgIcons';
 
 export interface ItemSlotOptions {
   index: number;

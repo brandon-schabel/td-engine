@@ -126,7 +126,7 @@ export class ModularPlayer extends Entity implements ShootingCapable, Upgradeabl
     return this.combat.canShoot();
   }
 
-  shoot(target: Enemy): Projectile | null {
+  shoot(): Projectile | null {
     // This method would need to be updated to work with the new combat system
     return null; // Simplified for this example
   }

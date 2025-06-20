@@ -71,7 +71,6 @@ export class TowerUpgradeManager extends BaseUpgradeManager<UpgradeType, Tower> 
       .map(type => {
         const cost = this.getUpgradeCost(tower, type);
         const currentLevel = tower.getUpgradeLevel(type);
-        const config = this.getUpgradeConfig(type);
         
         if (cost === 0 || cost > availableCurrency || !tower.canUpgrade(type)) {
           return null;

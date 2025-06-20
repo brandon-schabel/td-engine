@@ -92,7 +92,6 @@ export class PlayerUpgradeManager extends BaseUpgradeManager<PlayerUpgradeType, 
           // Regeneration has fixed increase per level
           effectIncrease = 1.5;
         } else {
-          const config = this.getUpgradeConfig(type);
           const currentEffect = this.getUpgradeEffect(type, currentLevel);
           const nextEffect = this.getUpgradeEffect(type, currentLevel + 1);
           effectIncrease = nextEffect - currentEffect;

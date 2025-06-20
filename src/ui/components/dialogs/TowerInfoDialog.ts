@@ -21,7 +21,6 @@ export class TowerInfoDialog extends BaseDialog {
   protected onUpgrade?: () => void;
   protected onSell?: () => void;
   protected onClose?: () => void;
-  protected audioManager?: AudioManager;
   private updateInterval?: number;
   
   constructor(options: TowerInfoDialogOptions) {
@@ -39,7 +38,6 @@ export class TowerInfoDialog extends BaseDialog {
     this.onUpgrade = options.onUpgrade;
     this.onSell = options.onSell;
     this.onClose = options.onClose;
-    this.audioManager = options.audioManager;
     
     // Ensure content exists before building
     if (!this.content) {

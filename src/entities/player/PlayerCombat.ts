@@ -8,7 +8,6 @@ import { Enemy } from '../Enemy';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils } from '../../interfaces/ShootingCapable';
 import { GAME_MECHANICS } from '../../config/GameConfig';
-import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 import type { Vector2 } from '@/utils/Vector2';
 
 export enum ShootingMode {
@@ -120,11 +119,14 @@ export class PlayerCombat {
     }
 
     this.currentCooldown = CooldownManager.startCooldown(this.cooldownTime);
-    return ShootingUtils.performShoot(
-      { position: playerPosition, damage: this.damage }, 
-      target, 
+    // Create projectile directly since we can't match ShootingCapable interface
+    const projectile = new Projectile(
+      { ...playerPosition },
+      target,
+      this.damage,
       GAME_MECHANICS.projectileSpeed
     );
+    return projectile;
   }
 
   private findNearestEnemy(enemies: Enemy[], playerPosition: Vector2): Enemy | null {

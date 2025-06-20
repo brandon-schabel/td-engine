@@ -13,7 +13,6 @@ import type { Entity } from '@/entities/Entity';
 import type { Camera } from '@/systems/Camera';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
-import { UI_CONSTANTS } from '@/config/UIConstants';
 
 export enum DamageType {
   NORMAL = 'NORMAL',
@@ -38,12 +37,10 @@ export class DamageNumberPopup extends EntityPopup {
   private damage: number;
   private damageType: DamageType;
   private fontSize: number;
-  private floatSpeed: number;
   private floatDistance: number;
   private animationDuration: number;
   private criticalMultiplier: number;
   private startTime: number;
-  private startY: number = 0;
   private animationFrame?: number;
 
   constructor(
@@ -72,7 +69,6 @@ export class DamageNumberPopup extends EntityPopup {
     this.damage = options.damage;
     this.damageType = options.damageType || DamageType.NORMAL;
     this.fontSize = options.fontSize || defaults.fontSize;
-    this.floatSpeed = options.floatSpeed || defaults.floatSpeed;
     this.floatDistance = options.floatDistance || defaults.floatDistance;
     this.animationDuration = options.animationDuration || defaults.animationDuration;
     this.criticalMultiplier = options.criticalMultiplier || defaults.criticalMultiplier;

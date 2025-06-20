@@ -32,7 +32,7 @@ export class PlayerPowerUps {
   private totalPowerUpDuration: number = 0;
   private powerUpTypeStats: Map<string, number> = new Map();
 
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     const currentTime = Date.now();
     const expiredPowerUps: string[] = [];
     
@@ -270,7 +270,6 @@ export class PlayerPowerUps {
 
   // Power-up recommendations
   getRecommendedPowerUps(): string[] {
-    const recommendations: string[] = [];
     const stats = this.powerUpTypeStats;
     
     // Recommend least used power-ups

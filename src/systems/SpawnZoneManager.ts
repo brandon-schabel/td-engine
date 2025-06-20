@@ -90,8 +90,6 @@ export class SpawnZoneManager {
   }
   
   private generateInitialSpawnZones(): void {
-    const cellSize = this.grid.cellSize;
-    
     // Top edge
     for (let x = 1; x < this.grid.width - 1; x += 2) {
       const zone = this.createSpawnZone(
@@ -218,7 +216,7 @@ export class SpawnZoneManager {
     });
   }
   
-  private manageActiveZones(gameState: GameStateSnapshot): void {
+  private manageActiveZones(_gameState: GameStateSnapshot): void {
     // Deactivate zones that have cooled down
     const zonesToDeactivate: string[] = [];
     this.activeZones.forEach(zoneId => {

@@ -1,5 +1,4 @@
 import { BuildMenuDialog } from './BuildMenuDialog';
-import type { BuildMenuDialogOptions } from './BuildMenuDialog';
 import { TowerType } from '@/entities/Tower';
 import { Game } from '@/core/Game';
 import { AudioManager } from '@/audio/AudioManager';

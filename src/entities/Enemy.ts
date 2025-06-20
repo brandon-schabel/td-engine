@@ -3,7 +3,7 @@ import { Player } from './Player';
 import { Tower } from './Tower';
 import type { Vector2 } from '@/utils/Vector2';
 import { CooldownManager } from '@/utils/CooldownManager';
-import { ENEMY_STATS, ENEMY_BEHAVIOR, ENEMY_VISUALS, EnemyBehavior } from '../config/EnemyConfig';
+import { ENEMY_STATS, ENEMY_BEHAVIOR, EnemyBehavior } from '../config/EnemyConfig';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ENEMY_RENDER } from '@/config/RenderingConfig';
 
@@ -11,18 +11,6 @@ export enum EnemyType {
   BASIC = 'BASIC',
   FAST = 'FAST',
   TANK = 'TANK'
-}
-
-interface EnemyStats {
-  health: number;
-  speed: number;
-  radius: number;
-  reward: number; // Currency given when killed
-  damage: number;
-  attackRange: number;
-  attackCooldown: number; // milliseconds
-  towerDetectionRange: number; // How far they can detect towers
-  behavior: EnemyBehavior;
 }
 
 // Enemy stats are now imported from EnemyConfig

@@ -6,7 +6,6 @@
 import { CooldownManager } from '@/utils/CooldownManager';
 import { GAME_MECHANICS } from '../../config/GameConfig';
 import { PLAYER_ABILITIES } from '../../config/PlayerConfig';
-import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 import { GAMEPLAY_CONSTANTS } from '@/config/GameplayConstants';
 
 export interface HealthInfo {
@@ -20,7 +19,6 @@ export interface HealthInfo {
 export class PlayerHealth {
   private health: number;
   private maxHealth: number;
-  private baseMaxHealth: number;
   
   // Regeneration mechanics
   private regenerationTimer: number = 0;
@@ -42,7 +40,6 @@ export class PlayerHealth {
   private onDamageCallback?: (amount: number) => void;
 
   constructor(baseMaxHealth: number) {
-    this.baseMaxHealth = baseMaxHealth;
     this.maxHealth = baseMaxHealth;
     this.health = baseMaxHealth;
   }
@@ -67,7 +64,7 @@ export class PlayerHealth {
   }
 
   // Core health methods
-  takeDamage(amount: number, source: string = 'unknown'): number {
+  takeDamage(amount: number, _source: string = 'unknown'): number {
     if (!this.isAlive()) return 0;
     
     const actualDamage = Math.min(amount, this.health);
@@ -86,7 +83,7 @@ export class PlayerHealth {
     return actualDamage;
   }
 
-  heal(amount: number, source: string = 'unknown'): number {
+  heal(amount: number, _source: string = 'unknown'): number {
     if (!this.isAlive()) return 0;
     
     const actualHealAmount = Math.min(amount, this.maxHealth - this.health);

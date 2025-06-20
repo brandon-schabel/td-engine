@@ -10,10 +10,25 @@ import { Tower, TowerType } from '@/entities/Tower';
 import type { Vector2 } from '@/utils/Vector2';
 import type { MapGenerationConfig } from '@/types/MapData';
 
-
+// Define the GameEvents type that was missing
+export type GameEvents = {
+  currencyChanged: { amount: number; previous: number };
+  livesChanged: { amount: number; previous: number };
+  scoreChanged: { amount: number; previous: number };
+  gameStateChanged: { state: GameState; previous: GameState };
+  gameOver: { won: boolean; score: number };
+  towerPlaced: { tower: Tower; cost: number };
+  selectedTowerTypeChanged: { type: TowerType | null };
+  waveStarted: { waveNumber: number };
+  mousePositionChanged: { gridX: number; gridY: number; worldX: number; worldY: number };
+  hoverTowerChanged: { tower: Tower | null };
+  towerSelected: { tower: Tower | null };
+  gamePaused: undefined;
+  gameResumed: undefined;
+};
 
 export class GameWithEvents extends Game {
-  private eventEmitter: EventEmitter;
+  private eventEmitter: EventEmitter<GameEvents>;
   private previousState: {
     currency: number;
     lives: number;
@@ -24,7 +39,7 @@ export class GameWithEvents extends Game {
   constructor(canvas: HTMLCanvasElement, mapConfig?: MapGenerationConfig, autoStart: boolean = true) {
     super(canvas, mapConfig, autoStart);
     
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new EventEmitter<GameEvents>();
     
     // Initialize previous state tracking
     this.previousState = {
@@ -59,9 +74,13 @@ export class GameWithEvents extends Game {
   /**
    * Override update to check for state changes
    */
-  override update = (deltaTime: number): void => {
-    // Call parent update
-    super.update(deltaTime);
+  update = (deltaTime: number): void => {
+    // Call parent update method directly
+    // Since update is an arrow function property, we need to call it as a property
+    const parentUpdate = Object.getPrototypeOf(Object.getPrototypeOf(this)).update;
+    if (parentUpdate) {
+      parentUpdate.call(this, deltaTime);
+    }
     
     // Check for state changes and emit events
     this.checkStateChanges();
@@ -234,7 +253,7 @@ export class GameWithEvents extends Game {
   /**
    * Get the event emitter for advanced use cases
    */
-  getEventEmitter(): EventEmitter {
+  getEventEmitter(): EventEmitter<GameEvents> {
     return this.eventEmitter;
   }
 

@@ -21,10 +21,8 @@ import type { Collectible } from '@/entities/Collectible';
 import type { Projectile } from '@/entities/Projectile';
 import type { TextureManager } from '@/systems/TextureManager';
 import type { Vector2 } from '@/utils/Vector2';
-import { COLOR_CONFIG, ANIMATION_CONFIG } from '@/config/GameConfig';
-import { TOWER_RENDER, ENTITY_RENDER } from '@/config/RenderingConfig';
-import { TOWER_VISUALS } from '@/config/TowerConfig';
-import { PLAYER_VISUALS } from '@/config/PlayerConfig';
+import { COLOR_CONFIG } from '@/config/GameConfig';
+import { TOWER_RENDER, ENTITY_RENDER, ANIMATION_CONFIG } from '@/config/RenderingConfig';
 
 export interface RenderContext {
   ctx: CanvasRenderingContext2D;
@@ -292,7 +290,7 @@ export class UnifiedEntityRenderer {
   private renderPlayerPrimitive(ctx: CanvasRenderingContext2D, pos: Vector2, player: Player): void {
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, player.radius, 0, Math.PI * 2);
-    ctx.fillStyle = COLOR_CONFIG.player;
+    ctx.fillStyle = COLOR_CONFIG.ui.currency;
     ctx.fill();
     ctx.strokeStyle = '#1565C0';
     ctx.lineWidth = 2;
@@ -375,7 +373,7 @@ export class UnifiedEntityRenderer {
    */
   private renderTowerUpgradeDots(ctx: CanvasRenderingContext2D, pos: Vector2, tower: Tower): void {
     const upgradeTypes = ['DAMAGE', 'RANGE', 'FIRE_RATE'];
-    const colors = COLOR_CONFIG.upgradeDots;
+    const colors = ENTITY_RENDER.upgradeDots.colors;
     const dotRadius = ENTITY_RENDER.upgradeDots.radius;
     
     upgradeTypes.forEach((upgradeType, index) => {

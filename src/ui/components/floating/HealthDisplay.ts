@@ -20,7 +20,7 @@ export class HealthDisplay extends FloatingDisplay {
         const healthPercent = (health / maxHealth) * 100;
         
         // Determine color based on health percentage
-        let color = COLOR_THEME.ui.text.success; // Green
+        let color: string = COLOR_THEME.ui.text.success; // Green
         if (healthPercent <= 25) {
           color = COLOR_THEME.ui.text.danger; // Red
         } else if (healthPercent <= 50) {

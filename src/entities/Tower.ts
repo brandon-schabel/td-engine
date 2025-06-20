@@ -39,8 +39,8 @@ export class Tower extends Entity implements ShootingCapable {
   private baseDamage: number;
   private baseRange: number;
   private baseFireRate: number;
-  private cooldownTime: number;
-  private currentCooldown: number = 0;
+  public cooldownTime: number;
+  public currentCooldown: number = 0;
   
   // Upgrade levels
   private upgradeLevels: Map<UpgradeType, number> = new Map();
@@ -95,7 +95,7 @@ export class Tower extends Entity implements ShootingCapable {
     if (this.towerType === TowerType.WALL) {
       return null;
     }
-    return ShootingUtils.performShoot(this, target, GAME_MECHANICS.towerProjectileSpeed);
+    return ShootingUtils.performShoot(this as ShootingCapable, target, GAME_MECHANICS.towerProjectileSpeed);
   }
 
   updateAndShoot(enemies: Enemy[], deltaTime: number): Projectile[] {

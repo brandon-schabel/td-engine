@@ -104,8 +104,7 @@ export class Inventory {
   private emit<K extends keyof InventoryEvents>(event: K, ...args: Parameters<InventoryEvents[K]>): void {
     const listener = this.eventListeners[event];
     if (listener) {
-      // @ts-ignore - TypeScript struggles with this pattern but it's safe
-      listener(...args);
+      (listener as any)(...args);
     }
   }
 
@@ -470,7 +469,7 @@ export class Inventory {
   // Debug methods
   getDebugInfo(): {
     slots: Array<{ index: number; item: string | null; quantity: number }>;
-    statistics: ReturnType<typeof this.getStatistics>;
+    statistics: ReturnType<Inventory['getStatistics']>;
     config: InventoryConfig;
   } {
     return {

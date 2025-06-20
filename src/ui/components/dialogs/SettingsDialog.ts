@@ -1,8 +1,7 @@
 import { BaseDialog } from './BaseDialog';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
-import { AudioManager, SoundType } from '@/audio/AudioManager';
+import { AudioManager } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
-import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export interface SettingsDialogOptions {
   audioManager: AudioManager;
@@ -104,7 +103,7 @@ export class SettingsDialog extends BaseDialog {
               this.settings.soundEnabled = value;
               this.saveSettings();
               if (this.options.audioManager) {
-                this.options.audioManager.setSoundEnabled(value);
+                this.options.audioManager.setEnabled(value);
               }
             }
           },
@@ -116,7 +115,8 @@ export class SettingsDialog extends BaseDialog {
               this.settings.musicEnabled = value;
               this.saveSettings();
               if (this.options.audioManager) {
-                this.options.audioManager.setMusicEnabled(value);
+                // Music not implemented yet
+                // this.options.audioManager.setMusicEnabled(value);
               }
             }
           },
@@ -146,7 +146,8 @@ export class SettingsDialog extends BaseDialog {
               this.settings.soundVolume = value;
               this.saveSettings();
               if (this.options.audioManager) {
-                this.options.audioManager.setSoundVolume(value);
+                // Sound volume not implemented separately yet
+                // this.options.audioManager.setSoundVolume(value);
               }
             }
           },
@@ -161,7 +162,8 @@ export class SettingsDialog extends BaseDialog {
               this.settings.musicVolume = value;
               this.saveSettings();
               if (this.options.audioManager) {
-                this.options.audioManager.setMusicVolume(value);
+                // Music volume not implemented yet
+                // this.options.audioManager.setMusicVolume(value);
               }
             }
           }

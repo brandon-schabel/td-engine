@@ -25,6 +25,7 @@ export class DialogShowFix {
           game,
           target: player,
           audioManager,
+          currentCurrency: game.getCurrency(),
         });
         
         dialogManager.register('playerUpgrade', dialog);

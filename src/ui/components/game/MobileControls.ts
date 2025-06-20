@@ -14,7 +14,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
-import { RESPONSIVE_CONFIG, isMobile, getBreakpoint } from '@/config/ResponsiveConfig';
+import { RESPONSIVE_CONFIG, getBreakpoint } from '@/config/ResponsiveConfig';
 
 export interface MobileControlsOptions {
   game: Game;
@@ -36,9 +36,7 @@ export class MobileControls {
   private isAimActive = false;
   private isMoveActive = false;
   private moveStartPos = { x: 0, y: 0 };
-  private moveCurrentPos = { x: 0, y: 0 };
   private aimStartPos = { x: 0, y: 0 };
-  private aimCurrentPos = { x: 0, y: 0 };
   private moveTouchId: number | null = null;
   private aimTouchId: number | null = null;
   private joystickRadius = 60;
@@ -71,11 +69,11 @@ export class MobileControls {
     // Calculate responsive sizes based on viewport
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const baseSize = Math.min(vw, vh) * 0.15; // 15% of smallest dimension
+    // const baseSize = Math.min(vw, vh) * 0.15; // 15% of smallest dimension
     
     this.joystickRadius = UI_CONSTANTS.mobileControls.button.size;
     this.knobRadius = this.joystickRadius * 0.4;
-    const buttonSize = UI_CONSTANTS.mobileControls.button.size;
+    // const buttonSize = UI_CONSTANTS.mobileControls.button.size;
     
     // Get safe area insets
     const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-bottom') || '0');
@@ -630,11 +628,11 @@ export class MobileControls {
     // Recalculate sizes based on new viewport
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const baseSize = Math.min(vw, vh) * 0.15;
+    // const baseSize = Math.min(vw, vh) * 0.15;
     
     this.joystickRadius = UI_CONSTANTS.mobileControls.button.size;
     this.knobRadius = this.joystickRadius * 0.4;
-    const buttonSize = UI_CONSTANTS.mobileControls.button.size;
+    // const buttonSize = UI_CONSTANTS.mobileControls.button.size;
     const margin = Math.max(20, vw * 0.05);
     
     // Update control height

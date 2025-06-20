@@ -1,6 +1,6 @@
 import { BaseDialog } from './BaseDialog';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
-import { AudioManager } from '@/audio/AudioManager';
+import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 

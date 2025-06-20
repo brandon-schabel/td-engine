@@ -194,8 +194,6 @@ export class CameraDiagnostics {
   testCentering(player: Player): void {
     console.log("🧪 Testing camera centering...");
     
-    const originalInfo = this.camera.getCameraInfo();
-    
     // Test 1: centerOnTarget method
     console.log("\nTest 1: centerOnTarget method");
     this.camera.centerOnTarget(player.position);

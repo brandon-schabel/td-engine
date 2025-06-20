@@ -1,5 +1,5 @@
 import { BaseDialog } from './BaseDialog';
-import { RESPONSIVE_CONFIG, isMobile } from '@/config/ResponsiveConfig';
+import { isMobile } from '@/config/ResponsiveConfig';
 import type { GameStats, ScoreboardEntry } from '@/systems/ScoreManager';
 import { ScoreManager } from '@/systems/ScoreManager';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
@@ -184,7 +184,7 @@ export class GameOverDialog extends BaseDialog {
       { label: 'Towers', value: (this.stats.towersBuilt || 0).toString(), icon: IconType.TOWER },
       { label: 'Time', value: this.formatTime(this.stats.gameTime || 0), icon: IconType.CLOCK },
       { label: 'Currency', value: `$${this.stats.currency || 0}`, icon: IconType.CURRENCY },
-      { label: 'Lives', value: (this.stats.livesRemaining || 0).toString(), icon: IconType.HEART }
+      { label: 'Lives', value: '0', icon: IconType.HEART }
     ];
     
     stats.forEach(stat => {
@@ -283,10 +283,11 @@ export class GameOverDialog extends BaseDialog {
       });
       
       // Register with DialogManager
-      const DialogManager = require('@/ui/systems/DialogManager').DialogManager;
-      const manager = DialogManager.getInstance();
-      manager.register('leaderboard', leaderboard);
-      manager.show('leaderboard');
+      import('@/ui/systems/DialogManager').then(({ DialogManager }) => {
+        const manager = DialogManager.getInstance();
+        manager.register('leaderboard', leaderboard);
+        manager.show('leaderboard');
+      });
     });
   }
   

@@ -1,11 +1,12 @@
-import { UpgradeDialog } from './UpgradeDialog';
-import type { UpgradeDialogOptions } from './UpgradeDialog';
+import { EnhancedUpgradeDialog } from './EnhancedUpgradeDialog';
+import type { EnhancedUpgradeDialogOptions } from './EnhancedUpgradeDialog';
 import { Tower, UpgradeType } from '@/entities/Tower';
 import { Player, PlayerUpgradeType } from '@/entities/Player';
 import { Game } from '@/core/Game';
 import { AudioManager } from '@/audio/AudioManager';
+import { UpgradeService } from '@/services/UpgradeService';
 
-export interface UpgradeDialogAdapterOptions extends Omit<UpgradeDialogOptions, 'onUpgrade' | 'onSell' | 'onClose'> {
+export interface UpgradeDialogAdapterOptions extends Omit<EnhancedUpgradeDialogOptions, 'onUpgrade' | 'onSell' | 'onClose' | 'upgradeService'> {
   game: Game;
   audioManager?: AudioManager;
   onUpgraded?: (type: UpgradeType | PlayerUpgradeType, cost: number) => void;
@@ -16,7 +17,7 @@ export interface UpgradeDialogAdapterOptions extends Omit<UpgradeDialogOptions, 
 /**
  * Adapter that integrates UpgradeDialog with the game's upgrade system
  */
-export class UpgradeDialogAdapter extends UpgradeDialog {
+export class UpgradeDialogAdapter extends EnhancedUpgradeDialog {
   private game: Game;
   private upgradeTarget: Tower | Player;
   private updateInterval?: number;
@@ -32,7 +33,8 @@ export class UpgradeDialogAdapter extends UpgradeDialog {
     
     super({
       ...options,
-      currentCurrency: options.game.getCurrency(),
+      currentCurrency: options.currentCurrency || options.game.getCurrency(),
+      upgradeService: new UpgradeService((options.game as any).resourceManager || { canAfford: () => true, spend: () => true } as any),
       onUpgrade: (type: UpgradeType | PlayerUpgradeType, cost: number) => this.handleUpgrade(type, cost),
       onSell: isTower ? () => this.handleSell() : undefined,
       onClose: () => this.handleClose()

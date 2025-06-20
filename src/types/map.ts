@@ -8,4 +8,4 @@ export interface Path {
 }
 
 // Re-export MapData from MapData.ts for compatibility
-export { MapData } from './MapData';
+export type { MapData } from './MapData';

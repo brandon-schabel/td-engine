@@ -68,7 +68,9 @@ export class PowerUpDisplay {
           updateInterval: 0, // We'll update manually
         });
 
-        element.mount(this.container);
+        if (this.container) {
+          element.mount(this.container);
+        }
         this.powerUpElements.set(type, element);
       }
 
@@ -89,10 +91,10 @@ export class PowerUpDisplay {
       SPEED_BOOST: IconType.SPEED,
       FASTER_SHOOTING: IconType.FIRE_RATE,
       SHIELD: IconType.SHIELD,
-      EXTRA_CURRENCY: IconType.COIN,
+      EXTRA_CURRENCY: IconType.COINS,
       HEALTH: IconType.HEALTH,
     };
-    return iconMap[type] || IconType.POWERUP;
+    return iconMap[type] || IconType.STAR;
   }
 
   private getPowerUpName(type: string): string {

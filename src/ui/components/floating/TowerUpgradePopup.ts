@@ -14,8 +14,6 @@ import { UpgradeType, TowerType } from '@/entities/Tower';
 import type { Camera } from '@/systems/Camera';
 import type { Game } from '@/core/Game';
 import { COLOR_THEME } from '@/config/ColorTheme';
-import { UI_CONSTANTS } from '@/config/UIConstants';
-import { TOWER_STATS } from '@/config/TowerConfig';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { formatNumber } from '@/utils/formatters';
 
@@ -43,13 +41,12 @@ export class TowerUpgradePopup extends InteractiveEntityPopup {
   private game: Game;
   private upgradeOptions: Required<TowerUpgradePopupOptions>;
   private contentContainer?: HTMLElement;
-  private upgradeButtons: Map<UpgradeType, HTMLButtonElement> = new Map();
   private sellButton?: HTMLElement;
   private bulkAmount: number | 'MAX' = 1;
   private upgradeOptionsList: UpgradeOption[] = [];
   private currencyDisplay?: HTMLElement;
   private sellButtonEnabled: boolean = false; // Track sell button state
-  private cleanupTimeouts: NodeJS.Timeout[] = []; // Track timeouts for cleanup
+  private cleanupTimeouts: number[] = []; // Track timeouts for cleanup
 
   constructor(
     tower: Tower,
@@ -570,7 +567,7 @@ export class TowerUpgradePopup extends InteractiveEntityPopup {
 
     if (this.game.getCurrency() >= totalCost) {
       for (let i = 0; i < levels; i++) {
-        const levelCost = Math.floor(option.cost * Math.pow(1.08, option.currentLevel + i));
+        // const levelCost = Math.floor(option.cost * Math.pow(1.08, option.currentLevel + i));
         if (this.game.upgradeTower(this.tower, option.type)) {
           this.upgradeOptions.onUpgrade(this.tower);
         }

@@ -15,7 +15,6 @@ import { Enemy } from '@/entities/Enemy';
 import { Projectile } from '@/entities/Projectile';
 import { Player } from '@/entities/Player';
 import { HealthPickup } from '@/entities/HealthPickup';
-import { PowerUp } from '@/entities/PowerUp';
 import type { Vector2 } from '@/utils/Vector2';
 
 export interface RenderingOptions {
@@ -66,7 +65,6 @@ export class RenderingPipeline {
     enemies: Enemy[],
     projectiles: Projectile[],
     healthPickups: HealthPickup[],
-    powerUps: PowerUp[],
     aimerLine: { start: Vector2; end: Vector2 } | null,
     player?: Player,
     options: RenderingOptions = {}
@@ -97,7 +95,6 @@ export class RenderingPipeline {
       enemies,
       projectiles,
       healthPickups,
-      powerUps,
       player,
       aimerLine,
       defaultOptions
@@ -138,12 +135,12 @@ export class RenderingPipeline {
   /**
    * Render tower-specific UI elements
    */
-  renderTowerUI(tower: Tower, upgradeManager: any): void {
+  renderTowerUI(tower: Tower): void {
     // Show tower range
     this.environmentRenderer.renderTowerRange(tower);
     
     // Show upgrade panel
-    this.uiRenderer.renderTowerUpgradePanel(tower, 10, 150, upgradeManager);
+    // Tower upgrade panel is now handled by the dialog system
   }
 
   /**
@@ -176,7 +173,6 @@ export class RenderingPipeline {
     enemies: Enemy[],
     projectiles: Projectile[],
     healthPickups: HealthPickup[],
-    powerUps: PowerUp[],
     player: Player | undefined,
     aimerLine: { start: Vector2; end: Vector2 } | null,
     options: RenderingOptions
@@ -189,8 +185,8 @@ export class RenderingPipeline {
     // 2. Enemies
     this.entityRenderer.renderAllEnemies(enemies, options.showHealthBars);
 
-    // 3. Pickups and power-ups
-    this.entityRenderer.renderAllPickups(healthPickups, powerUps);
+    // 3. Pickups
+    this.entityRenderer.renderAllPickups(healthPickups);
 
     // 4. Projectiles (above other entities)
     this.entityRenderer.renderAllProjectiles(projectiles);

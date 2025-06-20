@@ -37,7 +37,6 @@ export class HealthPickup extends Entity {
     if (!this.isActive || !player.isAlive) return false;
 
     if (this.checkCollisionWithPlayer(player)) {
-      const previousHealth = player.health;
       player.heal(this.healAmount);
       this.isActive = false;
       return true;
@@ -59,8 +58,8 @@ export class HealthPickup extends Entity {
     return 0.1; // 10% chance to spawn from defeated enemies
   }
 
-  static shouldSpawnFromEnemy(enemyType?: string): boolean {
-    // Could vary spawn chance based on enemy type
+  static shouldSpawnFromEnemy(): boolean {
+    // Could vary spawn chance based on enemy type in the future
     return Math.random() < HealthPickup.getSpawnChance();
   }
 }

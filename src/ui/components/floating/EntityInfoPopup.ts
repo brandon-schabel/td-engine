@@ -12,7 +12,6 @@ import { EntityPopup, type EntityPopupOptions } from './EntityPopup';
 import type { Entity } from '@/entities/Entity';
 import type { Camera } from '@/systems/Camera';
 import { COLOR_THEME } from '@/config/ColorTheme';
-import { UI_CONSTANTS } from '@/config/UIConstants';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 
 export interface InfoSection {

@@ -16,7 +16,6 @@ export class FloatingDisplay extends FloatingUIBase {
   private formatValue?: (value: string) => string;
   private iconElement?: HTMLSpanElement;
   private valueElement?: HTMLSpanElement;
-  private intervalId?: number;
   
   constructor(options: FloatingDisplayOptions) {
     // Don't pass updateInterval to parent to prevent premature update
@@ -36,7 +35,8 @@ export class FloatingDisplay extends FloatingUIBase {
     
     // Now start updates after everything is initialized
     if (options.updateInterval !== 0) {
-      this.startUpdateInterval(options.updateInterval || 100);
+      this.options.updateInterval = options.updateInterval || 100;
+      this.startUpdateInterval();
     }
   }
   
@@ -74,7 +74,8 @@ export class FloatingDisplay extends FloatingUIBase {
     }
   }
   
-  private startUpdateInterval(interval: number): void {
+  protected startUpdateInterval(): void {
+    const interval = this.options.updateInterval || 100;
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }

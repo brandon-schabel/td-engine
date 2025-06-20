@@ -22,8 +22,8 @@ export class Player extends Entity implements ShootingCapable {
   private baseDamage: number;
   private baseSpeed: number;
   private baseFireRate: number;
-  private cooldownTime: number;
-  private currentCooldown: number = 0;
+  public cooldownTime: number;
+  public currentCooldown: number = 0;
   
   // Movement
   public override velocity: Vector2 = { x: 0, y: 0 };
@@ -44,7 +44,6 @@ export class Player extends Entity implements ShootingCapable {
   
   // Manual shooting mechanics
   private aimPosition: Vector2 = { x: 0, y: 0 };
-  private aimAngle: number = 0; // Store aim angle directly for touch controls
   private isHolding: boolean = false;
   private shootingMode: 'manual' | 'auto' = 'manual';
   private isShooting: boolean = false; // For continuous shooting
@@ -148,7 +147,7 @@ export class Player extends Entity implements ShootingCapable {
   }
 
   shoot(target: Enemy): Projectile | null {
-    return ShootingUtils.performShoot(this, target, GAME_MECHANICS.projectileSpeed);
+    return ShootingUtils.performShoot(this as ShootingCapable, target, GAME_MECHANICS.projectileSpeed);
   }
 
   autoShoot(enemies: Enemy[]): Projectile | null {
@@ -568,7 +567,6 @@ export class Player extends Entity implements ShootingCapable {
   }
   
   setAimDirection(angle: number): void {
-    this.aimAngle = angle;
     // Update aim position based on angle
     const distance = 100; // Arbitrary distance for aim position
     this.aimPosition = {

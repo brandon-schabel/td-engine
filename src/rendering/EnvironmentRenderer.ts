@@ -6,7 +6,7 @@
 import { BaseRenderer } from './BaseRenderer';
 import { Grid, CellType } from '@/systems/Grid';
 import { Tower, TowerType } from '@/entities/Tower';
-import { RENDER_CONFIG } from '../config/GameConfig';
+import { GRID_RENDER_DETAILS } from '../config/RenderingConfig';
 import type { Vector2 } from '@/utils/Vector2';
 
 export class EnvironmentRenderer extends BaseRenderer {
@@ -56,7 +56,7 @@ export class EnvironmentRenderer extends BaseRenderer {
     
     switch (cellType) {
       case CellType.PATH:
-        this.ctx.fillStyle = RENDER_CONFIG.pathColor;
+        this.ctx.fillStyle = GRID_RENDER_DETAILS.terrainColors.PATH;
         this.ctx.fillRect(
           screenPos.x - halfSize,
           screenPos.y - halfSize,
@@ -66,7 +66,7 @@ export class EnvironmentRenderer extends BaseRenderer {
         break;
       
       case CellType.BLOCKED:
-        this.ctx.fillStyle = RENDER_CONFIG.blockedColor;
+        this.ctx.fillStyle = GRID_RENDER_DETAILS.terrainColors.BLOCKED;
         this.ctx.fillRect(
           screenPos.x - halfSize,
           screenPos.y - halfSize,
@@ -83,21 +83,22 @@ export class EnvironmentRenderer extends BaseRenderer {
 
   private renderObstacle(screenPos: Vector2, cellSize: number): void {
     // Render rocks/obstacles
-    this.fillCircle(screenPos, cellSize / 3, RENDER_CONFIG.obstacleColor);
+    this.fillCircle(screenPos, cellSize / 3, GRID_RENDER_DETAILS.terrainColors.OBSTACLE);
     
     // Add some detail
     this.strokeCircle(screenPos, cellSize / 3, '#888888', 2);
   }
 
   private renderGridLines(startX: number, endX: number, startY: number, endY: number, cellSize: number): void {
-    this.ctx.strokeStyle = RENDER_CONFIG.gridLineColor;
+    this.ctx.strokeStyle = GRID_RENDER_DETAILS.gridLines.color;
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
 
     // Vertical lines
     for (let x = startX; x <= endX; x++) {
       const worldX = x * cellSize;
-      const screenX = this.getScreenPosition({ x: worldX, y: 0 }).x;
+      const screenPos = this.getScreenPosition({ x: worldX, y: 0 });
+      const screenX = screenPos.x;
       this.ctx.moveTo(screenX, 0);
       this.ctx.lineTo(screenX, this.canvas.height);
     }
@@ -105,7 +106,8 @@ export class EnvironmentRenderer extends BaseRenderer {
     // Horizontal lines
     for (let y = startY; y <= endY; y++) {
       const worldY = y * cellSize;
-      const screenY = this.getScreenPosition({ x: 0, y: worldY }).y;
+      const screenPos = this.getScreenPosition({ x: 0, y: worldY });
+      const screenY = screenPos.y;
       this.ctx.moveTo(0, screenY);
       this.ctx.lineTo(this.canvas.width, screenY);
     }
@@ -116,13 +118,13 @@ export class EnvironmentRenderer extends BaseRenderer {
   renderTowerRange(tower: Tower): void {
     if (!this.isVisible(tower.position, tower.range)) return;
     
-    const screenPos = this.getScreenPosition(tower);
+    const screenPos = this.getScreenPosition(tower.position);
     this.renderDashedLine(
       screenPos, 
       screenPos, // Will be drawn as a circle
       'rgba(255, 255, 255, 0.3)', 
       2, 
-      RENDER_CONFIG.dashPattern
+[5, 5]
     );
     
     // Actually render as a circle
@@ -130,7 +132,7 @@ export class EnvironmentRenderer extends BaseRenderer {
     this.ctx.arc(screenPos.x, screenPos.y, tower.range, 0, Math.PI * 2);
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     this.ctx.lineWidth = 2;
-    this.ctx.setLineDash(RENDER_CONFIG.dashPattern);
+    this.ctx.setLineDash([5, 5]);
     this.ctx.stroke();
     this.ctx.setLineDash([]);
   }
@@ -140,7 +142,7 @@ export class EnvironmentRenderer extends BaseRenderer {
     const screenPos = this.getScreenPosition(position);
     
     this.saveContext();
-    this.ctx.globalAlpha = RENDER_CONFIG.ghostOpacity;
+    this.ctx.globalAlpha = 0.6;
     
     // Render tower body
     let color: string;

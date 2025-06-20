@@ -7,7 +7,7 @@ import type {
   EnvironmentalEffect,
   BiomeConfig,
   MapMetadata,
-  GenerationAlgorithm
+  SpawnZoneMetadata
 } from '@/types/MapData';
 import { BiomeType, BIOME_PRESETS, MapDifficulty, DecorationLevel } from '@/types/MapData';
 import { Grid, CellType } from './Grid';
@@ -145,7 +145,7 @@ export class MapGenerator {
     });
   }
 
-  private generateSpawnZones(grid: Grid, mainPath: MapData['paths'][0], config: MapGenerationConfig): Vector2[] {
+  private generateSpawnZones(grid: Grid, mainPath: MapData['paths'][0], _config: MapGenerationConfig): Vector2[] {
     const spawnZones: Vector2[] = [];
     const spawnZonesWithMetadata: MapData['spawnZonesWithMetadata'] = [];
     
@@ -182,9 +182,9 @@ export class MapGenerator {
     }
 
     // Calculate total spawns based on difficulty and map size
-    const baseSpawns = config.difficulty === MapDifficulty.EXTREME ? 8 :
-                       config.difficulty === MapDifficulty.HARD ? 5 :
-                       config.difficulty === MapDifficulty.MEDIUM ? 3 : 2;
+    const baseSpawns = _config.difficulty === MapDifficulty.EXTREME ? 8 :
+                       _config.difficulty === MapDifficulty.HARD ? 5 :
+                       _config.difficulty === MapDifficulty.MEDIUM ? 3 : 2;
     
     // Add more spawns for larger maps
     const sizeMultiplier = Math.min(1.5, (grid.width * grid.height) / 400);
@@ -233,7 +233,7 @@ export class MapGenerator {
     const shuffledEdges = shuffleArray(edgePositions);
     
     // Prioritize corners for harder difficulties
-    const candidatePositions = config.difficulty === MapDifficulty.EXTREME || config.difficulty === MapDifficulty.HARD
+    const candidatePositions = _config.difficulty === MapDifficulty.EXTREME || _config.difficulty === MapDifficulty.HARD
       ? [...shuffledCorners, ...shuffledEdges]
       : [...shuffledEdges, ...shuffledCorners];
 
@@ -243,7 +243,7 @@ export class MapGenerator {
       const candidate = candidatePositions[i];
       
       // Check if position is valid and not too close to existing spawns
-      const minDistance = config.difficulty === MapDifficulty.EXTREME ? 3 : 4;
+      const minDistance = _config.difficulty === MapDifficulty.EXTREME ? 3 : 4;
       const tooClose = spawnZones.some(spawn => {
         const distance = Math.max(Math.abs(spawn.x - candidate.pos.x), Math.abs(spawn.y - candidate.pos.y));
         return distance < minDistance;
@@ -256,18 +256,18 @@ export class MapGenerator {
           spawnZones.push(candidate.pos);
           
           // Create metadata for enhanced spawn zones
-          const metadata: MapData['spawnZonesWithMetadata'][0] = {
+          const metadata: SpawnZoneMetadata = {
             position: candidate.pos,
             edgeType: candidate.edge,
             priority: candidate.edge.includes('CORNER') ? 1.5 : 1.0
           };
           
           // Add conditional activation for some spawn zones
-          if (config.difficulty === MapDifficulty.EXTREME && addedCount > 3) {
+          if (_config.difficulty === MapDifficulty.EXTREME && addedCount > 3) {
             metadata.conditional = {
               minWave: 3 + Math.floor(addedCount / 2)
             };
-          } else if (config.difficulty === MapDifficulty.HARD && addedCount > 2) {
+          } else if (_config.difficulty === MapDifficulty.HARD && addedCount > 2) {
             metadata.conditional = {
               minWave: 5 + addedCount
             };
@@ -285,7 +285,7 @@ export class MapGenerator {
     return spawnZones;
   }
 
-  private generatePlayerStartPosition(grid: Grid, mainPath: MapData['paths'][0], config: MapGenerationConfig): Vector2 {
+  private generatePlayerStartPosition(grid: Grid, _mainPath: MapData['paths'][0], _config: MapGenerationConfig): Vector2 {
     // Place player at center of map by default
     const centerX = Math.floor(grid.width / 2);
     const centerY = Math.floor(grid.height / 2);

@@ -177,7 +177,7 @@ export class TouchInputManager {
            point.y <= area.y + area.height;
   }
   
-  private isTouchOnUI(point: Point): boolean {
+  private isTouchOnUI(_point: Point): boolean {
     // Check if touch is on any UI element
     // This would be expanded based on actual UI layout
     return false;
@@ -229,7 +229,7 @@ export class TouchInputManager {
     
     // Convert canvas coordinates to world coordinates
     const camera = this.game.getCamera();
-    const worldPoint = camera.screenToWorld(point.x, point.y);
+    const worldPoint = camera.screenToWorld(point);
     
     // Calculate angle from player to touch point
     const dx = worldPoint.x - player.position.x;

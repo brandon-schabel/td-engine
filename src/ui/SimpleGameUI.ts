@@ -17,14 +17,10 @@ import {
 import { DialogManager } from "./systems/DialogManager";
 import {
   BuildMenuDialogAdapter,
-  UpgradeDialogAdapter,
   InventoryDialogAdapter,
   SettingsDialog,
   PauseDialog,
-  BaseDialog,
 } from "./components/dialogs";
-import { DebugDialogWrapper } from "./DebugDialogWrapper";
-import { DialogShowFix } from "./DialogShowFix";
 
 
 export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
@@ -57,7 +53,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         buildMenuDialog = new BuildMenuDialogAdapter({
           game,
           audioManager,
-          onTowerSelected: (type) => {
+          onTowerSelected: () => {
             updateTowerPlacementIndicator();
           },
           onClosed: () => {
@@ -67,29 +63,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         dialogManager.register("buildMenu", buildMenuDialog);
       }
 
-      try {
-        const testDialog = new BaseDialog({
-          title: "Test Dialog",
-          width: "300px",
-          closeable: true,
-          modal: true,
-          audioManager: audioManager,
-          className: "test-dialog",
-        });
-
-        // Override buildContent for test
-        (testDialog as any).buildContent = function () {
-          this.content.innerHTML =
-            '<p style="color: white;">If you see this, dialogs work!</p>';
-        };
-        (testDialog as any).buildContent();
-
-        dialogManager.register("test", testDialog);
-        // Don't show it automatically, just verify it can be created
-        dialogManager.unregister("test");
-      } catch (error) {
-        console.error("[SimpleGameUI] Dialog system test failed:", error);
-      }
+      // Dialog system is initialized elsewhere, no test needed here
 
       // Inventory Dialog - should already be registered
       const existingInventory = dialogManager.getDialog("inventory");
@@ -100,7 +74,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         inventoryDialog = new InventoryDialogAdapter({
           game,
           audioManager,
-          onItemSelected: (item, slot) => {
+          onItemSelected: () => {
             // Additional item selection logic if needed
           },
         });
@@ -115,13 +89,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         settingsDialog = existingSettings as SettingsDialog;
       } else {
         settingsDialog = new SettingsDialog({
-          audioManager,
-          onVolumeChange: (volume) => {
-            audioManager.setMasterVolume(volume);
-          },
-          onMuteToggle: (muted) => {
-            audioManager.setMuted(muted);
-          },
+          audioManager
         });
         dialogManager.register("gameSettings", settingsDialog);
       }
@@ -237,7 +205,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         const tempBuildDialog = new BuildMenuDialogAdapter({
           game,
           audioManager,
-          onTowerSelected: (type) => {
+          onTowerSelected: () => {
             updateTowerPlacementIndicator();
           },
           onClosed: () => {
@@ -268,7 +236,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         console.warn("[SimpleGameUI] Game not initialized yet");
         return;
       }
-      DialogShowFix.ensureInventoryDialog(game, audioManager);
+      dialogManager.show("inventory");
     }
   );
 
@@ -277,7 +245,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     "Start Next Wave (Enter)",
     () => {
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-      if (game.isWaveComplete() && !game.isGameOver()) {
+      if (game.isWaveComplete() && !game.isGameOverPublic()) {
         game.startNextWave();
       }
     }
@@ -379,7 +347,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     console.log(
       "[SimpleGameUI] showPlayerUpgradeDialog called - using DialogShowFix"
     );
-    DialogShowFix.ensurePlayerUpgradeDialog(game, audioManager);
+    dialogManager.show("playerUpgrade");
   };
 
   // Listen for tower selection events - simplified to just let Game handle it
@@ -440,7 +408,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
           const tempBuildDialog = new BuildMenuDialogAdapter({
             game,
             audioManager,
-            onTowerSelected: (type) => {
+            onTowerSelected: () => {
               updateTowerPlacementIndicator();
             },
             onClosed: () => {
@@ -459,7 +427,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
           console.warn("[SimpleGameUI] Game not initialized yet");
           return;
         }
-        DialogShowFix.ensureInventoryDialog(game, audioManager);
+        dialogManager.show("inventory");
         break;
       case " ":
         e.preventDefault();
@@ -472,7 +440,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         }
         break;
       case "enter":
-        if (game.isWaveComplete() && !game.isGameOver()) {
+        if (game.isWaveComplete() && !game.isGameOverPublic()) {
           game.startNextWave();
         }
         break;
@@ -518,7 +486,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Helper function to update button states
   const updateButtonStates = () => {
     // Update start wave button state
-    if (game.isWaveComplete() && !game.isGameOver()) {
+    if (game.isWaveComplete() && !game.isGameOverPublic()) {
       startWaveButton.style.opacity = "1";
       startWaveButton.style.pointerEvents = "auto";
     } else {
@@ -677,7 +645,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
 
   // Add debug test command
   (window as any).testDialogs = () => {
-    DebugDialogWrapper.testDialogSystem();
+    // Debug dialog tests disabled
   };
 
   // Add specific dialog test
@@ -689,7 +657,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   // Add inventory dialog test
   (window as any).testInventory = () => {
     console.log("[Debug] Testing inventory dialog...");
-    DialogShowFix.ensureInventoryDialog(game, audioManager);
+    // Use DialogManager directly
+    dialogManager.show("inventory");
   };
 
   // Add force fix command
@@ -741,13 +710,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
       console.log("[Debug] Mobile controls display:", controlsEl.style.display);
 
       // Log all joystick elements
-      const moveJoystick = controlsEl.querySelector(".move-joystick");
-      const aimJoystick = controlsEl.querySelector(".aim-joystick");
-
-      // Log computed styles
-      if (moveJoystick) {
-        const moveStyles = window.getComputedStyle(moveJoystick as HTMLElement);
-      }
+      // Joysticks are initialized elsewhere
     }
   };
 

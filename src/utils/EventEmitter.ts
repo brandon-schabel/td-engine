@@ -4,33 +4,36 @@
  */
 
 export class EventEmitter<T extends Record<string, any> = Record<string, any>> {
-  private listeners: Map<keyof T, Set<(data: any) => void>> = new Map();
+  private listeners: Map<string, Set<(data: any) => void>> = new Map();
 
   on<K extends keyof T>(event: K, listener: (data: T[K]) => void): void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
+    const eventKey = String(event);
+    if (!this.listeners.has(eventKey)) {
+      this.listeners.set(eventKey, new Set());
     }
-    this.listeners.get(event)!.add(listener);
+    this.listeners.get(eventKey)!.add(listener);
   }
 
   off<K extends keyof T>(event: K, listener: (data: T[K]) => void): void {
-    const set = this.listeners.get(event);
+    const eventKey = String(event);
+    const set = this.listeners.get(eventKey);
     if (set) {
       set.delete(listener);
       if (set.size === 0) {
-        this.listeners.delete(event);
+        this.listeners.delete(eventKey);
       }
     }
   }
 
   emit<K extends keyof T>(event: K, data: T[K]): void {
-    const set = this.listeners.get(event);
+    const eventKey = String(event);
+    const set = this.listeners.get(eventKey);
     if (set) {
       set.forEach(listener => {
         try {
           listener(data);
         } catch (error) {
-          console.error(`Error in event listener for ${String(event)}:`, error);
+          console.error(`Error in event listener for ${eventKey}:`, error);
         }
       });
     }
@@ -38,7 +41,7 @@ export class EventEmitter<T extends Record<string, any> = Record<string, any>> {
 
   removeAllListeners(event?: keyof T): void {
     if (event) {
-      this.listeners.delete(event);
+      this.listeners.delete(String(event));
     } else {
       this.listeners.clear();
     }

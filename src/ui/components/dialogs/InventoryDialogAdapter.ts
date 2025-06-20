@@ -1,15 +1,13 @@
 import { InventoryDialog } from './InventoryDialog';
-import type { InventoryDialogOptions } from './InventoryDialog';
-import type { Item } from '@/systems/Inventory';
+import type { InventoryItem } from '@/systems/Inventory';
 import { ItemType } from '@/systems/Inventory';
 import { Game } from '@/core/Game';
-import { Inventory } from '@/systems/Inventory';
 import { AudioManager } from '@/audio/AudioManager';
 
 export interface InventoryDialogAdapterOptions {
   game: Game;
   audioManager?: AudioManager;
-  onItemSelected?: (item: Item, slot: number) => void;
+  onItemSelected?: (item: InventoryItem, slot: number) => void;
   onClosed?: () => void;
 }
 
@@ -17,7 +15,7 @@ export interface InventoryDialogAdapterOptions {
  * Adapter that integrates InventoryDialog with the game's inventory system
  */
 export class InventoryDialogAdapter extends InventoryDialog {
-  private onItemSelected?: (item: Item, slot: number) => void;
+  private onItemSelected?: (item: InventoryItem, slot: number) => void;
   private onClosed?: () => void;
   private inventoryUpdateHandler: () => void;
   
@@ -27,9 +25,7 @@ export class InventoryDialogAdapter extends InventoryDialog {
     super({
       game: options.game,
       inventory,
-      audioManager: options.audioManager,
-      onItemClick: (item: Item | null, slot: number) => this.handleItemClick(item, slot),
-      onTabChange: (tab: ItemType | 'all') => this.handleTabChange(tab)
+      audioManager: options.audioManager || new AudioManager()
     });
     
     this.onItemSelected = options.onItemSelected;
@@ -38,19 +34,28 @@ export class InventoryDialogAdapter extends InventoryDialog {
     // Set up inventory update listener
     this.inventoryUpdateHandler = () => this.updateInventoryDisplay();
     this.setupInventoryListener();
+    
+    // Override the base class slot click handler
+    const originalHandleSlotClick = (this as any).handleSlotClick;
+    (this as any).handleSlotClick = (slotIndex: number, item: InventoryItem | null) => {
+      if (originalHandleSlotClick) {
+        originalHandleSlotClick.call(this, slotIndex, item);
+      }
+      this.handleItemClick(item, slotIndex);
+    };
   }
   
-  private handleItemClick(item: Item | null, slot: number): void {
+  private handleItemClick(item: InventoryItem | null, slot: number): void {
     if (!item) return;
     
     // Handle item usage through the game
-    const player = this.game.getPlayer();
+    const player = (this as any).game.getPlayer();
     if (!player) return;
     
     // Check if item is usable
-    if (item.type === ItemType.CONSUMABLE || item.type === ItemType.EQUIPMENT || item.type === ItemType.WEAPON) {
+    if (item.type === ItemType.CONSUMABLE || item.type === ItemType.EQUIPMENT) {
       // Use item through inventory system
-      const success = this.game.useInventoryItem(slot, 1);
+      const success = (this as any).game.useInventoryItem(slot, 1);
       if (success) {
         // Update display after use
         this.updateInventoryDisplay();
@@ -63,14 +68,9 @@ export class InventoryDialogAdapter extends InventoryDialog {
     }
   }
   
-  private handleTabChange(tab: ItemType | 'all'): void {
-    // Tab changes are handled by the base class
-    // This is just for any additional game-specific logic
-  }
-  
   private setupInventoryListener(): void {
     // Listen for inventory changes
-    const inventory = this.game.getInventory();
+    const inventory = (this as any).game.getInventory();
     if (inventory && 'on' in inventory) {
       (inventory as any).on('itemAdded', this.inventoryUpdateHandler);
       (inventory as any).on('itemRemoved', this.inventoryUpdateHandler);
@@ -79,7 +79,7 @@ export class InventoryDialogAdapter extends InventoryDialog {
   }
   
   private removeInventoryListener(): void {
-    const inventory = this.game.getInventory();
+    const inventory = (this as any).game.getInventory();
     if (inventory && 'off' in inventory) {
       (inventory as any).off('itemAdded', this.inventoryUpdateHandler);
       (inventory as any).off('itemRemoved', this.inventoryUpdateHandler);
@@ -92,23 +92,15 @@ export class InventoryDialogAdapter extends InventoryDialog {
     (this as any).updateSlots();
   }
   
-  private getCurrentTab(): ItemType | 'all' {
-    // Get current tab from the active tab button
-    const activeTab = this.content.querySelector('.tab-button.active');
-    if (!activeTab) return 'all';
-    
-    const tabValue = activeTab.getAttribute('data-tab');
-    return (tabValue as ItemType | 'all') || 'all';
-  }
   
-  protected override afterShow(): void {
+  protected afterShow(): void {
     super.afterShow();
     
     // Update display when shown
     this.updateInventoryDisplay();
   }
   
-  protected override beforeHide(): void {
+  protected beforeHide(): void {
     super.beforeHide();
     
     if (this.onClosed) {
@@ -116,7 +108,7 @@ export class InventoryDialogAdapter extends InventoryDialog {
     }
   }
   
-  public override destroy(): void {
+  public destroy(): void {
     this.removeInventoryListener();
     super.destroy();
   }

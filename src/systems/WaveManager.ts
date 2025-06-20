@@ -43,7 +43,6 @@ export class WaveManager {
   private waves: WaveConfig[] = [];
   private enemiesInWave: Enemy[] = [];
   private spawnQueue: SpawnQueueItem[] = [];
-  private waveStartTime: number = 0;
   private currentTime: number = 0;
   private spawning: boolean = false;
   private waveActive: boolean = false;
@@ -124,7 +123,6 @@ export class WaveManager {
     this.currentWave = waveNumber;
     this.waveActive = true;
     this.spawning = true;
-    this.waveStartTime = 0;
     this.currentTime = 0;
     this.enemiesInWave = [];
     this.spawnQueue = [];
@@ -376,7 +374,7 @@ export class WaveManager {
     this.spawnPoints = spawnPoints.map(p => ({ ...p }));
   }
   
-  updateWithGameState(gameState: GameStateSnapshot): void {
+  updateWithGameState(_gameState: GameStateSnapshot): void {
     // Pass game state to SpawnZoneManager if available
     if (this.spawnZoneManager && this.useDynamicSpawning) {
       // SpawnZoneManager will use this in its own update method
@@ -384,26 +382,6 @@ export class WaveManager {
     }
   }
   
-  // Special handling for burst patterns that spawn multiple enemies at once
-  private handleBurstSpawn(enemyType: EnemyType, count: number, pattern: SpawnPattern): Enemy[] {
-    if (!this.spawnZoneManager || !this.useDynamicSpawning) {
-      return [];
-    }
-    
-    const enemies: Enemy[] = [];
-    const spawnPositions = this.spawnZoneManager.getSpawnPositionsForPattern(pattern, count);
-    
-    spawnPositions.forEach(pos => {
-      const enemy = new Enemy(
-        { ...pos },
-        0, // Will use default health from EnemyType
-        enemyType
-      );
-      enemies.push(enemy);
-    });
-    
-    return enemies;
-  }
 
   private getEnemyStats(type: EnemyType) {
     return ENEMY_STATS[type];

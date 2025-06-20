@@ -3,7 +3,8 @@
  * Centralizes all map-related settings and generation parameters
  */
 
-import type { TerrainType, BiomeType } from '@/types/Terrain';
+// TerrainType and BiomeType are re-exported from other modules
+// but not currently used in this configuration file
 
 // Map size presets
 export const MAP_SIZES = {

@@ -3,7 +3,6 @@
  */
 
 import type { InventoryItem } from '@/systems/Inventory';
-import { createSvgIcon, IconType } from '../../icons/SvgIcons';
 
 export class ItemTooltip {
   private tooltip: HTMLElement | null = null;
@@ -56,7 +55,6 @@ export class ItemTooltip {
         ${item.description}
       </div>
       ${item.quantity > 1 ? `<div style="color: #FFD700;">Quantity: ${item.quantity}</div>` : ''}
-      ${item.value > 0 ? `<div style="color: #90EE90;">Value: $${item.value}</div>` : ''}
       ${item.type === 'CONSUMABLE' ? '<div style="color: #87CEEB; margin-top: 8px;">Click to use</div>' : ''}
       ${item.type === 'EQUIPMENT' ? '<div style="color: #87CEEB; margin-top: 8px;">Click to equip</div>' : ''}
     `;

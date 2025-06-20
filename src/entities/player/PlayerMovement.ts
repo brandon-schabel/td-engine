@@ -23,7 +23,7 @@ export class PlayerMovement {
     this.keys.delete(key.toLowerCase());
   }
 
-  update(deltaTime: number): Vector2 {
+  update(_deltaTime: number): Vector2 {
     let movementX = 0;
     let movementY = 0;
     

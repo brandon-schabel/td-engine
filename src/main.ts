@@ -5,11 +5,11 @@ import { GameSettingsDialog } from "./ui/components/dialogs/GameSettingsDialog";
 import { GameOverDialog } from "./ui/components/dialogs/GameOverDialog";
 import { DialogManager } from "./ui/systems/DialogManager";
 import { ANIMATION_CONFIG } from "./config/AnimationConfig";
-import { RESPONSIVE_CONFIG, isMobile, getBreakpoint } from "./config/ResponsiveConfig";
+import { RESPONSIVE_CONFIG, isMobile } from "./config/ResponsiveConfig";
 import { injectResponsiveStyles } from "./ui/styles/generateResponsiveStyles";
 // Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from "./config/SettingsIntegration";
-import { SettingsManager, type GameSettings } from "./config/GameSettings";
+import { type GameSettings } from "./config/GameSettings";
 import {
   type MapGenerationConfig,
   BiomeType,
@@ -21,7 +21,6 @@ import { setupGameUI } from "./ui/setupGameUI";
 import { TouchIndicator } from "./ui/components/game/TouchIndicator";
 import { 
   BuildMenuDialogAdapter,
-  UpgradeDialogAdapter,
   InventoryDialogAdapter,
   SettingsDialog,
   PauseDialog
@@ -97,10 +96,6 @@ window.addEventListener("resize", () => {
 // Touch input is now handled within the SimpleGameUI
 const audioManager = new AudioManager();
 const dialogManager = DialogManager.getInstance();
-const settingsManager = SettingsManager.getInstance();
-
-// Placeholder game object for dialogs that need it before game initialization
-let placeholderGame: any = null;
 
 // Dialog instances that need to be accessible throughout the app
 let buildMenuDialog: BuildMenuDialogAdapter | null = null;
@@ -113,13 +108,7 @@ function initializeEarlyDialogs() {
   
   // Settings Dialog (doesn't need game instance)
   settingsDialogInstance = new SettingsDialog({
-    audioManager,
-    onVolumeChange: (volume) => {
-      audioManager.setMasterVolume(volume);
-    },
-    onMuteToggle: (muted) => {
-      audioManager.setMuted(muted);
-    }
+    audioManager
   });
   dialogManager.register('gameSettings', settingsDialogInstance);
   
@@ -157,7 +146,7 @@ function initializeGameDialogs(gameInstance: GameWithEvents) {
     buildMenuDialog = new BuildMenuDialogAdapter({
       game: gameInstance,
       audioManager,
-      onTowerSelected: (type) => {
+      onTowerSelected: (_type) => {
         // Tower selection is handled by the adapter
       },
       onClosed: () => {
@@ -177,7 +166,7 @@ function initializeGameDialogs(gameInstance: GameWithEvents) {
     inventoryDialog = new InventoryDialogAdapter({
       game: gameInstance,
       audioManager,
-      onItemSelected: (item, slot) => {
+      onItemSelected: (_item, _slot) => {
         // Item selection is handled by the adapter
       }
     });
@@ -237,14 +226,15 @@ function initializeGame() {
   initializeGameDialogs(game);
 
   // Setup game end event listener
-  document.addEventListener("gameEnd", handleGameEnd);
+  document.addEventListener("gameEnd", handleGameEnd as EventListener);
 
   // Start the main game setup
   setupModernGameUI();
 }
 
-function handleGameEnd(event: CustomEvent) {
-  const { stats, victory, scoreEntry } = event.detail;
+function handleGameEnd(event: Event) {
+  const customEvent = event as CustomEvent;
+  const { stats, victory, scoreEntry } = customEvent.detail;
 
   const gameOverDialog = new GameOverDialog({
     victory,
@@ -328,7 +318,7 @@ let updatePlayerUpgradePanel: () => void;
 
 function setupGameHandlers() {
   // Create touch indicator for visual feedback
-  const touchIndicator = new TouchIndicator(document.body);
+  new TouchIndicator(document.body);
   
   // Detect if device supports touch
   const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
@@ -499,7 +489,7 @@ document.addEventListener("keydown", (e) => {
       break;
     case "Enter":
       e.preventDefault();
-      if (game.isWaveComplete() && !game.isGameOver()) {
+      if (game.isWaveComplete() && !game.isGameOverPublic()) {
         game.startNextWave();
       }
       break;
@@ -606,7 +596,7 @@ async function setupModernGameUI() {
   setupGameHandlers();
 
   // Use the simple UI system
-  const ui = await setupGameUI({
+  await setupGameUI({
     game,
     container: document.body,
     canvas,

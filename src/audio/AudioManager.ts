@@ -1,4 +1,4 @@
-import { AUDIO_SYSTEM, SOUND_VOLUMES, SOUND_PARAMS } from '../config/AudioConfig';
+import { AUDIO_SYSTEM } from '../config/AudioConfig';
 
 export enum SoundType {
   // Combat sounds
@@ -501,12 +501,11 @@ export class AudioManager {
     // More aggressive throttling for shooting sounds to prevent audio getting stuck
     const now = this.audioContext.currentTime;
     const lastTime = this.lastSoundTime.get(soundType) || 0;
-    let minInterval = AUDIO_SYSTEM.minSoundInterval; // Default 50ms
     
     // Extra throttling for shooting sounds
-    if (soundType === SoundType.PLAYER_SHOOT || soundType === SoundType.TOWER_SHOOT) {
-      minInterval = AUDIO_SYSTEM.shootingSoundInterval; // 200ms minimum between shooting sounds
-    }
+    const minInterval = (soundType === SoundType.PLAYER_SHOOT || soundType === SoundType.TOWER_SHOOT)
+      ? AUDIO_SYSTEM.shootingSoundInterval // 200ms minimum between shooting sounds
+      : AUDIO_SYSTEM.minSoundInterval; // Default 50ms
     
     if (now - lastTime < minInterval) {
       return;
@@ -544,8 +543,8 @@ export class AudioManager {
     });
   }
 
-  private playSingleSound(config: SoundConfig, volumeMultiplier: number, startTime?: number): void {
-    const currentTime = startTime || this.audioContext.currentTime;
+  private playSingleSound(config: SoundConfig, volumeMultiplier: number, _startTime?: number): void {
+    const currentTime = _startTime || this.audioContext.currentTime;
     const duration = config.duration || 0.1;
     const volume = (config.volume || 0.5) * this.masterVolume * volumeMultiplier;
 
@@ -596,21 +595,6 @@ export class AudioManager {
     }
   }
 
-  private createNoiseNode(startTime: number, duration: number, volume: number): AudioBufferSourceNode {
-    const bufferSize = this.audioContext.sampleRate * duration;
-    const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-    const output = buffer.getChannelData(0);
-
-    // Generate white noise
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = (Math.random() * 2 - 1) * volume;
-    }
-
-    const noiseNode = this.audioContext.createBufferSource();
-    noiseNode.buffer = buffer;
-    
-    return noiseNode;
-  }
 
   // Convenience methods for common sound categories
   playUISound(soundType: SoundType): void {
@@ -640,7 +624,7 @@ export class AudioManager {
     if (!config) return;
 
     // Calculate pan based on horizontal position relative to viewport center
-    const panValue = Math.max(-1, Math.min(1, (position.x - viewportCenter.x) / AUDIO_SYSTEM.spatialAudio.panDivisor));
+    // const panValue = Math.max(-1, Math.min(1, (position.x - viewportCenter.x) / AUDIO_SYSTEM.spatialAudio.panDivisor));
     
     // Calculate volume based on distance from center
     const distance = Math.sqrt(

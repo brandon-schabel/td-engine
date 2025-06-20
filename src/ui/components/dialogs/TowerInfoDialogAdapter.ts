@@ -1,5 +1,4 @@
 import { TowerInfoDialog } from './TowerInfoDialog';
-import type { TowerInfoDialogOptions } from './TowerInfoDialog';
 import { Tower } from '@/entities/Tower';
 import { Game } from '@/core/Game';
 import { AudioManager } from '@/audio/AudioManager';
@@ -17,11 +16,10 @@ export interface TowerInfoDialogAdapterOptions {
  * Adapter that integrates TowerInfoDialog with the game
  */
 export class TowerInfoDialogAdapter extends TowerInfoDialog {
-  private game: Game;
-  private tower: Tower;
   private dialogManager: DialogManager;
   private onClosed?: () => void;
   private upgradeDialog?: UpgradeDialogAdapter;
+  private audioManager?: AudioManager;
   
   constructor(options: TowerInfoDialogAdapterOptions) {
     super({
@@ -33,10 +31,9 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
       onClose: () => this.handleClose()
     });
     
-    this.game = options.game;
-    this.tower = options.tower;
     this.dialogManager = DialogManager.getInstance();
     this.onClosed = options.onClosed;
+    this.audioManager = options.audioManager;
   }
   
   private handleUpgrade(): void {
@@ -48,7 +45,8 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
       game: this.game,
       target: this.tower,
       audioManager: this.audioManager,
-      onUpgraded: (type, cost) => {
+      currentCurrency: this.game.getCurrency(),
+      onUpgraded: () => {
         // Upgrade handled by adapter
       },
       onSold: () => {

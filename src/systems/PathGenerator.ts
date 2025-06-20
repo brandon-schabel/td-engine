@@ -1,6 +1,6 @@
 import type { Vector2 } from '@/utils/Vector2';
 import type { MapPath, MapGenerationConfig } from '@/types/MapData';
-import { Grid, CellType } from './Grid';
+import { Grid } from './Grid';
 
 export interface PathGenerationOptions {
   complexity: number;       // 0-1, how winding the path is
@@ -11,13 +11,11 @@ export interface PathGenerationOptions {
 }
 
 export class PathGenerator {
-  private grid: Grid;
   private width: number;
   private height: number;
   private random: () => number;
 
   constructor(grid: Grid, seed?: number) {
-    this.grid = grid;
     this.width = grid.width;
     this.height = grid.height;
     
@@ -158,7 +156,7 @@ export class PathGenerator {
     return result;
   }
 
-  private generateBranchFromMainPath(mainPath: MapPath, branchIndex: number): MapPath | null {
+  private generateBranchFromMainPath(mainPath: MapPath, _branchIndex: number): MapPath | null {
     if (mainPath.waypoints.length < 3) return null;
 
     // Pick a connection point along the main path

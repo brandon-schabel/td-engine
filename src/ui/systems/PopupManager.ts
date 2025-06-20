@@ -9,7 +9,7 @@
  */
 
 import { EntityPopup } from '@/ui/components/floating/EntityPopup';
-import { DamageNumberPopup, DamageType, type DamageNumberOptions } from '@/ui/components/floating/DamageNumberPopup';
+import { DamageNumberPopup, DamageType } from '@/ui/components/floating/DamageNumberPopup';
 import { EntityInfoPopup, type EntityInfoOptions } from '@/ui/components/floating/EntityInfoPopup';
 import { HealthBarPopup, type HealthBarOptions } from '@/ui/components/floating/HealthBarPopup';
 import type { Entity } from '@/entities/Entity';
@@ -246,7 +246,7 @@ export class PopupManager {
     }
   }
 
-  private returnToPool(popup: DamageNumberPopup): void {
+  private returnToPool(_popup: DamageNumberPopup): void {
     if (this.damageNumberPool.length < this.options.poolSize) {
       // Reset popup state here if we implement reset functionality
       // For now, we'll just let it be garbage collected

@@ -66,13 +66,13 @@ export class NotificationPopup {
   private getDefaultIcon(type: NotificationType): IconType {
     switch (type) {
       case NotificationType.SUCCESS:
-        return IconType.CHECK;
+        return IconType.CHECKMARK;
       case NotificationType.WARNING:
         return IconType.WARNING;
       case NotificationType.ERROR:
         return IconType.CLOSE;
       case NotificationType.REWARD:
-        return IconType.COIN;
+        return IconType.COINS;
       case NotificationType.INFO:
       default:
         return IconType.INFO;
@@ -100,11 +100,11 @@ export class NotificationPopup {
       min-width: 250px;
       max-width: 400px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      z-index: ${UI_CONSTANTS.zIndex.notification || 2000};
+      z-index: ${UI_CONSTANTS.zIndex.tooltip};
       opacity: 0;
       transform: ${this.getInitialTransform()};
       transition: all ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
-      cursor: ${this.options.onClick ? 'pointer' : 'default'};
+      cursor: ${this.options.onClick !== undefined ? 'pointer' : 'default'};
       user-select: none;
       pointer-events: auto;
     `;
@@ -203,11 +203,11 @@ export class NotificationPopup {
   private getBackgroundColor(): string {
     switch (this.options.type) {
       case NotificationType.SUCCESS:
-        return COLOR_THEME.ui.background.success + 'f0';
+        return COLOR_THEME.ui.button.success + 'f0';
       case NotificationType.WARNING:
-        return COLOR_THEME.ui.background.warning + 'f0';
+        return COLOR_THEME.ui.text.warning + 'f0';
       case NotificationType.ERROR:
-        return COLOR_THEME.ui.background.danger + 'f0';
+        return COLOR_THEME.ui.button.danger + 'f0';
       case NotificationType.REWARD:
         return COLOR_THEME.ui.background.secondary + 'f0';
       case NotificationType.INFO:
@@ -338,7 +338,7 @@ export class NotificationPopup {
     return new NotificationPopup(`${message} +${amount}`, { 
       ...options, 
       type: NotificationType.REWARD,
-      icon: IconType.COIN
+      icon: IconType.COINS
     });
   }
 
