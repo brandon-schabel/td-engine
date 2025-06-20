@@ -50,7 +50,7 @@ export class Projectile extends Entity {
       
       // Check for collision with target
       if (this.collidesWith(this.target)) {
-        this.target.takeDamage(this.damage);
+        this.target.takeDamage(this.damage, this);
         this.isAlive = false;
       }
     } else if (this.initialVelocity) {
@@ -74,7 +74,7 @@ export class Projectile extends Entity {
     
     for (const enemy of enemies) {
       if (enemy.isAlive && this.collidesWith(enemy)) {
-        enemy.takeDamage(this.damage);
+        enemy.takeDamage(this.damage, this);
         this.isAlive = false;
         return enemy;
       }

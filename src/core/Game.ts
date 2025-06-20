@@ -42,6 +42,9 @@ import { GameAudioHandler } from "@/systems/GameAudioHandler";
 import { ScoreManager, type GameStats } from "@/systems/ScoreManager";
 import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
+import { PopupManager } from "@/ui/systems/PopupManager";
+import { DamageType } from "@/ui/components/floating/DamageNumberPopup";
+import { TowerUpgradePopup } from "@/ui/components/floating/TowerUpgradePopup";
 
 export class Game {
   private engine: GameEngine;
@@ -77,13 +80,16 @@ export class Game {
   private collectibles: Collectible[] = [];
   private inventory: Inventory;
   private equipment: EquipmentManager;
+  private popupManager: PopupManager;
 
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
   private selectedTower: Tower | null = null;
+  private currentTowerUpgradePopup: TowerUpgradePopup | null = null;
   private mousePosition: Vector2 = { x: 0, y: 0 };
   private isMouseDown: boolean = false;
   private waveCompleteProcessed: boolean = false;
+  private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -91,7 +97,7 @@ export class Game {
     autoStart: boolean = true
   ) {
     this.canvas = canvas;
-    
+
     // Initialize map generation systems
     this.mapGenerator = new MapGenerator();
     this.textureManager = new TextureManager();
@@ -121,18 +127,18 @@ export class Game {
       zoomSmoothing: CAMERA_CONFIG.zoomSmoothing,
       smoothing: CAMERA_CONFIG.smoothing,
     };
-    
+
     // Get logical dimensions for camera (accounting for pixel ratio scaling)
     // This is critical: when the canvas context is scaled by pixelRatio,
     // all coordinate calculations must use logical dimensions, not pixel dimensions
     const pixelRatio = window.devicePixelRatio || 1;
     const logicalWidth = canvas.width / pixelRatio;
     const logicalHeight = canvas.height / pixelRatio;
-    
+
     console.log("Initializing camera with logical dimensions:", logicalWidth, "x", logicalHeight);
     console.log("Canvas pixel dimensions:", canvas.width, "x", canvas.height);
     console.log("Pixel ratio:", pixelRatio);
-    
+
     this.camera = new Camera(
       logicalWidth,
       logicalHeight,
@@ -168,8 +174,8 @@ export class Game {
         config.difficulty === MapDifficulty.EXTREME
           ? 5
           : config.difficulty === MapDifficulty.HARD
-          ? 4
-          : 3,
+            ? 4
+            : 3,
       chaosMode: config.difficulty === MapDifficulty.EXTREME,
       adaptiveWeighting: true,
       dynamicZoneGeneration: config.difficulty !== MapDifficulty.EASY,
@@ -199,6 +205,15 @@ export class Game {
     );
     this.player = new Player(playerWorldPos);
 
+    // Add damage callback for player
+    this.player.onDamage = (event) => {
+      this.popupManager.createDamageNumber(
+        event.entity,
+        event.actualDamage,
+        DamageType.NORMAL
+      );
+    };
+
     // Initialize inventory and equipment systems
     this.inventory = new Inventory({
       maxSlots: INVENTORY_CONFIG.defaultSlots,
@@ -215,6 +230,12 @@ export class Game {
     // Center camera on player initially (instant, no smoothing)
     this.camera.centerOnTarget(this.player.position);
 
+    // Initialize popup manager
+    this.popupManager = new PopupManager(this.camera, {
+      maxPopups: 50,
+      enablePooling: true
+    });
+
     // Load wave configurations
     this.loadWaveConfigurations();
 
@@ -225,7 +246,7 @@ export class Game {
     // Start the game engine (unless disabled for testing)
     if (autoStart) {
       this.engine.start();
-      
+
       // Run initial camera diagnostic after a short delay
       setTimeout(() => {
         console.log("=== INITIAL CAMERA CHECK ===");
@@ -279,10 +300,10 @@ export class Game {
     const { spawnInterval } = GAMEPLAY_CONSTANTS.waves;
     const getSpawnDelay = (enemyType: string, waveNumber: number) => {
       // Scale spawn delay based on enemy type and wave progression
-      const baseDelay = enemyType === 'TANK' ? spawnInterval.max : 
-                       enemyType === 'FAST' ? spawnInterval.min : 
-                       (spawnInterval.min + spawnInterval.max) / 2;
-      
+      const baseDelay = enemyType === 'TANK' ? spawnInterval.max :
+        enemyType === 'FAST' ? spawnInterval.min :
+          (spawnInterval.min + spawnInterval.max) / 2;
+
       // Decrease delays slightly as waves progress (but not below minimum)
       const waveSpeedMultiplier = Math.max(0.5, 1 - (waveNumber - 1) * 0.05);
       return Math.max(spawnInterval.min, Math.floor(baseDelay * waveSpeedMultiplier));
@@ -411,7 +432,7 @@ export class Game {
     ];
 
     this.waveManager.loadWaves(waves);
-    
+
     // Enable infinite waves based on configuration
     if (INFINITE_WAVE_CONFIG.enabled) {
       const infiniteWaveConfig = {
@@ -456,6 +477,16 @@ export class Game {
     newEnemies.forEach((enemy) => {
       // Set enemy to target player instead of following path
       enemy.setTarget(this.player);
+
+      // Add damage callback for floating damage numbers
+      enemy.onDamage = (event) => {
+        this.popupManager.createDamageNumber(
+          event.entity,
+          event.actualDamage,
+          DamageType.NORMAL
+        );
+      };
+
       this.enemies.push(enemy);
     });
 
@@ -474,6 +505,9 @@ export class Game {
 
     // Update camera to follow player
     this.camera.update(this.player.position);
+
+    // Update popup manager for floating UI elements
+    this.popupManager.update();
 
     // Player manual shooting (click and hold)
     const playerProjectile = this.player.updateShooting();
@@ -569,7 +603,19 @@ export class Game {
     this.collectibles = this.collectibles.filter(
       (collectible) => collectible.isActive
     );
-    this.towers = this.towers.filter((tower) => tower.isAlive);
+    this.towers = this.towers.filter((tower) => {
+      if (!tower.isAlive) {
+        // If this was the selected tower with an open popup, close it
+        if (this.selectedTower === tower && this.currentTowerUpgradePopup) {
+          this.popupManager.removePopup(this.currentTowerUpgradePopup);
+          this.currentTowerUpgradePopup.destroy();
+          this.currentTowerUpgradePopup = null;
+          this.selectedTower = null;
+        }
+        return false;
+      }
+      return true;
+    });
 
     // Check for wave completion and victory
     if (this.waveManager.isWaveComplete() && !this.waveCompleteProcessed) {
@@ -598,7 +644,7 @@ export class Game {
     // Calculate wave reward
     const waveNumber = this.waveManager.currentWave;
     const infiniteGenerator = this.waveManager.getInfiniteWaveGenerator();
-    
+
     let waveReward = GAMEPLAY_CONSTANTS.economy.currencyPerKill.basic * 10; // Default reward based on basic enemy kill reward
     if (infiniteGenerator && waveNumber >= 11) {
       waveReward = infiniteGenerator.calculateWaveReward(waveNumber);
@@ -606,10 +652,10 @@ export class Game {
       // Base reward for waves 1-10
       waveReward = GAMEPLAY_CONSTANTS.economy.currencyPerKill.basic * 10 + (waveNumber * GAMEPLAY_CONSTANTS.economy.currencyPerKill.basic * 2);
     }
-    
+
     this.addCurrency(waveReward);
     this.addScore(GAMEPLAY_CONSTANTS.scoring.enemyKillBase * 10 * waveNumber); // Score bonus for completing wave based on base enemy score
-    
+
     // Show wave complete notification if UI is available
     console.log(`Wave ${waveNumber} Complete! Reward: ${waveReward} currency`);
   }
@@ -742,6 +788,13 @@ export class Game {
 
     // Place tower
     const tower = new Tower(towerType, worldPosition);
+
+    // Add damage callback for health bar display
+    tower.onDamage = (event) => {
+      // Could show damage numbers or flash effect for towers
+      // For now, we'll let health bars handle the visual feedback
+    };
+
     this.towers.push(tower);
 
     // Track towers built
@@ -805,17 +858,17 @@ export class Game {
     // Get mouse position accounting for pixel ratio
     const rect = this.canvas.getBoundingClientRect();
     const pixelRatio = window.devicePixelRatio || 1;
-    
+
     // Calculate position relative to canvas
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     // Convert to actual canvas coordinates (accounting for CSS scaling)
-    const screenPos = { 
+    const screenPos = {
       x: x * (this.canvas.width / pixelRatio) / rect.width,
       y: y * (this.canvas.height / pixelRatio) / rect.height
     };
-    
+
     const worldPos = this.camera.screenToWorld(screenPos);
     this.isMouseDown = true;
 
@@ -843,6 +896,11 @@ export class Game {
         this.deselectTower();
       } else {
         this.selectTower(clickedTower);
+        this.justSelectedTower = true;
+        // Clear the flag after a short delay
+        setTimeout(() => {
+          this.justSelectedTower = false;
+        }, 500);
       }
       this.selectedTowerType = null; // Clear tower placement mode
     } else if (this.selectedTowerType) {
@@ -867,15 +925,15 @@ export class Game {
       if (projectile) {
         this.projectiles.push(projectile);
       }
-      
-      // Deselect tower if one was selected
-      if (this.selectedTower) {
+
+      // Only deselect tower if we didn't just select one
+      if (this.selectedTower && !this.justSelectedTower) {
         const previousTower = this.selectedTower;
         this.selectedTower = null;
-        
+
         // Dispatch deselect event
-        const deselectEvent = new CustomEvent('towerDeselected', { 
-          detail: { tower: previousTower } 
+        const deselectEvent = new CustomEvent('towerDeselected', {
+          detail: { tower: previousTower }
         });
         document.dispatchEvent(deselectEvent);
       }
@@ -891,17 +949,17 @@ export class Game {
     // Get mouse position accounting for pixel ratio
     const rect = this.canvas.getBoundingClientRect();
     const pixelRatio = window.devicePixelRatio || 1;
-    
+
     // Calculate position relative to canvas
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     // Convert to actual canvas coordinates (accounting for CSS scaling)
-    const screenPos = { 
+    const screenPos = {
       x: x * (this.canvas.width / pixelRatio) / rect.width,
       y: y * (this.canvas.height / pixelRatio) / rect.height
     };
-    
+
     const worldPos = this.camera.screenToWorld(screenPos);
 
     // Update mouse position for ghost tower rendering
@@ -1109,10 +1167,10 @@ export class Game {
 
     return Math.floor(
       INVENTORY_UPGRADES.baseCost *
-        Math.pow(
-          INVENTORY_UPGRADES.costMultiplier,
-          this.inventoryUpgradesPurchased
-        )
+      Math.pow(
+        INVENTORY_UPGRADES.costMultiplier,
+        this.inventoryUpgradesPurchased
+      )
     );
   }
 
@@ -1317,10 +1375,10 @@ export class Game {
     if (this.selectedTower) {
       const previousTower = this.selectedTower;
       this.selectedTower = null;
-      
+
       // Dispatch deselect event
-      const deselectEvent = new CustomEvent('towerDeselected', { 
-        detail: { tower: previousTower } 
+      const deselectEvent = new CustomEvent('towerDeselected', {
+        detail: { tower: previousTower }
       });
       document.dispatchEvent(deselectEvent);
     }
@@ -1336,21 +1394,69 @@ export class Game {
       return;
     }
 
+    console.log(`[Game] Selecting tower: ${tower.towerType}`);
+
     const previousTower = this.selectedTower;
+
+    // Always destroy any existing popup using static method
+    TowerUpgradePopup.destroyActivePopup();
+    this.currentTowerUpgradePopup = null;
+
     // Deselect previous tower if different
     if (previousTower && previousTower !== tower) {
-      const deselectEvent = new CustomEvent('towerDeselected', { 
-        detail: { tower: previousTower } 
+      const deselectEvent = new CustomEvent('towerDeselected', {
+        detail: { tower: previousTower }
       });
       document.dispatchEvent(deselectEvent);
     }
-    
+
     this.selectedTower = tower;
     this.selectedTowerType = null; // Clear tower placement mode
-    
+
+    // Create new popup immediately (no delay needed with proper cleanup)
+    this.currentTowerUpgradePopup = TowerUpgradePopup.create(
+      tower,
+      this.camera,
+      this,
+      {
+        onClose: () => {
+          console.log(`[Game] Popup onClose callback triggered`);
+          this.currentTowerUpgradePopup = null;
+
+          // Clear the selection
+          if (this.selectedTower) {
+            const tower = this.selectedTower;
+            this.selectedTower = null;
+
+            // Dispatch deselect event
+            const deselectEvent = new CustomEvent('towerDeselected', {
+              detail: { tower }
+            });
+            document.dispatchEvent(deselectEvent);
+          }
+        },
+        onUpgrade: (upgradedTower) => {
+          console.log(`[Game] Tower upgraded: ${upgradedTower.towerType} to level ${upgradedTower.getLevel()}`);
+          this.audioHandler.playTowerUpgrade();
+        },
+        onSell: (soldTower) => {
+          console.log(`[Game] Tower sold: ${soldTower.towerType}`);
+        }
+      }
+    );
+
+    // Add to popup manager for update cycle
+    this.popupManager.addPopup(this.currentTowerUpgradePopup);
+
+    // Show the popup
+    this.currentTowerUpgradePopup.show();
+
+    // Debug logging
+    console.log(`[Game] Tower upgrade popup created and shown for ${tower.towerType} at position:`, tower.position);
+
     // Dispatch select event
-    const selectEvent = new CustomEvent('towerSelected', { 
-      detail: { tower } 
+    const selectEvent = new CustomEvent('towerSelected', {
+      detail: { tower }
     });
     document.dispatchEvent(selectEvent);
   }
@@ -1359,10 +1465,14 @@ export class Game {
     if (this.selectedTower) {
       const tower = this.selectedTower;
       this.selectedTower = null;
-      
+
+      // Close upgrade popup using static method
+      TowerUpgradePopup.destroyActivePopup();
+      this.currentTowerUpgradePopup = null;
+
       // Dispatch deselect event
-      const deselectEvent = new CustomEvent('towerDeselected', { 
-        detail: { tower } 
+      const deselectEvent = new CustomEvent('towerDeselected', {
+        detail: { tower }
       });
       document.dispatchEvent(deselectEvent);
     }
@@ -1460,6 +1570,10 @@ export class Game {
 
   getGrid(): Grid {
     return this.grid;
+  }
+
+  getPopupManager(): PopupManager {
+    return this.popupManager;
   }
 
   // Map generation methods
@@ -1701,19 +1815,11 @@ export class Game {
 
   // Camera diagnostics methods
   runCameraDiagnostics(): void {
-    this.cameraDiagnostics.diagnose();
-  }
-
-  startCameraLogging(): void {
-    this.cameraDiagnostics.startDiagnostics();
-  }
-
-  stopCameraLogging(): void {
-    this.cameraDiagnostics.stopDiagnostics();
+    this.cameraDiagnostics.diagnose(this.player, this.canvas);
   }
 
   testCameraCentering(): void {
-    this.cameraDiagnostics.testCentering();
+    this.cameraDiagnostics.testCentering(this.player);
   }
 
   toggleCameraFollow(): boolean {
@@ -2006,7 +2112,7 @@ export class Game {
     const playerPos = this.player.position;
     const zoom = cameraInfo.zoom;
     const isFollowing = cameraInfo.followTarget;
-    
+
     // Get canvas dimensions from renderer's viewport
     const canvasWidth = this.renderer.getViewportWidth();
     const canvasHeight = this.renderer.getViewportHeight();
@@ -2020,7 +2126,7 @@ export class Game {
     // Distance from center
     const distance = Math.sqrt(
       Math.pow(playerScreenX - centerX, 2) +
-        Math.pow(playerScreenY - centerY, 2)
+      Math.pow(playerScreenY - centerY, 2)
     );
 
     console.log("=== CAMERA DIAGNOSTIC ===");
@@ -2058,7 +2164,7 @@ export class Game {
   // Quick fix method
   public fixCamera(): void {
     console.log("Fixing camera...");
-    
+
     // Log current state before fix
     const beforeInfo = this.camera.getCameraInfo();
     console.log("Before fix:", {
@@ -2085,36 +2191,36 @@ export class Game {
   // Debug camera following
   public debugCamera(): void {
     console.log("=== CAMERA DEBUG MODE ===");
-    
+
     // Log current state
     const cameraInfo = this.camera.getCameraInfo();
     console.log("Current camera state:", cameraInfo);
-    
+
     // Test player movement
     const startPos = { ...this.player.position };
     console.log("Testing player movement...");
-    
+
     // Move player a bit
     this.player.position.x += 100;
     this.player.position.y += 100;
-    
+
     // Update camera
     this.camera.update(this.player.position);
-    
+
     const newCameraInfo = this.camera.getCameraInfo();
     console.log("After moving player +100,+100:");
     console.log("  Player moved from", startPos, "to", this.player.position);
     console.log("  Camera moved from", cameraInfo.position, "to", newCameraInfo.position);
-    
+
     // Restore player position
     this.player.position = startPos;
-    
+
     // Test instant centering
     console.log("\nTesting instant centering...");
     this.camera.centerOnTarget(this.player.position);
     const centeredInfo = this.camera.getCameraInfo();
     console.log("  Camera after centerOnTarget:", centeredInfo.position);
-    
+
     this.checkCamera();
   }
 
@@ -2122,10 +2228,10 @@ export class Game {
   public toggleVisualDebug(): void {
     this.cameraDiagnostics.toggleVisualDebug();
     const enabled = this.cameraDiagnostics.isVisualDebugEnabled();
-    
+
     // Also toggle renderer debug mode
     this.renderer.setDebugMode(enabled);
-    
+
     console.log(`Camera visual debug: ${enabled ? 'ENABLED' : 'DISABLED'}`);
     if (enabled) {
       console.log("Green crosshair = screen center, Yellow circle = player position");

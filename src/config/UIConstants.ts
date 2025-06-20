@@ -197,6 +197,7 @@ export const UI_CONSTANTS = {
     background: 0,
     gameElements: 10,
     ui: 100,
+    floatingUI: 150,
     hud: 200,
     dialog: 300,
     modal: 400,
@@ -241,6 +242,30 @@ export const UI_CONSTANTS = {
   // Icon button defaults
   iconButton: {
     defaultSize: 18,
+  },
+  
+  // Entity popup configuration
+  entityPopup: {
+    damageNumber: {
+      fontSize: 18,
+      criticalFontSize: 24,
+      floatDistance: 50,
+      floatDuration: 1000,
+      fadeStartPercent: 0.5,
+    },
+    healthBar: {
+      width: 50,
+      height: 6,
+      offset: 15,
+      borderRadius: 3,
+    },
+    info: {
+      minWidth: 120,
+      maxWidth: 250,
+      padding: 8,
+      borderRadius: 8,
+    },
+    boundaryPadding: 20,
   },
 } as const;
 

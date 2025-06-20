@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TD Engine - Popup System Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        
+        .demo-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+        }
+        
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            color: #81C784;
+            margin-bottom: 15px;
+        }
+        
+        .description {
+            color: #ccc;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button.secondary {
+            background-color: #2196F3;
+        }
+        
+        button.secondary:hover {
+            background-color: #1976D2;
+        }
+        
+        button.danger {
+            background-color: #f44336;
+        }
+        
+        button.danger:hover {
+            background-color: #d32f2f;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        #game-canvas {
+            border: 2px solid #4CAF50;
+            background-color: #000;
+            margin-top: 20px;
+        }
+        
+        .controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>TD Engine - Popup System Demo</h1>
+    
+    <div class="demo-section">
+        <h2>Notification Popups</h2>
+        <p class="description">
+            Notification popups appear at the top of the screen and auto-dismiss after a few seconds.
+            They can be used for game events, achievements, warnings, and more.
+        </p>
+        <div class="button-group">
+            <button onclick="showInfoNotification()">Info Notification</button>
+            <button onclick="showSuccessNotification()">Success Notification</button>
+            <button onclick="showWarningNotification()">Warning Notification</button>
+            <button onclick="showErrorNotification()" class="danger">Error Notification</button>
+            <button onclick="showRewardNotification()" class="secondary">Reward Notification</button>
+            <button onclick="clearNotifications()" class="danger">Clear All</button>
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Entity Popup System</h2>
+        <p class="description">
+            The entity popup system allows UI elements to follow game entities as they move around the world.
+            These popups automatically handle camera movement, zooming, and screen boundaries.
+        </p>
+        <ul style="color: #ccc; line-height: 1.8;">
+            <li><strong>Tower Upgrade Popup:</strong> Click on any tower to see an interactive upgrade panel</li>
+            <li><strong>Damage Numbers:</strong> Floating damage numbers appear when enemies take damage</li>
+            <li><strong>Health Bars:</strong> Can be attached to any entity to show health status</li>
+            <li><strong>Enemy Info:</strong> Hover over enemies to see their stats (can be implemented)</li>
+        </ul>
+        
+        <div class="controls">
+            <button onclick="startGame()">Start Demo Game</button>
+            <button onclick="spawnTestTower()">Spawn Test Tower</button>
+            <button onclick="spawnTestEnemy()">Spawn Test Enemy</button>
+            <button onclick="toggleDamageNumbers()">Toggle Damage Numbers</button>
+        </div>
+        
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+    </div>
+    
+    <script type="module">
+        import { NotificationPopup, NotificationType } from '../src/ui/components/floating/NotificationPopup.ts';
+        
+        // Make notification functions available globally
+        window.showInfoNotification = () => {
+            NotificationPopup.info('This is an informational message about game mechanics.');
+        };
+        
+        window.showSuccessNotification = () => {
+            NotificationPopup.success('Tower upgraded successfully!');
+        };
+        
+        window.showWarningNotification = () => {
+            NotificationPopup.warning('Low on resources! Enemies approaching!');
+        };
+        
+        window.showErrorNotification = () => {
+            NotificationPopup.error('Cannot place tower here!');
+        };
+        
+        window.showRewardNotification = () => {
+            NotificationPopup.reward('Gold earned', 100);
+        };
+        
+        window.clearNotifications = () => {
+            NotificationPopup.clearAll();
+        };
+        
+        // Game demo functions
+        window.startGame = async () => {
+            const canvas = document.getElementById('game-canvas');
+            
+            // Import and start the game
+            const { Game } = await import('../src/core/Game.ts');
+            const { NotificationPopup } = await import('../src/ui/components/floating/NotificationPopup.ts');
+            
+            // Initialize game
+            const game = new Game(canvas);
+            
+            // Show welcome notification
+            NotificationPopup.success('Game started! Click on towers to upgrade them.', {
+                duration: 5000
+            });
+            
+            // Start game loop
+            game.start();
+            
+            // Make game available globally for testing
+            window.game = game;
+        };
+        
+        window.spawnTestTower = () => {
+            if (!window.game) {
+                NotificationPopup.error('Please start the game first!');
+                return;
+            }
+            
+            // Spawn a tower at a random valid position
+            const { TowerType } = import('../src/entities/Tower.ts');
+            const x = 200 + Math.random() * 400;
+            const y = 200 + Math.random() * 200;
+            
+            if (window.game.placeTower(TowerType.CANNON, { x, y })) {
+                NotificationPopup.success('Tower placed! Click on it to see the upgrade popup.');
+            } else {
+                NotificationPopup.error('Cannot place tower at that location!');
+            }
+        };
+        
+        window.spawnTestEnemy = () => {
+            if (!window.game) {
+                NotificationPopup.error('Please start the game first!');
+                return;
+            }
+            
+            // This would spawn an enemy - implementation depends on your game's API
+            NotificationPopup.info('Enemy spawned! Watch for damage numbers.');
+        };
+        
+        window.toggleDamageNumbers = () => {
+            NotificationPopup.info('Damage numbers toggled!');
+        };
+    </script>
+</body>
+</html>

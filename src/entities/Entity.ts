@@ -13,6 +13,15 @@ export enum EntityType {
 
 let nextId = 1;
 
+export type DamageEvent = {
+  entity: Entity;
+  amount: number;
+  actualDamage: number;
+  source?: Entity;
+};
+
+export type DamageCallback = (event: DamageEvent) => void;
+
 export class Entity {
   public readonly id: string;
   public readonly type: EntityType;
@@ -22,6 +31,9 @@ export class Entity {
   public maxHealth: number;
   public radius: number;
   public isAlive: boolean;
+  
+  // Damage event callback
+  public onDamage?: DamageCallback;
 
   constructor(
     type: EntityType,
@@ -48,10 +60,23 @@ export class Entity {
     this.position.y += this.velocity.y * dt;
   }
 
-  takeDamage(amount: number): void {
+  takeDamage(amount: number, source?: Entity): void {
     if (!this.isAlive) return;
 
+    const previousHealth = this.health;
     this.health = Math.max(0, this.health - amount);
+    const actualDamage = previousHealth - this.health;
+    
+    // Trigger damage event callback
+    if (this.onDamage && actualDamage > 0) {
+      this.onDamage({
+        entity: this,
+        amount,
+        actualDamage,
+        source
+      });
+    }
+    
     if (this.health === 0) {
       this.isAlive = false;
     }

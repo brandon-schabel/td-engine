@@ -1,5 +1,5 @@
 import { Game } from "../core/Game";
-import { TowerType, Tower } from "@/entities/Tower";
+import { TowerType } from "@/entities/Tower";
 import { createSvgIcon, IconType } from "./icons/SvgIcons";
 import { AudioManager, SoundType } from "../audio/AudioManager";
 import { UI_CONSTANTS } from "@/config/UIConstants";
@@ -25,7 +25,7 @@ import {
 } from "./components/dialogs";
 import { DebugDialogWrapper } from "./DebugDialogWrapper";
 import { DialogShowFix } from "./DialogShowFix";
-import { SimpleTowerInfo } from "./components/SimpleTowerInfo";
+
 
 export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById("game-container");
@@ -371,32 +371,8 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     updateTowerPlacementIndicator();
   });
 
-  // Keep track of current tower info
-  let currentTowerInfo: SimpleTowerInfo | null = null;
-
-  // Show tower info dialog when a tower is selected
-  const showTowerInfoDialog = (tower: Tower) => {
-    console.log(
-      "[SimpleGameUI] showTowerInfoDialog called for tower:",
-      tower.towerType
-    );
-
-    // Close any existing tower info
-    if (currentTowerInfo) {
-      currentTowerInfo.close();
-      currentTowerInfo = null;
-    }
-
-    try {
-      // Create and show the simple tower info
-      currentTowerInfo = new SimpleTowerInfo(tower, game, audioManager);
-      currentTowerInfo.show();
-      console.log("[SimpleGameUI] SimpleTowerInfo shown successfully");
-    } catch (error) {
-      console.error("[SimpleGameUI] Error creating/showing tower info:", error);
-      console.error("[SimpleGameUI] Stack trace:", error.stack);
-    }
-  };
+  // Keep track of current tower info - removed SimpleTowerInfo usage
+  // Tower selection is now handled directly by Game.ts with TowerUpgradePopup
 
   // Show player upgrade dialog
   const showPlayerUpgradeDialog = () => {
@@ -406,19 +382,17 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     DialogShowFix.ensurePlayerUpgradeDialog(game, audioManager);
   };
 
-  // Listen for tower selection events
+  // Listen for tower selection events - simplified to just let Game handle it
   const handleTowerSelected = (event: CustomEvent) => {
     const tower = event.detail.tower;
-    showTowerInfoDialog(tower);
+    console.log("[SimpleGameUI] Tower selected:", tower.towerType, "- Game will handle with TowerUpgradePopup");
+    // Game.ts will automatically show TowerUpgradePopup, no need to show SimpleTowerInfo
   };
 
   const handleTowerDeselected = (event: CustomEvent) => {
     const tower = event.detail.tower;
-    // Close simple tower info
-    if (currentTowerInfo) {
-      currentTowerInfo.close();
-      currentTowerInfo = null;
-    }
+    console.log("[SimpleGameUI] Tower deselected:", tower.towerType);
+    // Game.ts will automatically hide TowerUpgradePopup
   };
 
   // Add event listeners for tower selection
@@ -431,27 +405,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     handleTowerDeselected as EventListener
   );
 
-  // Handle tower upgrade request from SimpleTowerInfo
-  document.addEventListener("showTowerUpgrade", ((event: CustomEvent) => {
-    const tower = event.detail.tower;
-    console.log(
-      "[SimpleGameUI] showTowerUpgrade event received for tower:",
-      tower.towerType
-    );
-
-    // Create and show upgrade dialog
-    const upgradeDialog = new UpgradeDialogAdapter({
-      game,
-      target: tower,
-      audioManager,
-      onClosed: () => {
-        dialogManager.unregister("towerUpgrade");
-      },
-    });
-
-    dialogManager.register("towerUpgrade", upgradeDialog);
-    dialogManager.show("towerUpgrade");
-  }) as EventListener);
+  // Remove the showTowerUpgrade event listener since Game.ts handles this directly now
 
   // Keyboard shortcuts
   const handleKeyPress = (e: KeyboardEvent) => {
@@ -762,7 +716,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
         position: tower.position,
         level: tower.getLevel(),
       });
-      showTowerInfoDialog(tower);
+      // Game.ts will automatically show TowerUpgradePopup
     } else {
       console.log("[Debug] No towers found! Place a tower first.");
     }
@@ -773,7 +727,7 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     const towers = game.getTowers();
     if (towers.length > 0) {
       game.selectTower(towers[0]);
-    } 
+    }
   };
 
   // Add debug command to toggle mobile controls
