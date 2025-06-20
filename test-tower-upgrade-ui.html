@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Upgrade UI Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        #canvas {
+            width: 800px;
+            height: 600px;
+            background: #333;
+            border: 2px solid #555;
+            position: relative;
+            cursor: crosshair;
+        }
+        
+        #canvas.clicked {
+            background: #553333;
+        }
+        
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            background: #111;
+            border: 1px solid #444;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        
+        .log-entry.canvas-click {
+            color: #ff6666;
+        }
+        
+        .log-entry.ui-click {
+            color: #66ff66;
+        }
+        
+        .tower-upgrade-ui {
+            position: absolute;
+            background: rgba(26, 26, 26, 0.95);
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 16px;
+            min-width: 300px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+            pointer-events: auto;
+        }
+        
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            background: #444;
+            border: 1px solid #666;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background: #555;
+            border-color: #888;
+        }
+        
+        .instructions {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h2>Tower Upgrade UI Click Test</h2>
+        <p>This test demonstrates the fixed click handling for the Tower Upgrade UI:</p>
+        <ul>
+            <li>Click on the canvas (gray area) - logs as <span style="color: #ff6666">canvas click</span></li>
+            <li>Click "Show Tower UI" to display the upgrade interface</li>
+            <li>Click buttons in the UI - logs as <span style="color: #66ff66">UI click</span> without triggering canvas clicks</li>
+            <li>Click outside the UI to close it</li>
+        </ul>
+    </div>
+    
+    <button onclick="showTowerUI()">Show Tower UI</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="canvas">
+        <div id="ui-container"></div>
+    </div>
+    
+    <div id="log"></div>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const uiContainer = document.getElementById('ui-container');
+        const log = document.getElementById('log');
+        let uiElement = null;
+        
+        // Canvas click handler
+        canvas.addEventListener('click', (e) => {
+            if (e.target === canvas) {
+                addLog('Canvas clicked at: ' + e.offsetX + ', ' + e.offsetY, 'canvas-click');
+                canvas.classList.add('clicked');
+                setTimeout(() => canvas.classList.remove('clicked'), 100);
+                
+                // Close UI if clicking outside
+                if (uiElement && !uiElement.contains(e.target)) {
+                    closeUI();
+                }
+            }
+        });
+        
+        function showTowerUI() {
+            if (uiElement) {
+                closeUI();
+            }
+            
+            // Create UI element
+            uiElement = document.createElement('div');
+            uiElement.className = 'tower-upgrade-ui';
+            uiElement.style.cssText = `
+                position: absolute;
+                top: 50px;
+                left: 50px;
+                background: rgba(26, 26, 26, 0.95);
+                border: 2px solid #4CAF50;
+                border-radius: 8px;
+                padding: 16px;
+                min-width: 300px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+                pointer-events: auto;
+            `;
+            
+            uiElement.innerHTML = `
+                <h3 style="margin-top: 0; color: #4CAF50;">Tower Upgrade UI</h3>
+                <p>Click these buttons - they should NOT trigger canvas clicks:</p>
+                <button onclick="handleUpgrade('damage')">Upgrade Damage</button>
+                <button onclick="handleUpgrade('range')">Upgrade Range</button>
+                <button onclick="handleUpgrade('speed')">Upgrade Speed</button>
+                <br><br>
+                <button onclick="handleSell()" style="background: #aa4444;">Sell Tower</button>
+            `;
+            
+            // Apply the same click handling as in TowerUpgradeUI
+            const stopPropagation = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+            };
+            
+            // Stop propagation for all mouse events
+            uiElement.addEventListener('mousedown', stopPropagation, true);
+            uiElement.addEventListener('mouseup', stopPropagation, true);
+            uiElement.addEventListener('click', stopPropagation, true);
+            
+            uiContainer.appendChild(uiElement);
+            addLog('Tower UI opened', 'ui-click');
+        }
+        
+        function closeUI() {
+            if (uiElement) {
+                uiElement.remove();
+                uiElement = null;
+                addLog('Tower UI closed', 'ui-click');
+            }
+        }
+        
+        function handleUpgrade(type) {
+            addLog('Upgrade clicked: ' + type, 'ui-click');
+        }
+        
+        function handleSell() {
+            addLog('Sell clicked', 'ui-click');
+            closeUI();
+        }
+        
+        function addLog(message, className) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + (className || '');
+            entry.textContent = '[' + new Date().toLocaleTimeString() + '] ' + message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearLog() {
+            log.innerHTML = '';
+        }
+        
+        // Make functions globally accessible
+        window.handleUpgrade = handleUpgrade;
+        window.handleSell = handleSell;
+        
+        addLog('Test initialized - try clicking on the canvas and UI elements', '');
+    </script>
+</body>
+</html>

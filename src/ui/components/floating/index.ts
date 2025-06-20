@@ -4,6 +4,5 @@ export * from './DamageNumberPopup';
 export * from './EntityInfoPopup';
 export * from './HealthBarPopup';
 export * from './InteractiveEntityPopup';
-export * from './TowerUpgradePopup';
 export * from './EnemyInfoPopup';
 export * from './NotificationPopup';

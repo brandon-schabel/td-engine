@@ -45,7 +45,7 @@ import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
 import { UIManager } from "@/ui/systems/UIManager";
 import { PopupManager } from "@/ui/systems/PopupManager";
-import { TowerUpgradePopup } from "@/ui/components/floating/TowerUpgradePopup";
+import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager, FloatingUIElement, createHealthBar, updateHealthBar } from "@/ui/floating";
 
 export class Game {
@@ -89,7 +89,7 @@ export class Game {
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
   private selectedTower: Tower | null = null;
-  private currentTowerUpgradePopup: TowerUpgradePopup | null = null;
+  private currentTowerUpgradeUI: TowerUpgradeUI | null = null;
   private mousePosition: Vector2 = { x: 0, y: 0 };
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
@@ -672,11 +672,10 @@ export class Game {
         // Remove health bar
         this.removeHealthBarForEntity(tower);
 
-        // If this was the selected tower with an open popup, close it
-        if (this.selectedTower === tower && this.currentTowerUpgradePopup) {
-          this.uiManager.removePopup(this.currentTowerUpgradePopup);
-          this.currentTowerUpgradePopup.destroy();
-          this.currentTowerUpgradePopup = null;
+        // If this was the selected tower with an open UI, close it
+        if (this.selectedTower === tower && this.currentTowerUpgradeUI) {
+          this.currentTowerUpgradeUI.destroy();
+          this.currentTowerUpgradeUI = null;
           this.selectedTower = null;
         }
         return false;
@@ -1034,6 +1033,7 @@ export class Game {
         }, 500);
       }
       this.selectedTowerType = null; // Clear tower placement mode
+      return; // Important: return early to prevent deselection logic
     } else if (this.selectedTowerType) {
       // Place new tower
       if (this.placeTower(this.selectedTowerType, worldPos)) {
@@ -1531,9 +1531,9 @@ export class Game {
 
     const previousTower = this.selectedTower;
 
-    // Always destroy any existing popup using static method
-    TowerUpgradePopup.destroyActivePopup();
-    this.currentTowerUpgradePopup = null;
+    // Always destroy any existing UI
+    TowerUpgradeUI.destroyActiveUI();
+    this.currentTowerUpgradeUI = null;
 
     // Deselect previous tower if different
     if (previousTower && previousTower !== tower) {
@@ -1546,46 +1546,11 @@ export class Game {
     this.selectedTower = tower;
     this.selectedTowerType = null; // Clear tower placement mode
 
-    // Create new popup immediately (no delay needed with proper cleanup)
-    this.currentTowerUpgradePopup = TowerUpgradePopup.create(
-      tower,
-      this.camera,
-      this,
-      {
-        onClose: () => {
-          console.log(`[Game] Popup onClose callback triggered`);
-          this.currentTowerUpgradePopup = null;
-
-          // Clear the selection
-          if (this.selectedTower) {
-            const tower = this.selectedTower;
-            this.selectedTower = null;
-
-            // Dispatch deselect event
-            const deselectEvent = new CustomEvent('towerDeselected', {
-              detail: { tower }
-            });
-            document.dispatchEvent(deselectEvent);
-          }
-        },
-        onUpgrade: (upgradedTower) => {
-          console.log(`[Game] Tower upgraded: ${upgradedTower.towerType} to level ${upgradedTower.getLevel()}`);
-          this.audioHandler.playTowerUpgrade();
-        },
-        onSell: (soldTower) => {
-          console.log(`[Game] Tower sold: ${soldTower.towerType}`);
-        }
-      }
-    );
-
-    // Add to UI manager for update cycle
-    this.uiManager.addCustomPopup(this.currentTowerUpgradePopup);
-
-    // Show the popup
-    this.currentTowerUpgradePopup.show();
+    // Create new UI using FloatingUIManager
+    this.currentTowerUpgradeUI = new TowerUpgradeUI(tower, this);
 
     // Debug logging
-    console.log(`[Game] Tower upgrade popup created and shown for ${tower.towerType} at position:`, tower.position);
+    console.log(`[Game] Tower upgrade UI created for ${tower.towerType} at position:`, tower.position);
 
     // Dispatch select event
     const selectEvent = new CustomEvent('towerSelected', {
@@ -1599,9 +1564,9 @@ export class Game {
       const tower = this.selectedTower;
       this.selectedTower = null;
 
-      // Close upgrade popup using static method
-      TowerUpgradePopup.destroyActivePopup();
-      this.currentTowerUpgradePopup = null;
+      // Close upgrade UI
+      TowerUpgradeUI.destroyActiveUI();
+      this.currentTowerUpgradeUI = null;
 
       // Dispatch deselect event
       const deselectEvent = new CustomEvent('towerDeselected', {

@@ -2,8 +2,6 @@ import { TowerInfoDialog } from './TowerInfoDialog';
 import { Tower } from '@/entities/Tower';
 import { Game } from '@/core/Game';
 import { AudioManager } from '@/audio/AudioManager';
-import { DialogManager } from '@/ui/systems/DialogManager';
-import { UpgradeDialogAdapter } from './UpgradeDialogAdapter';
 
 export interface TowerInfoDialogAdapterOptions {
   tower: Tower;
@@ -16,10 +14,7 @@ export interface TowerInfoDialogAdapterOptions {
  * Adapter that integrates TowerInfoDialog with the game
  */
 export class TowerInfoDialogAdapter extends TowerInfoDialog {
-  private dialogManager: DialogManager;
   private onClosed?: () => void;
-  private upgradeDialog?: UpgradeDialogAdapter;
-  private audioManager?: AudioManager;
   
   constructor(options: TowerInfoDialogAdapterOptions) {
     super({
@@ -31,40 +26,16 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
       onClose: () => this.handleClose()
     });
     
-    this.dialogManager = DialogManager.getInstance();
     this.onClosed = options.onClosed;
-    this.audioManager = options.audioManager;
   }
   
   private handleUpgrade(): void {
     // Hide this dialog
     this.hide();
     
-    // Create and show the full upgrade dialog
-    this.upgradeDialog = new UpgradeDialogAdapter({
-      game: this.game,
-      target: this.tower,
-      audioManager: this.audioManager,
-      currentCurrency: this.game.getCurrency(),
-      onUpgraded: () => {
-        // Upgrade handled by adapter
-      },
-      onSold: () => {
-        // Close both dialogs
-        this.dialogManager.hide('towerUpgrade');
-        this.dialogManager.unregister('towerUpgrade');
-        this.upgradeDialog = undefined;
-      },
-      onClosed: () => {
-        // Clean up upgrade dialog
-        this.dialogManager.unregister('towerUpgrade');
-        this.upgradeDialog = undefined;
-      }
-    });
-    
-    // Register and show upgrade dialog
-    this.dialogManager.register('towerUpgrade', this.upgradeDialog);
-    this.dialogManager.show('towerUpgrade');
+    // Tower upgrades now handled by TowerUpgradeUI in Game.ts
+    // Select the tower to trigger the floating UI
+    this.game.selectTower(this.tower);
   }
   
   private handleSell(): void {
@@ -87,13 +58,6 @@ export class TowerInfoDialogAdapter extends TowerInfoDialog {
   }
   
   public override destroy(): void {
-    // Clean up any open upgrade dialog
-    if (this.upgradeDialog) {
-      this.dialogManager.hide('towerUpgrade');
-      this.dialogManager.unregister('towerUpgrade');
-      this.upgradeDialog = undefined;
-    }
-    
     super.destroy();
   }
 }

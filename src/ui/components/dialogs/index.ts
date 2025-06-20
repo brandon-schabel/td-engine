@@ -5,14 +5,11 @@ export { GameSettingsDialog } from './GameSettingsDialog';
 export { GameOverDialog } from './GameOverDialog';
 export { LeaderboardDialog } from './LeaderboardDialog';
 export { BuildMenuDialog } from './BuildMenuDialog';
-export { UpgradeDialog } from './UpgradeDialog';
-export { EnhancedUpgradeDialog } from './EnhancedUpgradeDialog';
 export { PauseDialog } from './PauseDialog';
 export { TowerInfoDialog } from './TowerInfoDialog';
 
 // Export adapters
 export { BuildMenuDialogAdapter } from './BuildMenuDialogAdapter';
-export { UpgradeDialogAdapter } from './UpgradeDialogAdapter';
 export { InventoryDialogAdapter } from './InventoryDialogAdapter';
 export { TowerInfoDialogAdapter } from './TowerInfoDialogAdapter';
 
@@ -24,13 +21,10 @@ export type { GameSettingsDialogOptions } from './GameSettingsDialog';
 export type { GameOverDialogOptions } from './GameOverDialog';
 export type { LeaderboardDialogOptions } from './LeaderboardDialog';
 export type { BuildMenuDialogOptions } from './BuildMenuDialog';
-export type { UpgradeDialogOptions } from './UpgradeDialog';
-export type { EnhancedUpgradeDialogOptions } from './EnhancedUpgradeDialog';
 export type { PauseDialogOptions } from './PauseDialog';
 
 // Export adapter types
 export type { BuildMenuDialogAdapterOptions } from './BuildMenuDialogAdapter';
-export type { UpgradeDialogAdapterOptions } from './UpgradeDialogAdapter';
 export type { InventoryDialogAdapterOptions } from './InventoryDialogAdapter';
 export type { TowerInfoDialogOptions } from './TowerInfoDialog';
 export type { TowerInfoDialogAdapterOptions } from './TowerInfoDialogAdapter';

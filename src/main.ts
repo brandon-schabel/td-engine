@@ -21,7 +21,6 @@ import { setupGameUI } from "./ui/setupGameUI";
 import { TouchIndicator } from "./ui/components/game/TouchIndicator";
 import { 
   BuildMenuDialogAdapter,
-  InventoryDialogAdapter,
   SettingsDialog,
   PauseDialog
 } from "./ui/components/dialogs";
@@ -99,7 +98,6 @@ const dialogManager = DialogManager.getInstance();
 
 // Dialog instances that need to be accessible throughout the app
 let buildMenuDialog: BuildMenuDialogAdapter | null = null;
-let inventoryDialog: InventoryDialogAdapter | null = null;
 let settingsDialogInstance: SettingsDialog | null = null;
 let pauseDialog: PauseDialog | null = null;
 
@@ -158,22 +156,7 @@ function initializeGameDialogs(gameInstance: GameWithEvents) {
     console.error('[Main] Failed to initialize build menu dialog:', error);
   }
 
-  try {
-    // Inventory Dialog
-    if (inventoryDialog) {
-      dialogManager.unregister('inventory');
-    }
-    inventoryDialog = new InventoryDialogAdapter({
-      game: gameInstance,
-      audioManager,
-      onItemSelected: (_item, _slot) => {
-        // Item selection is handled by the adapter
-      }
-    });
-    dialogManager.register('inventory', inventoryDialog);
-  } catch (error) {
-    console.error('[Main] Failed to initialize inventory dialog:', error);
-  }
+  // Inventory now uses FloatingUIManager directly
 }
 
 // Initialize game with settings

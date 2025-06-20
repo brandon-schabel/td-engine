@@ -11,7 +11,6 @@ import { isMobile as checkIsMobile } from "@/config/ResponsiveConfig";
 import { DialogManager } from "./systems/DialogManager";
 import {
   BuildMenuDialogAdapter,
-  InventoryDialogAdapter,
   SettingsDialog,
   PauseDialog,
 } from "./components/dialogs";
@@ -378,9 +377,11 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Dialog instances
   let buildMenuDialog: BuildMenuDialogAdapter;
-  let inventoryDialog: InventoryDialogAdapter;
   let settingsDialog: SettingsDialog;
   let pauseDialog: PauseDialog;
+  
+  // Floating UI instances
+  let currentInventoryUI: any = null;
 
   // Initialize dialogs
   const initializeDialogs = () => {
@@ -409,21 +410,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
       // Dialog system is initialized elsewhere, no test needed here
 
-      // Inventory Dialog - should already be registered
-      const existingInventory = dialogManager.getDialog("inventory");
-      if (existingInventory) {
-        inventoryDialog = existingInventory as InventoryDialogAdapter;
-      } else {
-        // Fallback: create it here
-        inventoryDialog = new InventoryDialogAdapter({
-          game,
-          audioManager,
-          onItemSelected: () => {
-            // Additional item selection logic if needed
-          },
-        });
-        dialogManager.register("inventory", inventoryDialog);
-      }
+      // Inventory now uses FloatingUIManager directly
 
       // Settings Dialog - may use gameSettings instead of settings
       const existingSettings =
@@ -566,7 +553,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
         console.warn("[SimpleGameUI] Game not initialized yet");
         return;
       }
-      dialogManager.show("inventory");
+      showInventoryUI();
     }
   );
 
@@ -670,14 +657,48 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   });
 
   // Keep track of current tower info - removed SimpleTowerInfo usage
-  // Tower selection is now handled directly by Game.ts with TowerUpgradePopup
+  // Tower selection is now handled directly by Game.ts with TowerUpgradeUI
 
-  // Show player upgrade dialog
+  // Current player upgrade UI instance
+  let currentPlayerUpgradeUI: any = null;
+
+  // Show player upgrade dialog using FloatingUIManager
   const showPlayerUpgradeDialog = () => {
-    console.log(
-      "[SimpleGameUI] showPlayerUpgradeDialog called - using DialogShowFix"
-    );
-    dialogManager.show("playerUpgrade");
+    console.log("[SimpleGameUI] showPlayerUpgradeDialog called - using FloatingUIManager");
+    
+    // Import PlayerUpgradeUI dynamically to avoid circular dependencies
+    import('@/ui/floating/PlayerUpgradeUI').then(({ PlayerUpgradeUI }) => {
+      // Close existing UI if any
+      if (currentPlayerUpgradeUI) {
+        currentPlayerUpgradeUI.destroy();
+        currentPlayerUpgradeUI = null;
+      }
+      
+      const player = game.getPlayer();
+      if (player) {
+        currentPlayerUpgradeUI = new PlayerUpgradeUI(player, game);
+      }
+    }).catch(error => {
+      console.error('[SimpleGameUI] Failed to load PlayerUpgradeUI:', error);
+    });
+  };
+
+  // Show inventory UI using FloatingUIManager
+  const showInventoryUI = () => {
+    console.log("[SimpleGameUI] showInventoryUI called - using FloatingUIManager");
+    
+    // Import InventoryUI dynamically to avoid circular dependencies
+    import('@/ui/floating/InventoryUI').then(({ InventoryUI }) => {
+      // Close existing UI if any
+      if (currentInventoryUI) {
+        currentInventoryUI.destroy();
+        currentInventoryUI = null;
+      }
+      
+      currentInventoryUI = new InventoryUI(game);
+    }).catch(error => {
+      console.error('[SimpleGameUI] Failed to load InventoryUI:', error);
+    });
   };
 
   // Show build menu using FloatingUIManager
@@ -837,7 +858,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
           console.warn("[SimpleGameUI] Game not initialized yet");
           return;
         }
-        dialogManager.show("inventory");
+        showInventoryUI();
         break;
       case " ":
         e.preventDefault();
@@ -1254,9 +1275,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Add inventory dialog test
   (window as any).testInventory = () => {
-    console.log("[Debug] Testing inventory dialog...");
-    // Use DialogManager directly
-    dialogManager.show("inventory");
+    console.log("[Debug] Testing inventory UI...");
+    showInventoryUI();
   };
 
   // Add force fix command
