@@ -194,9 +194,7 @@ export class RenderingPipeline {
     // 5. Player (top layer for visibility)
     if (player) {
       this.entityRenderer.renderPlayer(player);
-      if (options.showHealthBars) {
-        this.entityRenderer.renderHealthBar(player, true);
-      }
+      // Health bars are now handled by the HealthBarPopup system
     }
 
     // 6. Aimer line (overlay)

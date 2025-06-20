@@ -286,40 +286,10 @@ export class EntityRenderer extends BaseRenderer {
   }
 
 
-  renderHealthBar(entity: Entity, alwaysShow: boolean = false): void {
-    if (!alwaysShow && entity.health >= entity.maxHealth) return;
-    if (!this.isVisible(entity.position, entity.radius + 10)) return;
-
-    const screenPos = this.getScreenPosition(entity.position);
-    const barWidth = ENTITY_RENDER.healthBar.width;
-    const barHeight = ENTITY_RENDER.healthBar.height;
-    const x = screenPos.x - barWidth / 2;
-    const y = screenPos.y - entity.radius - ENTITY_RENDER.healthBar.offset;
-    
-    // Background
-    this.ctx.fillStyle = ENTITY_RENDER.healthBar.backgroundColor;
-    this.ctx.fillRect(x, y, barWidth, barHeight);
-    
-    // Health bar
-    const healthPercentage = entity.health / entity.maxHealth;
-    const healthWidth = barWidth * healthPercentage;
-    
-    let barColor: string;
-    if (healthPercentage > 0.6) {
-      barColor = COLOR_CONFIG.health.high;
-    } else if (healthPercentage > 0.3) {
-      barColor = COLOR_CONFIG.health.medium;
-    } else {
-      barColor = COLOR_CONFIG.health.low;
-    }
-    
-    this.ctx.fillStyle = barColor;
-    this.ctx.fillRect(x, y, healthWidth, barHeight);
-    
-    // Health bar outline
-    this.ctx.strokeStyle = ENTITY_RENDER.healthBar.borderColor;
-    this.ctx.lineWidth = ENTITY_RENDER.healthBar.borderWidth;
-    this.ctx.strokeRect(x, y, barWidth, barHeight);
+  // Health bar rendering has been moved to the HealthBarPopup system
+  // This method is preserved for backwards compatibility but is no longer used
+  renderHealthBar(_entity: Entity, _alwaysShow: boolean = false): void {
+    // Health bars are now handled by the HealthBarPopup component
   }
 
   renderAimerLine(aimerLine: { start: Vector2; end: Vector2 }): void {
@@ -333,21 +303,17 @@ export class EntityRenderer extends BaseRenderer {
   }
 
   // Batch rendering methods for performance
-  renderAllTowers(towers: Tower[], showHealthBars: boolean = true): void {
+  renderAllTowers(towers: Tower[], _showHealthBars: boolean = true): void {
     towers.forEach(tower => {
       this.renderTower(tower);
-      if (showHealthBars) {
-        this.renderHealthBar(tower, true);
-      }
+      // Health bars are now handled by the HealthBarPopup system
     });
   }
 
-  renderAllEnemies(enemies: Enemy[], showHealthBars: boolean = true): void {
+  renderAllEnemies(enemies: Enemy[], _showHealthBars: boolean = true): void {
     enemies.forEach(enemy => {
       this.renderEnemy(enemy);
-      if (showHealthBars) {
-        this.renderHealthBar(enemy, true);
-      }
+      // Health bars are now handled by the HealthBarPopup system
     });
   }
 

@@ -23,7 +23,7 @@ import {
 } from "./components/dialogs";
 
 
-export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
+export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
   const gameContainer = document.getElementById("game-container");
   if (!gameContainer) {
     console.error("[SimpleGameUI] ERROR: game-container element not found!");
@@ -714,6 +714,70 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     }
   };
 
+  // Test new FloatingUIManager with player health bar
+  const floatingUI = game.getFloatingUIManager();
+  const player = game.getPlayer();
+
+  // Import helper to create health bar content
+  const floatingHelpers = await import('@/ui/floating/helpers');
+  const { createHealthBar, updateHealthBar, flashElement } = floatingHelpers;
+
+  // Create a health bar for the player using new floating UI system
+  const playerHealthBar = floatingUI.create('player-health', 'healthbar', {
+    offset: { x: 0, y: -30 },
+    anchor: 'top',
+    smoothing: 0.2,
+    autoHide: false, // Always show player health
+    mobileScale: 0.9
+  });
+
+  // Set initial content and target
+  const playerHealth = player.health;
+  const playerMaxHealth = player.getMaxHealth();
+
+  playerHealthBar
+    .setContent(createHealthBar(playerHealth, playerMaxHealth, {
+      showPercentage: true,
+      width: 60,
+      height: 10,
+      color: '#4CAF50'
+    }))
+    .setTarget(player)
+    .enable();
+
+  console.log('[SimpleGameUI] Created player health bar using new FloatingUIManager');
+
+  // Update health bar when player takes damage
+  let lastHealth = playerHealth;
+  const healthUpdateInterval = setInterval(() => {
+    const currentHealth = player.health;
+    const maxHealth = player.getMaxHealth();
+
+    if (currentHealth !== lastHealth) {
+      updateHealthBar(playerHealthBar.getElement(), currentHealth, maxHealth);
+
+      // Flash the health bar if damaged
+      if (currentHealth < lastHealth) {
+        flashElement(playerHealthBar.getElement(), 'damaged');
+      }
+
+      lastHealth = currentHealth;
+    }
+  }, 100);
+
+  // Debug command to test damage on player
+  (window as any).testPlayerDamage = () => {
+    const damage = 10;
+    player.takeDamage(damage);
+    console.log(`[Debug] Applied ${damage} damage to player. Health: ${player.health}/${player.getMaxHealth()}`);
+  };
+
+  // Debug command to heal player
+  (window as any).healPlayer = () => {
+    player.heal(20);
+    console.log(`[Debug] Healed player. Health: ${player.health}/${player.getMaxHealth()}`);
+  };
+
   // Cleanup function
   return () => {
     document.removeEventListener("keydown", handleKeyPress);
@@ -733,6 +797,10 @@ export function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
     healthDisplay.destroy();
     cameraControls.destroy();
     powerUpDisplay.cleanup();
+
+    // Clean up new floating UI system
+    clearInterval(healthUpdateInterval);
+    floatingUI.remove('player-health');
 
     dialogManager.destroy();
   };

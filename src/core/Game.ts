@@ -11,6 +11,7 @@ import { Camera, type CameraOptions } from "@/systems/Camera";
 import { CameraDiagnostics } from "@/systems/CameraDiagnostics";
 import { Tower, TowerType, UpgradeType } from "@/entities/Tower";
 import { Enemy, EnemyType } from "@/entities/Enemy";
+import { Entity } from "@/entities/Entity";
 import { Projectile } from "@/entities/Projectile";
 import { Player, PlayerUpgradeType } from "@/entities/Player";
 import { Collectible } from "@/entities/Collectible";
@@ -42,9 +43,11 @@ import { GameAudioHandler } from "@/systems/GameAudioHandler";
 import { ScoreManager, type GameStats } from "@/systems/ScoreManager";
 import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
+import { UIManager } from "@/ui/systems/UIManager";
 import { PopupManager } from "@/ui/systems/PopupManager";
 import { DamageType } from "@/ui/components/floating/DamageNumberPopup";
 import { TowerUpgradePopup } from "@/ui/components/floating/TowerUpgradePopup";
+import { FloatingUIManager, FloatingUIElement, createHealthBar, updateHealthBar } from "@/ui/floating";
 
 export class Game {
   private engine: GameEngine;
@@ -80,7 +83,8 @@ export class Game {
   private collectibles: Collectible[] = [];
   private inventory: Inventory;
   private equipment: EquipmentManager;
-  private popupManager: PopupManager;
+  private uiManager: UIManager;
+  private floatingUIManager: FloatingUIManager;
 
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
@@ -90,6 +94,9 @@ export class Game {
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
+  
+  // Health bar management
+  private entityHealthBars: Map<string, FloatingUIElement> = new Map();
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -208,7 +215,7 @@ export class Game {
     // Add damage callback for player
     this.player.onDamage = (event) => {
       if (event) {
-        this.popupManager.createDamageNumber(
+        this.uiManager.showTypedDamage(
           event.entity,
           event.actualDamage,
           DamageType.NORMAL
@@ -232,11 +239,19 @@ export class Game {
     // Center camera on player initially (instant, no smoothing)
     this.camera.centerOnTarget(this.player.position);
 
-    // Initialize popup manager
-    this.popupManager = new PopupManager(this.camera, {
-      maxPopups: 50,
-      enablePooling: true
+    // Initialize floating UI manager with camera
+    this.floatingUIManager = new FloatingUIManager(canvas, this.camera);
+
+    // Initialize UI manager
+    this.uiManager = UIManager.initialize({
+      camera: this.camera,
+      popupOptions: {
+        maxPopups: 50,
+        enablePooling: true
+      }
     });
+
+    // Note: Player health bar is created in SimpleGameUI
 
     // Load wave configurations
     this.loadWaveConfigurations();
@@ -483,7 +498,7 @@ export class Game {
       // Add damage callback for floating damage numbers
       enemy.onDamage = (event) => {
         if (event) {
-          this.popupManager.createDamageNumber(
+          this.uiManager.showTypedDamage(
             event.entity,
             event.actualDamage,
             DamageType.NORMAL
@@ -492,6 +507,9 @@ export class Game {
       };
 
       this.enemies.push(enemy);
+      
+      // Create health bar for the enemy
+      this.createHealthBarForEntity(enemy);
     });
 
     // Update enemies
@@ -510,8 +528,8 @@ export class Game {
     // Update camera to follow player
     this.camera.update(this.player.position);
 
-    // Update popup manager for floating UI elements
-    this.popupManager.update();
+    // Update UI manager for floating UI elements
+    this.uiManager.update();
 
     // Player manual shooting (click and hold)
     const playerProjectile = this.player.updateShooting();
@@ -600,7 +618,13 @@ export class Game {
     });
 
     // Clean up dead entities (inlined from EntityCleaner)
-    this.enemies = this.enemies.filter((enemy) => enemy.isAlive);
+    this.enemies = this.enemies.filter((enemy) => {
+      if (!enemy.isAlive) {
+        this.removeHealthBarForEntity(enemy);
+        return false;
+      }
+      return true;
+    });
     this.projectiles = this.projectiles.filter(
       (projectile) => projectile.isAlive
     );
@@ -609,9 +633,12 @@ export class Game {
     );
     this.towers = this.towers.filter((tower) => {
       if (!tower.isAlive) {
+        // Remove health bar
+        this.removeHealthBarForEntity(tower);
+        
         // If this was the selected tower with an open popup, close it
         if (this.selectedTower === tower && this.currentTowerUpgradePopup) {
-          this.popupManager.removePopup(this.currentTowerUpgradePopup);
+          this.uiManager.removePopup(this.currentTowerUpgradePopup);
           this.currentTowerUpgradePopup.destroy();
           this.currentTowerUpgradePopup = null;
           this.selectedTower = null;
@@ -620,6 +647,9 @@ export class Game {
       }
       return true;
     });
+
+    // Update health bars
+    this.updateHealthBars();
 
     // Check for wave completion and victory
     if (this.waveManager.isWaveComplete() && !this.waveCompleteProcessed) {
@@ -800,6 +830,9 @@ export class Game {
     };
 
     this.towers.push(tower);
+    
+    // Create health bar for the tower
+    this.createHealthBarForEntity(tower);
 
     // Track towers built
     this.towersBuilt++;
@@ -819,6 +852,64 @@ export class Game {
 
     return true;
   }
+
+  // Health bar management methods using new floating UI system
+  private createHealthBarForEntity(entity: Entity): void {
+    const healthBar = this.floatingUIManager.create(`health-${entity.id}`, 'healthbar', {
+      offset: { x: 0, y: -entity.radius - 15 },
+      anchor: 'top',
+      smoothing: 0.2,
+      autoHide: false, // Always show for main entities
+      mobileScale: 0.8
+    });
+    
+    // Set initial content and target
+    healthBar
+      .setContent(createHealthBar(entity.health, entity.maxHealth, {
+        showPercentage: false, // Don't show percentage for enemies
+        width: 50,
+        height: 6,
+        color: entity.entityType === 'PLAYER' ? '#4CAF50' : '#ff4444'
+      }))
+      .setTarget(entity)
+      .enable();
+    
+    // Store reference for updates
+    this.entityHealthBars.set(entity.id, healthBar);
+  }
+
+  private removeHealthBarForEntity(entity: Entity): void {
+    this.floatingUIManager.remove(`health-${entity.id}`);
+    this.entityHealthBars.delete(entity.id);
+  }
+
+  private updateHealthBars(): void {
+    this.entityHealthBars.forEach((healthBar, entityId) => {
+      // Find the entity
+      let entity: Entity | null = null;
+      
+      // Check player
+      if (this.player.id === entityId) {
+        entity = this.player;
+      }
+      
+      // Check enemies
+      if (!entity) {
+        entity = this.enemies.find(e => e.id === entityId) || null;
+      }
+      
+      // Check towers
+      if (!entity) {
+        entity = this.towers.find(t => t.id === entityId) || null;
+      }
+      
+      // Update health bar if entity found
+      if (entity && healthBar.getElement()) {
+        updateHealthBar(healthBar.getElement(), entity.health, entity.maxHealth);
+      }
+    });
+  }
+
 
   // Wave management
   startNextWave(): boolean {
@@ -1351,10 +1442,12 @@ export class Game {
   // Game engine control
   pause(): void {
     this.engine.pause();
+    this.floatingUIManager.pause();
   }
 
   resume(): void {
     this.engine.resume();
+    this.floatingUIManager.resume();
   }
 
   start(): void {
@@ -1449,8 +1542,8 @@ export class Game {
       }
     );
 
-    // Add to popup manager for update cycle
-    this.popupManager.addPopup(this.currentTowerUpgradePopup);
+    // Add to UI manager for update cycle
+    this.uiManager.addCustomPopup(this.currentTowerUpgradePopup);
 
     // Show the popup
     this.currentTowerUpgradePopup.show();
@@ -1577,7 +1670,15 @@ export class Game {
   }
 
   getPopupManager(): PopupManager {
-    return this.popupManager;
+    return this.uiManager.getPopupManager();
+  }
+
+  getUIManager(): UIManager {
+    return this.uiManager;
+  }
+
+  getFloatingUIManager(): FloatingUIManager {
+    return this.floatingUIManager;
   }
 
   // Map generation methods

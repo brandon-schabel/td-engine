@@ -1259,50 +1259,10 @@ export class Renderer {
     }
   }
 
-  renderHealthBar(entity: Entity, alwaysShow: boolean = false): void {
-    // Show health bar if damaged or if alwaysShow is true
-    if (!alwaysShow && entity.health >= entity.maxHealth) {
-      return;
-    }
-
-    // Skip if entity is not visible
-    if (!this.camera.isVisible(entity.position, entity.radius + 10)) return;
-
-    const screenPos = this.getScreenPosition(entity);
-    const zoom = this.camera.getZoom();
-    const barWidth = RENDER_CONFIG.healthBarWidth * zoom;
-    const barHeight = RENDER_CONFIG.healthBarHeight * zoom;
-    const x = screenPos.x - barWidth / 2;
-    const y = screenPos.y - (entity.radius * zoom) - (10 * zoom);
-    
-    // Background
-    this.ctx.fillStyle = '#222222';
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(x, y, barWidth, barHeight);
-    }
-    
-    // Health bar
-    const healthPercentage = entity.health / entity.maxHealth;
-    const healthWidth = barWidth * healthPercentage;
-    
-    if (healthPercentage > 0.6) {
-      this.ctx.fillStyle = COLOR_CONFIG.health.high;
-    } else if (healthPercentage > 0.3) {
-      this.ctx.fillStyle = COLOR_CONFIG.health.medium;
-    } else {
-      this.ctx.fillStyle = COLOR_CONFIG.health.low;
-    }
-    
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(x, y, healthWidth, barHeight);
-    }
-    
-    // Health bar outline
-    this.ctx.strokeStyle = '#666666';
-    this.ctx.lineWidth = zoom;
-    if (typeof this.ctx.strokeRect === 'function') {
-      this.ctx.strokeRect(x, y, barWidth, barHeight);
-    }
+  // Health bar rendering has been moved to the HealthBarPopup system
+  // This method is preserved for backwards compatibility but is no longer used
+  renderHealthBar(_entity: Entity, _alwaysShow: boolean = false): void {
+    // Health bars are now handled by the HealthBarPopup component
   }
 
   renderTowerRange(tower: Tower): void {
@@ -1444,13 +1404,13 @@ export class Renderer {
     // Render towers with health bars
     towers.forEach(tower => {
       this.renderTower(tower, tower === selectedTower);
-      this.renderHealthBar(tower, true); // Always show tower health
+      // Health bars are now handled by the HealthBarPopup system
     });
 
     // Render enemies with health bars
     enemies.forEach(enemy => {
       this.renderEnemy(enemy);
-      this.renderHealthBar(enemy, true); // Always show enemy health
+      // Health bars are now handled by the HealthBarPopup system
     });
 
     // Render collectibles
@@ -1466,7 +1426,7 @@ export class Renderer {
     // Render player with health bar
     if (player) {
       this.renderPlayer(player);
-      this.renderHealthBar(player, true); // Always show player health
+      // Health bars are now handled by the HealthBarPopup system
     }
 
     // Render aimer line

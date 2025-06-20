@@ -27,7 +27,7 @@ export async function setupGameUI(options: GameUIOptions): Promise<any> {
   console.log('Initializing simple UI system...');
   
   // Use the simple UI implementation
-  const cleanup = setupSimpleGameUI(game, audioManager || new AudioManager());
+  const cleanup = await setupSimpleGameUI(game, audioManager || new AudioManager());
   
   // Store cleanup function globally for cleanup
   (window as any).gameUICleanup = cleanup;
