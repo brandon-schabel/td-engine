@@ -1,12 +1,11 @@
-// Base components
-export { FloatingUIElement } from './FloatingUIElement';
+// Game UI Components
+export { MobileControls } from './MobileControls';
+export { PowerUpDisplay } from './SimplePowerUpDisplay';
+export { TouchIndicator } from './TouchIndicator';
 export { IconButton } from './IconButton';
 
-// Display components
-export { PowerUpDisplay } from './SimplePowerUpDisplay';
+// Re-export FloatingUIElement from the correct location
+export { FloatingUIElement } from '../../floating/FloatingUIElement';
 
-export { MobileControls } from './MobileControls';
-
-// Re-export types
-export type { FloatingUIElementOptions } from './FloatingUIElement';
-export type { IconButtonOptions } from './IconButton';
+// Export types
+export type { FloatingUIOptions } from '../../floating/types';

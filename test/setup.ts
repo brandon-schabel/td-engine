@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, beforeEach } from 'vitest';
 
 /**
  * Global test setup
@@ -23,7 +23,7 @@ global.performance = {
 // Mock localStorage for ScoreManager tests
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
-  
+
   return {
     getItem: vi.fn((key: string) => store[key] || null),
     setItem: vi.fn((key: string, value: string) => {
@@ -69,7 +69,7 @@ global.AudioContext = vi.fn(() => ({
     stop: vi.fn()
   })),
   createGain: vi.fn(() => ({
-    gain: { 
+    gain: {
       setValueAtTime: vi.fn(),
       linearRampToValueAtTime: vi.fn(),
       exponentialRampToValueAtTime: vi.fn()
@@ -117,6 +117,13 @@ global.HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   textBaseline: 'alphabetic',
   globalAlpha: 1,
   globalCompositeOperation: 'source-over'
+})) as any;
+
+// Mock ResizeObserver
+global.ResizeObserver = vi.fn(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
 })) as any;
 
 // Reset mocks before each test

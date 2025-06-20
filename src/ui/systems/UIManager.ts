@@ -27,29 +27,26 @@ export interface UIManagerOptions {
  */
 export class UIManager {
   private static instance: UIManager | null = null;
-  
+
   private popupManager: PopupManager;
   private dialogManager: DialogManager;
-  private camera: Camera;
   private initialized: boolean = false;
 
   constructor(options: UIManagerOptions) {
     const { camera, popupOptions = {} } = options;
-    
-    this.camera = camera;
-    
+
     // Initialize popup manager
     this.popupManager = new PopupManager(camera, {
       maxPopups: 50,
       enablePooling: true,
       ...popupOptions
     });
-    
+
     // Get dialog manager singleton
     this.dialogManager = DialogManager.getInstance();
-    
+
     this.initialized = true;
-    
+
     // Set as singleton instance
     UIManager.instance = this;
   }
@@ -69,7 +66,7 @@ export class UIManager {
       console.warn('[UIManager] Already initialized, returning existing instance');
       return UIManager.instance;
     }
-    
+
     return new UIManager(options);
   }
 
@@ -78,10 +75,10 @@ export class UIManager {
    */
   public update(): void {
     if (!this.initialized) return;
-    
+
     // Update popup manager
     this.popupManager.update();
-    
+
     // Dialog manager doesn't need regular updates
   }
 
@@ -89,7 +86,6 @@ export class UIManager {
    * Update camera reference for all UI systems
    */
   public setCamera(camera: Camera): void {
-    this.camera = camera;
     this.popupManager.setCamera(camera);
   }
 
@@ -221,14 +217,16 @@ export class UIManager {
    * Check if a dialog is visible
    */
   public isDialogVisible(dialogId: string): boolean {
-    return this.dialogManager.isVisible(dialogId);
+    const dialog = this.dialogManager.getDialog(dialogId);
+    return dialog ? dialog.isVisible() : false;
   }
 
   /**
    * Get the currently visible dialog ID
    */
   public getVisibleDialog(): string | null {
-    return this.dialogManager.getVisibleDialogId();
+    const openDialogs = this.dialogManager.getOpenDialogs();
+    return openDialogs.length > 0 ? openDialogs[openDialogs.length - 1] : null;
   }
 
   // === Direct Access (for advanced usage) ===
@@ -257,7 +255,7 @@ export class UIManager {
     this.hideAllDialogs();
     this.popupManager.destroy();
     this.initialized = false;
-    
+
     // Clear singleton reference
     if (UIManager.instance === this) {
       UIManager.instance = null;

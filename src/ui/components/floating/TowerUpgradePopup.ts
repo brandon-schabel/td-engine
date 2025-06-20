@@ -711,13 +711,13 @@ export class TowerUpgradePopup extends InteractiveEntityPopup {
     super.show();
 
     // Enable sell button after 1 second
-    const sellButtonTimeout = setTimeout(() => {
+    const sellButtonTimeout: number = setTimeout(() => {
       if (!this.destroyed && TowerUpgradePopup.activePopup === this) {
         this.sellButtonEnabled = true;
         this.updateSellButtonStyles();
         console.log('[TowerUpgradePopup] Sell button enabled');
       }
-    }, 1000);
+    }, 1000) as any;
     this.cleanupTimeouts.push(sellButtonTimeout);
 
     // Ensure proper styling and positioning

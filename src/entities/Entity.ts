@@ -18,6 +18,7 @@ export type DamageEvent = {
   amount: number;
   actualDamage: number;
   source?: Entity;
+  isCritical?: boolean;
 };
 
 export type DamageCallback = (event: DamageEvent) => void;
@@ -25,13 +26,14 @@ export type DamageCallback = (event: DamageEvent) => void;
 export class Entity {
   public readonly id: string;
   public readonly type: EntityType;
+  public readonly entityType: string;
   public position: Vector2;
   public velocity: Vector2;
   public health: number;
   public maxHealth: number;
   public radius: number;
   public isAlive: boolean;
-  
+
   // Damage event callback
   public onDamage?: DamageCallback;
 
@@ -43,6 +45,7 @@ export class Entity {
   ) {
     this.id = `${type}_${nextId++}`;
     this.type = type;
+    this.entityType = type;
     this.position = { ...position };
     this.velocity = { x: 0, y: 0 };
     this.health = maxHealth;
@@ -66,7 +69,7 @@ export class Entity {
     const previousHealth = this.health;
     this.health = Math.max(0, this.health - amount);
     const actualDamage = previousHealth - this.health;
-    
+
     // Trigger damage event callback
     if (this.onDamage && actualDamage > 0) {
       this.onDamage({
@@ -76,7 +79,7 @@ export class Entity {
         source
       });
     }
-    
+
     if (this.health === 0) {
       this.isAlive = false;
     }
@@ -90,7 +93,7 @@ export class Entity {
 
   moveTo(target: Vector2, speed: number): void {
     const distance = this.distanceTo(target);
-    
+
     if (distance < 1) {
       // Close enough to target, stop moving
       this.velocity = { x: 0, y: 0 };
@@ -100,7 +103,7 @@ export class Entity {
     // Calculate direction vector
     const direction = Vector2Utils.subtract(target, this.position);
     const normalizedDirection = Vector2Utils.normalize(direction);
-    
+
     // Set velocity
     this.velocity = Vector2Utils.multiply(normalizedDirection, speed);
   }

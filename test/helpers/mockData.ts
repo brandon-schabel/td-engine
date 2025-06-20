@@ -9,6 +9,7 @@ import type { InventoryItem } from '@/systems/Inventory';
 import { ItemType, ItemRarity, EquipmentSlot } from '@/systems/Inventory';
 import type { GameStats } from '@/systems/ScoreManager';
 import { BiomeType } from '@/types/MapData';
+import { vi } from 'vitest';
 
 export function createMockVector2(x: number = 0, y: number = 0): Vector2 {
   return { x, y };
@@ -20,7 +21,7 @@ export function createMockGrid(width: number = 10, height: number = 10, cellSize
 
 export function createMockGridWithPath(width: number = 10, height: number = 10): Grid {
   const grid = new Grid(width, height, 32);
-  
+
   // Create a simple L-shaped path
   const path: Vector2[] = [
     { x: 0, y: 5 },
@@ -35,7 +36,7 @@ export function createMockGridWithPath(width: number = 10, height: number = 10):
     { x: 5, y: 1 },
     { x: 5, y: 0 },
   ];
-  
+
   grid.setPath(path);
   return grid;
 }
@@ -106,23 +107,23 @@ export function createMockCooldownEntity(cooldownTime: number = 1000) {
   return {
     cooldownTime,
     currentCooldown: 0,
-    canPerformAction: function() { return this.currentCooldown <= 0; },
-    startCooldown: function() { this.currentCooldown = this.cooldownTime; },
+    canPerformAction: function () { return this.currentCooldown <= 0; },
+    startCooldown: function () { this.currentCooldown = this.cooldownTime; },
   };
 }
 
 export function createPathGrid(): { grid: Grid; start: Vector2; end: Vector2 } {
   const grid = new Grid(10, 10, 32);
-  
+
   // Set up a simple maze-like structure
   const obstacles = [
     { x: 2, y: 0 }, { x: 2, y: 1 }, { x: 2, y: 2 }, { x: 2, y: 3 },
     { x: 5, y: 2 }, { x: 5, y: 3 }, { x: 5, y: 4 }, { x: 5, y: 5 },
     { x: 7, y: 5 }, { x: 7, y: 6 }, { x: 7, y: 7 }, { x: 7, y: 8 },
   ];
-  
+
   obstacles.forEach(pos => grid.setCellType(pos.x, pos.y, CellType.OBSTACLE));
-  
+
   return {
     grid,
     start: { x: 0, y: 0 },
@@ -133,7 +134,7 @@ export function createPathGrid(): { grid: Grid; start: Vector2; end: Vector2 } {
 export function createMockEventEmitter<T extends Record<string, any>>() {
   const listeners = new Map<keyof T, Set<Function>>();
   const emitHistory: Array<{ event: keyof T; data: any }> = [];
-  
+
   return {
     on: vi.fn((event: keyof T, listener: Function) => {
       if (!listeners.has(event)) {
@@ -141,16 +142,16 @@ export function createMockEventEmitter<T extends Record<string, any>>() {
       }
       listeners.get(event)!.add(listener);
     }),
-    
+
     off: vi.fn((event: keyof T, listener: Function) => {
       listeners.get(event)?.delete(listener);
     }),
-    
+
     emit: vi.fn((event: keyof T, data: any) => {
       emitHistory.push({ event, data });
       listeners.get(event)?.forEach(listener => listener(data));
     }),
-    
+
     removeAllListeners: vi.fn((event?: keyof T) => {
       if (event) {
         listeners.delete(event);
@@ -158,7 +159,7 @@ export function createMockEventEmitter<T extends Record<string, any>>() {
         listeners.clear();
       }
     }),
-    
+
     getEmitHistory: () => emitHistory,
     getListenerCount: (event: keyof T) => listeners.get(event)?.size || 0,
   };

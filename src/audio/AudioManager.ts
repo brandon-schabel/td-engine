@@ -7,30 +7,32 @@ export enum SoundType {
   ENEMY_HIT = 'enemy_hit',
   ENEMY_DEATH = 'enemy_death',
   PLAYER_HIT = 'player_hit',
-  
+
   // Tower sounds
   TOWER_PLACE = 'tower_place',
   TOWER_UPGRADE = 'tower_upgrade',
   TOWER_DESTROY = 'tower_destroy',
-  
+  UPGRADE = 'upgrade',
+  SELL = 'sell',
+
   // UI sounds
   BUTTON_CLICK = 'button_click',
   BUTTON_HOVER = 'button_hover',
   SELECT = 'select',
   DESELECT = 'deselect',
   ERROR = 'error',
-  
+
   // Game state sounds
   WAVE_START = 'wave_start',
   WAVE_COMPLETE = 'wave_complete',
   GAME_OVER = 'game_over',
   VICTORY = 'victory',
-  
+
   // Pickup sounds
   HEALTH_PICKUP = 'health_pickup',
   CURRENCY_PICKUP = 'currency_pickup',
   POWERUP_PICKUP = 'powerup_pickup',
-  
+
   // Player sounds
   PLAYER_LEVEL_UP = 'player_level_up',
   PLAYER_HEAL = 'player_heal',
@@ -78,28 +80,28 @@ export class AudioManager {
         sampleRate: 44100,
         createOscillator: () => ({
           type: 'sine',
-          frequency: { value: 440, setValueAtTime: () => {} },
-          connect: () => {},
-          start: () => {},
-          stop: () => {},
+          frequency: { value: 440, setValueAtTime: () => { } },
+          connect: () => { },
+          start: () => { },
+          stop: () => { },
           onended: null,
-          addEventListener: () => {},
-          removeEventListener: () => {}
+          addEventListener: () => { },
+          removeEventListener: () => { }
         }),
         createGain: () => ({
-          gain: { value: 1, setValueAtTime: () => {} },
-          connect: () => {}
+          gain: { value: 1, setValueAtTime: () => { } },
+          connect: () => { }
         }),
         close: () => Promise.resolve()
       } as any;
     }
-    
+
     // Resume audio context on first user interaction (required by browsers)
     if (typeof document !== 'undefined') {
       document.addEventListener('click', () => this.resumeAudioContext(), { once: true });
       document.addEventListener('keydown', () => this.resumeAudioContext(), { once: true });
     }
-    
+
     this.initializeSounds();
   }
 
@@ -208,6 +210,53 @@ export class AudioManager {
           volume: 0.4,
           type: 'triangle',
           envelope: { attack: 0.02, decay: 0.08, sustain: 0.5, release: 0.1 }
+        }
+      ]
+    });
+
+    // Add UPGRADE sound (alias for TOWER_UPGRADE)
+    this.soundConfigs.set(SoundType.UPGRADE, {
+      sequence: [
+        {
+          frequency: 523, // C5
+          duration: 0.1,
+          volume: 0.3,
+          type: 'sine',
+          envelope: { attack: 0.01, decay: 0.03, sustain: 0.6, release: 0.06 }
+        },
+        {
+          frequency: 659, // E5
+          duration: 0.1,
+          volume: 0.3,
+          type: 'sine',
+          envelope: { attack: 0.01, decay: 0.03, sustain: 0.6, release: 0.06 }
+        },
+        {
+          frequency: 784, // G5
+          duration: 0.2,
+          volume: 0.4,
+          type: 'triangle',
+          envelope: { attack: 0.02, decay: 0.08, sustain: 0.5, release: 0.1 }
+        }
+      ]
+    });
+
+    // Add SELL sound
+    this.soundConfigs.set(SoundType.SELL, {
+      sequence: [
+        {
+          frequency: 440, // A4
+          duration: 0.1,
+          volume: 0.3,
+          type: 'square',
+          envelope: { attack: 0.01, decay: 0.04, sustain: 0.4, release: 0.05 }
+        },
+        {
+          frequency: 330, // E4
+          duration: 0.15,
+          volume: 0.4,
+          type: 'sawtooth',
+          envelope: { attack: 0.02, decay: 0.06, sustain: 0.3, release: 0.07 }
         }
       ]
     });
@@ -501,12 +550,12 @@ export class AudioManager {
     // More aggressive throttling for shooting sounds to prevent audio getting stuck
     const now = this.audioContext.currentTime;
     const lastTime = this.lastSoundTime.get(soundType) || 0;
-    
+
     // Extra throttling for shooting sounds
     const minInterval = (soundType === SoundType.PLAYER_SHOOT || soundType === SoundType.TOWER_SHOOT)
       ? AUDIO_SYSTEM.shootingSoundInterval // 200ms minimum between shooting sounds
       : AUDIO_SYSTEM.minSoundInterval; // Default 50ms
-    
+
     if (now - lastTime < minInterval) {
       return;
     }
@@ -536,7 +585,7 @@ export class AudioManager {
 
   private playSequence(sequence: SoundConfig[], volumeMultiplier: number): void {
     let currentTime = this.audioContext.currentTime;
-    
+
     sequence.forEach(config => {
       this.playSingleSound(config, volumeMultiplier, currentTime);
       currentTime += (config.duration || 0.1) + 0.02; // Small gap between sounds
@@ -559,7 +608,7 @@ export class AudioManager {
 
     // Create gain node for volume control
     const gainNode = this.audioContext.createGain();
-    
+
     // SIMPLIFIED: Just basic volume fade without complex envelopes
     gainNode.gain.setValueAtTime(volume, currentTime);
     gainNode.gain.linearRampToValueAtTime(0, currentTime + duration);
@@ -625,10 +674,10 @@ export class AudioManager {
 
     // Calculate pan based on horizontal position relative to viewport center
     // const panValue = Math.max(-1, Math.min(1, (position.x - viewportCenter.x) / AUDIO_SYSTEM.spatialAudio.panDivisor));
-    
+
     // Calculate volume based on distance from center
     const distance = Math.sqrt(
-      Math.pow(position.x - viewportCenter.x, 2) + 
+      Math.pow(position.x - viewportCenter.x, 2) +
       Math.pow(position.y - viewportCenter.y, 2)
     );
     const maxDistance = AUDIO_SYSTEM.spatialAudio.maxDistance; // Max distance for audio falloff

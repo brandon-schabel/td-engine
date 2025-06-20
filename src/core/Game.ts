@@ -45,7 +45,6 @@ import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
 import { UIManager } from "@/ui/systems/UIManager";
 import { PopupManager } from "@/ui/systems/PopupManager";
-import { DamageType } from "@/ui/components/floating/DamageNumberPopup";
 import { TowerUpgradePopup } from "@/ui/components/floating/TowerUpgradePopup";
 import { FloatingUIManager, FloatingUIElement, createHealthBar, updateHealthBar } from "@/ui/floating";
 
@@ -85,6 +84,7 @@ export class Game {
   private equipment: EquipmentManager;
   private uiManager: UIManager;
   private floatingUIManager: FloatingUIManager;
+  private powerUpDisplay: any = null; // Reference to PowerUpDisplay for notifications
 
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
@@ -94,7 +94,7 @@ export class Game {
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
-  
+
   // Health bar management
   private entityHealthBars: Map<string, FloatingUIElement> = new Map();
 
@@ -215,10 +215,10 @@ export class Game {
     // Add damage callback for player
     this.player.onDamage = (event) => {
       if (event) {
-        this.uiManager.showTypedDamage(
+        this.floatingUIManager.createDamageNumber(
           event.entity,
           event.actualDamage,
-          DamageType.NORMAL
+          'normal'
         );
       }
     };
@@ -498,16 +498,16 @@ export class Game {
       // Add damage callback for floating damage numbers
       enemy.onDamage = (event) => {
         if (event) {
-          this.uiManager.showTypedDamage(
+          this.floatingUIManager.createDamageNumber(
             event.entity,
             event.actualDamage,
-            DamageType.NORMAL
+            event.isCritical ? 'critical' : 'normal'
           );
         }
       };
 
       this.enemies.push(enemy);
-      
+
       // Create health bar for the enemy
       this.createHealthBarForEntity(enemy);
     });
@@ -590,27 +590,63 @@ export class Game {
     this.collectibles.forEach((collectible) => {
       collectible.update(deltaTime);
       if (collectible.tryCollectByPlayer(this.player)) {
-        // Generate item for inventory
-        const item = Collectible.generateItemFromCollectible(
-          collectible.collectibleType
-        );
-
-        // Try to add to inventory first
-        if (this.inventory.addItem(item)) {
-          // Item added to inventory successfully
+        // Check if this was a health pickup to show heal number
+        if (collectible.isHealthPickup()) {
+          // Show healing number (health pickups heal for 25)
+          this.floatingUIManager.createDamageNumber(
+            this.player,
+            25,
+            'heal'
+          );
+          this.audioHandler.playHealthPickup();
+        } else if (collectible.collectibleType === CollectibleType.EXTRA_CURRENCY) {
+          // Handle currency collectibles
           this.audioHandler.playPowerUpPickup();
-          this.showItemPickupNotification(item);
+          this.addCurrency(CURRENCY_CONFIG.powerUpBonus);
+        } else if (collectible.isPowerUp()) {
+          // Handle direct power-up collectibles
+          this.audioHandler.playPowerUpPickup();
+
+          // Show power-up notification
+          if (this.powerUpDisplay && this.powerUpDisplay.showPowerUpNotification) {
+            const config = (collectible as any).config; // Access the config
+            const duration = config?.duration || 10000; // Default 10 seconds
+
+            // Map collectible type to power-up notification type
+            let powerUpType = '';
+            switch (collectible.collectibleType) {
+              case CollectibleType.EXTRA_DAMAGE:
+                powerUpType = 'EXTRA_DAMAGE';
+                break;
+              case CollectibleType.SPEED_BOOST:
+                powerUpType = 'SPEED_BOOST';
+                break;
+              case CollectibleType.FASTER_SHOOTING:
+                powerUpType = 'FASTER_SHOOTING';
+                break;
+              case CollectibleType.SHIELD:
+                powerUpType = 'SHIELD';
+                break;
+              default:
+                powerUpType = 'EXTRA_DAMAGE';
+            }
+
+            this.powerUpDisplay.showPowerUpNotification(powerUpType, duration);
+          }
         } else {
-          // Inventory full, apply immediate effect instead
-          this.showInventoryFullNotification(item);
-          if (collectible.isHealthPickup()) {
-            this.audioHandler.playHealthPickup();
-          } else if (
-            collectible.collectibleType === CollectibleType.EXTRA_CURRENCY
-          ) {
+          // Generate item for inventory for other collectibles
+          const item = Collectible.generateItemFromCollectible(
+            collectible.collectibleType
+          );
+
+          // Try to add to inventory first
+          if (this.inventory.addItem(item)) {
+            // Item added to inventory successfully
             this.audioHandler.playPowerUpPickup();
-            this.addCurrency(CURRENCY_CONFIG.powerUpBonus);
+            this.showItemPickupNotification(item);
           } else {
+            // Inventory full, apply immediate effect instead
+            this.showInventoryFullNotification(item);
             this.audioHandler.playPowerUpPickup();
           }
         }
@@ -635,7 +671,7 @@ export class Game {
       if (!tower.isAlive) {
         // Remove health bar
         this.removeHealthBarForEntity(tower);
-        
+
         // If this was the selected tower with an open popup, close it
         if (this.selectedTower === tower && this.currentTowerUpgradePopup) {
           this.uiManager.removePopup(this.currentTowerUpgradePopup);
@@ -830,7 +866,7 @@ export class Game {
     };
 
     this.towers.push(tower);
-    
+
     // Create health bar for the tower
     this.createHealthBarForEntity(tower);
 
@@ -862,7 +898,7 @@ export class Game {
       autoHide: false, // Always show for main entities
       mobileScale: 0.8
     });
-    
+
     // Set initial content and target
     healthBar
       .setContent(createHealthBar(entity.health, entity.maxHealth, {
@@ -873,7 +909,7 @@ export class Game {
       }))
       .setTarget(entity)
       .enable();
-    
+
     // Store reference for updates
     this.entityHealthBars.set(entity.id, healthBar);
   }
@@ -887,22 +923,22 @@ export class Game {
     this.entityHealthBars.forEach((healthBar, entityId) => {
       // Find the entity
       let entity: Entity | null = null;
-      
+
       // Check player
       if (this.player.id === entityId) {
         entity = this.player;
       }
-      
+
       // Check enemies
       if (!entity) {
         entity = this.enemies.find(e => e.id === entityId) || null;
       }
-      
+
       // Check towers
       if (!entity) {
         entity = this.towers.find(t => t.id === entityId) || null;
       }
-      
+
       // Update health bar if entity found
       if (entity && healthBar.getElement()) {
         updateHealthBar(healthBar.getElement(), entity.health, entity.maxHealth);
@@ -1681,6 +1717,11 @@ export class Game {
     return this.floatingUIManager;
   }
 
+  // Set PowerUpDisplay reference for notifications
+  setPowerUpDisplay(powerUpDisplay: any): void {
+    this.powerUpDisplay = powerUpDisplay;
+  }
+
   // Map generation methods
   getCurrentMapData(): MapData {
     return this.currentMapData;
@@ -1958,6 +1999,12 @@ export class Game {
         if (metadata.healAmount) {
           this.player.heal(metadata.healAmount);
           this.audioManager.playSound(SoundType.HEALTH_PICKUP);
+          // Show healing number
+          this.floatingUIManager.createDamageNumber(
+            this.player,
+            metadata.healAmount,
+            'heal'
+          );
           return true;
         }
         break;
@@ -1969,6 +2016,12 @@ export class Game {
             metadata.duration
           );
           this.audioManager.playSound(SoundType.POWERUP_PICKUP);
+
+          // Show power-up notification
+          if (this.powerUpDisplay && this.powerUpDisplay.showPowerUpNotification) {
+            this.powerUpDisplay.showPowerUpNotification('EXTRA_DAMAGE', metadata.duration);
+          }
+
           return true;
         }
         break;
@@ -1980,6 +2033,12 @@ export class Game {
             metadata.duration
           );
           this.audioManager.playSound(SoundType.POWERUP_PICKUP);
+
+          // Show power-up notification
+          if (this.powerUpDisplay && this.powerUpDisplay.showPowerUpNotification) {
+            this.powerUpDisplay.showPowerUpNotification('SPEED_BOOST', metadata.duration);
+          }
+
           return true;
         }
         break;
@@ -1988,6 +2047,12 @@ export class Game {
         if (metadata.duration) {
           this.player.addShield(metadata.duration);
           this.audioManager.playSound(SoundType.POWERUP_PICKUP);
+
+          // Show power-up notification
+          if (this.powerUpDisplay && this.powerUpDisplay.showPowerUpNotification) {
+            this.powerUpDisplay.showPowerUpNotification('SHIELD', metadata.duration);
+          }
+
           return true;
         }
         break;
@@ -2090,6 +2155,15 @@ export class Game {
 
   // Show item pickup notification
   private showItemPickupNotification(item: InventoryItem): void {
+    // Use PowerUpDisplay if available, otherwise fallback to old method
+    if (this.powerUpDisplay && this.powerUpDisplay.showItemPickupNotification) {
+      this.powerUpDisplay.showItemPickupNotification(item.name, item.type);
+      return;
+    }
+
+    // Fallback to old notification method
+    console.warn('[Game] PowerUpDisplay not available, using fallback notification');
+
     // Create a simple notification element
     const notification = document.createElement("div");
     notification.style.cssText = `
@@ -2172,6 +2246,15 @@ export class Game {
 
   // Show inventory full notification
   private showInventoryFullNotification(item: InventoryItem): void {
+    // Use PowerUpDisplay if available, otherwise fallback to old method
+    if (this.powerUpDisplay && this.powerUpDisplay.showInventoryFullNotification) {
+      this.powerUpDisplay.showInventoryFullNotification(item.name);
+      return;
+    }
+
+    // Fallback to old notification method
+    console.warn('[Game] PowerUpDisplay not available, using fallback notification');
+
     const notification = document.createElement("div");
     notification.style.cssText = `
       position: fixed;
@@ -2338,5 +2421,13 @@ export class Game {
       console.log("Green crosshair = screen center, Yellow circle = player position");
       console.log("Red dashed line = distance from center to player");
     }
+  }
+
+  getEnemiesRemaining(): number {
+    return this.enemies.length;
+  }
+
+  isWaveActive(): boolean {
+    return this.waveManager.isWaveActive();
   }
 }

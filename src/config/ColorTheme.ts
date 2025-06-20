@@ -105,6 +105,12 @@ export const COLOR_THEME = {
       enemy: '#ff0000',
       background: 'rgba(0, 0, 0, 0.7)',
     },
+    health: {
+      high: '#4CAF50',
+      medium: '#FF9800',
+      low: '#F44336',
+      critical: '#ff0000',
+    },
     currency: '#ffd700',
     score: '#ffffff',
     wave: '#ff8c00',

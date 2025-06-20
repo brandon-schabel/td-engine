@@ -1,6 +1,7 @@
 /**
  * Custom assertion helpers for unit tests
  */
+import { expect, vi } from 'vitest';
 
 export function assertVector2Equal(
   actual: { x: number; y: number },
@@ -40,14 +41,14 @@ export function assertPathIsValid(
   expect(path.length).toBeGreaterThan(0);
   assertVector2Equal(path[0], start);
   assertVector2Equal(path[path.length - 1], end);
-  
+
   // Check that each step is adjacent to the previous
   for (let i = 1; i < path.length; i++) {
     const prev = path[i - 1];
     const curr = path[i];
     const dx = Math.abs(curr.x - prev.x);
     const dy = Math.abs(curr.y - prev.y);
-    
+
     // Should move at most 1 cell in any direction
     expect(dx).toBeLessThanOrEqual(1);
     expect(dy).toBeLessThanOrEqual(1);
