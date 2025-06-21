@@ -6,10 +6,10 @@ import { FloatingUIManager } from './index';
 import { ItemType } from '@/systems/Inventory';
 import { ItemSlot } from '../components/inventory/SimpleItemSlot';
 import { ItemTooltip } from '../components/inventory/SimpleItemTooltip';
-import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
-import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
 import { isMobile, isTablet } from '@/config/ResponsiveConfig';
+import { createDialogHeader, createTabBar, createButton, type Tab } from '@/ui/elements';
 
 export class InventoryUI {
   private floatingUI: FloatingUIManager;
@@ -117,62 +117,94 @@ export class InventoryUI {
     if (!this.element) return;
 
     const content = document.createElement('div');
-    content.className = 'inventory-dialog';
+    content.className = 'inventory-dialog ui-dialog';
     
-    content.innerHTML = `
-      <div class="inventory-header">
-        <h2 class="inventory-title">Inventory</h2>
-        <button class="ui-button inventory-close" aria-label="Close inventory">✕</button>
-      </div>
-      
-      <div class="inventory-tabs" id="inventory-tabs"></div>
-      <div class="inventory-grid" id="inventory-grid" data-columns="${isMobile(window.innerWidth) ? 4 : isTablet(window.innerWidth) ? 6 : 8}"></div>
-      
-      <div class="inventory-footer">
-        <div class="inventory-stats" id="inventory-stats">0/0 slots</div>
-        <div class="inventory-actions">
-          <button class="ui-button action-button" id="sort-button">
-            ${createSvgIcon(IconType.UPGRADE, { size: 16 })}
-            Sort
-          </button>
-          <button class="ui-button action-button use-button" id="use-button" disabled>
-            ${createSvgIcon(IconType.CHECKMARK, { size: 16 })}
-            Use
-          </button>
-          <button class="ui-button action-button upgrade-button" id="upgrade-button">
-            ${createSvgIcon(IconType.UPGRADE, { size: 16 })}
-            <span id="upgrade-button-text">Upgrade</span>
-          </button>
-        </div>
-      </div>
-    `;
+    // Create header with close button
+    const header = createDialogHeader('Inventory', () => this.close());
+    content.appendChild(header);
+    
+    // Create tabs section
+    const tabsContainer = document.createElement('div');
+    tabsContainer.id = 'inventory-tabs';
+    tabsContainer.className = 'inventory-tabs';
+    content.appendChild(tabsContainer);
+    
+    // Create inventory grid
+    const grid = document.createElement('div');
+    grid.id = 'inventory-grid';
+    grid.className = 'inventory-grid';
+    grid.dataset.columns = String(isMobile(window.innerWidth) ? 4 : isTablet(window.innerWidth) ? 6 : 8);
+    content.appendChild(grid);
+    
+    // Create footer
+    const footer = document.createElement('div');
+    footer.className = 'inventory-footer';
+    
+    // Stats display
+    const stats = document.createElement('div');
+    stats.className = 'inventory-stats';
+    stats.id = 'inventory-stats';
+    stats.textContent = '0/0 slots';
+    footer.appendChild(stats);
+    
+    // Action buttons container
+    const actions = document.createElement('div');
+    actions.className = 'inventory-actions';
+    
+    // Sort button
+    const sortButton = createButton({
+      id: 'sort-button',
+      text: 'Sort',
+      icon: IconType.UPGRADE,
+      iconSize: 16,
+      size: 'sm',
+      variant: 'secondary',
+      customClasses: ['action-button'],
+      onClick: () => this.handleSort()
+    });
+    actions.appendChild(sortButton);
+    
+    // Use button
+    const useButton = createButton({
+      id: 'use-button',
+      text: 'Use',
+      icon: IconType.CHECKMARK,
+      iconSize: 16,
+      size: 'sm',
+      variant: 'secondary',
+      disabled: true,
+      customClasses: ['action-button', 'use-button'],
+      onClick: () => this.handleUse()
+    });
+    actions.appendChild(useButton);
+    
+    // Upgrade button - we'll update the text dynamically
+    const upgradeButton = createButton({
+      id: 'upgrade-button',
+      text: 'Upgrade',
+      icon: IconType.UPGRADE,
+      iconSize: 16,
+      size: 'sm',
+      variant: 'secondary',
+      customClasses: ['action-button', 'upgrade-button'],
+      onClick: () => this.handleUpgrade()
+    });
+    
+    // Store reference to the text span inside the button for dynamic updates
+    const textSpan = upgradeButton.querySelector('span');
+    if (textSpan) {
+      textSpan.id = 'upgrade-button-text';
+    }
+    
+    actions.appendChild(upgradeButton);
+    footer.appendChild(actions);
+    content.appendChild(footer);
 
     // Create tabs
     this.createTabs(content);
     
     // Create item slots
     this.createItemSlots(content);
-    
-    // Add event listeners
-    const closeButton = content.querySelector('.inventory-close');
-    if (closeButton) {
-      addClickAndTouchSupport(closeButton as HTMLElement, () => this.close());
-    }
-    
-    const sortButton = content.querySelector('#sort-button');
-    if (sortButton) {
-      addClickAndTouchSupport(sortButton as HTMLElement, () => this.handleSort());
-    }
-    
-    const useButton = content.querySelector('#use-button');
-    if (useButton) {
-      addClickAndTouchSupport(useButton as HTMLElement, () => this.handleUse());
-    }
-    
-    const upgradeButton = content.querySelector('#upgrade-button');
-    if (upgradeButton) {
-      addClickAndTouchSupport(upgradeButton as HTMLElement, () => this.handleUpgrade());
-    }
     
     // Add touch swipe support
     if ('ontouchstart' in window) {
@@ -191,25 +223,28 @@ export class InventoryUI {
     const tabsContainer = container.querySelector('#inventory-tabs');
     if (!tabsContainer) return;
     
-    const tabData = [
-      { id: 'ALL', name: 'All', icon: IconType.BUILD },
-      { id: ItemType.CONSUMABLE, name: 'Items', icon: IconType.HEALTH },
-      { id: ItemType.EQUIPMENT, name: 'Gear', icon: IconType.SHIELD },
-      { id: ItemType.MATERIAL, name: 'Mats', icon: IconType.UPGRADE },
-      { id: ItemType.SPECIAL, name: 'Special', icon: IconType.CROWN }
+    const tabs: Tab[] = [
+      { id: 'ALL', label: 'All', icon: IconType.BUILD },
+      { id: ItemType.CONSUMABLE, label: 'Items', icon: IconType.HEALTH },
+      { id: ItemType.EQUIPMENT, label: 'Gear', icon: IconType.SHIELD },
+      { id: ItemType.MATERIAL, label: 'Mats', icon: IconType.UPGRADE },
+      { id: ItemType.SPECIAL, label: 'Special', icon: IconType.CROWN }
     ];
     
-    tabData.forEach((tab) => {
-      const tabButton = document.createElement('button');
-      tabButton.className = `inventory-tab ${this.activeTab === tab.id ? 'active' : ''}`;
-      tabButton.innerHTML = `${createSvgIcon(tab.icon, { size: 20 })}<span>${tab.name}</span>`;
-      
-      addClickAndTouchSupport(tabButton, () => {
-        this.setActiveTab(tab.id as any);
-      });
-      
-      tabsContainer.appendChild(tabButton);
+    const tabBar = createTabBar({
+      tabs,
+      defaultTabId: this.activeTab,
+      variant: 'pills',
+      size: 'sm',
+      fullWidth: true,
+      showContent: false,
+      onChange: (tabId) => {
+        this.setActiveTab(tabId as ItemType | 'ALL');
+      },
+      customClasses: ['inventory-tab-bar']
     });
+    
+    tabsContainer.appendChild(tabBar);
   }
 
   private createItemSlots(container: HTMLElement): void {
@@ -265,17 +300,8 @@ export class InventoryUI {
     this.activeTab = tab;
     this.currentTabIndex = this.tabOrder.indexOf(tab);
     
-    // Update tab styles
-    const tabs = document.querySelectorAll('[data-tab-id]');
-    tabs.forEach((tabElement) => {
-      const isActive = tabElement.getAttribute('data-tab-id') === tab;
-      if (isActive) {
-        tabElement.classList.remove('outline');
-      } else {
-        tabElement.classList.add('outline');
-      }
-    });
-    
+    // The tab bar component manages its own styling through the onChange callback
+    // We just need to update the slots visibility
     this.updateSlots();
   }
 
@@ -313,10 +339,12 @@ export class InventoryUI {
         
         // Update visibility based on tab (this is fast)
         const shouldShow = this.shouldShowItem(item);
-        const currentDisplay = slot.getElement().style.display;
-        const newDisplay = shouldShow ? 'block' : 'none';
-        if (currentDisplay !== newDisplay) {
-          slot.getElement().style.display = newDisplay;
+        const element = slot.getElement();
+        const isHidden = element.classList.contains('hidden');
+        if (shouldShow && isHidden) {
+          element.classList.remove('hidden');
+        } else if (!shouldShow && !isHidden) {
+          element.classList.add('hidden');
         }
         
         // Update selection state only if needed
@@ -332,8 +360,9 @@ export class InventoryUI {
         if (slot.getItem() !== null) {
           slot.setItem(null);
         }
-        if (slot.getElement().style.display !== 'none') {
-          slot.getElement().style.display = 'none';
+        const element = slot.getElement();
+        if (!element.classList.contains('hidden')) {
+          element.classList.add('hidden');
         }
       }
     });

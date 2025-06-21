@@ -1,58 +1,21 @@
 import { styleManager } from './StyleManager';
 
 const componentStyles = `
-  /* Tower Card Styles */
+  /* Tower Card Styles - Using utility classes as base */
   .tower-card {
-    background: linear-gradient(135deg, rgba(33, 37, 41, 0.95) 0%, rgba(40, 44, 48, 0.95) 100%);
-    border: 2px solid var(--color-border-subtle);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    cursor: pointer;
-    transition: all var(--duration-cardHover) var(--easing-smooth);
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .tower-card::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-      45deg,
-      transparent 30%,
-      rgba(255, 255, 255, 0.05) 50%,
-      transparent 70%
-    );
-    transform: rotate(45deg) translateX(-100%);
-    transition: transform 0.6s ease;
-  }
-
-  .tower-card:hover::before {
-    transform: rotate(45deg) translateX(100%);
-  }
-
-  .tower-card:hover {
-    border-color: var(--color-button-primary);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    background: linear-gradient(135deg, rgba(40, 44, 48, 0.98) 0%, rgba(48, 52, 56, 0.98) 100%);
+    /* Extends: ui-card hover-lift ui-shimmer */
+    box-shadow: var(--shadow-md);
   }
 
   .tower-card.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: grayscale(0.5);
+    /* Extends: ui-disabled */
   }
 
   .tower-card.disabled:hover {
     border-color: var(--color-border-subtle);
     transform: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    background: linear-gradient(135deg, rgba(33, 37, 41, 0.95) 0%, rgba(40, 44, 48, 0.95) 100%);
+    box-shadow: var(--shadow-md);
+    background: var(--gradient-card-default);
   }
 
   .tower-card.disabled::before {
@@ -91,7 +54,7 @@ const componentStyles = `
 
   .tower-card-name {
     font-size: var(--font-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     text-align: center;
     margin-bottom: var(--spacing-xs);
     color: var(--color-text-primary);
@@ -100,7 +63,7 @@ const componentStyles = `
   }
 
   .tower-card:hover .tower-card-name {
-    color: var(--color-button-primary);
+    color: var(--color-primary);
   }
 
   .tower-card-cost {
@@ -110,9 +73,9 @@ const componentStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.3);
+    gap: var(--spacing-1);
+    padding: var(--spacing-1) var(--spacing-2);
+    background: rgba(0, 0, 0, var(--opacity-30));
     border-radius: var(--radius-sm);
     margin: 0 auto;
     width: fit-content;
@@ -120,7 +83,7 @@ const componentStyles = `
   }
 
   .tower-card:hover .tower-card-cost {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, var(--opacity-50));
     transform: scale(1.05);
   }
 
@@ -135,7 +98,7 @@ const componentStyles = `
     position: absolute;
     width: 100%;
     height: 4px;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, var(--opacity-30));
     border-radius: 2px;
     overflow: hidden;
   }
@@ -149,7 +112,7 @@ const componentStyles = `
 
   .floating-healthbar .healthbar-container,
   .entity-healthbar .healthbar-container {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-sm);
   }
 
   .health-bar-fill {
@@ -168,42 +131,22 @@ const componentStyles = `
 
   /* Inventory Styles */
   .inventory-dialog {
-    padding: var(--spacing-lg);
-    background: var(--color-surface-secondary);
-    border: 2px solid var(--color-border-default);
-    border-radius: 8px;
+    /* Extends: ui-dialog */
     width: 600px;
     max-width: 90vw;
     max-height: 90vh;
-    display: flex;
-    flex-direction: column;
   }
   
   .inventory-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-lg);
+    /* Extends: ui-header */
   }
   
   .inventory-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--color-text-primary);
+    /* Extends: ui-title-lg */
   }
   
   .inventory-close {
-    background: var(--color-button-danger) !important;
-    color: white !important;
-    border: none;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  
-  .inventory-close:hover {
-    opacity: 0.8;
+    /* Extends: ui-button danger */
   }
 
   .inventory-grid {
@@ -291,18 +234,19 @@ const componentStyles = `
   }
   
   .action-button {
-    padding: var(--spacing-sm) var(--spacing-md) !important;
+    /* Extends: ui-button sm */
     display: flex;
     align-items: center;
     gap: 4px;
-    transition: all 0.2s;
   }
   
   .action-button.use-button {
+    /* Custom color */
     background: #2196F3 !important;
   }
   
   .action-button.upgrade-button {
+    /* Custom color */
     background: #FFC107 !important;
   }
 
@@ -364,7 +308,7 @@ const componentStyles = `
     bottom: 2px;
     right: 2px;
     font-size: 10px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     color: #FFD700;
     background-color: rgba(0, 0, 0, 0.8);
     padding: 2px 4px;
@@ -406,18 +350,18 @@ const componentStyles = `
     padding: var(--spacing-md);
     background: rgba(0, 0, 0, 0.2);
     border-radius: var(--radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: var(--border-width-default) solid rgba(255, 255, 255, 0.05);
   }
 
   .stat-item {
+    /* Extends: ui-card */
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
     background: rgba(255, 255, 255, 0.02);
     padding: var(--spacing-sm);
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all var(--duration-cardHover) var(--easing-smooth);
+    border: var(--border-width-default) solid rgba(255, 255, 255, 0.05);
   }
 
   .stat-item:hover {
@@ -427,8 +371,7 @@ const componentStyles = `
   }
 
   .stat-label {
-    font-size: var(--font-sm);
-    color: var(--color-text-secondary);
+    /* Extends: ui-stat-label */
     text-transform: uppercase;
     letter-spacing: 0.05em;
     display: flex;
@@ -437,9 +380,8 @@ const componentStyles = `
   }
 
   .stat-value {
+    /* Extends: ui-stat-value */
     font-size: var(--font-lg);
-    font-weight: 600;
-    color: var(--color-text-primary);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
@@ -535,15 +477,8 @@ const componentStyles = `
   }
 
   .resource-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-md);
-    backdrop-filter: blur(10px);
-    border: 2px solid var(--color-border-primary);
-    font-weight: bold;
+    /* Extends: ui-resource-item ui-backdrop-blur */
+    font-weight: var(--font-weight-bold);
     font-size: 16px;
     width: fit-content;
     min-width: 120px;
@@ -551,15 +486,12 @@ const componentStyles = `
   }
 
   .resource-icon {
-    width: 24px;
-    height: 24px;
+    /* Extends: ui-resource-icon */
     font-size: 20px;
   }
 
   .resource-value {
-    font-size: var(--font-lg);
-    font-weight: 600;
-    color: var(--color-text-primary);
+    /* Extends: ui-resource-value */
   }
 
   /* Build Menu Specific Styles */
@@ -590,6 +522,7 @@ const componentStyles = `
   }
 
   .build-menu-ui .ui-dialog-title {
+    /* Extends: ui-gradient-text */
     background: linear-gradient(90deg, var(--color-button-primary) 0%, #5a7fdb 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -603,7 +536,7 @@ const componentStyles = `
 
   .build-menu-ui .resource-item {
     background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.2) 100%);
-    border: 1px solid rgba(76, 175, 80, 0.3);
+    border: var(--border-width-default) solid rgba(76, 175, 80, 0.3);
     border-radius: var(--radius-md);
     padding: var(--spacing-sm) var(--spacing-md);
     margin: var(--spacing-md) auto;
@@ -749,7 +682,7 @@ const componentStyles = `
   /* Tooltip Styles */
   .game-tooltip {
     background-color: var(--color-surface-tooltip);
-    border: 1px solid var(--color-border-primary);
+    border: var(--border-width-default) solid var(--color-border-primary);
     border-radius: var(--radius-sm);
     padding: var(--spacing-sm);
     max-width: 250px;
@@ -758,7 +691,7 @@ const componentStyles = `
 
   .tooltip-title {
     font-size: var(--font-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--spacing-xs);
   }
@@ -788,7 +721,7 @@ const componentStyles = `
 
   .tooltip-stat-value {
     color: var(--color-text-primary);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   /* Upgrade UI Styles */
@@ -797,6 +730,7 @@ const componentStyles = `
   }
 
   .player-upgrade-ui .ui-dialog-title {
+    /* Extends: ui-gradient-text */
     background: linear-gradient(90deg, var(--color-status-success) 0%, #45a049 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -825,15 +759,9 @@ const componentStyles = `
   }
 
   .upgrade-node {
+    /* Extends: ui-card hover-lift */
     background: linear-gradient(135deg, rgba(40, 44, 48, 0.9) 0%, rgba(48, 52, 56, 0.9) 100%);
-    border: 2px solid var(--color-border-subtle);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
     text-align: center;
-    cursor: pointer;
-    transition: all var(--duration-cardHover) var(--easing-smooth);
-    position: relative;
-    overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
@@ -855,7 +783,6 @@ const componentStyles = `
 
   .upgrade-node:hover:not(.locked) {
     border-color: var(--color-button-primary);
-    transform: translateY(-4px) scale(1.02);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   }
 
@@ -878,7 +805,7 @@ const componentStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
@@ -909,7 +836,7 @@ const componentStyles = `
 
   .upgrade-name {
     font-size: var(--font-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     margin-bottom: var(--spacing-xs);
     color: var(--color-text-primary);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -928,16 +855,7 @@ const componentStyles = `
   }
 
   .upgrade-cost {
-    font-size: var(--font-sm);
-    color: var(--color-text-warning);
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    background: rgba(255, 152, 0, 0.1);
-    border: 1px solid rgba(255, 152, 0, 0.3);
-    border-radius: var(--radius-sm);
+    /* Extends: ui-cost */
     transition: all var(--duration-cardHover) var(--easing-smooth);
   }
 
@@ -949,23 +867,12 @@ const componentStyles = `
 
   /* Progress indicator for upgrade levels */
   .upgrade-level-indicator {
-    display: flex;
-    gap: 4px;
-    justify-content: center;
+    /* Extends: ui-level-indicator */
     margin-top: var(--spacing-sm);
   }
 
   .upgrade-level-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    transition: all var(--duration-cardHover) var(--easing-smooth);
-  }
-
-  .upgrade-level-dot.filled {
-    background: var(--color-status-success);
-    box-shadow: 0 0 4px var(--color-status-success);
+    /* Extends: ui-level-dot */
   }
 
   /* Menu and Settings Styles */
@@ -978,25 +885,17 @@ const componentStyles = `
   }
 
   .menu-title {
-    font-size: var(--font-xl);
-    font-weight: 700;
+    /* Extends: ui-title-lg */
     text-align: center;
     margin-bottom: var(--spacing-lg);
-    color: var(--color-text-primary);
   }
 
   .menu-section {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .menu-section:last-child {
-    margin-bottom: 0;
+    /* Extends: ui-section */
   }
 
   .menu-section-title {
-    font-size: var(--font-base);
-    font-weight: 600;
-    color: var(--color-text-secondary);
+    /* Extends: ui-title-sm ui-text-secondary */
     margin-bottom: var(--spacing-sm);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1107,7 +1006,7 @@ const componentStyles = `
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    opacity: 0.7;
+    opacity: var(--opacity-70);
     pointer-events: none;
     color: rgba(255, 255, 255, 0.9);
   }
@@ -1198,7 +1097,7 @@ const componentStyles = `
     background: rgba(255, 255, 255, 0.02);
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: var(--border-width-default) solid rgba(255, 255, 255, 0.05);
     transition: all var(--duration-cardHover) var(--easing-smooth);
   }
 
@@ -1209,7 +1108,7 @@ const componentStyles = `
 
   .settings-section-title {
     font-size: var(--font-lg);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--spacing-md);
     padding-bottom: var(--spacing-sm);
@@ -1248,8 +1147,7 @@ const componentStyles = `
   }
 
   .settings-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, var(--color-border-subtle) 20%, var(--color-border-subtle) 80%, transparent 100%);
+    /* Extends: ui-divider gradient */
     margin: var(--spacing-lg) 0;
   }
 
@@ -1296,7 +1194,7 @@ const componentStyles = `
     position: relative;
     cursor: pointer;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: var(--border-width-default) solid rgba(255, 255, 255, 0.1);
   }
 
   .settings-row .ui-slider-fill {
@@ -1333,15 +1231,7 @@ const componentStyles = `
 
   /* Difficulty Badge */
   .difficulty-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: var(--color-surface-secondary);
-    border: 1px solid var(--color-border-primary);
-    border-radius: var(--radius-md);
-    font-size: var(--font-sm);
-    font-weight: 600;
+    /* Extends: ui-badge */
     cursor: pointer;
     transition: all var(--duration-buttonHover) var(--easing-smooth);
   }
@@ -1352,18 +1242,15 @@ const componentStyles = `
   }
 
   .difficulty-badge.easy {
-    border-color: var(--color-status-success);
-    color: var(--color-status-success);
+    /* Extends: ui-badge success */
   }
 
   .difficulty-badge.normal {
-    border-color: var(--color-status-warning);
-    color: var(--color-status-warning);
+    /* Extends: ui-badge warning */
   }
 
   .difficulty-badge.hard {
-    border-color: var(--color-status-error);
-    color: var(--color-status-error);
+    /* Extends: ui-badge danger */
   }
 
   /* Settings Dialog Styles */
@@ -1403,7 +1290,7 @@ const componentStyles = `
     color: var(--color-text-success);
     font-size: clamp(24px, 6vw, 32px);
     margin: 0 0 20px 0;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
   }
 
   .settings-preset-container {
@@ -1414,21 +1301,21 @@ const componentStyles = `
   }
 
   .difficulty-preset-button {
+    /* Extends: ui-button */
     flex: 1;
     min-width: clamp(80px, 20vw, 120px);
     padding: 12px;
     border: 2px solid #444;
     background: #333;
-    color: white;
-    border-radius: 6px;
     font-size: clamp(12px, 2.5vw, 14px);
-    transition: all 0.2s;
     min-height: 44px;
   }
 
   .difficulty-preset-button.active {
+    /* Extends: ui-active */
     border-color: #4CAF50;
     background: rgba(76, 175, 80, 0.2);
+    color: white;
   }
 
   .settings-description {
@@ -1481,8 +1368,8 @@ const componentStyles = `
   }
 
   .game-over-score {
+    /* Extends: ui-pulse */
     margin-bottom: var(--spacing-lg);
-    animation: pulse 2s ease-in-out infinite;
   }
 
   .game-over-score-label {
@@ -1494,7 +1381,7 @@ const componentStyles = `
 
   .game-over-score-value {
     font-size: 48px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-success);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     display: block;
@@ -1520,7 +1407,7 @@ const componentStyles = `
     background: rgba(255, 255, 255, 0.05);
     padding: var(--spacing-md);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: var(--border-width-default) solid rgba(255, 255, 255, 0.1);
   }
 
   .game-over-stat-icon {
@@ -1530,7 +1417,7 @@ const componentStyles = `
 
   .game-over-stat-value {
     font-size: var(--font-xl);
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
     margin-bottom: 4px;
   }
@@ -1558,6 +1445,7 @@ const componentStyles = `
 
   .game-over-button-restart,
   .game-over-button-menu {
+    /* Extends: ui-button */
     text-transform: uppercase;
     letter-spacing: 1px;
     min-width: 180px;
@@ -1571,12 +1459,7 @@ const componentStyles = `
   }
 
   .game-over-button-restart {
-    background-color: var(--color-status-success);
-    border-color: var(--color-status-success);
-  }
-
-  .game-over-button-restart:hover {
-    filter: brightness(1.1);
+    /* Extends: ui-button success */
   }
 
   .game-over-message {
@@ -1592,10 +1475,6 @@ const componentStyles = `
     }
   }
 
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-  }
 
   /* Tower Upgrade UI Styles */
   .tower-upgrade-panel {
@@ -1609,23 +1488,12 @@ const componentStyles = `
   }
 
   .tower-upgrade-header {
-    display: flex;
-    align-items: center;
+    /* Extends: ui-header */
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    padding-bottom: var(--spacing-md);
-    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .tower-upgrade-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-surface-secondary);
-    border-radius: var(--radius-md);
-    border: 2px solid var(--color-border-primary);
+    /* Extends: ui-icon-container md */
   }
 
   /* Tower type specific icon colors */
@@ -1655,7 +1523,7 @@ const componentStyles = `
 
   .tower-upgrade-name {
     font-size: var(--font-lg);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
     margin-bottom: 4px;
   }
@@ -1689,7 +1557,7 @@ const componentStyles = `
 
   .tower-upgrade-currency .currency-value {
     font-size: var(--font-lg);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-success);
   }
 
@@ -1730,7 +1598,7 @@ const componentStyles = `
 
   .tower-stat-value {
     font-size: var(--font-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
   }
 
@@ -1769,12 +1637,7 @@ const componentStyles = `
   }
 
   .tower-upgrade-card {
-    background: var(--color-surface-secondary);
-    border: 2px solid var(--color-border-subtle);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    cursor: pointer;
-    transition: all var(--duration-cardHover) var(--easing-smooth);
+    /* Extends: ui-card interactive */
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
@@ -1821,7 +1684,7 @@ const componentStyles = `
 
   .upgrade-card-name {
     font-size: var(--font-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
   }
 
@@ -1852,11 +1715,11 @@ const componentStyles = `
   }
 
   .upgrade-card-cost {
-    font-size: var(--font-sm);
+    /* Extends: ui-cost (base styles) */
+    background: none;
+    border: none;
+    padding: 0;
     color: var(--color-text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
 
   .upgrade-card-cost.affordable {
@@ -1870,21 +1733,14 @@ const componentStyles = `
   }
 
   .tower-sell-button {
-    background-color: var(--color-button-danger) !important;
-    border-color: var(--color-button-danger) !important;
-    color: white !important;
+    /* Extends: ui-button danger */
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
   }
 
   .tower-sell-button.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .tower-sell-button:hover:not(.disabled) {
-    filter: brightness(1.1);
+    /* Extends: ui-disabled */
   }
 
   /* Compact Tower Upgrade UI Styles */
@@ -1909,23 +1765,8 @@ const componentStyles = `
   }
 
   .tower-upgrade-header.compact .close-button {
-    background: rgba(244, 67, 54, 0.2);
-    border: 1px solid rgba(244, 67, 54, 0.5);
-    color: #F44336;
-    padding: 4px;
-    border-radius: var(--radius-xs);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--duration-fast) var(--easing-smooth);
+    /* Extends: ui-close-button */
     flex-shrink: 0;
-  }
-
-  .tower-upgrade-header.compact .close-button:hover {
-    background: rgba(244, 67, 54, 0.3);
-    border-color: #F44336;
-    transform: scale(1.1);
   }
 
   .tower-info {
@@ -1936,13 +1777,8 @@ const componentStyles = `
   }
 
   .tower-icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* Extends: ui-icon-container sm */
     background: rgba(0, 0, 0, 0.3);
-    border-radius: var(--radius-sm);
     border: 2px solid var(--color-border-subtle);
     transition: all var(--duration-fast) var(--easing-smooth);
   }
@@ -1974,7 +1810,7 @@ const componentStyles = `
 
   .tower-name {
     font-size: var(--font-base);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
     white-space: nowrap;
     overflow: hidden;
@@ -2000,7 +1836,7 @@ const componentStyles = `
     gap: 4px;
     color: var(--color-text-success);
     font-size: var(--font-sm);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     padding: 4px 8px;
     background: rgba(76, 175, 80, 0.1);
     border-radius: var(--radius-sm);
@@ -2016,7 +1852,7 @@ const componentStyles = `
 
   .tower-upgrade-card.compact {
     background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--color-border-subtle);
+    border: var(--border-width-default) solid var(--color-border-subtle);
     border-radius: var(--radius-sm);
     padding: var(--spacing-sm);
     cursor: pointer;
@@ -2051,7 +1887,7 @@ const componentStyles = `
   }
 
   .tower-upgrade-card.compact.maxed {
-    opacity: 0.5;
+    opacity: var(--opacity-50);
     cursor: default;
   }
 
@@ -2110,7 +1946,7 @@ const componentStyles = `
 
   .upgrade-cost.affordable {
     color: var(--color-text-success);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   .upgrade-maxed {
@@ -2118,7 +1954,7 @@ const componentStyles = `
     color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   .tower-upgrade-actions.compact {
@@ -2153,7 +1989,7 @@ const componentStyles = `
   }
 
   .icon-button.disabled {
-    opacity: 0.5;
+    opacity: var(--opacity-50);
     cursor: not-allowed;
   }
 
@@ -2188,7 +2024,7 @@ const componentStyles = `
     padding: 8px 12px;
     color: white;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -2220,7 +2056,7 @@ const componentStyles = `
   .powerup-item-timer {
     color: #FFD700;
     margin-left: auto;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
   }
 
   .powerup-item.warning .powerup-item-content {
@@ -2243,7 +2079,7 @@ const componentStyles = `
     padding: 16px 20px;
     color: white;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -2303,7 +2139,7 @@ const componentStyles = `
     padding: 12px 16px;
     color: white;
     font-size: 16px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -2325,7 +2161,7 @@ const componentStyles = `
     padding: 12px 16px;
     color: white;
     font-size: 16px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -2372,7 +2208,7 @@ const componentStyles = `
   }
 
   .item-tooltip-name {
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     margin-bottom: 8px;
   }
 
@@ -2541,7 +2377,7 @@ const componentStyles = `
   .camera-zoom-display {
     color: var(--color-text-primary);
     font-size: var(--font-sm);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     text-align: center;
     margin-bottom: var(--spacing-xs);
     letter-spacing: 0.5px;
@@ -2557,7 +2393,7 @@ const componentStyles = `
 
   .camera-control-button {
     background: linear-gradient(135deg, rgba(48, 52, 56, 0.9) 0%, rgba(56, 60, 64, 0.9) 100%);
-    border: 1px solid var(--color-border-subtle);
+    border: var(--border-width-default) solid var(--color-border-subtle);
     border-radius: var(--radius-md);
     padding: var(--spacing-xs);
     cursor: pointer;
@@ -2681,7 +2517,7 @@ const componentStyles = `
 
   .settings-dialog-content {
     background: var(--color-surface-primary);
-    border: 1px solid var(--color-border-default);
+    border: var(--border-width-default) solid var(--color-border-default);
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     display: flex;
@@ -2699,7 +2535,7 @@ const componentStyles = `
 
   .settings-title {
     font-size: 20px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
     margin: 0;
   }
@@ -2712,7 +2548,7 @@ const componentStyles = `
 
   .settings-close {
     background: var(--color-button-secondary);
-    border: 1px solid var(--color-border-default);
+    border: var(--border-width-default) solid var(--color-border-default);
     border-radius: 4px;
     color: var(--color-text-primary);
     cursor: pointer;
@@ -2754,7 +2590,7 @@ const componentStyles = `
 
   .settings-section-title {
     font-size: 18px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
     margin-bottom: var(--spacing-md);
     display: flex;
@@ -2835,7 +2671,7 @@ const componentStyles = `
     min-width: 40px;
     text-align: right;
     color: var(--color-text-primary);
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
   }
 
   .toggle-switch {
@@ -2880,7 +2716,7 @@ const componentStyles = `
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     transition: all 0.2s;
     font-size: 14px;
   }
@@ -2929,7 +2765,7 @@ const componentStyles = `
     color: white;
     border: none;
     border-radius: 8px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
     transition: all 0.2s;
     font-size: 16px;
@@ -2998,7 +2834,7 @@ const componentStyles = `
 
   .logo-text {
     font-size: var(--font-3xl);
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     margin: 0 0 var(--spacing-xs) 0;
     background: linear-gradient(45deg, var(--color-button-primary), var(--color-button-hover));
     -webkit-background-clip: text;
@@ -3062,7 +2898,7 @@ const componentStyles = `
     border: none;
     border-radius: 8px;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -3122,7 +2958,7 @@ const componentStyles = `
   }
 
   .pause-info-value {
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     color: var(--color-text-success);
   }
 
@@ -3144,7 +2980,7 @@ const componentStyles = `
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     color: white;
     text-shadow: 0 0 2px rgba(0,0,0,0.8);
     pointer-events: none;
@@ -3153,7 +2989,7 @@ const componentStyles = `
   /* Damage Number Animation */
   .damage-number {
     position: absolute;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     pointer-events: none;
     animation: damage-float 1s ease-out forwards;
@@ -3187,7 +3023,7 @@ const componentStyles = `
 
   /* Tooltip Helper Styles */
   .tooltip-title {
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     margin-bottom: 4px;
   }
 
@@ -3212,7 +3048,7 @@ const componentStyles = `
     border-radius: 4px;
     border: none;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
   }
 
   .popup-button.primary {
@@ -3246,11 +3082,11 @@ const componentStyles = `
     padding: 8px 16px;
     border-radius: 4px;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     z-index: 10000;
     pointer-events: none;
     animation: slideDown 0.3s ease-out;
-    border: 1px solid #4CAF50;
+    border: var(--border-width-default) solid #4CAF50;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
@@ -3287,11 +3123,11 @@ const componentStyles = `
     padding: 8px 16px;
     border-radius: 4px;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     z-index: 10000;
     pointer-events: none;
     animation: slideDown 0.3s ease-out;
-    border: 1px solid #FFC107;
+    border: var(--border-width-default) solid #FFC107;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
@@ -3335,7 +3171,7 @@ const componentStyles = `
 
   /* Disabled button state */
   .ui-button-control.disabled {
-    opacity: 0.5;
+    opacity: var(--opacity-50);
     pointer-events: none;
   }
 
@@ -3343,7 +3179,7 @@ const componentStyles = `
   .health-bar-wrapper {
     position: relative;
     background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: var(--border-width-default) solid rgba(255, 255, 255, 0.2);
     border-radius: 2px;
     overflow: hidden;
     width: var(--bar-width, 60px);
@@ -3366,7 +3202,7 @@ const componentStyles = `
     left: 50%;
     transform: translate(-50%, -50%);
     color: white;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     font-size: var(--text-size, 10px);
   }
@@ -3374,7 +3210,7 @@ const componentStyles = `
   /* Damage number styles */
   .damage-number {
     position: absolute;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     pointer-events: none;
     z-index: 1000;
   }
@@ -3403,7 +3239,7 @@ const componentStyles = `
   }
 
   .tooltip-title {
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     margin-bottom: 4px;
     color: #ffd700;
   }
@@ -3411,7 +3247,7 @@ const componentStyles = `
   /* Popup helper styles */
   .popup-helper {
     background: var(--color-surface-primary);
-    border: 1px solid var(--color-border-default);
+    border: var(--border-width-default) solid var(--color-border-default);
     border-radius: 8px;
     padding: 16px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);

@@ -1,8 +1,9 @@
 import type { Game } from '@/core/Game';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
-import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
+import { createButton } from '@/ui/elements';
 
 export class PauseMenuUI {
   private floatingUI: FloatingUIManager;
@@ -11,6 +12,7 @@ export class PauseMenuUI {
   private onResume: (() => void) | null = null;
   private onRestart: (() => void) | null = null;
   private onSettings: (() => void) | null = null;
+  private onMainMenu: (() => void) | null = null;
 
   constructor(game: Game) {
     this.floatingUI = game.getFloatingUIManager();
@@ -21,10 +23,12 @@ export class PauseMenuUI {
     onResume?: () => void;
     onRestart?: () => void;
     onSettings?: () => void;
+    onMainMenu?: () => void;
   } = {}): void {
     this.onResume = callbacks.onResume || null;
     this.onRestart = callbacks.onRestart || null;
     this.onSettings = callbacks.onSettings || null;
+    this.onMainMenu = callbacks.onMainMenu || null;
 
     if (this.element) {
       this.element.enable();
@@ -54,54 +58,78 @@ export class PauseMenuUI {
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'pause-menu-buttons';
 
-    // Resume button
-    const resumeButton = document.createElement('button');
-    resumeButton.className = 'pause-menu-button resume';
-    resumeButton.innerHTML = `
-      ${createSvgIcon(IconType.PLAY, { size: 24 })}
-      <span>Resume Game</span>
-    `;
-    resumeButton.addEventListener('click', () => {
-      this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-      if (this.onResume) {
-        this.onResume();
-      }
-      this.close();
-    });
-    buttonsDiv.appendChild(resumeButton);
-
-    // Settings button
-    const settingsButton = document.createElement('button');
-    settingsButton.className = 'pause-menu-button settings';
-    settingsButton.innerHTML = `
-      ${createSvgIcon(IconType.SETTINGS, { size: 24 })}
-      <span>Settings</span>
-    `;
-    settingsButton.addEventListener('click', () => {
-      this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-      if (this.onSettings) {
-        this.onSettings();
-      }
-    });
-    buttonsDiv.appendChild(settingsButton);
-
-    // Restart button
-    const restartButton = document.createElement('button');
-    restartButton.className = 'pause-menu-button restart';
-    restartButton.innerHTML = `
-      ${createSvgIcon(IconType.RESTART, { size: 24 })}
-      <span>Restart Game</span>
-    `;
-    restartButton.addEventListener('click', () => {
-      this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-      if (confirm('Are you sure you want to restart? All progress will be lost.')) {
-        if (this.onRestart) {
-          this.onRestart();
+    // Resume button - primary variant for main action
+    const resumeButton = createButton({
+      text: 'Resume Game',
+      icon: IconType.PLAY,
+      variant: 'primary',
+      size: 'lg',
+      fullWidth: true,
+      customClasses: ['pause-menu-button', 'resume'],
+      onClick: () => {
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onResume) {
+          this.onResume();
         }
         this.close();
       }
     });
+    buttonsDiv.appendChild(resumeButton);
+
+    // Settings button - secondary variant
+    const settingsButton = createButton({
+      text: 'Settings',
+      icon: IconType.SETTINGS,
+      variant: 'secondary',
+      size: 'lg',
+      fullWidth: true,
+      customClasses: ['pause-menu-button', 'settings'],
+      onClick: () => {
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onSettings) {
+          this.onSettings();
+        }
+      }
+    });
+    buttonsDiv.appendChild(settingsButton);
+
+    // Restart button - danger variant for destructive action
+    const restartButton = createButton({
+      text: 'Restart Game',
+      icon: IconType.RESTART,
+      variant: 'danger',
+      size: 'lg',
+      fullWidth: true,
+      customClasses: ['pause-menu-button', 'restart'],
+      onClick: () => {
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        if (confirm('Are you sure you want to restart? All progress will be lost.')) {
+          if (this.onRestart) {
+            this.onRestart();
+          }
+          this.close();
+        }
+      }
+    });
     buttonsDiv.appendChild(restartButton);
+
+    // Main Menu button - secondary variant
+    const mainMenuButton = createButton({
+      text: 'Main Menu',
+      icon: IconType.HOME,
+      variant: 'secondary',
+      size: 'lg',
+      fullWidth: true,
+      customClasses: ['pause-menu-button', 'main-menu'],
+      onClick: () => {
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onMainMenu) {
+          this.onMainMenu();
+        }
+        this.close();
+      }
+    });
+    buttonsDiv.appendChild(mainMenuButton);
 
     content.appendChild(buttonsDiv);
 
@@ -114,28 +142,31 @@ export class PauseMenuUI {
     const score = this.game.getScore();
     const lives = this.game.getLives();
 
-    infoDiv.innerHTML = `
-      <div class="pause-info-item">
-        <span class="pause-info-label">Current Wave:</span>
-        <span class="pause-info-value">${currentWave}</span>
-      </div>
-      <div class="pause-info-item">
-        <span class="pause-info-label">Score:</span>
-        <span class="pause-info-value">${score.toLocaleString()}</span>
-      </div>
-      <div class="pause-info-item">
-        <span class="pause-info-label">Lives:</span>
-        <span class="pause-info-value">${lives}</span>
-      </div>
-      <div class="pause-info-item">
-        <span class="pause-info-label">Enemies Killed:</span>
-        <span class="pause-info-value">${stats.enemiesKilled}</span>
-      </div>
-      <div class="pause-info-item">
-        <span class="pause-info-label">Time Played:</span>
-        <span class="pause-info-value">${this.formatTime(stats.gameTime)}</span>
-      </div>
-    `;
+    // Create info items using DOM methods
+    const infoItems = [
+      { label: 'Current Wave', value: currentWave },
+      { label: 'Score', value: score.toLocaleString() },
+      { label: 'Lives', value: lives },
+      { label: 'Enemies Killed', value: stats.enemiesKilled },
+      { label: 'Time Played', value: this.formatTime(stats.gameTime) }
+    ];
+
+    infoItems.forEach(item => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'pause-info-item';
+
+      const label = document.createElement('span');
+      label.className = 'pause-info-label';
+      label.textContent = item.label + ':';
+      itemDiv.appendChild(label);
+
+      const value = document.createElement('span');
+      value.className = 'pause-info-value';
+      value.textContent = String(item.value);
+      itemDiv.appendChild(value);
+
+      infoDiv.appendChild(itemDiv);
+    });
 
     content.appendChild(infoDiv);
 
@@ -165,5 +196,6 @@ export class PauseMenuUI {
     this.onResume = null;
     this.onRestart = null;
     this.onSettings = null;
+    this.onMainMenu = null;
   }
 }

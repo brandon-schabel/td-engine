@@ -4,7 +4,7 @@
  * - Integrated with FloatingUIManager
  * - Uses centered dialog presentation
  * - Supports game start, settings, and leaderboard actions
- * - Follows established UI patterns from other floating UI components
+ * - Migrated to use new button abstraction and utility-based styling system
  */
 
 import type { FloatingUIElement } from './index';
@@ -12,6 +12,7 @@ import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { AudioManager } from '@/audio/AudioManager';
+import { createButton } from '@/ui/elements';
 
 export class MainMenuUI {
   private floatingUI: FloatingUIManager;
@@ -74,47 +75,47 @@ export class MainMenuUI {
     buttonsContainer.className = 'main-menu-buttons';
     
     // Start Game button
-    const startButton = document.createElement('button');
-    startButton.className = 'ui-button large primary';
-    startButton.innerHTML = `
-      ${createSvgIcon(IconType.PLAY, { size: 24 })}
-      <span>Start Game</span>
-    `;
-    startButton.addEventListener('click', () => {
-      this.audioManager?.playUISound(SoundType.BUTTON_CLICK);
-      if (this.onStart) {
-        this.onStart();
+    const startButton = createButton({
+      text: 'Start Game',
+      icon: IconType.PLAY,
+      variant: 'primary',
+      size: 'lg',
+      onClick: () => {
+        this.audioManager?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onStart) {
+          this.onStart();
+        }
+        this.close();
       }
-      this.close();
     });
     buttonsContainer.appendChild(startButton);
     
     // Settings button
-    const settingsButton = document.createElement('button');
-    settingsButton.className = 'ui-button large';
-    settingsButton.innerHTML = `
-      ${createSvgIcon(IconType.SETTINGS, { size: 24 })}
-      <span>Settings</span>
-    `;
-    settingsButton.addEventListener('click', () => {
-      this.audioManager?.playUISound(SoundType.BUTTON_CLICK);
-      if (this.onSettings) {
-        this.onSettings();
+    const settingsButton = createButton({
+      text: 'Settings',
+      icon: IconType.SETTINGS,
+      variant: 'secondary',
+      size: 'lg',
+      onClick: () => {
+        this.audioManager?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onSettings) {
+          this.onSettings();
+        }
       }
     });
     buttonsContainer.appendChild(settingsButton);
     
     // Leaderboard button
-    const leaderboardButton = document.createElement('button');
-    leaderboardButton.className = 'ui-button large';
-    leaderboardButton.innerHTML = `
-      ${createSvgIcon(IconType.CROWN, { size: 24 })}
-      <span>Leaderboard</span>
-    `;
-    leaderboardButton.addEventListener('click', () => {
-      this.audioManager?.playUISound(SoundType.BUTTON_CLICK);
-      if (this.onLeaderboard) {
-        this.onLeaderboard();
+    const leaderboardButton = createButton({
+      text: 'Leaderboard',
+      icon: IconType.CROWN,
+      variant: 'secondary',
+      size: 'lg',
+      onClick: () => {
+        this.audioManager?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onLeaderboard) {
+          this.onLeaderboard();
+        }
       }
     });
     buttonsContainer.appendChild(leaderboardButton);

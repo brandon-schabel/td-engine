@@ -5,6 +5,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { GameSettings, Difficulty, SettingsManager } from '@/config/GameSettings';
 import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
+import { createButton, createHeader } from '@/ui/elements';
 
 export class SettingsUI {
   private floatingUI: FloatingUIManager;
@@ -68,12 +69,16 @@ export class SettingsUI {
     // Audio Settings
     const audioSection = document.createElement('div');
     audioSection.className = 'settings-section';
-    audioSection.innerHTML = `
-      <h3 class="settings-section-title">
-        ${createSvgIcon(IconType.SOUND, { size: 20 })}
-        Audio Settings
-      </h3>
-    `;
+    
+    const audioHeader = createHeader({
+      title: 'Audio Settings',
+      level: 3,
+      variant: 'compact',
+      showCloseButton: false,
+      icon: createSvgIcon(IconType.SOUND, { size: 20 }),
+      customClasses: ['settings-section-title']
+    });
+    audioSection.appendChild(audioHeader);
 
     // Master Volume
     this.createSliderSetting(audioSection, {
@@ -117,17 +122,25 @@ export class SettingsUI {
     // Gameplay Settings
     const gameplaySection = document.createElement('div');
     gameplaySection.className = 'settings-section';
-    gameplaySection.innerHTML = `
-      <h3 class="settings-section-title">
-        ${createSvgIcon(IconType.UPGRADE, { size: 20 })}
-        Gameplay Settings
-      </h3>
-    `;
+    
+    const gameplayHeader = createHeader({
+      title: 'Gameplay Settings',
+      level: 3,
+      variant: 'compact',
+      showCloseButton: false,
+      icon: createSvgIcon(IconType.UPGRADE, { size: 20 }),
+      customClasses: ['settings-section-title']
+    });
+    gameplaySection.appendChild(gameplayHeader);
 
     // Difficulty
     const difficultyItem = document.createElement('div');
     difficultyItem.className = 'settings-item';
-    difficultyItem.innerHTML = '<span class="settings-label">Difficulty</span>';
+    
+    const difficultyLabel = document.createElement('span');
+    difficultyLabel.className = 'settings-label';
+    difficultyLabel.textContent = 'Difficulty';
+    difficultyItem.appendChild(difficultyLabel);
 
     const difficultyButtons = document.createElement('div');
     difficultyButtons.className = 'difficulty-buttons';
@@ -140,19 +153,27 @@ export class SettingsUI {
     ];
 
     difficulties.forEach(diff => {
-      const button = document.createElement('button');
-      button.className = `difficulty-button ${diff.class}`;
-      if (this.settings.difficulty === diff.value) {
-        button.classList.add('active');
-      }
-      button.textContent = diff.label;
-      addClickAndTouchSupport(button, () => {
-        this.settings.difficulty = diff.value;
-        difficultyButtons.querySelectorAll('.difficulty-button').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        button.classList.add('active');
-        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+      const button = createButton({
+        text: diff.label,
+        variant: this.settings.difficulty === diff.value ? 'primary' : 'outline',
+        size: 'sm',
+        customClasses: ['difficulty-button', diff.class],
+        onClick: () => {
+          this.settings.difficulty = diff.value;
+          // Update all difficulty buttons
+          difficultyButtons.querySelectorAll('.difficulty-button').forEach((btn, index) => {
+            const difficultyOption = difficulties[index];
+            if (difficultyOption) {
+              btn.className = createButton({
+                text: difficultyOption.label,
+                variant: this.settings.difficulty === difficultyOption.value ? 'primary' : 'outline',
+                size: 'sm',
+                customClasses: ['difficulty-button', difficultyOption.class]
+              }).className;
+            }
+          });
+          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        }
       });
       difficultyButtons.appendChild(button);
     });
@@ -193,23 +214,29 @@ export class SettingsUI {
     const footer = document.createElement('div');
     footer.className = 'settings-footer';
 
-    const resetButton = document.createElement('button');
-    resetButton.className = 'settings-button reset';
-    resetButton.textContent = 'Reset to Defaults';
-    addClickAndTouchSupport(resetButton, () => {
-      if (confirm('Reset all settings to default values?')) {
-        this.settings.reset();
-        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-        this.updateContent();
+    const resetButton = createButton({
+      text: 'Reset to Defaults',
+      variant: 'outline',
+      size: 'md',
+      customClasses: ['settings-button', 'reset'],
+      onClick: () => {
+        if (confirm('Reset all settings to default values?')) {
+          this.settings.reset();
+          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+          this.updateContent();
+        }
       }
     });
     footer.appendChild(resetButton);
 
-    const saveButton = document.createElement('button');
-    saveButton.className = 'settings-button save';
-    saveButton.textContent = 'Save & Close';
-    addClickAndTouchSupport(saveButton, () => {
-      this.handleClose();
+    const saveButton = createButton({
+      text: 'Save & Close',
+      variant: 'success',
+      size: 'md',
+      customClasses: ['settings-button', 'save'],
+      onClick: () => {
+        this.handleClose();
+      }
     });
     footer.appendChild(saveButton);
 
@@ -281,7 +308,9 @@ export class SettingsUI {
 
     const toggle = document.createElement('div');
     toggle.className = `toggle-switch ${options.value ? 'active' : ''}`;
-    toggle.innerHTML = '<div class="toggle-switch-handle"></div>';
+    const handle = document.createElement('div');
+    handle.className = 'toggle-switch-handle';
+    toggle.appendChild(handle);
 
     addClickAndTouchSupport(toggle, () => {
       const newValue = !toggle.classList.contains('active');
@@ -302,7 +331,9 @@ export class SettingsUI {
     const contentElement = this.element.getElement().querySelector('.ui-dialog-content');
     if (contentElement) {
       // Clear existing content
-      contentElement.innerHTML = '';
+      while (contentElement.firstChild) {
+        contentElement.removeChild(contentElement.firstChild);
+      }
       // Add new content
       contentElement.appendChild(this.createContent());
     }

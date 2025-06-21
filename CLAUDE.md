@@ -96,6 +96,38 @@ Completed migration from inline styles to centralized CSS class-based styling sy
 - **Performance improvements** - CSS animations instead of JavaScript
 - **Better maintainability** - Single source of truth for styling
 
+### UI Styling System Refactor (December 2024)
+
+**CRITICAL: New Preferred Styling Method**
+- **Utility-First Approach**: Use utility classes from `UtilityStyles.ts` for styling
+- **NO INLINE STYLES**: Never use `element.style` or `style.cssText`
+- **UI Element Abstractions**: Use `createButton()` and other element helpers from `src/ui/elements/`
+- **Composition Over Custom CSS**: Compose utility classes instead of writing custom CSS
+
+Example of NEW preferred approach:
+```typescript
+// ✅ GOOD - Use element abstraction
+import { createButton } from '@/ui/elements';
+
+const button = createButton({
+  text: 'Click Me',
+  variant: 'primary',
+  size: 'lg',
+  icon: IconType.PLAY,
+  onClick: () => console.log('clicked')
+});
+
+// ✅ GOOD - Use utility classes for custom elements
+const card = document.createElement('div');
+card.className = 'card-base bg-surface-secondary p-4 rounded-lg shadow-md hover:shadow-lg transition-all';
+
+// ❌ BAD - Don't use inline styles
+element.style.backgroundColor = 'blue';
+
+// ❌ BAD - Don't create style elements
+const style = document.createElement('style');
+```
+
 ## Architecture Overview
 
 ### Project Structure
@@ -179,9 +211,13 @@ src/
 │   ├── icons/             # SVG icon system
 │   │   └── SvgIcons.ts
 │   ├── styles/            # Styling system
-│   │   ├── StyleManager.ts # Style injection
-│   │   ├── UIStyles.ts    # Base UI styles
+│   │   ├── StyleManager.ts # Style injection & design tokens
+│   │   ├── UtilityStyles.ts # Utility classes (NEW)
+│   │   ├── UIStyles.ts    # Base structural styles
 │   │   └── ComponentStyles.ts # Component styles
+│   ├── elements/          # UI element abstractions (NEW)
+│   │   ├── index.ts       # Export all elements
+│   │   └── Button.ts      # Button creation helper
 │   └── systems/           # UI subsystems (empty - all UI managed by FloatingUIManager)
 │   └── utils/             # UI utilities
 │       └── touchSupport.ts
@@ -517,48 +553,119 @@ private updateDynamicValues(): void {
 
 ## UI Styling System
 
-The UI uses a centralized CSS-based styling system with design tokens generated from configuration files.
+The UI uses a Tailwind-inspired utility-first CSS system with design tokens generated from configuration files.
 
 ### Architecture
 
-- **StyleManager** (`src/ui/styles/StyleManager.ts`) - Singleton that manages style injection
-- **UIStyles** (`src/ui/styles/UIStyles.ts`) - Base utility classes and common UI patterns
+- **StyleManager** (`src/ui/styles/StyleManager.ts`) - Manages style injection and design token generation
+- **UtilityStyles** (`src/ui/styles/UtilityStyles.ts`) - Comprehensive utility classes (spacing, colors, typography, etc.)
+- **UIStyles** (`src/ui/styles/UIStyles.ts`) - Base structural styles for complex components
 - **ComponentStyles** (`src/ui/styles/ComponentStyles.ts`) - Game-specific component styles
+- **UI Elements** (`src/ui/elements/`) - High-level abstractions for creating UI components
 
-### Key Principles
+### Design Tokens Available
 
-1. **No inline styles** - All styling through CSS classes
-2. **Design tokens** - CSS custom properties generated from config files
-3. **Semantic naming** - Classes describe purpose, not appearance
-4. **Data attributes** - For dynamic styling (e.g., `data-tower-type`, `data-rarity`)
-5. **Single injection** - Styles injected once at startup for performance
+All values from configuration files are exposed as CSS custom properties:
 
-### Usage Example
+- **Colors**: `--color-primary`, `--color-text-primary`, `--color-surface-secondary`, etc.
+- **Spacing**: `--spacing-1` through `--spacing-24`, plus named sizes (`--spacing-sm`, `--spacing-md`, etc.)
+- **Typography**: `--font-xs` through `--font-xxl`, `--font-weight-normal`, `--font-weight-bold`, etc.
+- **Borders**: `--border-width-default`, `--radius-sm`, `--radius-md`, `--radius-full`
+- **Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-xl`
+- **Opacity**: `--opacity-0` through `--opacity-100`
+- **Animation**: `--duration-buttonHover`, `--easing-smooth`, etc.
+
+### Utility Classes
 
 ```typescript
-// Instead of inline styles
-element.style.cssText = `background: ${COLOR_THEME.ui.background.primary}`;
+// Layout
+.flex, .grid, .block, .hidden
+.items-center, .justify-between, .gap-4
 
-// Use CSS classes
-element.className = 'ui-card';
+// Spacing
+.p-4, .px-2, .py-3, .m-auto, .mt-4
 
-// For dynamic styling, use data attributes
-element.dataset.towerType = tower.type.toLowerCase();
+// Colors
+.bg-primary, .text-on-primary, .border-subtle
+
+// Typography  
+.text-lg, .font-bold, .text-center
+
+// Effects
+.shadow-md, .opacity-50, .rounded-lg
+
+// Interactivity
+.cursor-pointer, .hover\:bg-primary-dark
+
+// Transitions
+.transition-all, .transition-colors
 ```
 
-### CSS Class Naming Conventions
+### UI Element Abstractions
 
-- **Utility classes**: `ui-` prefix (e.g., `ui-button`, `ui-card`)
-- **Component classes**: Component name prefix (e.g., `tower-upgrade-panel`)
-- **State modifiers**: Descriptive names (e.g., `active`, `disabled`, `critical`)
-- **Responsive variants**: Use CSS media queries, not JavaScript
+```typescript
+import { createButton, createIconButton, createCloseButton } from '@/ui/elements';
+
+// Create a fully-styled button with one function call
+const button = createButton({
+  text: 'Save Game',
+  variant: 'primary', // primary, secondary, danger, success, outline, ghost
+  size: 'md',        // sm, md, lg
+  icon: IconType.SAVE,
+  onClick: handleSave,
+  disabled: !canSave,
+  fullWidth: true
+});
+
+// Icon-only button
+const settingsBtn = createIconButton(IconType.SETTINGS, {
+  variant: 'ghost',
+  onClick: openSettings
+});
+```
+
+### Usage Guidelines
+
+1. **Prefer Utility Classes**: Use utility classes for styling instead of custom CSS
+2. **Use Element Abstractions**: Use `createButton()` etc. instead of manual DOM creation
+3. **Compose Classes**: Build complex styles by combining utilities
+4. **No Inline Styles**: Never use `element.style` or `style.cssText`
+5. **Semantic HTML**: Use proper HTML elements (button, not div with click handler)
 
 ### Adding New Styles
 
-1. Add component styles to `ComponentStyles.ts`
-2. Use existing CSS custom properties from `StyleManager`
-3. Follow BEM-like naming for complex components
-4. Test responsive behavior with CSS media queries
+1. **For new utilities**: Add to `UtilityStyles.ts`
+2. **For new tokens**: Add to configuration files and `StyleManager.ts`
+3. **For new components**: Create abstraction in `src/ui/elements/`
+4. **For game-specific styles**: Add to `ComponentStyles.ts` using design tokens
+
+### Example: Creating a Custom Component
+
+```typescript
+// ✅ GOOD - Utility-first approach
+const card = document.createElement('div');
+card.className = cn(
+  'card-base',           // Base structural styles
+  'bg-surface-secondary', // Background
+  'p-4',                 // Padding
+  'rounded-lg',          // Border radius  
+  'shadow-md',           // Shadow
+  'hover:shadow-lg',     // Hover effect
+  'transition-shadow'    // Smooth transition
+);
+
+// Add content using utilities
+const title = document.createElement('h3');
+title.className = 'text-lg font-bold text-primary mb-2';
+title.textContent = 'Card Title';
+
+const content = document.createElement('p');
+content.className = 'text-sm text-secondary';
+content.textContent = 'Card content goes here';
+
+card.appendChild(title);
+card.appendChild(content);
+```
 
 ## Code Standards
 

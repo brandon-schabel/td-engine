@@ -202,14 +202,14 @@ export class TowerUpgradeUI {
 
   private createCompactHeader(): HTMLElement {
     const header = document.createElement('div');
-    header.className = 'tower-upgrade-header compact';
+    header.className = 'tower-upgrade-header ui-header compact';
 
     const towerInfo = document.createElement('div');
     towerInfo.className = 'tower-info';
 
     // Tower icon
     const towerIcon = document.createElement('div');
-    towerIcon.className = 'tower-icon';
+    towerIcon.className = 'tower-icon ui-icon-container sm';
     towerIcon.dataset.towerType = this.tower.towerType.toLowerCase();
     towerIcon.innerHTML = createSvgIcon(this.getTowerIcon(), { size: 20 });
 
@@ -250,7 +250,7 @@ export class TowerUpgradeUI {
 
     // Add close button
     const closeButton = document.createElement('button');
-    closeButton.className = 'ui-button small close-button';
+    closeButton.className = 'ui-button small close-button ui-close-button';
     closeButton.innerHTML = createSvgIcon(IconType.CLOSE, { size: 14 });
     closeButton.title = 'Close (Esc)';
 
@@ -285,7 +285,7 @@ export class TowerUpgradeUI {
     const isMaxed = option.currentLevel >= option.maxLevel;
 
     const card = document.createElement('div');
-    card.className = `tower-upgrade-card compact ${canAfford && !isMaxed ? 'can-afford' : ''} ${isMaxed ? 'maxed' : ''}`;
+    card.className = `tower-upgrade-card ui-card interactive compact ${canAfford && !isMaxed ? 'can-afford' : ''} ${isMaxed ? 'maxed' : ''}`;
 
     // Upgrade icon
     const icon = document.createElement('div');

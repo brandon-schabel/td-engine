@@ -86,7 +86,10 @@ export class ItemSlot {
   }
 
   private updateDisplay(): void {
-    this.element.innerHTML = '';
+    // Clear existing content
+    while (this.element.firstChild) {
+      this.element.removeChild(this.element.firstChild);
+    }
     
     if (this.item) {
       // Add rarity class
@@ -106,6 +109,9 @@ export class ItemSlot {
       }
       
       this.element.appendChild(icon);
+    } else {
+      // Reset to empty slot
+      this.element.className = 'inventory-slot';
     }
   }
 

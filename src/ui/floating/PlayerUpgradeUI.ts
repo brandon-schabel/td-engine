@@ -4,7 +4,15 @@ import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { SoundType } from '@/audio/AudioManager';
-import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
+import { 
+  createButton,
+  createDialogHeader,
+  createStatGrid,
+  createResourceDisplay,
+  createStructuredCard,
+  type Stat
+} from '@/ui/elements';
+import { cn } from '@/ui/styles/UtilityStyles';
 
 export class PlayerUpgradeUI {
   private floatingUI: FloatingUIManager;
@@ -108,68 +116,87 @@ export class PlayerUpgradeUI {
 
   private createInitialContent(): void {
     const currency = this.game.getCurrency();
-    // const abilities = this.player.getAbilityManager(); // Not used in this method
 
     const content = document.createElement('div');
     content.className = 'ui-dialog';
-    content.innerHTML = `
-      <div class="ui-dialog-header">
-        <h2 class="ui-dialog-title">Player Upgrades</h2>
-        <button class="ui-button small ui-button-close" aria-label="Close upgrades">✕</button>
-      </div>
-      
-      <div class="ui-dialog-content ui-scrollable">
-        <div class="resource-item ui-mb-md">
-          <span>💰</span>
-          <span class="resource-value">${currency}</span>
-          <span class="ui-text-secondary">Currency</span>
-        </div>
-        
-        <div class="ui-mb-lg">
-          <h3 class="ui-dialog-title ui-font-base ui-mb-md">Stats</h3>
-          <div class="player-stats">
-            <div class="stat-item" data-stat="health">
-              <span class="stat-label">Health</span>
-              <span class="stat-value">${this.player.health}/${this.player.maxHealth}</span>
-            </div>
-            <div class="stat-item" data-stat="shield">
-              <span class="stat-label">Shield</span>
-              <span class="stat-value">0/0</span>
-            </div>
-            <div class="stat-item" data-stat="speed">
-              <span class="stat-label">Move Speed</span>
-              <span class="stat-value">${this.player.speed.toFixed(1)}</span>
-            </div>
-          </div>
-        </div>
-        
-        <div>
-          <h3 class="ui-dialog-title ui-font-base ui-mb-md">Abilities</h3>
-          <div class="upgrade-tree">
-            ${this.renderAbilities()}
-          </div>
-        </div>
-      </div>
-    `;
 
-    // Add event listeners
-    const closeButton = content.querySelector('.ui-button-close');
-    if (closeButton) {
-      addClickAndTouchSupport(closeButton as HTMLElement, () => this.close());
-    }
-
-    // Add upgrade button listeners
-    const upgradeButtons = content.querySelectorAll('[data-ability]');
-    upgradeButtons.forEach((button) => {
-      addClickAndTouchSupport(button as HTMLElement, () => {
-        const target = button as HTMLButtonElement;
-        const abilityType = target.dataset.ability;
-        if (abilityType) {
-          this.handleUpgrade(abilityType);
-        }
-      });
+    // Create header with close button
+    const header = createDialogHeader('Player Upgrades', () => this.close());
+    content.appendChild(header);
+    
+    // Create scrollable content area
+    const dialogContent = document.createElement('div');
+    dialogContent.className = cn('ui-dialog-content', 'ui-scrollable');
+    
+    // Create currency display
+    const currencyDisplay = createResourceDisplay({
+      iconHtml: '💰',
+      value: currency,
+      label: 'Currency',
+      customClasses: ['ui-backdrop-blur', 'ui-mb-md']
     });
-
+    dialogContent.appendChild(currencyDisplay);
+    
+    // Create stats section
+    const statsSection = document.createElement('div');
+    statsSection.className = 'ui-mb-lg';
+    
+    const statsTitle = document.createElement('h3');
+    statsTitle.className = cn('ui-dialog-title', 'ui-font-base', 'ui-mb-md');
+    statsTitle.textContent = 'Stats';
+    statsSection.appendChild(statsTitle);
+    
+    // Create stats grid
+    const stats: Stat[] = [
+      {
+        label: 'Health',
+        value: `${this.player.health}/${this.player.maxHealth}`
+      },
+      {
+        label: 'Shield',
+        value: '0/0'
+      },
+      {
+        label: 'Move Speed',
+        value: this.player.speed.toFixed(1)
+      }
+    ];
+    
+    const statsGrid = createStatGrid(stats, {
+      columns: 3,
+      customClasses: ['player-stats']
+    });
+    
+    // Add data-stat attributes to each stat item for easy querying
+    const statItems = statsGrid.querySelectorAll('.stat-item');
+    const statLabels = ['health', 'shield', 'speed'];
+    statItems.forEach((item, index) => {
+      if (statLabels[index]) {
+        item.setAttribute('data-stat', statLabels[index]);
+      }
+    });
+    
+    statsSection.appendChild(statsGrid);
+    dialogContent.appendChild(statsSection);
+    
+    // Create abilities section
+    const abilitiesSection = document.createElement('div');
+    
+    const abilitiesTitle = document.createElement('h3');
+    abilitiesTitle.className = cn('ui-dialog-title', 'ui-font-base', 'ui-mb-md');
+    abilitiesTitle.textContent = 'Abilities';
+    abilitiesSection.appendChild(abilitiesTitle);
+    
+    const upgradeTree = document.createElement('div');
+    upgradeTree.className = 'upgrade-tree';
+    
+    // Render abilities using DOM elements
+    this.renderAbilitiesDOM(upgradeTree);
+    
+    abilitiesSection.appendChild(upgradeTree);
+    dialogContent.appendChild(abilitiesSection);
+    
+    content.appendChild(dialogContent);
     this.element!.setContent(content);
   }
 
@@ -231,7 +258,7 @@ export class PlayerUpgradeUI {
     });
   }
 
-  private renderAbilities(): string {
+  private renderAbilitiesDOM(container: HTMLElement): void {
     // Simplified abilities display for now
     // TODO: Integrate with actual player ability system when available
     const abilities = [
@@ -255,29 +282,66 @@ export class PlayerUpgradeUI {
 
     const currency = this.game.getCurrency();
 
-    return abilities.map(ability => {
+    abilities.forEach(ability => {
       const isMaxLevel = ability.level >= ability.maxLevel;
       const canAfford = currency >= ability.cost;
       const canUpgrade = !isMaxLevel && canAfford;
 
-      return `
-        <div class="upgrade-node ${isMaxLevel ? 'unlocked' : canUpgrade ? '' : 'locked'}">
-          <div class="ui-flex-between ui-mb-xs">
-            <span class="upgrade-name">${ability.name}</span>
-            <span class="ui-text-success">Level ${ability.level}/${ability.maxLevel}</span>
-          </div>
-          <div class="upgrade-description">${ability.description}</div>
-          ${!isMaxLevel ? `
-            <div class="ui-flex-between ui-mt-sm">
-              <span class="upgrade-cost">Cost: ${ability.cost}</span>
-              <button class="ui-button small" data-ability="${ability.key}" data-cost="${ability.cost}" ${!canUpgrade ? 'disabled' : ''}>
-                Upgrade
-              </button>
-            </div>
-          ` : '<div class="ui-text-center ui-mt-sm ui-text-success">Max Level</div>'}
-        </div>
-      `;
-    }).join('');
+      // Create the ability card header
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'ui-flex-between ui-mb-xs';
+      
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'upgrade-name';
+      nameSpan.textContent = ability.name;
+      headerDiv.appendChild(nameSpan);
+      
+      const levelSpan = document.createElement('span');
+      levelSpan.className = 'ui-text-success';
+      levelSpan.textContent = `Level ${ability.level}/${ability.maxLevel}`;
+      headerDiv.appendChild(levelSpan);
+      
+      // Create the ability card
+      const card = createStructuredCard({
+        header: headerDiv,
+        body: ability.description,
+        customClasses: [
+          'upgrade-node',
+          'hover-lift',
+          isMaxLevel ? 'unlocked' : canUpgrade ? '' : 'locked'
+        ].filter(Boolean)
+      });
+
+      // Add footer content
+      if (!isMaxLevel) {
+        const footer = document.createElement('div');
+        footer.className = cn('ui-flex-between', 'ui-mt-sm');
+        
+        const costSpan = document.createElement('span');
+        costSpan.className = cn('upgrade-cost', 'ui-cost');
+        costSpan.textContent = `Cost: ${ability.cost}`;
+        footer.appendChild(costSpan);
+        
+        const upgradeButton = createButton({
+          text: 'Upgrade',
+          size: 'sm',
+          disabled: !canUpgrade,
+          onClick: () => this.handleUpgrade(ability.key)
+        });
+        upgradeButton.dataset.ability = ability.key;
+        upgradeButton.dataset.cost = String(ability.cost);
+        footer.appendChild(upgradeButton);
+        
+        card.appendChild(footer);
+      } else {
+        const maxLevelText = document.createElement('div');
+        maxLevelText.className = cn('ui-text-center', 'ui-mt-sm', 'ui-text-success');
+        maxLevelText.textContent = 'Max Level';
+        card.appendChild(maxLevelText);
+      }
+
+      container.appendChild(card);
+    });
   }
 
   // Not used in simplified version

@@ -1,10 +1,10 @@
 /**
  * Recent changes:
- * - Fully integrated with centralized StyleManager and design token system
- * - Removed all inline styles including icon colors
- * - Now uses semantic CSS classes exclusively
- * - Tower types now use data attributes for styling
- * - Improved accessibility with ARIA labels
+ * - Refactored to use new UI element abstractions (createClickableCard, createCompactResource)
+ * - Using cn() helper for className assignments
+ * - Removed hardcoded class strings in favor of utility classes
+ * - Improved tower card creation with structured components
+ * - Enhanced cost display with currency icon using createCompactResource
  */
 
 import type { Game } from '@/core/Game';
@@ -16,7 +16,12 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { TOWER_COSTS } from '@/config/GameConfig';
-import { formatNumber } from '@/utils/formatters';
+import { 
+  createClickableCard,
+  createCompactResource,
+  createResourceDisplay
+} from '@/ui/elements';
+import { cn } from '@/ui/styles/UtilityStyles';
 
 export class BuildMenuUI {
   private floatingUI: FloatingUIManager;
@@ -130,21 +135,18 @@ export class BuildMenuUI {
     if (!this.element || !this.onTowerSelect) return;
 
     const content = document.createElement('div');
-    content.className = 'ui-card';
+    content.className = cn('ui-card');
     
-    content.innerHTML = `
-      <h2 class="ui-dialog-title ui-text-center">Build Tower</h2>
-      <div class="ui-grid cols-2 ui-gap-sm ui-mb-md"></div>
-      <div class="resource-item ui-flex-center">
-        ${createSvgIcon(IconType.COINS, { size: 20 })}
-        <span class="resource-value" data-update="currency">${formatNumber(this.game.getCurrency())}</span>
-        <span class="ui-text-secondary">Available</span>
-      </div>
-      <div class="ui-text-center ui-text-secondary ui-mt-sm">Click outside to close</div>
-    `;
-
-    const grid = content.querySelector('.ui-grid');
-    if (!grid) return;
+    // Create title
+    const title = document.createElement('h2');
+    title.className = cn('ui-dialog-title', 'ui-text-center');
+    title.textContent = 'Build Tower';
+    content.appendChild(title);
+    
+    // Create tower grid
+    const grid = document.createElement('div');
+    grid.className = cn('ui-grid', 'cols-2', 'ui-gap-sm', 'ui-mb-md');
+    content.appendChild(grid);
 
     const towers = [
       { 
@@ -181,56 +183,75 @@ export class BuildMenuUI {
 
     towers.forEach(tower => {
       const canAfford = currency >= tower.cost;
-      const button = document.createElement('button');
-      button.className = `tower-card ${!canAfford ? 'disabled' : ''}`;
-      button.disabled = !canAfford;
-      button.setAttribute('data-tower-type', tower.type);
-      button.setAttribute('data-tower-cost', String(tower.cost));
-      button.setAttribute('aria-label', `Build ${tower.name} for ${tower.cost} coins`);
-
-      button.innerHTML = `
-        <div class="tower-card-icon" data-tower-type="${tower.type}">
-          ${createSvgIcon(tower.icon, { size: 48 })}
-        </div>
-        <div class="tower-card-name">${tower.name}</div>
-        <div class="tower-card-cost">
-          ${createSvgIcon(IconType.COINS, { size: 16 })}
-          <span>${formatNumber(tower.cost)}</span>
-        </div>
-      `;
-
-      // Event handlers will be attached via delegation
-
-      grid.appendChild(button);
-    });
-
-    this.element.setContent(content);
-    
-    // Set up delegated event handling for tower buttons
-    const handleTowerClick = (e: Event) => {
-      const target = e.target as HTMLElement;
-      const button = target.closest('.tower-card:not(.disabled)') as HTMLButtonElement;
       
-      if (button && !button.disabled) {
-        const towerType = button.getAttribute('data-tower-type') as TowerType;
-        if (towerType) {
+      // Create clickable card for the tower
+      const card = createClickableCard(() => {
+        if (canAfford) {
           this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
           if (this.onTowerSelect) {
-            this.onTowerSelect(towerType);
+            this.onTowerSelect(tower.type);
           }
           this.close();
         }
+      }, {
+        variant: 'elevated',
+        padding: 'sm',
+        customClasses: [
+          'tower-card',
+          'ui-shimmer',
+          ...(canAfford ? [] : ['ui-disabled'])
+        ],
+        ariaLabel: `Build ${tower.name} for ${tower.cost} coins`
+      });
+      
+      // Add data attributes for styling and state tracking
+      card.setAttribute('data-tower-type', tower.type);
+      card.setAttribute('data-tower-cost', String(tower.cost));
+      if (!canAfford) {
+        card.setAttribute('disabled', 'true');
       }
-    };
-    
-    content.addEventListener('click', handleTowerClick);
-    content.addEventListener('touchend', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.tower-card:not(.disabled)')) {
-        e.preventDefault(); // Prevent ghost click
-        handleTowerClick(e);
-      }
+      
+      // Create tower icon
+      const iconWrapper = document.createElement('div');
+      iconWrapper.className = cn('tower-card-icon');
+      iconWrapper.setAttribute('data-tower-type', tower.type);
+      iconWrapper.innerHTML = createSvgIcon(tower.icon, { size: 48 });
+      card.appendChild(iconWrapper);
+      
+      // Create tower name
+      const nameElement = document.createElement('div');
+      nameElement.className = cn('tower-card-name');
+      nameElement.textContent = tower.name;
+      card.appendChild(nameElement);
+      
+      // Create cost display using createCompactResource
+      const costDisplay = createCompactResource(tower.cost, IconType.COINS, {
+        customClasses: ['tower-card-cost']
+      });
+      card.appendChild(costDisplay);
+
+      grid.appendChild(card);
     });
+
+    // Create available currency display
+    const currencyDisplay = createResourceDisplay({
+      value: currency,
+      icon: IconType.COINS,
+      label: 'Available',
+      variant: 'default',
+      showLabel: true,
+      customClasses: ['ui-flex-center', 'ui-mt-md'],
+      id: 'currency-display'
+    });
+    content.appendChild(currencyDisplay);
+    
+    // Create close hint
+    const closeHint = document.createElement('div');
+    closeHint.className = cn('ui-text-center', 'ui-text-secondary', 'ui-mt-sm');
+    closeHint.textContent = 'Click outside to close';
+    content.appendChild(closeHint);
+    
+    this.element.setContent(content);
     
     this.contentInitialized = true;
     this.lastCurrency = currency;
@@ -247,32 +268,35 @@ export class BuildMenuUI {
     // Only update if currency changed
     if (currency === this.lastCurrency) return;
 
-    // Update currency display
-    const currencyElement = element.querySelector('.resource-value[data-update="currency"]');
-    if (currencyElement) {
-      currencyElement.textContent = formatNumber(currency);
+    // Update currency display using the ResourceDisplay's update method
+    const currencyDisplay = element.querySelector('#currency-display') as any;
+    if (currencyDisplay && currencyDisplay.updateValue) {
+      currencyDisplay.updateValue(currency);
     }
 
-    // Update tower button states
-    const towerButtons = element.querySelectorAll('.tower-card[data-tower-cost]');
-    towerButtons.forEach((button) => {
-      const buttonEl = button as HTMLButtonElement;
-      const cost = parseInt(buttonEl.getAttribute('data-tower-cost') || '0');
+    // Update tower card states
+    const towerCards = element.querySelectorAll('.tower-card[data-tower-cost]');
+    towerCards.forEach((card) => {
+      const cardEl = card as HTMLDivElement;
+      const cost = parseInt(cardEl.getAttribute('data-tower-cost') || '0');
       const canAfford = currency >= cost;
       
       // Only update if affordability changed
-      const wasDisabled = buttonEl.disabled;
+      const wasDisabled = cardEl.hasAttribute('disabled');
       if (wasDisabled !== !canAfford) {
-        buttonEl.disabled = !canAfford;
         if (canAfford) {
-          buttonEl.classList.remove('disabled');
+          cardEl.classList.remove('ui-disabled');
+          cardEl.removeAttribute('disabled');
+          cardEl.style.pointerEvents = '';
         } else {
-          buttonEl.classList.add('disabled');
+          cardEl.classList.add('ui-disabled');
+          cardEl.setAttribute('disabled', 'true');
+          cardEl.style.pointerEvents = 'none';
         }
         
         // Update aria-label
-        const towerName = buttonEl.querySelector('.tower-card-name')?.textContent || 'Tower';
-        buttonEl.setAttribute('aria-label', `Build ${towerName} for ${cost} coins`);
+        const towerName = cardEl.querySelector('.tower-card-name')?.textContent || 'Tower';
+        cardEl.setAttribute('aria-label', `Build ${towerName} for ${cost} coins`);
       }
     });
 

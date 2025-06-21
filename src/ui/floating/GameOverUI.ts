@@ -1,9 +1,15 @@
 import type { Game } from '@/core/Game';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
-import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { formatNumber } from '@/utils/formatters';
+import { 
+  createButton, 
+  createStatDisplay,
+  type Stat 
+} from '@/ui/elements';
+import { cn } from '@/ui/styles/UtilityStyles';
 
 export class GameOverUI {
   private floatingUI: FloatingUIManager;
@@ -48,7 +54,7 @@ export class GameOverUI {
 
   private createContent(): HTMLElement {
     const content = document.createElement('div');
-    content.className = 'game-over-content';
+    content.className = cn('game-over-content');
 
     const stats = this.game.getGameStats();
     const score = this.game.getScore();
@@ -56,21 +62,26 @@ export class GameOverUI {
 
     // Score display
     const statsDiv = document.createElement('div');
-    statsDiv.className = 'game-over-stats';
+    statsDiv.className = cn('game-over-stats');
 
+    // Create score display with proper DOM elements
     const scoreDiv = document.createElement('div');
-    scoreDiv.className = 'game-over-score';
-    scoreDiv.innerHTML = `
-      <span class="game-over-score-label">Final Score</span>
-      <span class="game-over-score-value">${formatNumber(score)}</span>
-    `;
+    scoreDiv.className = cn('game-over-score', 'ui-pulse');
+    
+    const scoreLabel = document.createElement('span');
+    scoreLabel.className = cn('game-over-score-label');
+    scoreLabel.textContent = 'Final Score';
+    
+    const scoreValue = document.createElement('span');
+    scoreValue.className = cn('game-over-score-value');
+    scoreValue.textContent = formatNumber(score);
+    
+    scoreDiv.appendChild(scoreLabel);
+    scoreDiv.appendChild(scoreValue);
     statsDiv.appendChild(scoreDiv);
 
-    // Stats grid
-    const statGrid = document.createElement('div');
-    statGrid.className = 'game-over-stat-grid';
-
-    const statItems = [
+    // Create stats using the stat display abstraction
+    const statItems: Stat[] = [
       {
         icon: IconType.ENEMY,
         value: stats.enemiesKilled,
@@ -93,53 +104,59 @@ export class GameOverUI {
       }
     ];
 
-    statItems.forEach(stat => {
-      const statDiv = document.createElement('div');
-      statDiv.className = 'game-over-stat';
-      statDiv.innerHTML = `
-        <div class="game-over-stat-icon">${createSvgIcon(stat.icon as IconType, { size: 32 })}</div>
-        <div class="game-over-stat-value">${stat.value}</div>
-        <div class="game-over-stat-label">${stat.label}</div>
-      `;
-      statGrid.appendChild(statDiv);
+    const statGrid = createStatDisplay({
+      stats: statItems,
+      layout: 'grid',
+      columns: 2,
+      variant: 'large',
+      showLabels: true,
+      showIcons: true,
+      gap: 'md',
+      customClasses: ['game-over-stat-grid']
     });
 
     statsDiv.appendChild(statGrid);
     content.appendChild(statsDiv);
 
-    // Buttons
+    // Buttons container
     const buttonsDiv = document.createElement('div');
-    buttonsDiv.className = 'game-over-buttons';
+    buttonsDiv.className = cn('game-over-buttons');
 
-    // Restart button
-    const restartButton = document.createElement('button');
-    restartButton.className = 'ui-button game-over-button-restart';
-    restartButton.innerHTML = `
-      ${createSvgIcon(IconType.RESTART, { size: 24 })}
-      <span>Try Again</span>
-    `;
-    restartButton.addEventListener('click', () => {
-      this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-      if (this.onRestart) {
-        this.onRestart();
-      }
-      this.close();
+    // Create restart button using button abstraction
+    const restartButton = createButton({
+      text: 'Try Again',
+      icon: IconType.RESTART,
+      iconPosition: 'left',
+      iconSize: 24,
+      variant: 'success',
+      size: 'lg',
+      onClick: () => {
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onRestart) {
+          this.onRestart();
+        }
+        this.close();
+      },
+      customClasses: ['game-over-button-restart']
     });
     buttonsDiv.appendChild(restartButton);
 
-    // Main menu button
-    const menuButton = document.createElement('button');
-    menuButton.className = 'ui-button secondary game-over-button-menu';
-    menuButton.innerHTML = `
-      ${createSvgIcon(IconType.HOME, { size: 24 })}
-      <span>Main Menu</span>
-    `;
-    menuButton.addEventListener('click', () => {
-      this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-      if (this.onMainMenu) {
-        this.onMainMenu();
-      }
-      this.close();
+    // Create main menu button using button abstraction
+    const menuButton = createButton({
+      text: 'Main Menu',
+      icon: IconType.HOME,
+      iconPosition: 'left',
+      iconSize: 24,
+      variant: 'secondary',
+      size: 'lg',
+      onClick: () => {
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        if (this.onMainMenu) {
+          this.onMainMenu();
+        }
+        this.close();
+      },
+      customClasses: ['game-over-button-menu']
     });
     buttonsDiv.appendChild(menuButton);
 
@@ -147,7 +164,7 @@ export class GameOverUI {
 
     // Message
     const message = document.createElement('div');
-    message.className = 'game-over-message';
+    message.className = cn('game-over-message');
     message.textContent = this.getGameOverMessage(wave);
     content.appendChild(message);
 

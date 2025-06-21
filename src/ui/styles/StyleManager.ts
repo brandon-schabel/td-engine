@@ -85,15 +85,32 @@ export class StyleManager {
     variables.push(`--color-game-damage-magical: ${COLOR_THEME.effects.freeze};`);
     variables.push(`--color-game-damage-critical: ${COLOR_THEME.effects.explosion};`);
     
-    // Spacing
+    // Spacing - Numeric scale for utilities
+    variables.push(`--spacing-0: 0px;`);
+    variables.push(`--spacing-1: 4px;`);
+    variables.push(`--spacing-2: 8px;`);
+    variables.push(`--spacing-3: 12px;`);
+    variables.push(`--spacing-4: 16px;`);
+    variables.push(`--spacing-5: 20px;`);
+    variables.push(`--spacing-6: 24px;`);
+    variables.push(`--spacing-8: 32px;`);
+    variables.push(`--spacing-10: 40px;`);
+    variables.push(`--spacing-12: 48px;`);
+    variables.push(`--spacing-16: 64px;`);
+    variables.push(`--spacing-20: 80px;`);
+    variables.push(`--spacing-24: 96px;`);
+    
+    // Named spacing (mapped to numeric scale)
     Object.entries(UI_CONSTANTS.spacing).forEach(([key, value]) => {
       variables.push(`--spacing-${key}: ${value}px;`);
     });
     
     // Define standard border radius values
+    variables.push(`--radius-xs: 2px;`);
     variables.push(`--radius-sm: 4px;`);
     variables.push(`--radius-md: 8px;`);
     variables.push(`--radius-lg: 12px;`);
+    variables.push(`--radius-full: 9999px;`);
     
     // Define standard font sizes
     variables.push(`--font-xs: 12px;`);
@@ -102,6 +119,18 @@ export class StyleManager {
     variables.push(`--font-lg: 18px;`);
     variables.push(`--font-xl: 24px;`);
     variables.push(`--font-xxl: 32px;`);
+    
+    // Font weights
+    variables.push(`--font-weight-light: 300;`);
+    variables.push(`--font-weight-normal: 400;`);
+    variables.push(`--font-weight-medium: 500;`);
+    variables.push(`--font-weight-semibold: 600;`);
+    variables.push(`--font-weight-bold: 700;`);
+    
+    // Line heights
+    variables.push(`--line-height-tight: 1.25;`);
+    variables.push(`--line-height-normal: 1.5;`);
+    variables.push(`--line-height-relaxed: 1.75;`);
     
     // Animation durations
     Object.entries(ANIMATION_CONFIG.durations).forEach(([key, value]) => {
@@ -148,6 +177,27 @@ export class StyleManager {
     variables.push(`--color-status-warning: ${COLOR_THEME.ui.text.warning};`);
     variables.push(`--color-status-error: ${COLOR_THEME.ui.text.danger};`);
     
+    // Color variations
+    variables.push(`--color-primary: ${COLOR_THEME.ui.button.primary};`);
+    variables.push(`--color-primary-dark: #3456c4;`); // Darker shade of primary
+    variables.push(`--color-primary-light: #5a82e3;`); // Lighter shade of primary
+    variables.push(`--color-secondary: ${COLOR_THEME.ui.button.secondary};`);
+    variables.push(`--color-secondary-dark: #606060;`); // Darker shade of secondary
+    variables.push(`--color-secondary-light: #a0a0a0;`); // Lighter shade of secondary
+    variables.push(`--color-danger: ${COLOR_THEME.ui.button.danger};`);
+    variables.push(`--color-danger-dark: #cc0000;`); // Darker shade of danger
+    variables.push(`--color-success: ${COLOR_THEME.ui.button.success};`);
+    variables.push(`--color-success-dark: #00cc00;`); // Darker shade of success
+    variables.push(`--color-warning: ${COLOR_THEME.ui.text.warning};`);
+    variables.push(`--color-warning-dark: #cccc00;`); // Darker shade of warning
+    
+    // Text on colored backgrounds
+    variables.push(`--color-text-on-primary: #ffffff;`);
+    variables.push(`--color-text-on-secondary: #ffffff;`);
+    variables.push(`--color-text-on-danger: #ffffff;`);
+    variables.push(`--color-text-on-success: #000000;`);
+    variables.push(`--color-text-on-warning: #000000;`);
+    
     // Mobile control colors
     variables.push(`--color-controls-joystick-base: rgba(255, 255, 255, 0.2);`);
     variables.push(`--color-controls-joystick-baseBorder: rgba(255, 255, 255, 0.5);`);
@@ -163,6 +213,58 @@ export class StyleManager {
     variables.push(`--z-tooltip: 10000;`);
     variables.push(`--z-floatingText: 1000;`);
     variables.push(`--z-hud: 100;`);
+    
+    // Border widths
+    variables.push(`--border-width-default: 1px;`);
+    variables.push(`--border-width-thick: 2px;`);
+    variables.push(`--border-width-heavy: 4px;`);
+    
+    // Shadows
+    variables.push(`--shadow-none: none;`);
+    variables.push(`--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);`);
+    variables.push(`--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);`);
+    variables.push(`--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);`);
+    variables.push(`--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);`);
+    variables.push(`--shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);`);
+    
+    // Opacity
+    variables.push(`--opacity-0: 0;`);
+    variables.push(`--opacity-5: 0.05;`);
+    variables.push(`--opacity-10: 0.1;`);
+    variables.push(`--opacity-20: 0.2;`);
+    variables.push(`--opacity-25: 0.25;`);
+    variables.push(`--opacity-30: 0.3;`);
+    variables.push(`--opacity-40: 0.4;`);
+    variables.push(`--opacity-50: 0.5;`);
+    variables.push(`--opacity-60: 0.6;`);
+    variables.push(`--opacity-70: 0.7;`);
+    variables.push(`--opacity-75: 0.75;`);
+    variables.push(`--opacity-80: 0.8;`);
+    variables.push(`--opacity-90: 0.9;`);
+    variables.push(`--opacity-95: 0.95;`);
+    variables.push(`--opacity-100: 1;`);
+    
+    // Common gradients
+    variables.push(`--gradient-card-default: linear-gradient(135deg, rgba(33, 37, 41, 0.95) 0%, rgba(40, 44, 48, 0.95) 100%);`);
+    variables.push(`--gradient-card-hover: linear-gradient(135deg, rgba(40, 44, 48, 0.98) 0%, rgba(48, 52, 56, 0.98) 100%);`);
+    variables.push(`--gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);`);
+    variables.push(`--gradient-success: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);`);
+    variables.push(`--gradient-danger: linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger-dark) 100%);`);
+    variables.push(`--gradient-overlay: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);`);
+    
+    // Common transition properties
+    variables.push(`--transition-base: all var(--duration-uiTransition) var(--easing-smooth);`);
+    variables.push(`--transition-hover: all var(--duration-cardHover) var(--easing-smooth);`);
+    variables.push(`--transition-fast: all var(--duration-fast) var(--easing-smooth);`);
+    
+    // Button specific colors
+    variables.push(`--color-button-primary: ${COLOR_THEME.ui.button.primary};`);
+    variables.push(`--color-button-secondary: ${COLOR_THEME.ui.button.secondary};`);
+    variables.push(`--color-button-danger: ${COLOR_THEME.ui.button.danger};`);
+    variables.push(`--color-button-success: ${COLOR_THEME.ui.button.success};`);
+    
+    // Background overlay
+    variables.push(`--color-background-overlay: rgba(0, 0, 0, 0.7);`);
     
     return variables.join('\n        ');
   }
