@@ -88,6 +88,8 @@ export abstract class BaseDialog {
     container.className = `ui-dialog-container ${this.options.className}`;
     container.style.display = 'none';
     container.style.zIndex = this.zIndex.toString();
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
     return container;
   }
   
@@ -104,7 +106,9 @@ export abstract class BaseDialog {
     dialog.className = 'ui-dialog';
     dialog.style.width = this.options.width;
     dialog.style.height = this.options.height;
-    dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(0.9)';
+    dialog.style.maxHeight = '85vh';
+    dialog.style.margin = 'auto';
+    dialog.style.transform = 'scale(0.9)';
     dialog.style.opacity = '0';
     return dialog;
   }
@@ -256,7 +260,7 @@ export abstract class BaseDialog {
       // Only allow downward swipe
       if (deltaY > 0) {
         const progress = Math.min(deltaY / 300, 1);
-        this.dialog.style.transform = `translate3d(-50%, calc(-50% + ${deltaY}px), 0) scale(${1 - progress * 0.05})`;
+        this.dialog.style.transform = `translateY(${deltaY}px) scale(${1 - progress * 0.05})`;
         this.dialog.style.opacity = `${1 - progress * 0.3}`;
       }
     };
@@ -274,7 +278,7 @@ export abstract class BaseDialog {
         this.hide();
       } else {
         // Snap back to original position
-        this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
+        this.dialog.style.transform = 'scale(1)';
         this.dialog.style.opacity = '1';
       }
       
@@ -320,7 +324,7 @@ export abstract class BaseDialog {
     // Set initial states for animation
     this.overlay.style.opacity = '0';
     this.dialog.style.opacity = '0';
-    this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(0.9)';
+    this.dialog.style.transform = 'scale(0.9)';
     
     // Force browser to calculate layout before animation
     void this.container.offsetHeight;
@@ -331,7 +335,7 @@ export abstract class BaseDialog {
       setTimeout(() => {
         this.overlay.style.opacity = '1';
         this.dialog.style.opacity = '1';
-        this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
+        this.dialog.style.transform = 'scale(1)';
         
         console.log(`[BaseDialog] Animation complete for: ${this.options.title}`);
       }, 10);
@@ -348,7 +352,7 @@ export abstract class BaseDialog {
     
     this.overlay.style.opacity = '0';
     this.dialog.style.opacity = '0';
-    this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(0.9)';
+    this.dialog.style.transform = 'scale(0.9)';
     
     setTimeout(() => {
       this.container.style.display = 'none';

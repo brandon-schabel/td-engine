@@ -9,9 +9,20 @@ export class FloatingUIElement {
   private enabled = false;
   private element!: HTMLDivElement;
 
-  private options: Required<FloatingUIOptions>;
+  private options: FloatingUIOptions & {
+    offset: { x: number; y: number };
+    anchor: 'top' | 'bottom' | 'left' | 'right' | 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    smoothing: number;
+    autoHide: boolean;
+    className: string;
+    persistent: boolean;
+    mobileScale: number;
+    zIndex: number;
+    screenSpace: boolean;
+  };
   private currentPos: Position = { x: 0, y: 0 };
   private targetPos: Position = { x: 0, y: 0 };
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor(id: string, type: UIType, manager: FloatingUIManager, options: FloatingUIOptions = {}) {
     this.id = id;
@@ -31,6 +42,11 @@ export class FloatingUIElement {
       screenSpace: false,
       ...options
     };
+
+    // Set up resize observer for anchor element if provided
+    if (this.options.anchorElement) {
+      this.setupAnchorElementObserver();
+    }
 
     this.createElement();
   }
@@ -108,6 +124,12 @@ export class FloatingUIElement {
   }
 
   public updatePosition(immediate = false): void {
+    // If anchored to DOM element, use element position
+    if (this.options.anchorElement) {
+      this.updatePositionFromAnchorElement(immediate);
+      return;
+    }
+
     if (!this.target) return;
 
     // Get canvas bounds
@@ -156,14 +178,14 @@ export class FloatingUIElement {
     if (immediate && this.element.innerHTML.length > 0) {
       // Use requestAnimationFrame to ensure DOM has updated
       requestAnimationFrame(() => {
-        this.applyPositionWithAnchor(screenPos, immediate, canvasRect, containerRect);
+        this.applyPositionWithAnchor(screenPos, immediate);
       });
     } else {
-      this.applyPositionWithAnchor(screenPos, immediate, canvasRect, containerRect);
+      this.applyPositionWithAnchor(screenPos, immediate);
     }
   }
 
-  private applyPositionWithAnchor(screenPos: Position, immediate: boolean, canvasRect: DOMRect, containerRect: DOMRect): void {
+  private applyPositionWithAnchor(screenPos: Position, immediate: boolean): void {
     // Calculate anchor offset
     const anchorOffset = this.calculateAnchorOffset();
 
@@ -254,9 +276,85 @@ export class FloatingUIElement {
         offset.x = -rect.width / 2;
         offset.y = -rect.height / 2;
         break;
+      case 'top-left':
+        offset.x = -rect.width;
+        offset.y = -rect.height;
+        break;
+      case 'top-right':
+        offset.x = 0;
+        offset.y = -rect.height;
+        break;
+      case 'bottom-left':
+        offset.x = -rect.width;
+        offset.y = 0;
+        break;
+      case 'bottom-right':
+        offset.x = 0;
+        offset.y = 0;
+        break;
     }
 
     return offset;
+  }
+
+  private setupAnchorElementObserver(): void {
+    if (!this.options.anchorElement) return;
+
+    // Observe size and position changes of anchor element
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.enabled) {
+        this.updatePosition(true);
+      }
+    });
+    this.resizeObserver.observe(this.options.anchorElement);
+  }
+
+  private updatePositionFromAnchorElement(immediate: boolean): void {
+    if (!this.options.anchorElement) return;
+
+    const anchorRect = this.options.anchorElement.getBoundingClientRect();
+    const container = this.manager.getContainer();
+    const containerRect = container.getBoundingClientRect();
+
+    // Calculate position relative to anchor element
+    let basePos: Position = {
+      x: anchorRect.left + anchorRect.width / 2 - containerRect.left,
+      y: anchorRect.top + anchorRect.height / 2 - containerRect.top
+    };
+
+    // Adjust base position based on anchor point
+    switch (this.options.anchor) {
+      case 'top':
+        basePos.y = anchorRect.top - containerRect.top;
+        break;
+      case 'bottom':
+        basePos.y = anchorRect.bottom - containerRect.top;
+        break;
+      case 'left':
+        basePos.x = anchorRect.left - containerRect.left;
+        break;
+      case 'right':
+        basePos.x = anchorRect.right - containerRect.left;
+        break;
+      case 'top-left':
+        basePos.x = anchorRect.left - containerRect.left;
+        basePos.y = anchorRect.top - containerRect.top;
+        break;
+      case 'top-right':
+        basePos.x = anchorRect.right - containerRect.left;
+        basePos.y = anchorRect.top - containerRect.top;
+        break;
+      case 'bottom-left':
+        basePos.x = anchorRect.left - containerRect.left;
+        basePos.y = anchorRect.bottom - containerRect.top;
+        break;
+      case 'bottom-right':
+        basePos.x = anchorRect.right - containerRect.left;
+        basePos.y = anchorRect.bottom - containerRect.top;
+        break;
+    }
+
+    this.applyPositionWithAnchor(basePos, immediate);
   }
 
   private isMobile(): boolean {
@@ -274,6 +372,22 @@ export class FloatingUIElement {
     // Update z-index if changed
     if ('zIndex' in options) {
       this.element.style.zIndex = this.options.zIndex.toString();
+    }
+
+    // Handle anchor element change
+    if ('anchorElement' in options) {
+      // Clean up old observer
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect();
+        this.resizeObserver = null;
+      }
+      
+      // Set up new observer if element provided
+      if (options.anchorElement) {
+        this.setupAnchorElementObserver();
+        // Force immediate position update
+        this.updatePosition(true);
+      }
     }
 
     return this;
@@ -301,6 +415,10 @@ export class FloatingUIElement {
 
   public destroy(): void {
     this.disable();
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     this.element.remove();
   }
 

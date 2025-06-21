@@ -3,9 +3,6 @@ import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
-import { UI_CONSTANTS } from '@/config/UIConstants';
-import { COLOR_THEME } from '@/config/ColorTheme';
-import { isMobile } from '@/config/ResponsiveConfig';
 import { formatNumber } from '@/utils/formatters';
 
 export class GameOverUI {
@@ -151,7 +148,7 @@ export class GameOverUI {
     // Message
     const message = document.createElement('div');
     message.className = 'game-over-message';
-    message.textContent = this.getGameOverMessage(wave, score);
+    message.textContent = this.getGameOverMessage(wave);
     content.appendChild(message);
 
     return content;
@@ -163,7 +160,7 @@ export class GameOverUI {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 
-  private getGameOverMessage(wave: number, score: number): string {
+  private getGameOverMessage(wave: number): string {
     if (wave >= 50) {
       return "Incredible performance! You're a tower defense master!";
     } else if (wave >= 30) {

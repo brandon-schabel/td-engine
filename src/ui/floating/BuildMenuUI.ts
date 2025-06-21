@@ -25,72 +25,93 @@ export class BuildMenuUI {
   private onTowerSelect: ((type: TowerType) => void) | null = null;
   private updateInterval: number | null = null;
   private position: { x: number; y: number } | null = null;
+  private contentInitialized: boolean = false;
+  private lastCurrency: number = -1;
   
   constructor(game: Game) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
   }
 
-  public show(x: number, y: number, onTowerSelect: (type: TowerType) => void): void {
-    // Note: x, y are expected to be in world coordinates
+  public show(x: number, y: number, onTowerSelect: (type: TowerType) => void, anchorElement?: HTMLElement): void {
+    // x, y are screen coordinates
     this.position = { x, y };
     this.onTowerSelect = onTowerSelect;
     
     if (this.element) {
-      // Update position if element already exists
-      const camera = this.floatingUI.getCamera();
-      const screenPos = camera.worldToScreen(this.position);
-      const positionEntity = {
-        x: screenPos.x,
-        y: screenPos.y,
-        position: screenPos,
-        getPosition: () => screenPos
-      };
-      this.element.setTarget(positionEntity as Entity);
+      // If anchor element is provided, update options
+      if (anchorElement) {
+        this.element.setOptions({
+          anchorElement,
+          anchor: 'top',
+          offset: { x: 0, y: -10 }
+        });
+      } else {
+        // Fallback to position-based approach
+        const positionEntity = {
+          x,
+          y: y - 10, // Position above the button
+          position: { x, y: y - 10 },
+          getPosition: () => ({ x, y: y - 10 })
+        };
+        this.element.setTarget(positionEntity as unknown as Entity);
+      }
       this.element.enable();
-      this.updateContent();
+      // Only update dynamic values for existing content
+      this.updateDynamicValues();
       return;
     }
     
-    this.create();
+    this.create(anchorElement);
   }
 
-  private create(): void {
+  private create(anchorElement?: HTMLElement): void {
     if (!this.position || !this.onTowerSelect) return;
     
     const elementId = 'build-menu-ui';
     
-    // Get the camera to convert click position to screen coordinates
-    const camera = this.floatingUI.getCamera();
+    if (anchorElement) {
+      // Use DOM element anchoring
+      this.element = this.floatingUI.create(elementId, 'popup', {
+        anchorElement,
+        anchor: 'top',
+        offset: { x: 0, y: -10 },
+        smoothing: 0,
+        autoHide: false,
+        persistent: true,
+        zIndex: 900,
+        className: 'build-menu-ui',
+        screenSpace: true
+      });
+    } else {
+      // Fallback to position-based approach
+      this.element = this.floatingUI.create(elementId, 'popup', {
+        offset: { x: 0, y: -10 },
+        anchor: 'bottom',
+        smoothing: 0,
+        autoHide: false,
+        persistent: true,
+        zIndex: 900,
+        className: 'build-menu-ui',
+        screenSpace: true
+      });
+      
+      // Create a dummy entity with screen coordinates
+      const positionEntity = {
+        position: { x: this.position.x, y: this.position.y - 10 },
+        getPosition: () => ({ x: this.position!.x, y: this.position!.y - 10 })
+      };
+      
+      this.element.setTarget(positionEntity as unknown as Entity);
+    }
     
-    // Convert world position to screen position
-    const screenPos = camera.worldToScreen(this.position);
-    
-    this.element = this.floatingUI.create(elementId, 'popup', {
-      offset: { x: 0, y: -20 },
-      anchor: 'bottom',
-      smoothing: 0,
-      autoHide: false,
-      persistent: true,
-      zIndex: 900,
-      className: 'build-menu-ui',
-      screenSpace: true // Use screen-space positioning
-    });
-    
-    // Create a dummy entity with screen coordinates
-    const positionEntity = {
-      position: screenPos,
-      getPosition: () => screenPos
-    };
-    
-    this.element.setTarget(positionEntity as Entity);
-    this.updateContent();
+    this.createInitialContent();
     this.element.enable();
     
-    // Update content periodically to reflect currency changes
+    // Update only dynamic values periodically
     this.updateInterval = window.setInterval(() => {
-      this.updateContent();
-    }, 500);
+      this.updateDynamicValues();
+    }, 250);
     
     // Close on click outside
     setTimeout(() => {
@@ -105,7 +126,7 @@ export class BuildMenuUI {
     }, 100);
   }
 
-  private updateContent(): void {
+  private createInitialContent(): void {
     if (!this.element || !this.onTowerSelect) return;
 
     const content = document.createElement('div');
@@ -116,7 +137,7 @@ export class BuildMenuUI {
       <div class="ui-grid cols-2 ui-gap-sm ui-mb-md"></div>
       <div class="resource-item ui-flex-center">
         ${createSvgIcon(IconType.COINS, { size: 20 })}
-        <span class="resource-value">${formatNumber(this.game.getCurrency())}</span>
+        <span class="resource-value" data-update="currency">${formatNumber(this.game.getCurrency())}</span>
         <span class="ui-text-secondary">Available</span>
       </div>
       <div class="ui-text-center ui-text-secondary ui-mt-sm">Click outside to close</div>
@@ -164,6 +185,7 @@ export class BuildMenuUI {
       button.className = `tower-card ${!canAfford ? 'disabled' : ''}`;
       button.disabled = !canAfford;
       button.setAttribute('data-tower-type', tower.type);
+      button.setAttribute('data-tower-cost', String(tower.cost));
       button.setAttribute('aria-label', `Build ${tower.name} for ${tower.cost} coins`);
 
       button.innerHTML = `
@@ -177,28 +199,84 @@ export class BuildMenuUI {
         </div>
       `;
 
-      if (canAfford) {
-        const handleSelect = () => {
-          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-          if (this.onTowerSelect) {
-            this.onTowerSelect(tower.type);
-          }
-          this.close();
-        };
-
-        button.addEventListener('click', handleSelect);
-        
-        // Add touch support for mobile devices
-        button.addEventListener('touchend', (e) => {
-          e.preventDefault(); // Prevent ghost click
-          handleSelect();
-        });
-      }
+      // Event handlers will be attached via delegation
 
       grid.appendChild(button);
     });
 
     this.element.setContent(content);
+    
+    // Set up delegated event handling for tower buttons
+    const handleTowerClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      const button = target.closest('.tower-card:not(.disabled)') as HTMLButtonElement;
+      
+      if (button && !button.disabled) {
+        const towerType = button.getAttribute('data-tower-type') as TowerType;
+        if (towerType) {
+          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+          if (this.onTowerSelect) {
+            this.onTowerSelect(towerType);
+          }
+          this.close();
+        }
+      }
+    };
+    
+    content.addEventListener('click', handleTowerClick);
+    content.addEventListener('touchend', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.tower-card:not(.disabled)')) {
+        e.preventDefault(); // Prevent ghost click
+        handleTowerClick(e);
+      }
+    });
+    
+    this.contentInitialized = true;
+    this.lastCurrency = currency;
+  }
+
+  private updateDynamicValues(): void {
+    if (!this.element || !this.contentInitialized) return;
+
+    const element = this.element.getElement();
+    if (!element) return;
+
+    const currency = this.game.getCurrency();
+
+    // Only update if currency changed
+    if (currency === this.lastCurrency) return;
+
+    // Update currency display
+    const currencyElement = element.querySelector('.resource-value[data-update="currency"]');
+    if (currencyElement) {
+      currencyElement.textContent = formatNumber(currency);
+    }
+
+    // Update tower button states
+    const towerButtons = element.querySelectorAll('.tower-card[data-tower-cost]');
+    towerButtons.forEach((button) => {
+      const buttonEl = button as HTMLButtonElement;
+      const cost = parseInt(buttonEl.getAttribute('data-tower-cost') || '0');
+      const canAfford = currency >= cost;
+      
+      // Only update if affordability changed
+      const wasDisabled = buttonEl.disabled;
+      if (wasDisabled !== !canAfford) {
+        buttonEl.disabled = !canAfford;
+        if (canAfford) {
+          buttonEl.classList.remove('disabled');
+        } else {
+          buttonEl.classList.add('disabled');
+        }
+        
+        // Update aria-label
+        const towerName = buttonEl.querySelector('.tower-card-name')?.textContent || 'Tower';
+        buttonEl.setAttribute('aria-label', `Build ${towerName} for ${cost} coins`);
+      }
+    });
+
+    this.lastCurrency = currency;
   }
 
   public hide(): void {
@@ -224,5 +302,7 @@ export class BuildMenuUI {
     
     this.position = null;
     this.onTowerSelect = null;
+    this.contentInitialized = false;
+    this.lastCurrency = -1;
   }
 }

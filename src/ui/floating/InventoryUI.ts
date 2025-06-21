@@ -16,7 +16,7 @@ export class InventoryUI {
   private element: FloatingUIElement | null = null;
   private game: Game;
   private updateInterval: number | null = null;
-  private contentInitialized = false;
+  // private contentInitialized = false; // Not used in this simplified version
   private lastStats = { usedSlots: -1, totalSlots: -1 };
   private lastUpgradeInfo = { cost: -1, canAfford: false };
   
@@ -31,34 +31,76 @@ export class InventoryUI {
   private touchStartX: number = 0;
   private currentTabIndex: number = 0;
   private tabOrder: (ItemType | 'ALL')[] = ['ALL', ItemType.CONSUMABLE, ItemType.EQUIPMENT, ItemType.MATERIAL, ItemType.SPECIAL];
+  
+  private screenPos?: { x: number; y: number };
+  private anchorElement?: HTMLElement;
 
-  constructor(game: Game) {
+  constructor(game: Game, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
     this.tooltip = new ItemTooltip();
+    this.screenPos = screenPos;
+    this.anchorElement = anchorElement;
     this.create();
   }
 
   private create(): void {
     const elementId = 'inventory-ui';
     
-    this.element = this.floatingUI.create(elementId, 'dialog', {
-      offset: { x: 0, y: 0 },
-      anchor: 'center',
-      smoothing: 0,
-      autoHide: false,
-      persistent: true,
-      zIndex: 1000,
-      className: 'inventory-ui'
-    });
+    if (this.anchorElement) {
+      // Use DOM element anchoring
+      this.element = this.floatingUI.create(elementId, 'dialog', {
+        anchorElement: this.anchorElement,
+        anchor: 'top',
+        offset: { x: 0, y: -10 },
+        smoothing: 0,
+        autoHide: false,
+        persistent: true,
+        zIndex: 1000,
+        className: 'inventory-ui',
+        screenSpace: true
+      });
+    } else {
+      // Fallback to position-based approach
+      let position = this.screenPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      
+      // If we have a screen position (from button), position above control bar
+      if (this.screenPos) {
+        const controlBarHeight = 60;
+        const menuHeight = 600; // Approximate height
+        const menuWidth = 600; // Approximate width
+        const padding = 10;
+        
+        // Center horizontally on the button, constrain to screen
+        position.x = Math.max(
+          menuWidth / 2 + padding,
+          Math.min(this.screenPos.x, window.innerWidth - menuWidth / 2 - padding)
+        );
+        
+        // Position above control bar
+        position.y = window.innerHeight - controlBarHeight - menuHeight / 2 - padding;
+      }
+      
+      this.element = this.floatingUI.create(elementId, 'dialog', {
+        offset: { x: 0, y: 0 },
+        anchor: 'center',
+        smoothing: 0,
+        autoHide: false,
+        persistent: true,
+        zIndex: 1000,
+        className: 'inventory-ui',
+        screenSpace: true
+      });
+      
+      // Set target position
+      const positionEntity = {
+        position: position,
+        getPosition: () => position
+      };
+      
+      this.element.setTarget(positionEntity as unknown as Entity);
+    }
     
-    // Set target to center of screen
-    const centerEntity = {
-      position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-      getPosition: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
-    };
-    
-    this.element.setTarget(centerEntity as Entity);
     this.updateContent();
     this.element.enable();
     
@@ -266,8 +308,7 @@ export class InventoryUI {
         
         // Only update if item changed
         if (changedIndices.has(index)) {
-          const shouldShow = this.shouldShowItem(item);
-          slot.setItem(shouldShow ? item : null);
+          slot.setItem(item);
         }
         
         // Update visibility based on tab (this is fast)
@@ -488,6 +529,14 @@ export class InventoryUI {
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;
+    }
+  }
+  
+  public show(): void {
+    // Element is already created and shown in the constructor
+    // This method exists for UIController compatibility
+    if (this.element) {
+      this.element.enable();
     }
   }
 }

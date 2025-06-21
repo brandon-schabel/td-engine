@@ -34,7 +34,6 @@ export class TowerUpgradeUI {
   private game: Game;
   private floatingUI: FloatingUIManager;
   private element: FloatingUIElement | null = null;
-  private bulkAmount: number | 'MAX' = 1;
   private upgradeOptions: UpgradeOption[] = [];
   private sellButtonEnabled: boolean = false;
   private sellButtonTimeout: number | null = null;
@@ -82,7 +81,7 @@ export class TowerUpgradeUI {
       },
       {
         type: UpgradeType.FIRE_RATE,
-        name: 'Fire Rate',
+        name: 'Speed',
         description: 'Attack more frequently',
         cost: this.tower.getUpgradeCost(UpgradeType.FIRE_RATE),
         currentLevel: this.tower.getUpgradeLevel(UpgradeType.FIRE_RATE),
@@ -95,15 +94,15 @@ export class TowerUpgradeUI {
 
   private create(): void {
     const elementId = `tower-upgrade-${this.tower.id}`;
-    
+
     this.element = this.floatingUI.create(elementId, 'custom', {
-      offset: { x: 0, y: -30 },
+      offset: { x: 0, y: -20 },
       anchor: 'top',
       smoothing: 0.1,
       autoHide: false,
       persistent: true,
       zIndex: 1000,
-      className: 'tower-upgrade-ui'
+      className: 'tower-upgrade-ui compact'
     });
 
     this.element.setTarget(this.tower);
@@ -113,51 +112,51 @@ export class TowerUpgradeUI {
     // Prevent clicks on the UI from propagating to the canvas
     this.setupClickHandling();
 
-    // Enable sell button after 1 second
+    // Enable sell button after 0.5 seconds (reduced from 1 second)
     this.sellButtonTimeout = window.setTimeout(() => {
       if (!this.isDestroyed) {
         this.sellButtonEnabled = true;
         this.updateSellButton();
       }
-    }, 1000);
+    }, 500);
 
     // Note: Escape key is handled by UIController, not here
   }
 
   private setupClickHandling(): void {
     if (!this.element || this.isDestroyed) return;
-    
+
     const element = this.element.getElement();
-    
+
     // Only prevent events from bubbling up to the canvas when clicking on non-interactive areas
     const handleMouseEvent = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      
+
       // Allow events on interactive elements to process normally
       if (target.matches('button, .ui-button, input, select, textarea, a')) {
         return; // Let the event bubble normally for interactive elements
       }
-      
+
       // Only stop propagation for clicks on the background/card itself
       if (target === element || target.matches('.ui-card, .tower-upgrade-panel')) {
         e.stopPropagation();
       }
     };
-    
+
     // Remove existing handlers if any
     const oldHandler = (element as any).__handleMouseEvent;
     if (oldHandler) {
       element.removeEventListener('mousedown', oldHandler);
       element.removeEventListener('click', oldHandler);
     }
-    
+
     // Add new handlers
     element.addEventListener('mousedown', handleMouseEvent);
     element.addEventListener('click', handleMouseEvent);
-    
+
     // Store handler for cleanup
     (element as any).__handleMouseEvent = handleMouseEvent;
-    
+
     // Handle click outside to close
     if (!this.clickOutsideHandler) {
       this.clickOutsideHandler = (e: MouseEvent) => {
@@ -165,7 +164,7 @@ export class TowerUpgradeUI {
           this.game.deselectTower();
         }
       };
-      
+
       // Add with slight delay to avoid immediate trigger
       setTimeout(() => {
         if (!this.isDestroyed) {
@@ -179,271 +178,177 @@ export class TowerUpgradeUI {
     if (!this.element || this.isDestroyed) return;
 
     const content = document.createElement('div');
-    content.className = 'tower-upgrade-panel';
+    content.className = 'tower-upgrade-panel compact';
 
-    // Add header
-    content.appendChild(this.createHeader());
-    
-    // Add currency display
-    content.appendChild(this.createCurrencyDisplay());
-    
-    // Add current stats
-    content.appendChild(this.createCurrentStats());
-    
-    // Add bulk selector if upgrades available
+    // Add compact header with stats inline
+    content.appendChild(this.createCompactHeader());
+
+    // Add upgrade cards
     if (this.hasAvailableUpgrades()) {
-      content.appendChild(this.createBulkSelector());
-      content.appendChild(this.createUpgradeCards());
+      content.appendChild(this.createCompactUpgradeCards());
     }
-    
+
     // Add action buttons
-    content.appendChild(this.createActionButtons());
+    content.appendChild(this.createCompactActionButtons());
 
     // Clear and append the actual DOM element to preserve event handlers
     const container = this.element.getElement();
     container.innerHTML = '';
     container.appendChild(content);
-    
+
     // Re-setup click handling after content update
     this.setupClickHandling();
   }
 
-  private createHeader(): HTMLElement {
+  private createCompactHeader(): HTMLElement {
     const header = document.createElement('div');
-    header.className = 'tower-upgrade-header';
+    header.className = 'tower-upgrade-header compact';
 
-    const iconContainer = document.createElement('div');
-    iconContainer.className = 'tower-upgrade-icon';
-    iconContainer.dataset.towerType = this.tower.towerType.toLowerCase();
-    iconContainer.innerHTML = createSvgIcon(this.getTowerIcon(), { size: 32 });
-    header.appendChild(iconContainer);
+    const towerInfo = document.createElement('div');
+    towerInfo.className = 'tower-info';
 
-    const titleContainer = document.createElement('div');
-    titleContainer.className = 'tower-upgrade-title';
-    titleContainer.innerHTML = `
-      <div class="tower-upgrade-name">${this.getTowerName()}</div>
-      <div class="tower-upgrade-level">Level ${this.tower.getLevel()}</div>
-    `;
-    header.appendChild(titleContainer);
+    // Tower icon
+    const towerIcon = document.createElement('div');
+    towerIcon.className = 'tower-icon';
+    towerIcon.dataset.towerType = this.tower.towerType.toLowerCase();
+    towerIcon.innerHTML = createSvgIcon(this.getTowerIcon(), { size: 20 });
 
-    const sellValue = document.createElement('div');
-    sellValue.className = 'tower-upgrade-sell-value';
-    sellValue.innerHTML = `${createSvgIcon(IconType.COINS, { size: 12 })} ${formatNumber(this.tower.getSellValue())}`;
-    header.appendChild(sellValue);
+    // Tower details
+    const towerDetails = document.createElement('div');
+    towerDetails.className = 'tower-details';
 
+    const towerName = document.createElement('div');
+    towerName.className = 'tower-name';
+    towerName.textContent = `${this.getTowerName()} Lv.${this.tower.getLevel()}`;
+
+    const towerStats = document.createElement('div');
+    towerStats.className = 'tower-stats';
+    const damage = document.createElement('span');
+    damage.textContent = `${this.tower.damage}dmg`;
+    const range = document.createElement('span');
+    range.textContent = `${this.tower.range}rng`;
+    const fireRate = document.createElement('span');
+    fireRate.textContent = `${(1000 / this.tower.fireRate).toFixed(1)}/s`;
+
+    towerStats.appendChild(damage);
+    towerStats.innerHTML += ' • ';
+    towerStats.appendChild(range);
+    towerStats.innerHTML += ' • ';
+    towerStats.appendChild(fireRate);
+
+    towerDetails.appendChild(towerName);
+    towerDetails.appendChild(towerStats);
+
+    // Currency display
+    const currency = document.createElement('div');
+    currency.className = 'tower-currency';
+    currency.innerHTML = `${createSvgIcon(IconType.COINS, { size: 14 })} ${formatNumber(this.game.getCurrency())}`;
+
+    towerInfo.appendChild(towerIcon);
+    towerInfo.appendChild(towerDetails);
+    towerInfo.appendChild(currency);
+
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'ui-button small close-button';
+    closeButton.innerHTML = createSvgIcon(IconType.CLOSE, { size: 14 });
+    closeButton.title = 'Close (Esc)';
+
+    const handleClose = () => {
+      this.game.deselectTower();
+    };
+
+    closeButton.addEventListener('click', handleClose);
+    closeButton.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleClose();
+    });
+
+    header.appendChild(towerInfo);
+    header.appendChild(closeButton);
     return header;
   }
 
-  private createCurrencyDisplay(): HTMLElement {
-    const display = document.createElement('div');
-    display.className = 'tower-upgrade-currency';
-
-    display.innerHTML = `
-      <div class="tower-upgrade-currency-inner">
-        ${createSvgIcon(IconType.COINS, { size: 20 })}
-        <span class="currency-value">${formatNumber(this.game.getCurrency())}</span>
-        <span class="currency-label">Available</span>
-      </div>
-    `;
-
-    return display;
-  }
-
-  private createCurrentStats(): HTMLElement {
+  private createCompactUpgradeCards(): HTMLElement {
     const container = document.createElement('div');
-    container.className = 'tower-upgrade-stats';
-
-    const stats = [
-      { label: 'Damage', value: this.tower.damage, icon: IconType.DAMAGE },
-      { label: 'Range', value: this.tower.range, icon: IconType.RANGE },
-      { label: 'Fire Rate', value: `${(1000 / this.tower.fireRate).toFixed(1)}/s`, icon: IconType.SPEED }
-    ];
-
-    stats.forEach((stat) => {
-      const row = document.createElement('div');
-      row.className = 'tower-stat-row';
-
-      row.innerHTML = `
-        <span class="tower-stat-icon">
-          ${createSvgIcon(stat.icon, { size: 16 })}
-        </span>
-        <span class="tower-stat-label">${stat.label}</span>
-        <span class="tower-stat-value">${stat.value}</span>
-      `;
-
-      container.appendChild(row);
-    });
-
-    return container;
-  }
-
-  private createBulkSelector(): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'tower-bulk-selector';
-
-    const label = document.createElement('span');
-    label.className = 'bulk-selector-label';
-    label.textContent = 'Upgrade:';
-    container.appendChild(label);
-
-    const increments = [1, 5, 10, 25, 'MAX'] as const;
-    increments.forEach(increment => {
-      const button = document.createElement('button');
-      button.className = `ui-button bulk-selector-button ${this.bulkAmount === increment ? 'active' : ''}`;
-      button.textContent = increment === 'MAX' ? 'MAX' : `x${increment}`;
-      
-      const handleBulkSelect = () => {
-        this.bulkAmount = increment;
-        this.setupUpgradeOptions();
-        this.updateContent();
-      };
-      
-      button.addEventListener('click', handleBulkSelect);
-      button.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        handleBulkSelect();
-      });
-
-      container.appendChild(button);
-    });
-
-    return container;
-  }
-
-  private hasAvailableUpgrades(): boolean {
-    return this.upgradeOptions.some(option => option.currentLevel < option.maxLevel);
-  }
-
-  private createUpgradeCards(): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'tower-upgrade-cards';
+    container.className = 'tower-upgrade-cards compact';
 
     this.upgradeOptions.forEach(option => {
-      container.appendChild(this.createUpgradeCard(option));
+      container.appendChild(this.createCompactUpgradeCard(option));
     });
 
     return container;
   }
 
-  private createUpgradeCard(option: UpgradeOption): HTMLElement {
-    const bulkCost = this.calculateBulkCost(option);
-    const bulkLevels = this.calculateBulkLevels(option);
-    const canAfford = this.game.getCurrency() >= bulkCost && option.currentLevel < option.maxLevel;
+  private createCompactUpgradeCard(option: UpgradeOption): HTMLElement {
+    const canAfford = this.game.getCurrency() >= option.cost && option.currentLevel < option.maxLevel;
     const isMaxed = option.currentLevel >= option.maxLevel;
 
     const card = document.createElement('div');
-    card.className = `tower-upgrade-card ${canAfford && !isMaxed ? 'can-afford' : ''} ${isMaxed ? 'maxed' : ''}`;
+    card.className = `tower-upgrade-card compact ${canAfford && !isMaxed ? 'can-afford' : ''} ${isMaxed ? 'maxed' : ''}`;
 
-    const iconContainer = document.createElement('div');
-    iconContainer.className = 'upgrade-card-icon';
-    iconContainer.innerHTML = createSvgIcon(option.icon, { size: 24 });
-    card.appendChild(iconContainer);
+    // Upgrade icon
+    const icon = document.createElement('div');
+    icon.className = 'upgrade-icon';
+    icon.innerHTML = createSvgIcon(option.icon, { size: 16 });
 
-    const infoContainer = document.createElement('div');
-    infoContainer.className = 'upgrade-card-info';
+    // Upgrade info
+    const info = document.createElement('div');
+    info.className = 'upgrade-info';
 
-    const header = document.createElement('div');
-    header.className = 'upgrade-card-header';
-    header.innerHTML = `
-      <span class="upgrade-card-name ${isMaxed ? 'maxed' : ''}">${option.name}</span>
-      <span class="upgrade-card-level">${isMaxed ? 'MAX' : `Lvl ${option.currentLevel}/${option.maxLevel}`}</span>
-    `;
-    infoContainer.appendChild(header);
+    const name = document.createElement('div');
+    name.className = 'upgrade-name';
+    name.textContent = `${option.name} ${isMaxed ? 'MAX' : `${option.currentLevel}/${option.maxLevel}`}`;
 
-    const description = document.createElement('div');
-    description.className = 'upgrade-card-description';
-    description.textContent = option.description;
-    infoContainer.appendChild(description);
+    if (!isMaxed) {
+      const cost = document.createElement('div');
+      cost.className = `upgrade-cost ${canAfford ? 'affordable' : ''}`;
+      cost.innerHTML = `${createSvgIcon(IconType.COINS, { size: 12 })} ${formatNumber(option.cost)}`;
+      info.appendChild(name);
+      info.appendChild(cost);
+    } else {
+      const maxed = document.createElement('div');
+      maxed.className = 'upgrade-maxed';
+      maxed.textContent = 'MAXED';
+      info.appendChild(name);
+      info.appendChild(maxed);
+    }
 
-    const footer = document.createElement('div');
-    footer.className = 'upgrade-card-footer';
-    footer.innerHTML = `
-      <span class="upgrade-card-effect">${option.effect}</span>
-      ${!isMaxed ? `
-        <span class="upgrade-card-cost ${canAfford ? 'affordable' : ''}">
-          ${createSvgIcon(IconType.COINS, { size: 12 })}
-          <span>${formatNumber(bulkCost)}${bulkLevels > 1 ? ` (x${bulkLevels})` : ''}</span>
-        </span>
-      ` : ''}
-    `;
-    infoContainer.appendChild(footer);
-    card.appendChild(infoContainer);
+    card.appendChild(icon);
+    card.appendChild(info);
 
     if (canAfford && !isMaxed) {
-      const handleUpgrade = () => this.handleBulkUpgrade(option);
-      
+      const handleUpgrade = () => this.handleSingleUpgrade(option);
+
       card.addEventListener('click', handleUpgrade);
       card.addEventListener('touchend', (e) => {
         e.preventDefault();
         handleUpgrade();
       });
-      
-      // Add cursor pointer for clickable cards
-      card.style.cursor = 'pointer';
     }
 
     return card;
   }
 
-  private calculateBulkLevels(option: UpgradeOption): number {
-    if (this.bulkAmount === 'MAX') {
-      return option.maxLevel - option.currentLevel;
-    }
-    return Math.min(this.bulkAmount, option.maxLevel - option.currentLevel);
-  }
-
-  private calculateBulkCost(option: UpgradeOption): number {
-    const levels = this.calculateBulkLevels(option);
-    if (levels === 0) return 0;
-
-    let totalCost = 0;
-    let currentLevel = option.currentLevel;
-
-    for (let i = 0; i < levels; i++) {
-      totalCost += Math.floor(option.cost * Math.pow(1.08, currentLevel));
-      currentLevel++;
-    }
-
-    // Apply bulk discounts
-    if (levels >= 20) {
-      totalCost *= 0.85;
-    } else if (levels >= 10) {
-      totalCost *= 0.90;
-    } else if (levels >= 5) {
-      totalCost *= 0.95;
-    }
-
-    return Math.floor(totalCost);
-  }
-
-  private handleBulkUpgrade(option: UpgradeOption): void {
-    const levels = this.calculateBulkLevels(option);
-    const totalCost = this.calculateBulkCost(option);
-
-    if (this.game.getCurrency() >= totalCost) {
-      for (let i = 0; i < levels; i++) {
-        if (!this.game.upgradeTower(this.tower, option.type)) {
-          break;
-        }
-      }
+  private handleSingleUpgrade(option: UpgradeOption): void {
+    if (this.game.getCurrency() >= option.cost) {
+      this.game.upgradeTower(this.tower, option.type);
       this.setupUpgradeOptions();
       this.updateContent();
     }
   }
 
-  private createActionButtons(): HTMLElement {
+  private createCompactActionButtons(): HTMLElement {
     const container = document.createElement('div');
-    container.className = 'tower-upgrade-actions';
+    container.className = 'tower-upgrade-actions compact';
 
     const sellButton = document.createElement('button');
-    sellButton.id = 'sell-button';
-    sellButton.className = `ui-button tower-sell-button ${!this.sellButtonEnabled ? 'disabled' : ''}`;
-    
-    sellButton.innerHTML = `Sell for ${createSvgIcon(IconType.COINS, { size: 16 })} ${formatNumber(this.tower.getSellValue())}`;
-    
+    sellButton.className = `ui-button small tower-sell-button ${!this.sellButtonEnabled ? 'disabled' : ''}`;
+    sellButton.innerHTML = `Sell ${createSvgIcon(IconType.COINS, { size: 14 })} ${formatNumber(this.tower.getSellValue())}`;
+
     if (this.sellButtonEnabled) {
       const handleSellClick = () => this.handleSell();
-      
+
       sellButton.addEventListener('click', handleSellClick);
       sellButton.addEventListener('touchend', (e) => {
         e.preventDefault();
@@ -457,7 +362,7 @@ export class TowerUpgradeUI {
 
   private updateSellButton(): void {
     if (this.isDestroyed || !this.element) return;
-    
+
     // Re-render to update sell button state
     this.updateContent();
   }
@@ -491,6 +396,9 @@ export class TowerUpgradeUI {
     }
   }
 
+  private hasAvailableUpgrades(): boolean {
+    return this.upgradeOptions.some(option => option.currentLevel < option.maxLevel);
+  }
 
   public updateState(): void {
     if (this.isDestroyed) return;
@@ -513,7 +421,7 @@ export class TowerUpgradeUI {
       document.removeEventListener('click', this.clickOutsideHandler, true);
       this.clickOutsideHandler = null;
     }
-    
+
     // Remove mouse event handlers
     if (this.element) {
       const element = this.element.getElement();

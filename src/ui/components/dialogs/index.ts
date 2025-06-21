@@ -6,12 +6,6 @@ export { GameOverDialog } from './GameOverDialog';
 export { LeaderboardDialog } from './LeaderboardDialog';
 export { BuildMenuDialog } from './BuildMenuDialog';
 export { PauseDialog } from './PauseDialog';
-export { TowerInfoDialog } from './TowerInfoDialog';
-
-// Export adapters
-export { BuildMenuDialogAdapter } from './BuildMenuDialogAdapter';
-export { InventoryDialogAdapter } from './InventoryDialogAdapter';
-export { TowerInfoDialogAdapter } from './TowerInfoDialogAdapter';
 
 // Re-export types
 export type { BaseDialogOptions } from './BaseDialog';
@@ -22,9 +16,3 @@ export type { GameOverDialogOptions } from './GameOverDialog';
 export type { LeaderboardDialogOptions } from './LeaderboardDialog';
 export type { BuildMenuDialogOptions } from './BuildMenuDialog';
 export type { PauseDialogOptions } from './PauseDialog';
-
-// Export adapter types
-export type { BuildMenuDialogAdapterOptions } from './BuildMenuDialogAdapter';
-export type { InventoryDialogAdapterOptions } from './InventoryDialogAdapter';
-export type { TowerInfoDialogOptions } from './TowerInfoDialog';
-export type { TowerInfoDialogAdapterOptions } from './TowerInfoDialogAdapter';

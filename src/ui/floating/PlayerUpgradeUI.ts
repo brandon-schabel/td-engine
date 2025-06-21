@@ -15,37 +15,78 @@ export class PlayerUpgradeUI {
   private contentInitialized = false;
   private lastCurrency = -1;
   private lastStats: any = {};
+  private screenPos?: { x: number; y: number };
+  private anchorElement?: HTMLElement;
 
-  constructor(player: Player, game: Game) {
+  constructor(player: Player, game: Game, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
     this.player = player;
     this.game = game;
+    this.screenPos = screenPos;
+    this.anchorElement = anchorElement;
     this.create();
   }
 
   private create(): void {
     const elementId = `player-upgrade-${this.player.id}`;
-    
-    this.element = this.floatingUI.create(elementId, 'dialog', {
-      offset: { x: 0, y: 0 },
-      anchor: 'center',
-      smoothing: 0,
-      autoHide: false,
-      persistent: true,
-      zIndex: 1000,
-      className: 'player-upgrade-ui'
-    });
-    
-    // Set target to center of screen
-    const centerEntity = {
-      position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-      getPosition: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
-    };
-    
-    this.element.setTarget(centerEntity as Entity);
+
+    if (this.anchorElement) {
+      // Use DOM element anchoring
+      this.element = this.floatingUI.create(elementId, 'dialog', {
+        anchorElement: this.anchorElement,
+        anchor: 'top',
+        offset: { x: 0, y: -10 },
+        smoothing: 0,
+        autoHide: false,
+        persistent: true,
+        zIndex: 1000,
+        className: 'player-upgrade-ui',
+        screenSpace: true
+      });
+    } else {
+      // Fallback to position-based approach
+      let position = this.screenPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+      // If we have a screen position (from button), position above control bar
+      if (this.screenPos) {
+        const controlBarHeight = 60;
+        const menuHeight = 500; // Approximate height
+        const menuWidth = 400; // Approximate width
+        const padding = 10;
+
+        // Center horizontally on the button, constrain to screen
+        position.x = Math.max(
+          menuWidth / 2 + padding,
+          Math.min(this.screenPos.x, window.innerWidth - menuWidth / 2 - padding)
+        );
+
+        // Position above control bar
+        position.y = window.innerHeight - controlBarHeight - menuHeight / 2 - padding;
+      }
+
+      this.element = this.floatingUI.create(elementId, 'dialog', {
+        offset: { x: 0, y: 0 },
+        anchor: 'center',
+        smoothing: 0,
+        autoHide: false,
+        persistent: true,
+        zIndex: 1000,
+        className: 'player-upgrade-ui',
+        screenSpace: true
+      });
+
+      // Set target position
+      const positionEntity = {
+        position: position,
+        getPosition: () => position
+      };
+
+      this.element.setTarget(positionEntity as unknown as Entity);
+    }
+
     this.updateContent();
     this.element.enable();
-    
+
     // Update content periodically
     this.updateInterval = window.setInterval(() => {
       this.updateContent();
@@ -60,11 +101,11 @@ export class PlayerUpgradeUI {
       this.createInitialContent();
       this.contentInitialized = true;
     }
-    
+
     // Perform smart updates for dynamic values
     this.updateDynamicValues();
   }
-  
+
   private createInitialContent(): void {
     const currency = this.game.getCurrency();
     // const abilities = this.player.getAbilityManager(); // Not used in this method
@@ -129,15 +170,15 @@ export class PlayerUpgradeUI {
       });
     });
 
-    this.element.setContent(content);
+    this.element!.setContent(content);
   }
-  
+
   private updateDynamicValues(): void {
     const element = this.element?.getElement();
     if (!element) return;
-    
+
     const currency = this.game.getCurrency();
-    
+
     // Only update currency if it changed
     if (currency !== this.lastCurrency) {
       const currencyElement = element.querySelector('.resource-value');
@@ -146,14 +187,14 @@ export class PlayerUpgradeUI {
       }
       this.lastCurrency = currency;
     }
-    
+
     // Update player stats
     const currentStats = {
       health: this.player.health,
       maxHealth: this.player.maxHealth,
       speed: this.player.speed.toFixed(1)
     };
-    
+
     // Update health if changed
     if (currentStats.health !== this.lastStats.health || currentStats.maxHealth !== this.lastStats.maxHealth) {
       const healthElement = element.querySelector('[data-stat="health"] .stat-value');
@@ -161,7 +202,7 @@ export class PlayerUpgradeUI {
         healthElement.textContent = `${currentStats.health}/${currentStats.maxHealth}`;
       }
     }
-    
+
     // Update speed if changed
     if (currentStats.speed !== this.lastStats.speed) {
       const speedElement = element.querySelector('[data-stat="speed"] .stat-value');
@@ -169,9 +210,12 @@ export class PlayerUpgradeUI {
         speedElement.textContent = currentStats.speed;
       }
     }
-    
+
     this.lastStats = currentStats;
-    
+
+    // Update ability buttons (only if element exists)
+    if (!element) return;
+
     // Update ability buttons
     const abilityButtons = element.querySelectorAll('[data-ability]');
     abilityButtons.forEach((button) => {
@@ -179,7 +223,7 @@ export class PlayerUpgradeUI {
       const cost = parseInt(btn.dataset.cost || '0');
       const canAfford = currency >= cost;
       const isMaxLevel = btn.closest('.upgrade-node')?.classList.contains('unlocked');
-      
+
       if (!isMaxLevel) {
         btn.disabled = !canAfford;
         btn.classList.toggle('disabled', !canAfford);
@@ -200,7 +244,7 @@ export class PlayerUpgradeUI {
         cost: 100
       },
       {
-        key: 'regeneration', 
+        key: 'regeneration',
         name: 'Regeneration',
         description: 'Passive health regeneration',
         level: 0,
@@ -208,14 +252,14 @@ export class PlayerUpgradeUI {
         cost: 150
       }
     ];
-    
+
     const currency = this.game.getCurrency();
-    
+
     return abilities.map(ability => {
       const isMaxLevel = ability.level >= ability.maxLevel;
       const canAfford = currency >= ability.cost;
       const canUpgrade = !isMaxLevel && canAfford;
-      
+
       return `
         <div class="upgrade-node ${isMaxLevel ? 'unlocked' : canUpgrade ? '' : 'locked'}">
           <div class="ui-flex-between ui-mb-xs">
@@ -257,7 +301,7 @@ export class PlayerUpgradeUI {
     // const abilities = this.player.getAbilityManager();
     // const result = abilities.upgradeAbility(abilityType);
     const result = { success: false, error: 'Abilities not implemented' };
-    
+
     if (result.success) {
       this.game.getAudioManager()?.playUISound(SoundType.UPGRADE);
       this.updateContent();
@@ -275,7 +319,7 @@ export class PlayerUpgradeUI {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    
+
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;

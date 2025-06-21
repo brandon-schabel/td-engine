@@ -1,6 +1,7 @@
 export interface FloatingUIOptions {
   offset?: { x: number; y: number };
-  anchor?: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  anchor?: 'top' | 'bottom' | 'left' | 'right' | 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  anchorElement?: HTMLElement; // DOM element to anchor to
   smoothing?: number;
   autoHide?: boolean;
   className?: string;
@@ -34,5 +35,15 @@ export interface FloatingUIElementState {
   type: UIType;
   enabled: boolean;
   target: Entity | null;
-  options: Required<FloatingUIOptions>;
+  options: FloatingUIOptions & {
+    offset: { x: number; y: number };
+    anchor: 'top' | 'bottom' | 'left' | 'right' | 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    smoothing: number;
+    autoHide: boolean;
+    className: string;
+    persistent: boolean;
+    mobileScale: number;
+    zIndex: number;
+    screenSpace: boolean;
+  };
 }

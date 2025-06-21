@@ -15,11 +15,14 @@ export class SettingsUI {
   private game: Game;
   private settings: SettingsManager;
   private onSettingsChange: ((settings: GameSettings) => void) | null = null;
+  private anchorElement: HTMLElement | null = null;
+  private modalOverlay: HTMLElement | null = null;
 
-  constructor(game: Game) {
+  constructor(game: Game, anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
-    this.settings = GameSettings.getInstance();
+    this.settings = SettingsManager.getInstance();
+    this.anchorElement = anchorElement || null;
   }
 
   public show(onSettingsChange?: (settings: GameSettings) => void): void {
@@ -37,14 +40,38 @@ export class SettingsUI {
   private create(): void {
     const elementId = 'settings-ui';
 
-    // Create dialog with modal overlay
-    this.element = this.floatingUI.createDialog(elementId, this.createContent(), {
-      title: 'Game Settings',
-      modal: true,
-      closeable: true,
-      onClose: () => this.handleClose(),
-      className: 'settings-dialog'
+    // Create the dialog element
+    this.element = this.floatingUI.create(elementId, 'dialog', {
+      persistent: true,
+      autoHide: false,
+      className: 'settings-dialog',
+      screenSpace: true,
+      anchorElement: this.anchorElement || undefined,
+      anchor: this.anchorElement ? 'top' : 'center',
+      offset: this.anchorElement ? { x: 0, y: -10 } : { x: 0, y: 0 },
+      zIndex: 400 // Ensure it's above the overlay
     });
+
+    // Create the dialog structure
+    const dialogContent = this.createDialogStructure();
+    this.element.setContent(dialogContent);
+
+    // Position at center of screen if no anchor
+    if (!this.anchorElement) {
+      const centerPos = {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        getPosition: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+      };
+      this.element.setTarget(centerPos as any);
+    }
+
+    // Enable the element
+    this.element.enable();
+    
+    // Add modal overlay
+    this.addModalOverlay();
 
     // Add custom styles for settings
     const styleElement = document.createElement('style');
@@ -52,6 +79,63 @@ export class SettingsUI {
       .settings-dialog {
         min-width: ${isMobile(window.innerWidth) ? '320px' : '500px'};
         max-width: 90vw;
+        pointer-events: auto;
+      }
+      
+      .settings-dialog-content {
+        background: ${COLOR_THEME.ui.background.primary};
+        border: 1px solid ${COLOR_THEME.ui.border.default};
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        display: flex;
+        flex-direction: column;
+        max-height: 90vh;
+      }
+      
+      .settings-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: ${UI_CONSTANTS.spacing.md}px;
+        border-bottom: 1px solid ${COLOR_THEME.ui.border.default};
+      }
+      
+      .settings-title {
+        font-size: ${isMobile(window.innerWidth) ? '18px' : '20px'};
+        font-weight: bold;
+        color: ${COLOR_THEME.ui.text.primary};
+        margin: 0;
+      }
+      
+      .settings-close {
+        background: ${COLOR_THEME.ui.button.secondary};
+        border: 1px solid ${COLOR_THEME.ui.border.default};
+        border-radius: 4px;
+        color: ${COLOR_THEME.ui.text.primary};
+        cursor: pointer;
+        padding: ${UI_CONSTANTS.spacing.xs}px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+      }
+      
+      .settings-close:hover {
+        background: ${COLOR_THEME.ui.button.danger};
+        transform: scale(1.1);
+      }
+      
+      .settings-close svg {
+        width: 20px;
+        height: 20px;
+      }
+      
+      .settings-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: ${UI_CONSTANTS.spacing.md}px;
       }
       
       .settings-content {
@@ -240,6 +324,66 @@ export class SettingsUI {
 
     // Store style element reference for cleanup
     (this.element as any)._settingsStyleElement = styleElement;
+  }
+
+  private createDialogStructure(): HTMLElement {
+    const dialog = document.createElement('div');
+    dialog.className = 'settings-dialog-content';
+
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'settings-header';
+    
+    const title = document.createElement('h2');
+    title.className = 'settings-title';
+    title.textContent = 'Game Settings';
+    header.appendChild(title);
+
+    // Create close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'ui-button settings-close';
+    closeButton.innerHTML = createSvgIcon(IconType.CLOSE, { size: 20 });
+    closeButton.title = 'Close';
+    closeButton.setAttribute('aria-label', 'Close settings');
+    addClickAndTouchSupport(closeButton, () => this.handleClose());
+    header.appendChild(closeButton);
+
+    dialog.appendChild(header);
+
+    // Create content wrapper
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'settings-body';
+    contentWrapper.appendChild(this.createContent());
+    dialog.appendChild(contentWrapper);
+
+    return dialog;
+  }
+
+  private addModalOverlay(): void {
+    if (this.modalOverlay) return;
+
+    this.modalOverlay = document.createElement('div');
+    this.modalOverlay.className = 'settings-modal-overlay';
+    this.modalOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 398;
+      backdrop-filter: blur(4px);
+    `;
+    
+    this.modalOverlay.addEventListener('click', () => this.handleClose());
+    document.body.appendChild(this.modalOverlay);
+  }
+
+  private removeModalOverlay(): void {
+    if (this.modalOverlay) {
+      this.modalOverlay.remove();
+      this.modalOverlay = null;
+    }
   }
 
   private createContent(): HTMLElement {
@@ -503,6 +647,9 @@ export class SettingsUI {
     if (styleElement) {
       styleElement.remove();
     }
+
+    // Remove modal overlay
+    this.removeModalOverlay();
 
     if (this.element) {
       this.floatingUI.remove(this.element.id);

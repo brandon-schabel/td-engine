@@ -1,5 +1,3 @@
-import { COLOR_THEME } from '@/config/ColorTheme';
-import { UI_CONSTANTS } from '@/config/UIConstants';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 
 export class TouchIndicator {

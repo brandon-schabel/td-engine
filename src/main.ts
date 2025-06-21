@@ -9,7 +9,6 @@ import { injectResponsiveStyles } from "./ui/styles/generateResponsiveStyles";
 import { injectDialogStyles } from "./ui/styles/injectDialogStyles";
 // Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from "./config/SettingsIntegration";
-import { type GameSettings } from "./config/GameSettings";
 import {
   type MapGenerationConfig,
   BiomeType,
@@ -114,7 +113,7 @@ function initializeEarlyDialogs() {
 }
 
 // Initialize dialogs that require a game instance
-function initializeGameDialogs(gameInstance: GameWithEvents) {
+function initializeGameDialogs(_gameInstance: GameWithEvents) {
   // Dialogs now use FloatingUIManager in SimpleGameUI
 }
 
@@ -131,19 +130,19 @@ function initializeGame() {
       <div id="bottom-ui-container"></div>
     `;
   }
-  
+
   // Get the newly created canvas element
   const newCanvas = document.getElementById("game-canvas") as HTMLCanvasElement;
   if (!newCanvas) {
     throw new Error("Failed to create game canvas");
   }
-  
+
   // Update the global canvas reference
   canvas = newCanvas;
-  
+
   // Resize the new canvas
   resizeCanvas();
-  
+
   // Get applied game configuration from settings
   const gameConfig = applySettingsToGame(
     (window as any).gameSettings || {
@@ -157,7 +156,7 @@ function initializeGame() {
       pathComplexity: "SIMPLE",
     }
   );
-  
+
   // Convert to map generation config
   const mapGenConfig: MapGenerationConfig = {
     width: gameConfig.mapConfig.width,
@@ -198,12 +197,10 @@ function initializeGame() {
   setupModernGameUI();
 }
 
-function handleGameEnd(event: Event) {
-  const customEvent = event as CustomEvent;
-  const { stats, victory, scoreEntry } = customEvent.detail;
-
+function handleGameEnd(_event: Event) {
   // Game over UI is now handled by SimpleGameUI using FloatingUIManager
   // The SimpleGameUI listens for the gameEnd event and shows the GameOverUI
+  // Event details (stats, victory, scoreEntry) are handled by SimpleGameUI
 }
 
 function showMainMenu() {
@@ -211,16 +208,16 @@ function showMainMenu() {
   if (gameInitialized) {
     game.stop();
     gameInitialized = false;
-    
+
     // Touch controls are cleaned up automatically by SimpleGameUI
   }
-  
+
   // Clear the game container
   const gameContainer = document.getElementById("game-container");
   if (gameContainer) {
     gameContainer.innerHTML = '';
   }
-  
+
   // Create a temporary canvas for the main menu background
   const menuCanvas = document.createElement('canvas');
   menuCanvas.width = window.innerWidth;
@@ -230,16 +227,16 @@ function showMainMenu() {
   menuCanvas.style.left = '0';
   menuCanvas.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
   gameContainer?.appendChild(menuCanvas);
-  
+
   // Create temporary FloatingUIManager for main menu
   const camera = {
     worldToScreen: (pos: any) => pos,
     screenToWorld: (pos: any) => pos
   };
-  
+
   import('@/ui/floating').then(({ FloatingUIManager }) => {
     const floatingUI = new FloatingUIManager(menuCanvas, camera as any);
-    
+
     import('@/ui/floating/MainMenuUI').then(({ MainMenuUI }) => {
       const mainMenuUI = new MainMenuUI(floatingUI, audioManager);
       mainMenuUI.show({
@@ -247,7 +244,7 @@ function showMainMenu() {
           // Clean up menu UI
           mainMenuUI.destroy();
           floatingUI.destroy();
-          
+
           // Start the game
           initializeGame();
         },
@@ -317,13 +314,13 @@ let updatePlayerUpgradePanel: () => void;
 function setupGameHandlers() {
   // Create touch indicator for visual feedback
   new TouchIndicator(document.body);
-  
+
   // Detect if device supports touch
   const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  
+
   // Skip TouchInputManager initialization - MobileControls in SimpleGameUI handles all touch input
   // This prevents conflicts between the two touch handling systems
-  
+
   // Setup mouse event handlers for both desktop and touch
   canvas.addEventListener("mousedown", (e) => {
     if (gameInitialized) game.handleMouseDown(e);
@@ -340,21 +337,21 @@ function setupGameHandlers() {
   // Add touch event handlers for tower placement on mobile
   if (isTouchDevice) {
     let touchHandled = false;
-    
+
     canvas.addEventListener("touchstart", (e) => {
       if (!gameInitialized) return;
-      
+
       // Check if touch is in joystick area (bottom portion of screen)
       const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
       const touchY = touch.clientY - rect.top;
       const canvasHeight = rect.height;
-      
+
       // If touch is in top 70% of screen and we have a selected tower, handle tower placement
       if (touchY < canvasHeight * 0.7 && game.getSelectedTowerType()) {
         e.preventDefault();
         touchHandled = true;
-        
+
         // Convert touch to mouse event for tower placement
         const mouseEvent = new MouseEvent('mousedown', {
           clientX: touch.clientX,
@@ -363,22 +360,22 @@ function setupGameHandlers() {
           cancelable: true,
           view: window
         });
-        
+
         game.handleMouseDown(mouseEvent);
-        
+
         // Haptic feedback on tower placement attempt
         if ('vibrate' in navigator) {
           navigator.vibrate(10);
         }
       }
     }, { passive: false });
-    
+
     canvas.addEventListener("touchend", (e) => {
       if (!gameInitialized || !touchHandled) return;
-      
+
       e.preventDefault();
       touchHandled = false;
-      
+
       // Convert to mouse up event
       const touch = e.changedTouches[0];
       const mouseEvent = new MouseEvent('mouseup', {
@@ -388,23 +385,23 @@ function setupGameHandlers() {
         cancelable: true,
         view: window
       });
-      
+
       game.handleMouseUp(mouseEvent);
     }, { passive: false });
-    
+
     canvas.addEventListener("touchmove", (e) => {
       if (!gameInitialized || !game.getSelectedTowerType()) return;
-      
+
       // Update tower ghost position during touch move
       const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
       const touchY = touch.clientY - rect.top;
       const canvasHeight = rect.height;
-      
+
       // Only handle if in tower placement area
       if (touchY < canvasHeight * 0.7) {
         e.preventDefault();
-        
+
         const mouseEvent = new MouseEvent('mousemove', {
           clientX: touch.clientX,
           clientY: touch.clientY,
@@ -412,7 +409,7 @@ function setupGameHandlers() {
           cancelable: true,
           view: window
         });
-        
+
         game.handleMouseMove(mouseEvent);
       }
     }, { passive: false });
@@ -550,20 +547,20 @@ document.addEventListener("keydown", (e) => {
         showMainMenu();
       }
       break;
-    
+
     // Camera diagnostic shortcuts
     case "b":
     case "B":
       // Check camera status
       game.checkCamera();
       break;
-      
+
     case "n":
     case "N":
       // Fix camera (enable following and center)
       game.fixCamera();
       break;
-      
+
     case "v":
     case "V":
       // Toggle visual debug (only with Shift)
@@ -571,7 +568,7 @@ document.addEventListener("keydown", (e) => {
         game.toggleVisualDebug();
       }
       break;
-      
+
     case "d":
     case "D":
       // Debug camera (only with Shift)
@@ -604,8 +601,8 @@ async function setupModernGameUI() {
     enableHapticFeedback: true,
     debugMode: false,
   });
-  
-  
+
+
   // Start the game
   game.start();
 }

@@ -2,16 +2,14 @@ import { Game } from "../core/Game";
 import { TowerType } from "@/entities/Tower";
 import { createSvgIcon, IconType } from "./icons/SvgIcons";
 import { AudioManager, SoundType } from "../audio/AudioManager";
-import { UI_CONSTANTS } from "@/config/UIConstants";
-import { COLOR_THEME } from "@/config/ColorTheme";
+
 import { PowerUpDisplay } from "./components/game/SimplePowerUpDisplay";
 import { MobileControls } from "./components/game/MobileControls";
+import { IconButton } from "./components/game/IconButton";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { isMobile as checkIsMobile } from "@/config/ResponsiveConfig";
 import { DialogManager } from "./systems/DialogManager";
 import {
-  BuildMenuDialogAdapter,
-  SettingsDialog,
   PauseDialog,
 } from "./components/dialogs";
 
@@ -27,12 +25,9 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   const dialogManager = DialogManager.getInstance();
 
   // Dialog instances
-  let buildMenuDialog: BuildMenuDialogAdapter;
-  let settingsDialog: SettingsDialog;
   let pauseDialog: PauseDialog;
 
-  // Floating UI instances
-  let currentInventoryUI: any = null;
+  // Floating UI instances - removed as they're now managed by UIController
 
   // Initialize dialogs
   const initializeDialogs = () => {
@@ -40,41 +35,12 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       // Check if dialogs are already registered from main.ts
       // If they are, just get references to them
 
-      // Build Menu Dialog - should already be registered
-      const existingBuildMenu = dialogManager.getDialog("buildMenu");
-      if (existingBuildMenu) {
-        buildMenuDialog = existingBuildMenu as BuildMenuDialogAdapter;
-      } else {
-        // Fallback: create it here
-        buildMenuDialog = new BuildMenuDialogAdapter({
-          game,
-          audioManager,
-          onTowerSelected: () => {
-            updateTowerPlacementIndicator();
-          },
-          onClosed: () => {
-            updateTowerPlacementIndicator();
-          },
-        });
-        dialogManager.register("buildMenu", buildMenuDialog);
-      }
 
       // Dialog system is initialized elsewhere, no test needed here
 
       // Inventory now uses FloatingUIManager directly
 
-      // Settings Dialog - may use gameSettings instead of settings
-      const existingSettings =
-        dialogManager.getDialog("gameSettings") ||
-        dialogManager.getDialog("settings");
-      if (existingSettings) {
-        settingsDialog = existingSettings as SettingsDialog;
-      } else {
-        settingsDialog = new SettingsDialog({
-          audioManager
-        });
-        dialogManager.register("gameSettings", settingsDialog);
-      }
+      // Settings now uses UIController and FloatingUIManager
 
       // Pause Dialog - should already be registered
       const existingPause = dialogManager.getDialog("pause");
@@ -87,8 +53,9 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
             game.resume();
           },
           onSettings: () => {
-            // Always show gameSettings dialog (it should exist from early initialization)
-            dialogManager.show("gameSettings");
+            // Use UIController to show settings
+            const uiController = game.getUIController();
+            uiController.showSettings();
           },
           onRestart: () => {
             if (confirm("Are you sure you want to restart the game?")) {
@@ -208,8 +175,9 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     "Settings",
     () => {
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-      // Always use gameSettings for consistency
-      dialogManager.toggle("gameSettings");
+      // Use UIController to show settings with anchor element
+      const uiController = game.getUIController();
+      uiController.showSettings(settingsButton);
     }
   );
 
@@ -263,68 +231,73 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Keep track of current tower info - removed SimpleTowerInfo usage
   // Tower selection is now handled directly by Game.ts with TowerUpgradeUI
 
-  // Current player upgrade UI instance
-  let currentPlayerUpgradeUI: any = null;
+  // Player upgrade UI is now managed by UIController
 
   // Show player upgrade dialog using FloatingUIManager
   const showPlayerUpgradeDialog = () => {
-    console.log("[SimpleGameUI] showPlayerUpgradeDialog called - using FloatingUIManager");
+    console.log("[SimpleGameUI] showPlayerUpgradeDialog called - using UIController");
 
-    // Import PlayerUpgradeUI dynamically to avoid circular dependencies
-    import('@/ui/floating/PlayerUpgradeUI').then(({ PlayerUpgradeUI }) => {
-      // Close existing UI if any
-      if (currentPlayerUpgradeUI) {
-        currentPlayerUpgradeUI.destroy();
-        currentPlayerUpgradeUI = null;
-      }
-
-      const player = game.getPlayer();
-      if (player) {
-        currentPlayerUpgradeUI = new PlayerUpgradeUI(player, game);
-      }
-    }).catch(error => {
-      console.error('[SimpleGameUI] Failed to load PlayerUpgradeUI:', error);
-    });
-  };
-
-  // Show inventory UI using FloatingUIManager
-  const showInventoryUI = () => {
-    console.log("[SimpleGameUI] showInventoryUI called - using FloatingUIManager");
-
-    // Import InventoryUI dynamically to avoid circular dependencies
-    import('@/ui/floating/InventoryUI').then(({ InventoryUI }) => {
-      // Close existing UI if any
-      if (currentInventoryUI) {
-        currentInventoryUI.destroy();
-        currentInventoryUI = null;
-      }
-
-      currentInventoryUI = new InventoryUI(game);
-    }).catch(error => {
-      console.error('[SimpleGameUI] Failed to load InventoryUI:', error);
-    });
-  };
-
-  // Show build menu using UIController
-  const showBuildMenu = () => {
-    // Get the build button position
-    const buildButton = document.querySelector('.ui-button-control[title*="Build"]') as HTMLElement;
+    // Get the player upgrade button element
+    const playerUpgradeBtnElement = document.querySelector('.ui-button-control[title*="Player Upgrades"]') as HTMLElement;
     let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
-    if (buildButton) {
-      const rect = buildButton.getBoundingClientRect();
+    if (playerUpgradeBtnElement) {
+      const rect = playerUpgradeBtnElement.getBoundingClientRect();
       screenPos = {
         x: rect.left + rect.width / 2,
         y: rect.top - 10 // Position above the button
       };
     }
 
-    // Use UIController to show the build menu
+    // Use UIController to show the player upgrade menu with anchor element
+    const uiController = game.getUIController();
+    const player = game.getPlayer();
+    if (player) {
+      uiController.showPlayerUpgrade(player, screenPos, playerUpgradeBtnElement || undefined);
+    }
+  };
+
+  // Show inventory UI using FloatingUIManager
+  const showInventoryUI = () => {
+    console.log("[SimpleGameUI] showInventoryUI called - using UIController");
+
+    // Get the inventory button element
+    const inventoryBtnElement = document.querySelector('.ui-button-control[title*="Inventory"]') as HTMLElement;
+    let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    if (inventoryBtnElement) {
+      const rect = inventoryBtnElement.getBoundingClientRect();
+      screenPos = {
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10 // Position above the button
+      };
+    }
+
+    // Use UIController to show the inventory with anchor element
+    const uiController = game.getUIController();
+    uiController.showInventory(screenPos, inventoryBtnElement || undefined);
+  };
+
+  // Show build menu using UIController
+  const showBuildMenu = () => {
+    // Get the build button element
+    const buildButtonElement = document.querySelector('.ui-button-control[title*="Build"]') as HTMLElement;
+    let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    if (buildButtonElement) {
+      const rect = buildButtonElement.getBoundingClientRect();
+      screenPos = {
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10 // Position above the button
+      };
+    }
+
+    // Use UIController to show the build menu with anchor element
     const uiController = game.getUIController();
     uiController.showBuildMenu(screenPos.x, screenPos.y, (towerType) => {
       game.setSelectedTowerType(towerType);
       updateTowerPlacementIndicator();
-    });
+    }, buildButtonElement || undefined);
   };
 
   // Tower selection/deselection handlers removed - Game.ts directly creates TowerUpgradeUI
@@ -393,6 +366,10 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
           audioManager.playUISound(SoundType.DESELECT);
           updateTowerPlacementIndicator();
         }
+        // Close tower upgrade UI if open
+        else if (game.getSelectedTower()) {
+          game.deselectTower();
+        }
         // Close top dialog
         else if (dialogManager.isAnyDialogOpen()) {
           dialogManager.closeTopDialog();
@@ -434,11 +411,6 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     } else {
       startWaveButton.style.opacity = "0.5";
       startWaveButton.style.pointerEvents = "none";
-    }
-
-    // Update currency display in build menu - add null check
-    if (buildMenuDialog) {
-      buildMenuDialog.updateCurrency(game.getCurrency());
     }
   };
 
@@ -532,52 +504,59 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   const cameraControls = floatingUI.create('camera-controls', 'custom', {
     persistent: true,
     autoHide: false,
-    className: 'ui-card camera-controls-container'
+    className: 'camera-controls-container'
   });
 
   // Position camera controls fixed at top right
   const cameraControlsElement = cameraControls.getElement();
   cameraControlsElement.style.cssText = 'position: fixed; top: 120px; right: 10px;';
-  cameraControlsElement.classList.add('ui-card');
-
-  // Create camera control buttons
-  const createCameraButton = (text: string, onClick: () => void) => {
-    const button = document.createElement('button');
-    button.textContent = text;
-    button.className = 'ui-button small';
-    button.addEventListener('click', onClick);
-    return button;
-  };
 
   // Create zoom display
   const zoomDisplay = document.createElement('div');
-  zoomDisplay.className = 'ui-text-center ui-text-secondary ui-mb-sm';
-  zoomDisplay.style.fontSize = 'var(--font-xs)';
+  zoomDisplay.className = 'camera-zoom-display';
 
-  // Create control buttons
-  const zoomInButton = createCameraButton('+', () => {
-    game.getCamera().zoomIn();
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
+  // Create control buttons using IconButton
+  const zoomInButton = new IconButton({
+    iconType: IconType.ZOOM_IN,
+    iconSize: 22,
+    title: 'Zoom In',
+    className: 'camera-control-button zoom-in',
+    onClick: () => {
+      game.getCamera().zoomIn();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+    }
   });
 
-  const zoomOutButton = createCameraButton('-', () => {
-    game.getCamera().zoomOut();
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
+  const zoomOutButton = new IconButton({
+    iconType: IconType.ZOOM_OUT,
+    iconSize: 22,
+    title: 'Zoom Out',
+    className: 'camera-control-button zoom-out',
+    onClick: () => {
+      game.getCamera().zoomOut();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+    }
   });
 
-  const resetButton = createCameraButton('⟲', () => {
-    game.getCamera().reset();
-    audioManager.playUISound(SoundType.BUTTON_CLICK);
+  const resetButton = new IconButton({
+    iconType: IconType.RESET_ZOOM,
+    iconSize: 20,
+    title: 'Reset Zoom',
+    className: 'camera-control-button reset-zoom',
+    onClick: () => {
+      game.getCamera().reset();
+      audioManager.playUISound(SoundType.BUTTON_CLICK);
+    }
   });
 
   // Add controls to container
   const controlsContainer = document.createElement('div');
   controlsContainer.appendChild(zoomDisplay);
   const buttonRow = document.createElement('div');
-  buttonRow.className = 'ui-flex ui-gap-xs';
-  buttonRow.appendChild(zoomInButton);
-  buttonRow.appendChild(zoomOutButton);
-  buttonRow.appendChild(resetButton);
+  buttonRow.className = 'camera-controls-buttons';
+  buttonRow.appendChild(zoomInButton.getElement());
+  buttonRow.appendChild(zoomOutButton.getElement());
+  buttonRow.appendChild(resetButton.getElement());
   controlsContainer.appendChild(buttonRow);
 
   cameraControls.setContent(controlsContainer).enable();
@@ -678,8 +657,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Listen for touch joystick toggle events
   window.addEventListener("touchJoysticksToggled", (event: Event) => {
-    const customEvent = event as CustomEvent;
-    const enabled = customEvent.detail.enabled;
+    const detail = (event as CustomEvent).detail;
+    const enabled = detail.enabled;
 
     if (mobileControls) {
       if (enabled) {
@@ -810,9 +789,9 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   };
 
   // Setup game end event listener
-  const handleGameEnd = (event: Event) => {
-    const customEvent = event as CustomEvent;
+  const handleGameEnd = (_event: Event) => {
     // Game end event received, show game over UI
+    // Event details available in (event as CustomEvent).detail if needed
 
     // Show game over UI
     import('@/ui/floating/GameOverUI').then(({ GameOverUI }) => {

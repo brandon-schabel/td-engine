@@ -201,13 +201,31 @@ export class FloatingUIManager {
   ): FloatingUIElement {
     const id = `damage_${entity.id}_${Date.now()}`;
     
+    // Calculate damage tier based on value
+    let tier = '';
+    if (damage <= 10) {
+      tier = 'tier-1';
+    } else if (damage <= 30) {
+      tier = 'tier-2';
+    } else if (damage <= 50) {
+      tier = 'tier-3';
+    } else if (damage <= 90) {
+      tier = 'tier-4';
+    } else if (damage <= 150) {
+      tier = 'tier-5';
+    } else if (damage <= 250) {
+      tier = 'tier-6';
+    } else {
+      tier = 'tier-7';
+    }
+    
     // Create the damage number element
     const element = this.create(id, 'custom', {
       offset: { x: 0, y: -20 },
       anchor: 'center',
       smoothing: 0, // No smoothing for damage numbers
       autoHide: false,
-      className: `damage-number ${damageType}`,
+      className: `damage-number damage-${tier} ${damageType}`,
       persistent: false
     });
 
@@ -559,5 +577,104 @@ export class FloatingUIManager {
     element.enable();
     
     return element;
+  }
+  
+  /**
+   * Constrains a position to ensure an element stays within screen bounds
+   * @param position The desired position
+   * @param size The size of the element (width and height)
+   * @param padding Minimum padding from screen edges
+   * @returns Constrained position
+   */
+  public constrainToScreen(
+    position: { x: number; y: number },
+    size: { width: number; height: number },
+    padding: number = 10
+  ): { x: number; y: number } {
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    
+    // Calculate bounds
+    const minX = size.width / 2 + padding;
+    const maxX = screenWidth - size.width / 2 - padding;
+    const minY = size.height / 2 + padding;
+    const maxY = screenHeight - size.height / 2 - padding;
+    
+    // Constrain position
+    return {
+      x: Math.max(minX, Math.min(position.x, maxX)),
+      y: Math.max(minY, Math.min(position.y, maxY))
+    };
+  }
+  
+  /**
+   * Calculates the best position for a menu anchored to a button
+   * @param buttonRect The button's bounding rectangle
+   * @param menuSize The menu's size
+   * @param preferredAnchor Preferred anchor direction
+   * @returns Calculated position and anchor
+   */
+  public calculateMenuPosition(
+    buttonRect: DOMRect,
+    menuSize: { width: number; height: number },
+    preferredAnchor: 'top' | 'bottom' | 'left' | 'right' = 'top'
+  ): { position: { x: number; y: number }; anchor: string } {
+    const padding = 10;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    
+    // Calculate center of button
+    const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+    const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+    
+    // Try preferred anchor first
+    let position = { x: buttonCenterX, y: buttonCenterY };
+    let finalAnchor = preferredAnchor;
+    
+    switch (preferredAnchor) {
+      case 'top':
+        position.y = buttonRect.top - menuSize.height / 2 - padding;
+        break;
+      case 'bottom':
+        position.y = buttonRect.bottom + menuSize.height / 2 + padding;
+        break;
+      case 'left':
+        position.x = buttonRect.left - menuSize.width / 2 - padding;
+        break;
+      case 'right':
+        position.x = buttonRect.right + menuSize.width / 2 + padding;
+        break;
+    }
+    
+    // Check if menu fits with preferred anchor
+    const fits = (
+      position.x - menuSize.width / 2 >= padding &&
+      position.x + menuSize.width / 2 <= screenWidth - padding &&
+      position.y - menuSize.height / 2 >= padding &&
+      position.y + menuSize.height / 2 <= screenHeight - padding
+    );
+    
+    // If it doesn't fit, try opposite anchor
+    if (!fits) {
+      switch (preferredAnchor) {
+        case 'top':
+          if (buttonRect.bottom + menuSize.height + padding * 2 <= screenHeight) {
+            position.y = buttonRect.bottom + menuSize.height / 2 + padding;
+            finalAnchor = 'bottom';
+          }
+          break;
+        case 'bottom':
+          if (buttonRect.top - menuSize.height - padding * 2 >= 0) {
+            position.y = buttonRect.top - menuSize.height / 2 - padding;
+            finalAnchor = 'top';
+          }
+          break;
+      }
+    }
+    
+    // Constrain to screen bounds
+    position = this.constrainToScreen(position, menuSize, padding);
+    
+    return { position, anchor: finalAnchor };
   }
 }

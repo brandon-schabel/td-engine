@@ -129,6 +129,10 @@ export class ItemSlot {
   getElement(): HTMLElement {
     return this.element;
   }
+  
+  getItem(): InventoryItem | null {
+    return this.item;
+  }
 
   cleanup(): void {
     if (this.element.parentElement) {

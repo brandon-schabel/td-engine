@@ -4,7 +4,6 @@ import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { DIALOG_CONFIG } from '@/config/UIConfig';
 import { SettingsManager, DIFFICULTY_PRESETS, type GameSettings } from '@/config/GameSettings';
 import { isMobile } from '@/config/ResponsiveConfig';
-import { COLOR_THEME } from '@/config/ColorTheme';
 
 export interface GameSettingsDialogOptions {
   audioManager: AudioManager;

@@ -12,7 +12,6 @@
 import type { Game } from '@/core/Game';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { UI_CONSTANTS } from '@/config/UIConstants';
-import { COLOR_THEME } from '@/config/ColorTheme';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 import { RESPONSIVE_CONFIG, getBreakpoint } from '@/config/ResponsiveConfig';
 
