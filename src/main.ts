@@ -29,7 +29,7 @@ injectResponsiveStyles();
 injectDialogStyles();
 
 // Get canvas element
-const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
+let canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
 if (!canvas) {
   throw new Error("Canvas element not found");
 }
@@ -97,7 +97,20 @@ const dialogManager = DialogManager.getInstance();
 
 // Early initialization of dialogs that don't require a game instance
 function initializeEarlyDialogs() {
-  // Dialogs now use FloatingUIManager in SimpleGameUI
+  // Register the game settings dialog for the main menu
+  import('@/ui/components/dialogs/GameSettingsDialog').then(({ GameSettingsDialog }) => {
+    const dialog = new GameSettingsDialog({
+      audioManager,
+      onStartGame: (settings) => {
+        (window as any).gameSettings = settings;
+        dialogManager.hide('gameSettings');
+        initializeGame();
+      }
+    });
+    dialogManager.register('gameSettings', dialog);
+  }).catch(error => {
+    console.error('[Main] Failed to load GameSettingsDialog:', error);
+  });
 }
 
 // Initialize dialogs that require a game instance
@@ -107,6 +120,30 @@ function initializeGameDialogs(gameInstance: GameWithEvents) {
 
 // Initialize game with settings
 function initializeGame() {
+  // Clear the game container and restore the original structure
+  const gameContainer = document.getElementById("game-container");
+  if (gameContainer) {
+    gameContainer.innerHTML = `
+      <div id="canvas-container">
+        <canvas id="game-canvas"></canvas>
+      </div>
+      <div id="ui-container"></div>
+      <div id="bottom-ui-container"></div>
+    `;
+  }
+  
+  // Get the newly created canvas element
+  const newCanvas = document.getElementById("game-canvas") as HTMLCanvasElement;
+  if (!newCanvas) {
+    throw new Error("Failed to create game canvas");
+  }
+  
+  // Update the global canvas reference
+  canvas = newCanvas;
+  
+  // Resize the new canvas
+  resizeCanvas();
+  
   // Get applied game configuration from settings
   const gameConfig = applySettingsToGame(
     (window as any).gameSettings || {
@@ -177,6 +214,66 @@ function showMainMenu() {
     
     // Touch controls are cleaned up automatically by SimpleGameUI
   }
+  
+  // Clear the game container
+  const gameContainer = document.getElementById("game-container");
+  if (gameContainer) {
+    gameContainer.innerHTML = '';
+  }
+  
+  // Create a temporary canvas for the main menu background
+  const menuCanvas = document.createElement('canvas');
+  menuCanvas.width = window.innerWidth;
+  menuCanvas.height = window.innerHeight;
+  menuCanvas.style.position = 'absolute';
+  menuCanvas.style.top = '0';
+  menuCanvas.style.left = '0';
+  menuCanvas.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
+  gameContainer?.appendChild(menuCanvas);
+  
+  // Create temporary FloatingUIManager for main menu
+  const camera = {
+    worldToScreen: (pos: any) => pos,
+    screenToWorld: (pos: any) => pos
+  };
+  
+  import('@/ui/floating').then(({ FloatingUIManager }) => {
+    const floatingUI = new FloatingUIManager(menuCanvas, camera as any);
+    
+    import('@/ui/floating/MainMenuUI').then(({ MainMenuUI }) => {
+      const mainMenuUI = new MainMenuUI(floatingUI, audioManager);
+      mainMenuUI.show({
+        onStart: () => {
+          // Clean up menu UI
+          mainMenuUI.destroy();
+          floatingUI.destroy();
+          
+          // Start the game
+          initializeGame();
+        },
+        onSettings: () => {
+          // Show settings dialog
+          if (dialogManager) {
+            dialogManager.show('gameSettings');
+          }
+        },
+        onLeaderboard: () => {
+          // Show leaderboard dialog
+          if (dialogManager) {
+            dialogManager.show('leaderboard');
+          }
+        }
+      });
+    }).catch(error => {
+      console.error('[Main] Failed to load MainMenuUI:', error);
+      // Fallback to direct game start
+      initializeGame();
+    });
+  }).catch(error => {
+    console.error('[Main] Failed to load FloatingUIManager:', error);
+    // Fallback to direct game start
+    initializeGame();
+  });
 
   // Close any open dialogs
   dialogManager.hideAll();
@@ -184,8 +281,11 @@ function showMainMenu() {
   // Settings are now handled in-game
 }
 
-// Initialize the game directly since settings are now handled in-game
-initializeGame();
+// Initialize early dialogs before showing main menu
+initializeEarlyDialogs();
+
+// Show main menu on startup
+showMainMenu();
 
 // Debug: Make initializeGame available globally for testing
 (window as any).initializeGame = initializeGame;

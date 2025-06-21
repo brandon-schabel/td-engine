@@ -28,6 +28,7 @@ export class FloatingUIElement {
       persistent: false,
       mobileScale: 0.8,
       zIndex: 0,
+      screenSpace: false,
       ...options
     };
 
@@ -105,11 +106,26 @@ export class FloatingUIElement {
     const canvas = this.manager.getCanvas();
     const canvasRect = canvas.getBoundingClientRect();
 
-    // Calculate world to screen position
-    const screenPos = this.worldToScreen(this.target);
+    let screenPos: Position;
+    
+    if (this.options.screenSpace) {
+      // For screen-space positioning, use the target position directly
+      if ('x' in this.target && 'y' in this.target && typeof this.target.x === 'number' && typeof this.target.y === 'number') {
+        screenPos = { x: this.target.x, y: this.target.y };
+      } else if (this.target.position) {
+        screenPos = { x: this.target.position.x, y: this.target.position.y };
+      } else if (typeof this.target.getPosition === 'function') {
+        screenPos = this.target.getPosition();
+      } else {
+        screenPos = { x: 0, y: 0 };
+      }
+    } else {
+      // Calculate world to screen position
+      screenPos = this.worldToScreen(this.target);
+    }
 
-    // Check if entity is off-screen
-    if (this.isOffScreen(screenPos, canvasRect)) {
+    // Check if entity is off-screen (only for world-space entities)
+    if (!this.options.screenSpace && this.isOffScreen(screenPos, canvasRect)) {
       this.element.classList.add('off-screen');
       return;
     } else {

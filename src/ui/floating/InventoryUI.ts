@@ -16,6 +16,9 @@ export class InventoryUI {
   private element: FloatingUIElement | null = null;
   private game: Game;
   private updateInterval: number | null = null;
+  private contentInitialized = false;
+  private lastStats = { usedSlots: -1, totalSlots: -1 };
+  private lastUpgradeInfo = { cost: -1, canAfford: false };
   
   // UI state
   private activeTab: ItemType | 'ALL' = 'ALL';
@@ -59,11 +62,9 @@ export class InventoryUI {
     this.updateContent();
     this.element.enable();
     
-    // Update content periodically
+    // Update content periodically - but smarter
     this.updateInterval = window.setInterval(() => {
-      this.updateSlots();
-      this.updateStats();
-      this.updateUpgradeButton();
+      this.smartUpdate();
     }, 250);
     
     // Set up inventory listeners
@@ -240,28 +241,68 @@ export class InventoryUI {
     const inventory = this.game.getInventory();
     const slots = inventory.getSlots();
     
-    // Update each slot
+    // Track items that actually changed
+    const changedIndices = new Set<number>();
+    
+    // First pass: detect changes
+    this.itemSlots.forEach((slot, index) => {
+      if (index < slots.length) {
+        const inventorySlot = slots[index];
+        const newItem = inventorySlot?.item || null;
+        const currentItem = slot.getItem();
+        
+        // Check if item changed
+        if (currentItem?.id !== newItem?.id || currentItem?.quantity !== newItem?.quantity) {
+          changedIndices.add(index);
+        }
+      }
+    });
+    
+    // Second pass: update only changed slots
     this.itemSlots.forEach((slot, index) => {
       if (index < slots.length) {
         const inventorySlot = slots[index];
         const item = inventorySlot?.item || null;
         
-        // Apply tab filtering
-        const shouldShow = this.shouldShowItem(item);
-        slot.setItem(shouldShow ? item : null);
-        slot.getElement().style.display = shouldShow ? 'block' : 'none';
+        // Only update if item changed
+        if (changedIndices.has(index)) {
+          const shouldShow = this.shouldShowItem(item);
+          slot.setItem(shouldShow ? item : null);
+        }
         
-        // Update selection state
-        if (index === this.selectedSlot) {
+        // Update visibility based on tab (this is fast)
+        const shouldShow = this.shouldShowItem(item);
+        const currentDisplay = slot.getElement().style.display;
+        const newDisplay = shouldShow ? 'block' : 'none';
+        if (currentDisplay !== newDisplay) {
+          slot.getElement().style.display = newDisplay;
+        }
+        
+        // Update selection state only if needed
+        const isSelected = index === this.selectedSlot;
+        const hasSelectedClass = slot.getElement().classList.contains('selected');
+        if (isSelected && !hasSelectedClass) {
           slot.getElement().classList.add('selected');
-        } else {
+        } else if (!isSelected && hasSelectedClass) {
           slot.getElement().classList.remove('selected');
         }
       } else {
-        slot.setItem(null);
-        slot.getElement().style.display = 'none';
+        // Handle slots beyond inventory size
+        if (slot.getItem() !== null) {
+          slot.setItem(null);
+        }
+        if (slot.getElement().style.display !== 'none') {
+          slot.getElement().style.display = 'none';
+        }
       }
     });
+  }
+  
+  private smartUpdate(): void {
+    // Only update what actually changed
+    this.updateSlots();
+    this.updateStats();
+    this.updateUpgradeButton();
   }
 
   private shouldShowItem(item: InventoryItem | null): boolean {
@@ -273,34 +314,45 @@ export class InventoryUI {
   private updateStats(): void {
     const inventory = this.game.getInventory();
     const stats = inventory.getStatistics();
-    const statsElement = document.getElementById('inventory-stats');
-    if (statsElement) {
-      statsElement.textContent = `${stats.usedSlots}/${stats.totalSlots} slots`;
+    
+    // Only update if stats changed
+    if (stats.usedSlots !== this.lastStats.usedSlots || stats.totalSlots !== this.lastStats.totalSlots) {
+      const statsElement = document.getElementById('inventory-stats');
+      if (statsElement) {
+        statsElement.textContent = `${stats.usedSlots}/${stats.totalSlots} slots`;
+      }
+      this.lastStats = { ...stats };
     }
   }
 
   private updateUpgradeButton(): void {
-    const upgradeButton = document.getElementById('upgrade-button') as HTMLButtonElement;
-    const upgradeText = document.getElementById('upgrade-button-text');
-    if (!upgradeButton || !upgradeText) return;
-    
     const upgradeInfo = this.game.getInventoryUpgradeInfo();
     const canUpgrade = this.game.canUpgradeInventory();
     
-    if (upgradeInfo.nextCost === -1) {
-      upgradeText.textContent = 'Max Capacity';
-      upgradeButton.disabled = true;
-    } else {
-      upgradeText.textContent = `${upgradeInfo.nextCost}g`;
-      upgradeButton.disabled = !canUpgrade;
+    // Only update if something changed
+    if (upgradeInfo.nextCost !== this.lastUpgradeInfo.cost || canUpgrade !== this.lastUpgradeInfo.canAfford) {
+      const upgradeButton = document.getElementById('upgrade-button') as HTMLButtonElement;
+      const upgradeText = document.getElementById('upgrade-button-text');
+      
+      if (upgradeButton && upgradeText) {
+        if (upgradeInfo.nextCost === -1) {
+          upgradeText.textContent = 'Max Capacity';
+          upgradeButton.disabled = true;
+        } else {
+          upgradeText.textContent = `${upgradeInfo.nextCost}g`;
+          upgradeButton.disabled = !canUpgrade;
+        }
+      }
+      
+      this.lastUpgradeInfo = { cost: upgradeInfo.nextCost, canAfford: canUpgrade };
     }
     
-    // Update use button state
+    // Update use button state only if selection changed
+    const canUse = this.selectedSlot !== null && this.selectedItem !== null &&
+      (this.selectedItem.type === ItemType.CONSUMABLE || this.selectedItem.type === ItemType.EQUIPMENT);
+    
     const useButton = document.getElementById('use-button') as HTMLButtonElement;
-    if (useButton) {
-      const canUse = this.selectedSlot !== null && this.selectedItem !== null &&
-        (this.selectedItem.type === ItemType.CONSUMABLE || this.selectedItem.type === ItemType.EQUIPMENT);
-      
+    if (useButton && useButton.disabled === canUse) { // Only update if state changed
       useButton.disabled = !canUse;
     }
   }

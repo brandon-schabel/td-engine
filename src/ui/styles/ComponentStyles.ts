@@ -446,7 +446,10 @@ const componentStyles = `
     backdrop-filter: blur(10px);
     border: 2px solid var(--color-border-primary);
     font-weight: bold;
-    font-size: clamp(14px, 3vw, 18px);
+    font-size: 16px;
+    width: fit-content;
+    min-width: 120px;
+    max-width: 200px;
   }
 
   .resource-icon {

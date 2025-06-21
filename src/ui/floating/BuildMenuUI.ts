@@ -32,10 +32,21 @@ export class BuildMenuUI {
   }
 
   public show(x: number, y: number, onTowerSelect: (type: TowerType) => void): void {
+    // Note: x, y are expected to be in world coordinates
     this.position = { x, y };
     this.onTowerSelect = onTowerSelect;
     
     if (this.element) {
+      // Update position if element already exists
+      const camera = this.floatingUI.getCamera();
+      const screenPos = camera.worldToScreen(this.position);
+      const positionEntity = {
+        x: screenPos.x,
+        y: screenPos.y,
+        position: screenPos,
+        getPosition: () => screenPos
+      };
+      this.element.setTarget(positionEntity as Entity);
       this.element.enable();
       this.updateContent();
       return;
@@ -49,6 +60,12 @@ export class BuildMenuUI {
     
     const elementId = 'build-menu-ui';
     
+    // Get the camera to convert click position to screen coordinates
+    const camera = this.floatingUI.getCamera();
+    
+    // Convert world position to screen position
+    const screenPos = camera.worldToScreen(this.position);
+    
     this.element = this.floatingUI.create(elementId, 'popup', {
       offset: { x: 0, y: -20 },
       anchor: 'bottom',
@@ -56,13 +73,14 @@ export class BuildMenuUI {
       autoHide: false,
       persistent: true,
       zIndex: 900,
-      className: 'build-menu-ui'
+      className: 'build-menu-ui',
+      screenSpace: true // Use screen-space positioning
     });
     
-    // Create a dummy entity at the click position
+    // Create a dummy entity with screen coordinates
     const positionEntity = {
-      position: this.position,
-      getPosition: () => this.position!
+      position: screenPos,
+      getPosition: () => screenPos
     };
     
     this.element.setTarget(positionEntity as Entity);

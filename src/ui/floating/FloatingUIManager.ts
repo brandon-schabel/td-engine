@@ -429,4 +429,132 @@ export class FloatingUIManager {
       this.activeElements.delete(element);
     }
   }
+
+  /**
+   * Creates a health bar for an entity that follows it
+   * @param entity The entity to track
+   * @param options Health bar configuration
+   * @returns The created FloatingUIElement
+   */
+  public createHealthBar(
+    entity: Entity & { health: number; maxHealth?: number; getMaxHealth?: () => number },
+    options: {
+      width?: number;
+      height?: number;
+      offset?: { x: number; y: number };
+      showValue?: boolean;
+      color?: string;
+      backgroundColor?: string;
+    } = {}
+  ): FloatingUIElement {
+    const id = `healthbar_${entity.id || Math.random().toString(36).substr(2, 9)}`;
+    
+    // Default options
+    const config = {
+      width: 60,
+      height: 6,
+      offset: { x: 0, y: -30 },
+      showValue: false,
+      color: '#4CAF50',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      ...options
+    };
+    
+    // Create the health bar element
+    const element = this.create(id, 'healthbar', {
+      offset: config.offset,
+      anchor: 'bottom',
+      smoothing: 0.1,
+      autoHide: false, // Don't auto-hide health bars
+      className: 'entity-healthbar',
+      persistent: false,
+      screenSpace: false // Health bars follow world entities
+    });
+    
+    // Update health bar content
+    const updateHealthBar = () => {
+      const maxHealth = entity.maxHealth || (entity.getMaxHealth ? entity.getMaxHealth() : 100);
+      const healthPercent = Math.max(0, Math.min(100, (entity.health / maxHealth) * 100));
+      
+      let html = `
+        <div class="healthbar-container" style="
+          width: ${config.width}px;
+          height: ${config.height}px;
+          background: ${config.backgroundColor};
+          border-radius: 3px;
+          overflow: hidden;
+          position: relative;
+        ">
+          <div class="healthbar-fill" style="
+            width: ${healthPercent}%;
+            height: 100%;
+            background: ${healthPercent > 50 ? config.color : healthPercent > 25 ? '#FF9800' : '#F44336'};
+            transition: width 0.3s ease;
+          "></div>
+      `;
+      
+      if (config.showValue) {
+        html += `
+          <div class="healthbar-text" style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: ${Math.min(10, config.height - 2)}px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 2px rgba(0,0,0,0.8);
+          ">${entity.health}/${maxHealth}</div>
+        `;
+      }
+      
+      html += '</div>';
+      
+      element.setContent(html);
+    };
+    
+    // Initial update
+    updateHealthBar();
+    
+    // Set up periodic updates
+    const intervalId = setInterval(updateHealthBar, 100);
+    (element as any)._updateIntervalId = intervalId;
+    
+    // Set the target and enable
+    element.setTarget(entity);
+    element.enable();
+    
+    return element;
+  }
+
+  /**
+   * Creates a floating UI element at a specific screen position
+   * @param id Unique identifier
+   * @param screenPos Screen position
+   * @param content Content to display
+   * @param options Additional options
+   */
+  public createScreenSpaceElement(
+    id: string,
+    screenPos: { x: number; y: number },
+    content: string | HTMLElement,
+    options: FloatingUIOptions = {}
+  ): FloatingUIElement {
+    const element = this.create(id, 'custom', {
+      ...options,
+      screenSpace: true
+    });
+    
+    // Create screen position entity
+    const positionEntity = {
+      position: screenPos,
+      getPosition: () => screenPos
+    };
+    
+    element.setTarget(positionEntity as Entity);
+    element.setContent(content);
+    element.enable();
+    
+    return element;
+  }
 }

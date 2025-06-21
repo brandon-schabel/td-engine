@@ -11,7 +11,7 @@ import { Camera, type CameraOptions } from "@/systems/Camera";
 import { CameraDiagnostics } from "@/systems/CameraDiagnostics";
 import { Tower, TowerType, UpgradeType } from "@/entities/Tower";
 import { Enemy, EnemyType } from "@/entities/Enemy";
-import { Entity } from "@/entities/Entity";
+import { Entity, EntityType } from "@/entities/Entity";
 import { Projectile } from "@/entities/Projectile";
 import { Player, PlayerUpgradeType } from "@/entities/Player";
 import { Collectible } from "@/entities/Collectible";
@@ -45,7 +45,8 @@ import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
 // Removed unused UIManager and PopupManager imports
 import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
-import { FloatingUIManager, FloatingUIElement, createHealthBar, updateHealthBar } from "@/ui/floating";
+import { FloatingUIManager } from "@/ui/floating";
+import { UIController } from "@/ui/UIController";
 
 export class Game {
   private engine: GameEngine;
@@ -83,6 +84,7 @@ export class Game {
   private equipment: EquipmentManager;
   // Removed unused uiManager - all UI handled by floatingUIManager
   private floatingUIManager: FloatingUIManager;
+  private uiController: UIController;
   private powerUpDisplay: any = null; // Reference to PowerUpDisplay for notifications
 
   private selectedTowerType: TowerType | null = null;
@@ -94,8 +96,6 @@ export class Game {
   private waveCompleteProcessed: boolean = false;
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
 
-  // Health bar management
-  private entityHealthBars: Map<string, FloatingUIElement> = new Map();
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -240,8 +240,18 @@ export class Game {
 
     // Initialize floating UI manager with camera
     this.floatingUIManager = new FloatingUIManager(canvas, this.camera);
+    this.uiController = new UIController(this);
 
-    // Note: Player health bar is created in SimpleGameUI
+    // Create health bar for player
+    this.uiController.createHealthBar(this.player, {
+      width: 60,
+      height: 8,
+      offset: { x: 0, y: -30 },
+      showValue: true,
+      color: '#4CAF50'
+    });
+
+    // Note: Player health bar is also created in SimpleGameUI for HUD
 
     // Load wave configurations
     this.loadWaveConfigurations();
@@ -645,7 +655,9 @@ export class Game {
     // Clean up dead entities (inlined from EntityCleaner)
     this.enemies = this.enemies.filter((enemy) => {
       if (!enemy.isAlive) {
-        this.removeHealthBarForEntity(enemy);
+        // Remove health bar when enemy dies
+        const healthBarId = `healthbar_${enemy.id}`;
+        this.floatingUIManager.remove(healthBarId);
         return false;
       }
       return true;
@@ -658,8 +670,9 @@ export class Game {
     );
     this.towers = this.towers.filter((tower) => {
       if (!tower.isAlive) {
-        // Remove health bar
-        this.removeHealthBarForEntity(tower);
+        // Remove health bar when tower dies
+        const healthBarId = `healthbar_${tower.id}`;
+        this.floatingUIManager.remove(healthBarId);
 
         // If this was the selected tower with an open UI, close it
         if (this.selectedTower === tower && this.currentTowerUpgradeUI) {
@@ -671,9 +684,6 @@ export class Game {
       }
       return true;
     });
-
-    // Update health bars
-    this.updateHealthBars();
 
     // Check for wave completion and victory
     if (this.waveManager.isWaveComplete() && !this.waveCompleteProcessed) {
@@ -878,61 +888,23 @@ export class Game {
   }
 
   // Health bar management methods using new floating UI system
-  private createHealthBarForEntity(entity: Entity): void {
-    const healthBar = this.floatingUIManager.create(`health-${entity.id}`, 'healthbar', {
+  private createHealthBarForEntity(entity: Entity & { health: number; maxHealth?: number }): void {
+    // Don't create health bars for walls
+    if ('towerType' in entity && (entity as any).towerType === TowerType.WALL) {
+      return;
+    }
+    
+    const options = {
+      width: 50,
+      height: 6,
       offset: { x: 0, y: -entity.radius - 15 },
-      anchor: 'top',
-      smoothing: 0.2,
-      autoHide: false, // Always show for main entities
-      mobileScale: 0.8
-    });
-
-    // Set initial content and target
-    healthBar
-      .setContent(createHealthBar(entity.health, entity.maxHealth, {
-        showPercentage: false, // Don't show percentage for enemies
-        width: 50,
-        height: 6,
-        color: entity.entityType === 'PLAYER' ? '#4CAF50' : '#ff4444'
-      }))
-      .setTarget(entity)
-      .enable();
-
-    // Store reference for updates
-    this.entityHealthBars.set(entity.id, healthBar);
+      showValue: false,
+      color: entity.entityType === EntityType.PLAYER ? '#4CAF50' : '#2196F3'
+    };
+    
+    this.uiController.createHealthBar(entity, options);
   }
 
-  private removeHealthBarForEntity(entity: Entity): void {
-    this.floatingUIManager.remove(`health-${entity.id}`);
-    this.entityHealthBars.delete(entity.id);
-  }
-
-  private updateHealthBars(): void {
-    this.entityHealthBars.forEach((healthBar, entityId) => {
-      // Find the entity
-      let entity: Entity | null = null;
-
-      // Check player
-      if (this.player.id === entityId) {
-        entity = this.player;
-      }
-
-      // Check enemies
-      if (!entity) {
-        entity = this.enemies.find(e => e.id === entityId) || null;
-      }
-
-      // Check towers
-      if (!entity) {
-        entity = this.towers.find(t => t.id === entityId) || null;
-      }
-
-      // Update health bar if entity found
-      if (entity && healthBar.getElement()) {
-        updateHealthBar(healthBar.getElement(), entity.health, entity.maxHealth);
-      }
-    });
-  }
 
 
   // Wave management
@@ -1481,6 +1453,7 @@ export class Game {
 
   stop(): void {
     this.engine.stop();
+    this.uiController.destroy();
   }
 
   isPaused(): boolean {
@@ -1520,9 +1493,8 @@ export class Game {
 
     const previousTower = this.selectedTower;
 
-    // Always destroy any existing UI
-    TowerUpgradeUI.destroyActiveUI();
-    this.currentTowerUpgradeUI = null;
+    // Always close any existing tower upgrade UI
+    this.uiController.close('tower-upgrade');
 
     // Deselect previous tower if different
     if (previousTower && previousTower !== tower) {
@@ -1535,8 +1507,8 @@ export class Game {
     this.selectedTower = tower;
     this.selectedTowerType = null; // Clear tower placement mode
 
-    // Create new UI using FloatingUIManager
-    this.currentTowerUpgradeUI = new TowerUpgradeUI(tower, this);
+    // Use UIController to show tower upgrade UI
+    this.uiController.showTowerUpgrade(tower);
 
     // Debug logging
     console.log(`[Game] Tower upgrade UI created for ${tower.towerType} at position:`, tower.position);
@@ -1553,9 +1525,8 @@ export class Game {
       const tower = this.selectedTower;
       this.selectedTower = null;
 
-      // Close upgrade UI
-      TowerUpgradeUI.destroyActiveUI();
-      this.currentTowerUpgradeUI = null;
+      // Close upgrade UI through UIController
+      this.uiController.close('tower-upgrade');
 
       // Dispatch deselect event
       const deselectEvent = new CustomEvent('towerDeselected', {
@@ -2377,5 +2348,9 @@ export class Game {
 
   isWaveActive(): boolean {
     return this.waveManager.isWaveActive();
+  }
+
+  getUIController(): UIController {
+    return this.uiController;
   }
 }

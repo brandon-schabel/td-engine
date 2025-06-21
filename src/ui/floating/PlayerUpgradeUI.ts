@@ -12,6 +12,9 @@ export class PlayerUpgradeUI {
   private player: Player;
   private game: Game;
   private updateInterval: number | null = null;
+  private contentInitialized = false;
+  private lastCurrency = -1;
+  private lastStats: any = {};
 
   constructor(player: Player, game: Game) {
     this.floatingUI = game.getFloatingUIManager();
@@ -52,6 +55,17 @@ export class PlayerUpgradeUI {
   private updateContent(): void {
     if (!this.element) return;
 
+    // Only create the full content on first render
+    if (!this.contentInitialized) {
+      this.createInitialContent();
+      this.contentInitialized = true;
+    }
+    
+    // Perform smart updates for dynamic values
+    this.updateDynamicValues();
+  }
+  
+  private createInitialContent(): void {
     const currency = this.game.getCurrency();
     // const abilities = this.player.getAbilityManager(); // Not used in this method
 
@@ -73,15 +87,15 @@ export class PlayerUpgradeUI {
         <div class="ui-mb-lg">
           <h3 class="ui-dialog-title ui-font-base ui-mb-md">Stats</h3>
           <div class="player-stats">
-            <div class="stat-item">
+            <div class="stat-item" data-stat="health">
               <span class="stat-label">Health</span>
               <span class="stat-value">${this.player.health}/${this.player.maxHealth}</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" data-stat="shield">
               <span class="stat-label">Shield</span>
               <span class="stat-value">0/0</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" data-stat="speed">
               <span class="stat-label">Move Speed</span>
               <span class="stat-value">${this.player.speed.toFixed(1)}</span>
             </div>
@@ -116,6 +130,61 @@ export class PlayerUpgradeUI {
     });
 
     this.element.setContent(content);
+  }
+  
+  private updateDynamicValues(): void {
+    const element = this.element?.getElement();
+    if (!element) return;
+    
+    const currency = this.game.getCurrency();
+    
+    // Only update currency if it changed
+    if (currency !== this.lastCurrency) {
+      const currencyElement = element.querySelector('.resource-value');
+      if (currencyElement) {
+        currencyElement.textContent = String(currency);
+      }
+      this.lastCurrency = currency;
+    }
+    
+    // Update player stats
+    const currentStats = {
+      health: this.player.health,
+      maxHealth: this.player.maxHealth,
+      speed: this.player.speed.toFixed(1)
+    };
+    
+    // Update health if changed
+    if (currentStats.health !== this.lastStats.health || currentStats.maxHealth !== this.lastStats.maxHealth) {
+      const healthElement = element.querySelector('[data-stat="health"] .stat-value');
+      if (healthElement) {
+        healthElement.textContent = `${currentStats.health}/${currentStats.maxHealth}`;
+      }
+    }
+    
+    // Update speed if changed
+    if (currentStats.speed !== this.lastStats.speed) {
+      const speedElement = element.querySelector('[data-stat="speed"] .stat-value');
+      if (speedElement) {
+        speedElement.textContent = currentStats.speed;
+      }
+    }
+    
+    this.lastStats = currentStats;
+    
+    // Update ability buttons
+    const abilityButtons = element.querySelectorAll('[data-ability]');
+    abilityButtons.forEach((button) => {
+      const btn = button as HTMLButtonElement;
+      const cost = parseInt(btn.dataset.cost || '0');
+      const canAfford = currency >= cost;
+      const isMaxLevel = btn.closest('.upgrade-node')?.classList.contains('unlocked');
+      
+      if (!isMaxLevel) {
+        btn.disabled = !canAfford;
+        btn.classList.toggle('disabled', !canAfford);
+      }
+    });
   }
 
   private renderAbilities(): string {
@@ -157,7 +226,7 @@ export class PlayerUpgradeUI {
           ${!isMaxLevel ? `
             <div class="ui-flex-between ui-mt-sm">
               <span class="upgrade-cost">Cost: ${ability.cost}</span>
-              <button class="ui-button small" data-ability="${ability.key}" ${!canUpgrade ? 'disabled' : ''}>
+              <button class="ui-button small" data-ability="${ability.key}" data-cost="${ability.cost}" ${!canUpgrade ? 'disabled' : ''}>
                 Upgrade
               </button>
             </div>

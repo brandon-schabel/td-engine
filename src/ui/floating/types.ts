@@ -7,6 +7,7 @@ export interface FloatingUIOptions {
   persistent?: boolean;
   mobileScale?: number;
   zIndex?: number;
+  screenSpace?: boolean; // If true, position is in screen coordinates, not world coordinates
 }
 
 export type UIType = 'healthbar' | 'tooltip' | 'popup' | 'dialog' | 'custom';

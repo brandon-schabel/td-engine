@@ -14,84 +14,6 @@ import {
   SettingsDialog,
   PauseDialog,
 } from "./components/dialogs";
-import { TOWER_COSTS } from "@/config/GameConfig";
-import { formatNumber } from "@/utils/formatters";
-
-// Helper function to create build menu content
-function createBuildMenuContent(game: Game, audioManager: AudioManager, onTowerSelect: (type: TowerType) => void): HTMLElement {
-  const container = document.createElement('div');
-  container.className = 'build-menu-simple';
-
-  // Title
-  const title = document.createElement('h2');
-  title.textContent = 'Build Tower';
-  title.className = 'build-menu-simple-title';
-  container.appendChild(title);
-
-  // Tower options grid
-  const grid = document.createElement('div');
-  grid.className = 'build-menu-simple-grid';
-
-  const towers = [
-    { type: TowerType.BASIC, name: 'Basic Tower', cost: TOWER_COSTS.BASIC, icon: IconType.BASIC_TOWER, color: COLOR_THEME.towers.basic },
-    { type: TowerType.SNIPER, name: 'Sniper Tower', cost: TOWER_COSTS.SNIPER, icon: IconType.SNIPER_TOWER, color: COLOR_THEME.towers.frost },
-    { type: TowerType.RAPID, name: 'Rapid Tower', cost: TOWER_COSTS.RAPID, icon: IconType.RAPID_TOWER, color: COLOR_THEME.towers.artillery },
-    { type: TowerType.WALL, name: 'Wall', cost: TOWER_COSTS.WALL, icon: IconType.WALL, color: COLOR_THEME.towers.wall }
-  ];
-
-  const currency = game.getCurrency();
-
-  towers.forEach(tower => {
-    const button = document.createElement('button');
-    const canAfford = currency >= tower.cost;
-    button.disabled = !canAfford;
-    button.className = `tower-card ${!canAfford ? 'disabled' : ''}`;
-    button.dataset.towerType = tower.type.toLowerCase();
-
-    if (canAfford) {
-      button.addEventListener('click', () => {
-        audioManager.playUISound(SoundType.BUTTON_CLICK);
-        onTowerSelect(tower.type);
-      });
-    }
-
-    // Icon
-    const iconDiv = document.createElement('div');
-    iconDiv.className = 'tower-card-icon';
-    iconDiv.dataset.towerType = tower.type.toLowerCase();
-    iconDiv.innerHTML = createSvgIcon(tower.icon, { size: 48 });
-    button.appendChild(iconDiv);
-
-    // Name
-    const nameDiv = document.createElement('div');
-    nameDiv.textContent = tower.name;
-    nameDiv.className = 'tower-card-name';
-    button.appendChild(nameDiv);
-
-    // Cost
-    const costDiv = document.createElement('div');
-    costDiv.className = 'tower-card-cost';
-    costDiv.innerHTML = `${createSvgIcon(IconType.COINS, { size: 16 })} ${formatNumber(tower.cost)}`;
-    button.appendChild(costDiv);
-
-    grid.appendChild(button);
-  });
-
-  container.appendChild(grid);
-
-  // Currency display
-  const currencyDiv = document.createElement('div');
-  currencyDiv.className = 'build-menu-simple-footer';
-  currencyDiv.innerHTML = `
-    ${createSvgIcon(IconType.COINS, { size: 20 })}
-    <span class="resource-value">${formatNumber(currency)}</span>
-    <span>Available</span>
-  `;
-  container.appendChild(currencyDiv);
-
-  return container;
-}
-
 
 
 
@@ -383,43 +305,26 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     });
   };
 
-  // Show build menu using FloatingUIManager
+  // Show build menu using UIController
   const showBuildMenu = () => {
-    const buildMenuDialog = floatingUI.create('build-menu', 'dialog', {
-      persistent: true,
-      autoHide: false,
-      className: 'ui-dialog ui-dialog-build-menu',
-      zIndex: 500
-    });
-
-    // Create build menu content using BuildMenuDialog logic
-    const content = createBuildMenuContent(game, audioManager, (towerType) => {
+    // Get the build button position
+    const buildButton = document.querySelector('.ui-button-control[title*="Build"]') as HTMLElement;
+    let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    
+    if (buildButton) {
+      const rect = buildButton.getBoundingClientRect();
+      screenPos = {
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10 // Position above the button
+      };
+    }
+    
+    // Use UIController to show the build menu
+    const uiController = game.getUIController();
+    uiController.showBuildMenu(screenPos.x, screenPos.y, (towerType) => {
       game.setSelectedTowerType(towerType);
       updateTowerPlacementIndicator();
-      floatingUI.remove('build-menu');
     });
-
-    // Add close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'ui-dialog-close';
-    closeButton.innerHTML = createSvgIcon(IconType.CLOSE, { size: 20 });
-    closeButton.addEventListener('click', () => {
-      game.setSelectedTowerType(null);
-      floatingUI.remove('build-menu');
-    });
-    buildMenuDialog.getElement().appendChild(closeButton);
-
-    buildMenuDialog.setContent(content).enable();
-
-    // Handle escape key
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        game.setSelectedTowerType(null);
-        floatingUI.remove('build-menu');
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
   };
 
   // Tower selection/deselection handlers removed - Game.ts directly creates TowerUpgradeUI
@@ -546,18 +451,27 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud resource-item'
+    className: 'static-hud resource-item',
+    screenSpace: true,
+    anchor: 'top',
+    offset: { x: 0, y: 0 }
   });
 
   // Set currency HUD content and position
   const currencyElement = document.createElement('div');
   currencyElement.className = 'resource-item';
-  currencyElement.style.cssText = 'position: fixed; top: 60px; left: 10px;';
   currencyElement.innerHTML = `
     <span class="resource-icon">💰</span>
     <span id="currency-value" class="resource-value">$${game.getCurrency()}</span>
   `;
   currencyHUD.setContent(currencyElement);
+  
+  // Position at top-left of screen
+  const currencyPosition = {
+    position: { x: 60, y: 60 },
+    getPosition: () => ({ x: 60, y: 60 })
+  };
+  currencyHUD.setTarget(currencyPosition as any);
   currencyHUD.enable();
 
   // Update currency value every 100ms
@@ -573,18 +487,27 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud resource-item'
+    className: 'static-hud resource-item',
+    screenSpace: true,
+    anchor: 'top',
+    offset: { x: 0, y: 0 }
   });
 
   // Set wave HUD content and position
   const waveElement = document.createElement('div');
   waveElement.className = 'resource-item wave-info';
-  waveElement.style.cssText = 'position: fixed; top: 60px; right: 10px;';
   waveElement.innerHTML = `
     <span class="resource-icon">🌊</span>
     <span id="wave-value" class="resource-value">Wave 1</span>
   `;
   waveHUD.setContent(waveElement);
+  
+  // Position at top-right of screen
+  const wavePosition = {
+    position: { x: window.innerWidth - 120, y: 60 },
+    getPosition: () => ({ x: window.innerWidth - 120, y: 60 })
+  };
+  waveHUD.setTarget(wavePosition as any);
   waveHUD.enable();
 
   // Update wave value every 100ms
@@ -608,19 +531,28 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud resource-item'
+    className: 'static-hud resource-item',
+    screenSpace: true,
+    anchor: 'top',
+    offset: { x: 0, y: 0 }
   });
 
   // Set player health HUD content and position
   const healthElement = document.createElement('div');
   healthElement.className = 'resource-item';
   healthElement.id = 'player-health-container';
-  healthElement.style.cssText = 'position: fixed; top: 120px; left: 10px;';
   healthElement.innerHTML = `
     <span class="resource-icon">❤️</span>
     <span id="player-health-value" class="resource-value">${player.health}/${player.getMaxHealth()}</span>
   `;
   playerHealthHUD.setContent(healthElement);
+  
+  // Position below currency
+  const healthPosition = {
+    position: { x: 60, y: 120 },
+    getPosition: () => ({ x: 60, y: 120 })
+  };
+  playerHealthHUD.setTarget(healthPosition as any);
   playerHealthHUD.enable();
 
   // Update player health value every 100ms
@@ -928,10 +860,36 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     }
   };
 
+  // Setup game end event listener
+  const handleGameEnd = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const { stats, victory } = customEvent.detail;
+    
+    // Show game over UI
+    import('@/ui/floating/GameOverUI').then(({ GameOverUI }) => {
+      const gameOverUI = new GameOverUI(game);
+      gameOverUI.show({
+        onRestart: () => {
+          // Restart the game
+          window.location.reload();
+        },
+        onMainMenu: () => {
+          // Go to main menu
+          window.location.reload();
+        }
+      });
+    }).catch(error => {
+      console.error('[SimpleGameUI] Failed to load GameOverUI:', error);
+    });
+  };
+  
+  document.addEventListener('gameEnd', handleGameEnd);
+
   // Cleanup function
   return () => {
     document.removeEventListener("keydown", handleKeyPress);
     document.removeEventListener("towerPlaced", updateTowerPlacementIndicator);
+    document.removeEventListener('gameEnd', handleGameEnd);
     // Tower event listeners removed - Game.ts handles tower upgrades directly
 
     // Clean up floating UI elements

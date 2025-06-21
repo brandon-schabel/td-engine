@@ -55,7 +55,13 @@ export class MobileControls {
     this.aimJoystick = this.controlsElement.querySelector('.aim-joystick') as HTMLElement;
     this.aimJoystickKnob = this.controlsElement.querySelector('.aim-joystick-knob') as HTMLElement;
     this.moveJoystick = this.controlsElement.querySelector('.move-joystick') as HTMLElement;
-    this.joystickKnob = this.controlsElement.querySelector('.joystick-knob') as HTMLElement;
+    this.joystickKnob = this.controlsElement.querySelector('.move-joystick .mobile-joystick-knob') as HTMLElement;
+    
+    // Validate that all elements were found
+    if (!this.aimJoystick || !this.aimJoystickKnob || !this.moveJoystick || !this.joystickKnob) {
+      console.error('MobileControls: Failed to find required joystick elements');
+      return;
+    }
     
     this.setupEventListeners();
     this.show();
@@ -89,7 +95,7 @@ export class MobileControls {
 
     // Movement joystick (left side)
     const moveJoystick = document.createElement('div');
-    moveJoystick.className = 'mobile-joystick';
+    moveJoystick.className = 'mobile-joystick move-joystick';
     const breakpoint = getBreakpoint(vw);
     const layoutConfig = breakpoint === 'mobile' ? RESPONSIVE_CONFIG.layout.hud.mobile : 
                         breakpoint === 'tablet' ? RESPONSIVE_CONFIG.layout.hud.tablet :

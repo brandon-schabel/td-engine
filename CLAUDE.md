@@ -92,72 +92,247 @@ Completed migration from inline styles to centralized CSS class-based styling sy
 
 ## Architecture Overview
 
-### File Structure
+### Project Structure
+
+```
+td-engine/
+├── src/                    # Source code
+│   ├── core/              # Core game engine
+│   ├── entities/          # Game objects
+│   ├── systems/           # Game systems
+│   ├── ui/                # User interface
+│   ├── audio/             # Audio management
+│   ├── config/            # Configuration files
+│   ├── types/             # TypeScript definitions
+│   ├── utils/             # Utilities
+│   ├── rendering/         # Rendering systems
+│   └── main.ts            # Entry point
+├── public/                 # Static assets
+│   ├── images/            # Game textures/sprites
+│   ├── audio/             # Sound effects/music
+│   └── fonts/             # Game fonts
+├── test/                   # Test files
+│   ├── helpers/           # Test utilities
+│   └── unit/              # Unit tests (mirrors src/)
+├── docs/                   # Documentation
+├── scripts/                # Build/utility scripts
+└── dist/                   # Build output
+
+### Detailed Folder Architecture
 
 ```
 src/
-├── core/      # Game engine
-├── entities/  # Game objects
-├── systems/   # Game systems
-├── ui/        # UI components
-├── audio/     # Audio management
-├── config/    # Configuration
-├── types/     # TypeScript definitions
-├── utils/     # Utilities
-└── rendering/ # Rendering systems
+├── core/                   # Core game engine
+│   ├── Game.ts            # Main game controller
+│   ├── GameEngine.ts      # Game loop & state machine
+│   ├── GameState.ts       # Game state enum
+│   └── GameEventBus.ts    # Event system
+│
+├── entities/              # Game objects (inherit from Entity)
+│   ├── Entity.ts          # Base entity class
+│   ├── Tower.ts           # Tower implementation
+│   ├── Enemy.ts           # Enemy implementation
+│   ├── Player.ts          # Player character
+│   ├── Projectile.ts      # Projectile system
+│   ├── Collectible.ts     # Collectible items
+│   └── items/             # Item system
+│       ├── ItemTypes.ts   # Item type definitions
+│       ├── Equipment.ts   # Equipment system
+│       └── ItemFactory.ts # Item generation
+│
+├── systems/               # Game systems & managers
+│   ├── Grid.ts            # Grid-based world system
+│   ├── WaveManager.ts     # Enemy wave spawning
+│   ├── SpawnZoneManager.ts # Dynamic spawn zones
+│   ├── Camera.ts          # Viewport & camera
+│   ├── Renderer.ts        # Canvas rendering
+│   ├── MapGenerator.ts    # Procedural maps
+│   ├── TextureManager.ts  # Texture loading/caching
+│   ├── ScoreManager.ts    # Score & leaderboard
+│   ├── Inventory.ts       # Inventory system
+│   └── GameAudioHandler.ts # Game-specific audio
+│
+├── ui/                    # User interface system
+│   ├── UIController.ts    # Centralized UI manager
+│   ├── SimpleGameUI.ts    # Main game UI setup
+│   ├── floating/          # Floating UI system
+│   │   ├── index.ts       # FloatingUIManager
+│   │   ├── FloatingUIElement.ts
+│   │   ├── types.ts       # UI type definitions
+│   │   ├── BuildMenuUI.ts # Build menu dialog
+│   │   ├── TowerUpgradeUI.ts
+│   │   ├── PlayerUpgradeUI.ts
+│   │   ├── InventoryUI.ts
+│   │   ├── GameOverUI.ts
+│   │   └── MainMenuUI.ts
+│   ├── components/        # UI components
+│   │   ├── game/          # Game-specific UI
+│   │   ├── dialogs/       # Dialog components
+│   │   └── ui/            # Generic UI elements
+│   ├── icons/             # SVG icon system
+│   │   └── SvgIcons.ts
+│   ├── styles/            # Styling system
+│   │   ├── StyleManager.ts # Style injection
+│   │   ├── UIStyles.ts    # Base UI styles
+│   │   └── ComponentStyles.ts # Component styles
+│   ├── systems/           # UI subsystems
+│   │   └── DialogManager.ts
+│   └── utils/             # UI utilities
+│       └── touchSupport.ts
+│
+├── audio/                 # Audio system
+│   ├── AudioManager.ts    # Main audio controller
+│   ├── AudioContext.ts    # Web Audio API wrapper
+│   └── SoundLibrary.ts    # Sound definitions
+│
+├── config/                # Configuration constants
+│   ├── GameConfig.ts      # Core game settings
+│   ├── GameSettings.ts    # User preferences
+│   ├── ColorTheme.ts      # Color palette
+│   ├── UIConstants.ts     # UI dimensions
+│   ├── AnimationConfig.ts # Animation timings
+│   ├── GameplayConstants.ts
+│   ├── ResponsiveConfig.ts # Responsive breakpoints
+│   ├── PlayerConfig.ts    # Player settings
+│   ├── TowerConfig.ts     # Tower definitions
+│   ├── EnemyConfig.ts     # Enemy definitions
+│   ├── ItemConfig.ts      # Item settings
+│   ├── InventoryConfig.ts # Inventory settings
+│   ├── AudioConfig.ts     # Audio settings
+│   ├── UIConfig.ts        # UI configuration
+│   ├── MapConfig.ts       # Map generation
+│   └── RenderingConfig.ts # Rendering settings
+│
+├── types/                 # TypeScript type definitions
+│   ├── GameTypes.ts       # Core game types
+│   ├── MapData.ts         # Map-related types
+│   ├── ItemTypes.ts       # Item system types
+│   └── UITypes.ts         # UI-related types
+│
+├── utils/                 # Utility functions
+│   ├── Vector2.ts         # 2D vector math
+│   ├── CooldownManager.ts # Cooldown utilities
+│   ├── formatters.ts      # Number/text formatting
+│   ├── random.ts          # Random utilities
+│   └── performance.ts     # Performance helpers
+│
+└── rendering/             # Rendering utilities
+    ├── ParticleSystem.ts  # Particle effects
+    ├── RenderUtils.ts     # Drawing helpers
+    └── CanvasUtils.ts     # Canvas utilities
 ```
 
-### Core Patterns
+### Core Game Engine
 
-- **GameEngine**: State machine with observer pattern
-- **Update-Render Loop**: Frame-based with delta time
-- **Entity System**: Base Entity class with inheritance
-- **Grid World**: 25x19 cells with spatial partitioning
+#### Game Class (`src/core/Game.ts`)
+The main game controller that manages all game systems:
 
-### Key Systems
+```typescript
+// Access game instance
+const game = new Game(canvas, mapConfig);
 
-- **WaveManager**: Enemy spawning
-- **AudioManager**: Spatial audio
-- **TextureManager**: Asset caching
-- **Camera**: Viewport management
+// Core methods
+game.start();                    // Start game loop
+game.pause();                    // Pause game
+game.resume();                   // Resume game
+game.stop();                     // Stop and cleanup
+
+// Resource management
+game.getCurrency();              // Get current currency
+game.addCurrency(100);           // Add currency
+game.placeTower(x, y, type);     // Place a tower
+
+// Tower management
+game.selectTower(tower);         // Select a tower for upgrades
+game.deselectTower();            // Deselect current tower
+game.upgradeTower(tower, type);  // Upgrade a tower
+
+// Wave management
+game.startNextWave();            // Start next enemy wave
+game.getCurrentWave();           // Get current wave number
+
+// Access subsystems
+game.getCamera();                // Get camera instance
+game.getGrid();                  // Get grid system
+game.getFloatingUIManager();     // Get UI manager
+game.getAudioManager();          // Get audio system
+```
+
+#### GameEngine (`src/core/GameEngine.ts`)
+Handles the game loop and state management:
+
+```typescript
+// Game states
+enum GameState {
+  MENU = 'MENU',
+  PLAYING = 'PLAYING',
+  PAUSED = 'PAUSED',
+  GAME_OVER = 'GAME_OVER',
+  VICTORY = 'VICTORY'
+}
+
+// The engine automatically manages update/render cycles
+// You rarely interact with it directly
+```
+
+### Entity System
+
+All game objects inherit from Entity base class:
+
+```typescript
+// Entity types
+enum EntityType {
+  PLAYER = 'PLAYER',
+  ENEMY = 'ENEMY',
+  TOWER = 'TOWER',
+  PROJECTILE = 'PROJECTILE',
+  COLLECTIBLE = 'COLLECTIBLE'
+}
+
+// Common entity methods
+entity.update(deltaTime);        // Update entity state
+entity.takeDamage(amount);       // Apply damage
+entity.distanceTo(target);       // Calculate distance
+entity.moveTo(position, speed);  // Move entity
+```
+
+### Grid System (`src/systems/Grid.ts`)
+
+```typescript
+const grid = game.getGrid();
+
+// Check if position is valid for building
+grid.canPlaceTower(x, y);
+
+// Get entities at position
+const tower = grid.getTowerAt(x, y);
+const entities = grid.getEntitiesAt(x, y);
+
+// Convert between grid and world coordinates
+const gridPos = grid.worldToGrid(worldX, worldY);
+const worldPos = grid.gridToWorld(gridX, gridY);
+```
+
+### Camera System (`src/systems/Camera.ts`)
+
+```typescript
+const camera = game.getCamera();
+
+// Convert coordinates
+const screenPos = camera.worldToScreen(worldPos);
+const worldPos = camera.screenToWorld(screenPos);
+
+// Camera controls
+camera.zoomIn();
+camera.zoomOut();
+camera.reset();
+camera.centerOnTarget(position);
+```
 
 ## Configuration
 
 The game/engine makes heavy use of configuration constants to enable better game balance tuning. All gameplay values, visual parameters, and UI dimensions are centralized in configuration files, making it easy to adjust game balance, create different difficulty modes, and maintain consistent styling throughout the codebase.
 
-### Core Config Files
-
-- `GameConfig.ts`: Game initialization, mechanics, waves
-- `GameSettings.ts`: User preferences, difficulty presets
-- `ColorTheme.ts`: All game colors for theming
-- `UIConstants.ts`: UI dimensions, spacing, z-index
-- `AnimationConfig.ts`: Animation durations, easing
-- `GameplayConstants.ts`: Core gameplay values
-- `ResponsiveConfig.ts`: Breakpoints, scaling, touch
-
-### Entity-Specific Config Files
-
-- `PlayerConfig.ts`: Player abilities, upgrades, power-ups
-- `TowerConfig.ts`: Tower stats, costs, upgrades
-- `EnemyConfig.ts`: Enemy stats, behavior, rewards
-- `ItemConfig.ts`: Item drops, rarity, generation
-- `InventoryConfig.ts`: Inventory system settings
-
-### System Config Files
-
-- `AudioConfig.ts`: Audio volumes, spatial settings
-- `UIConfig.ts`: HUD layout, camera, dialogs
-- `MapConfig.ts`: Map generation, biomes, terrain
-- `RenderingConfig.ts`: Rendering, particles, animations
-
-### Customizable Parameters
-
-- **Tower costs**: Configured in TowerConfig
-- **Player stats**: Base stats, abilities, upgrades
-- **Game mechanics**: Projectiles, waves, scoring
-- **Visual theme**: Colors, animations, effects
-- **Responsive design**: Breakpoints, scaling
-- **Map generation**: Biomes, difficulty, dimensions
 
 ## Using the Configuration System
 
@@ -184,6 +359,155 @@ const button = {
 - **Type safety** - Use `as const` for configuration objects
 - **Game balance** - All numeric values affecting gameplay should be in config files
 - **Easy tuning** - Group balance-related constants for quick iteration
+
+## UI System
+
+### UIController (`src/ui/UIController.ts`)
+
+The UIController is the centralized manager for all floating UI elements in the game. It prevents race conditions, manages UI lifecycle, and provides intelligent updates to prevent flickering.
+
+#### Key Features
+- **Centralized Control**: All UI operations go through UIController
+- **Smart Updates**: Only updates changed DOM elements to prevent flickering
+- **Escape Handler**: Press ESC to close all open dialogs (except HUD/health bars)
+- **Lifecycle Management**: Proper cleanup and resource management
+
+#### Usage Examples
+
+```typescript
+// Access UIController through game instance
+const game = new Game(canvas, mapConfig);
+
+// Show build menu at screen position
+game.uiController.showBuildMenu(screenX, screenY, (towerType) => {
+  // Handle tower selection
+  game.setSelectedTowerType(towerType);
+});
+
+// Show tower upgrade UI
+game.uiController.showTowerUpgrade(tower);
+
+// Show player upgrade dialog
+game.uiController.showPlayerUpgrade(player);
+
+// Show inventory
+game.uiController.showInventory();
+
+// Show game over screen
+game.uiController.showGameOver(stats);
+
+// Create health bar for entity
+game.uiController.createHealthBar(entity, {
+  width: 60,
+  height: 6,
+  offset: { x: 0, y: -30 },
+  showValue: true
+});
+
+// Close specific UI element
+game.uiController.close('inventory');
+
+// Close all dialogs (triggered by ESC key)
+game.uiController.closeAllDialogs();
+
+// Check if UI is open
+if (game.uiController.isOpen('inventory')) {
+  // Inventory is currently shown
+}
+```
+
+### FloatingUIManager (`src/ui/floating/FloatingUIManager.ts`)
+
+Low-level UI positioning and rendering system. Usually accessed through UIController.
+
+#### Key Features
+- **World/Screen Space**: Supports both coordinate systems
+- **Smooth Following**: UI elements can smoothly follow entities
+- **Auto Update Loop**: Efficient animation frame updates
+- **Dialog System**: Modal dialogs with overlays
+
+### Creating Custom UI Components
+
+```typescript
+import { FloatingUIElement } from '@/ui/floating';
+import type { Game } from '@/core/Game';
+
+export class CustomUI {
+  private game: Game;
+  private element: FloatingUIElement | null = null;
+  
+  constructor(game: Game) {
+    this.game = game;
+  }
+  
+  show(): void {
+    const floatingUI = this.game.getFloatingUIManager();
+    
+    // Create floating element
+    this.element = floatingUI.create('custom-ui', 'dialog', {
+      persistent: true,
+      autoHide: false,
+      className: 'custom-dialog',
+      screenSpace: true,  // Use screen coordinates
+      anchor: 'center',   // Anchor point
+      offset: { x: 0, y: 0 }
+    });
+    
+    // Set content
+    const content = document.createElement('div');
+    content.innerHTML = '<h2>Custom UI</h2>';
+    this.element.setContent(content);
+    
+    // Position at center of screen
+    const centerPos = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      getPosition: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    };
+    this.element.setTarget(centerPos as any);
+    
+    // Enable to show
+    this.element.enable();
+  }
+  
+  destroy(): void {
+    if (this.element) {
+      this.game.getFloatingUIManager().remove(this.element.id);
+      this.element = null;
+    }
+  }
+}
+```
+
+### Smart DOM Updates (Preventing Flickering)
+
+When creating UI that updates frequently, use smart updates:
+
+```typescript
+// Store last values
+private lastValues = {
+  currency: -1,
+  health: -1
+};
+
+// Only update changed elements
+private updateDynamicValues(): void {
+  const element = this.element?.getElement();
+  if (!element) return;
+  
+  const currency = this.game.getCurrency();
+  
+  // Only update if value changed
+  if (currency !== this.lastValues.currency) {
+    const currencyEl = element.querySelector('.currency-value');
+    if (currencyEl) {
+      currencyEl.textContent = String(currency);
+    }
+    this.lastValues.currency = currency;
+  }
+}
+```
 
 ## UI Styling System
 
@@ -261,16 +585,87 @@ upgrade(): { success: boolean; error?: string } {
 
 ### Adding Features
 
-- **New Tower**: Update TowerType enum, costs, implement behavior, add icon, write tests
-- **New Enemy**: Update EnemyType enum, implement behavior, configure stats, test integration
+#### New Tower Type
+1. Update `TowerType` enum in `src/entities/Tower.ts`
+2. Add tower config in `src/config/TowerConfig.ts`:
+   ```typescript
+   [TowerType.NEW_TOWER]: {
+     cost: 150,
+     damage: 25,
+     range: 100,
+     fireRate: 1.5,
+     // ... other stats
+   }
+   ```
+3. Add tower icon in `src/ui/icons/SvgIcons.ts`
+4. Update tower behavior in `Tower.ts` if needed
+5. Add color theme in `ColorTheme.ts`
+6. Write unit tests
+
+#### New Enemy Type
+1. Update `EnemyType` enum in `src/entities/Enemy.ts`
+2. Add enemy config in `src/config/EnemyConfig.ts`:
+   ```typescript
+   [EnemyType.NEW_ENEMY]: {
+     health: 100,
+     speed: 50,
+     damage: 10,
+     reward: 25,
+     // ... other stats
+   }
+   ```
+3. Configure behavior (e.g., PLAYER_FOCUSED, TOWER_FOCUSED)
+4. Add to wave configurations
+5. Write unit tests
+
+#### New UI Dialog
+1. Create UI component extending pattern:
+   ```typescript
+   export class NewDialogUI {
+     private game: Game;
+     private element: FloatingUIElement | null = null;
+     
+     show(): void {
+       // Use game.getFloatingUIManager()
+     }
+   }
+   ```
+2. Add method to UIController:
+   ```typescript
+   public showNewDialog(): void {
+     this.close('new-dialog');
+     // Create and show dialog
+   }
+   ```
+3. Add styles to `ComponentStyles.ts`
+
+### Audio System
+
+```typescript
+const audioManager = game.getAudioManager();
+
+// UI sounds
+audioManager.playUISound(SoundType.BUTTON_CLICK);
+audioManager.playUISound(SoundType.UPGRADE);
+
+// Spatial sounds (3D positioned)
+audioManager.playSpatialSound(SoundType.EXPLOSION, position);
+audioManager.playSpatialSound(SoundType.TOWER_SHOOT, tower.position);
+
+// Background music
+audioManager.playBackgroundMusic('battle');
+audioManager.setMusicVolume(0.5);
+```
 
 ### Performance Guidelines
 
-- Remove destroyed entities
-- Use grid for collision detection
-- Render only visible entities
-- Limit concurrent sounds
-- Reuse objects when possible
+- Remove destroyed entities from arrays
+- Use grid for spatial queries instead of looping all entities
+- Render only visible entities (`camera.isVisible()`)
+- Limit concurrent sounds to prevent audio overload
+- Reuse objects when possible (object pooling)
+- Use `requestAnimationFrame` for smooth animations
+- Batch DOM updates in UI components
 
 ## Debugging
 
