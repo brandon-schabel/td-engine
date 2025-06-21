@@ -1,5 +1,4 @@
 import type { Game } from '@/core/Game';
-import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
@@ -15,7 +14,7 @@ export class GameOverUI {
   private game: Game;
   private onRestart: (() => void) | null = null;
   private onMainMenu: (() => void) | null = null;
-  
+
   constructor(game: Game) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
@@ -27,18 +26,18 @@ export class GameOverUI {
   } = {}): void {
     this.onRestart = callbacks.onRestart || null;
     this.onMainMenu = callbacks.onMainMenu || null;
-    
+
     if (this.element) {
       this.element.enable();
       return;
     }
-    
+
     this.create();
   }
 
   private create(): void {
     const elementId = 'game-over-ui';
-    
+
     // Create dialog with modal overlay
     this.element = this.floatingUI.createDialog(elementId, this.createContent(), {
       title: 'Game Over',
@@ -46,7 +45,7 @@ export class GameOverUI {
       closeable: false,
       className: 'game-over-dialog'
     });
-    
+
     // Add custom styles for game over
     const styleElement = document.createElement('style');
     styleElement.textContent = `
@@ -175,7 +174,7 @@ export class GameOverUI {
       }
     `;
     document.head.appendChild(styleElement);
-    
+
     // Store style element reference for cleanup
     (this.element as any)._gameOverStyleElement = styleElement;
   }
@@ -183,15 +182,15 @@ export class GameOverUI {
   private createContent(): HTMLElement {
     const content = document.createElement('div');
     content.className = 'game-over-content';
-    
-    const stats = this.game.getGameStatistics();
+
+    const stats = this.game.getGameStats();
     const score = this.game.getScore();
     const wave = this.game.getCurrentWave();
-    
+
     // Score display
     const statsDiv = document.createElement('div');
     statsDiv.className = 'game-over-stats';
-    
+
     const scoreDiv = document.createElement('div');
     scoreDiv.className = 'game-over-score';
     scoreDiv.innerHTML = `
@@ -199,11 +198,11 @@ export class GameOverUI {
       ${formatNumber(score)}
     `;
     statsDiv.appendChild(scoreDiv);
-    
+
     // Stats grid
     const statGrid = document.createElement('div');
     statGrid.className = 'game-over-stat-grid';
-    
+
     const statItems = [
       {
         icon: IconType.ENEMY,
@@ -221,12 +220,12 @@ export class GameOverUI {
         label: 'Towers Built'
       },
       {
-        icon: IconType.TIME,
-        value: this.formatTime(stats.timePlayed),
+        icon: IconType.CLOCK,
+        value: this.formatTime(stats.gameTime),
         label: 'Time Played'
       }
     ];
-    
+
     statItems.forEach(stat => {
       const statDiv = document.createElement('div');
       statDiv.className = 'game-over-stat';
@@ -237,14 +236,14 @@ export class GameOverUI {
       `;
       statGrid.appendChild(statDiv);
     });
-    
+
     statsDiv.appendChild(statGrid);
     content.appendChild(statsDiv);
-    
+
     // Buttons
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'game-over-buttons';
-    
+
     // Restart button
     const restartButton = document.createElement('button');
     restartButton.className = 'game-over-button restart';
@@ -260,7 +259,7 @@ export class GameOverUI {
       this.close();
     });
     buttonsDiv.appendChild(restartButton);
-    
+
     // Main menu button
     const menuButton = document.createElement('button');
     menuButton.className = 'game-over-button menu';
@@ -276,15 +275,15 @@ export class GameOverUI {
       this.close();
     });
     buttonsDiv.appendChild(menuButton);
-    
+
     content.appendChild(buttonsDiv);
-    
+
     // Message
     const message = document.createElement('div');
     message.className = 'game-over-message';
     message.textContent = this.getGameOverMessage(wave, score);
     content.appendChild(message);
-    
+
     return content;
   }
 
@@ -322,12 +321,12 @@ export class GameOverUI {
     if (styleElement) {
       styleElement.remove();
     }
-    
+
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;
     }
-    
+
     this.onRestart = null;
     this.onMainMenu = null;
   }

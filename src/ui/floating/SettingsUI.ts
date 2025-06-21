@@ -1,5 +1,4 @@
 import type { Game } from '@/core/Game';
-import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
@@ -7,15 +6,15 @@ import { SoundType } from '@/audio/AudioManager';
 import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { isMobile } from '@/config/ResponsiveConfig';
-import { GameSettings, Difficulty } from '@/config/GameSettings';
+import { GameSettings, Difficulty, SettingsManager } from '@/config/GameSettings';
 
 export class SettingsUI {
   private floatingUI: FloatingUIManager;
   private element: FloatingUIElement | null = null;
   private game: Game;
-  private settings: GameSettings;
+  private settings: SettingsManager;
   private onSettingsChange: ((settings: GameSettings) => void) | null = null;
-  
+
   constructor(game: Game) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
@@ -24,19 +23,19 @@ export class SettingsUI {
 
   public show(onSettingsChange?: (settings: GameSettings) => void): void {
     this.onSettingsChange = onSettingsChange || null;
-    
+
     if (this.element) {
       this.element.enable();
       this.updateContent();
       return;
     }
-    
+
     this.create();
   }
 
   private create(): void {
     const elementId = 'settings-ui';
-    
+
     // Create dialog with modal overlay
     this.element = this.floatingUI.createDialog(elementId, this.createContent(), {
       title: 'Game Settings',
@@ -45,7 +44,7 @@ export class SettingsUI {
       onClose: () => this.handleClose(),
       className: 'settings-dialog'
     });
-    
+
     // Add custom styles for settings
     const styleElement = document.createElement('style');
     styleElement.textContent = `
@@ -237,7 +236,7 @@ export class SettingsUI {
       }
     `;
     document.head.appendChild(styleElement);
-    
+
     // Store style element reference for cleanup
     (this.element as any)._settingsStyleElement = styleElement;
   }
@@ -245,7 +244,7 @@ export class SettingsUI {
   private createContent(): HTMLElement {
     const content = document.createElement('div');
     content.className = 'settings-content';
-    
+
     // Audio Settings
     const audioSection = document.createElement('div');
     audioSection.className = 'settings-section';
@@ -255,7 +254,7 @@ export class SettingsUI {
         Audio Settings
       </h3>
     `;
-    
+
     // Master Volume
     this.createSliderSetting(audioSection, {
       label: 'Master Volume',
@@ -267,7 +266,7 @@ export class SettingsUI {
         this.game.getAudioManager()?.setMasterVolume(value / 100);
       }
     });
-    
+
     // Sound Effects
     this.createSliderSetting(audioSection, {
       label: 'Sound Effects',
@@ -276,11 +275,11 @@ export class SettingsUI {
       max: 100,
       onChange: (value) => {
         this.settings.sfxVolume = value;
-        this.game.getAudioManager()?.setSfxVolume(value / 100);
+        // TODO: Add setSfxVolume method to AudioManager
         this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
       }
     });
-    
+
     // Music
     this.createSliderSetting(audioSection, {
       label: 'Music Volume',
@@ -289,12 +288,12 @@ export class SettingsUI {
       max: 100,
       onChange: (value) => {
         this.settings.musicVolume = value;
-        this.game.getAudioManager()?.setMusicVolume(value / 100);
+        // TODO: Add setMusicVolume method to AudioManager
       }
     });
-    
+
     content.appendChild(audioSection);
-    
+
     // Gameplay Settings
     const gameplaySection = document.createElement('div');
     gameplaySection.className = 'settings-section';
@@ -304,22 +303,22 @@ export class SettingsUI {
         Gameplay Settings
       </h3>
     `;
-    
+
     // Difficulty
     const difficultyItem = document.createElement('div');
     difficultyItem.className = 'settings-item';
     difficultyItem.innerHTML = '<span class="settings-label">Difficulty</span>';
-    
+
     const difficultyButtons = document.createElement('div');
     difficultyButtons.className = 'difficulty-buttons';
-    
+
     const difficulties = [
       { value: Difficulty.EASY, label: 'Easy', class: 'easy' },
       { value: Difficulty.NORMAL, label: 'Normal', class: 'normal' },
       { value: Difficulty.HARD, label: 'Hard', class: 'hard' },
       { value: Difficulty.EXPERT, label: 'Expert', class: 'expert' }
     ];
-    
+
     difficulties.forEach(diff => {
       const button = document.createElement('button');
       button.className = `difficulty-button ${diff.class}`;
@@ -337,10 +336,10 @@ export class SettingsUI {
       });
       difficultyButtons.appendChild(button);
     });
-    
+
     difficultyItem.appendChild(difficultyButtons);
     gameplaySection.appendChild(difficultyItem);
-    
+
     // Auto-pause
     this.createToggleSetting(gameplaySection, {
       label: 'Auto-pause when unfocused',
@@ -349,7 +348,7 @@ export class SettingsUI {
         this.settings.autoPause = value;
       }
     });
-    
+
     // Show FPS
     this.createToggleSetting(gameplaySection, {
       label: 'Show FPS Counter',
@@ -358,7 +357,7 @@ export class SettingsUI {
         this.settings.showFps = value;
       }
     });
-    
+
     // Particle Effects
     this.createToggleSetting(gameplaySection, {
       label: 'Particle Effects',
@@ -367,13 +366,13 @@ export class SettingsUI {
         this.settings.particleEffects = value;
       }
     });
-    
+
     content.appendChild(gameplaySection);
-    
+
     // Footer buttons
     const footer = document.createElement('div');
     footer.className = 'settings-footer';
-    
+
     const resetButton = document.createElement('button');
     resetButton.className = 'settings-button reset';
     resetButton.textContent = 'Reset to Defaults';
@@ -385,7 +384,7 @@ export class SettingsUI {
       }
     });
     footer.appendChild(resetButton);
-    
+
     const saveButton = document.createElement('button');
     saveButton.className = 'settings-button save';
     saveButton.textContent = 'Save & Close';
@@ -393,9 +392,9 @@ export class SettingsUI {
       this.handleClose();
     });
     footer.appendChild(saveButton);
-    
+
     content.appendChild(footer);
-    
+
     return content;
   }
 
@@ -408,35 +407,35 @@ export class SettingsUI {
   }): void {
     const item = document.createElement('div');
     item.className = 'settings-item';
-    
+
     const label = document.createElement('span');
     label.className = 'settings-label';
     label.textContent = options.label;
     item.appendChild(label);
-    
+
     const control = document.createElement('div');
     control.className = 'settings-control';
-    
+
     const sliderContainer = document.createElement('div');
     sliderContainer.className = 'slider-container';
-    
+
     const slider = document.createElement('input');
     slider.type = 'range';
     slider.className = 'slider';
     slider.min = options.min.toString();
     slider.max = options.max.toString();
     slider.value = options.value.toString();
-    
+
     const valueDisplay = document.createElement('span');
     valueDisplay.className = 'slider-value';
     valueDisplay.textContent = `${options.value}%`;
-    
+
     slider.addEventListener('input', () => {
       const value = parseInt(slider.value);
       valueDisplay.textContent = `${value}%`;
       options.onChange(value);
     });
-    
+
     sliderContainer.appendChild(slider);
     sliderContainer.appendChild(valueDisplay);
     control.appendChild(sliderContainer);
@@ -451,26 +450,26 @@ export class SettingsUI {
   }): void {
     const item = document.createElement('div');
     item.className = 'settings-item';
-    
+
     const label = document.createElement('span');
     label.className = 'settings-label';
     label.textContent = options.label;
     item.appendChild(label);
-    
+
     const control = document.createElement('div');
     control.className = 'settings-control';
-    
+
     const toggle = document.createElement('div');
     toggle.className = `toggle-switch ${options.value ? 'active' : ''}`;
     toggle.innerHTML = '<div class="toggle-switch-handle"></div>';
-    
+
     toggle.addEventListener('click', () => {
       const newValue = !toggle.classList.contains('active');
       toggle.classList.toggle('active', newValue);
       options.onChange(newValue);
       this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
     });
-    
+
     control.appendChild(toggle);
     item.appendChild(control);
     parent.appendChild(item);
@@ -503,12 +502,12 @@ export class SettingsUI {
     if (styleElement) {
       styleElement.remove();
     }
-    
+
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;
     }
-    
+
     this.onSettingsChange = null;
   }
 }

@@ -1,5 +1,4 @@
 import type { Game } from '@/core/Game';
-import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
@@ -15,7 +14,7 @@ export class PauseMenuUI {
   private onResume: (() => void) | null = null;
   private onRestart: (() => void) | null = null;
   private onSettings: (() => void) | null = null;
-  
+
   constructor(game: Game) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
@@ -29,18 +28,18 @@ export class PauseMenuUI {
     this.onResume = callbacks.onResume || null;
     this.onRestart = callbacks.onRestart || null;
     this.onSettings = callbacks.onSettings || null;
-    
+
     if (this.element) {
       this.element.enable();
       return;
     }
-    
+
     this.create();
   }
 
   private create(): void {
     const elementId = 'pause-menu-ui';
-    
+
     // Create dialog with modal overlay
     this.element = this.floatingUI.createDialog(elementId, this.createContent(), {
       title: 'Game Paused',
@@ -48,7 +47,7 @@ export class PauseMenuUI {
       closeable: false,
       className: 'pause-menu-dialog'
     });
-    
+
     // Add custom styles for pause menu
     const styleElement = document.createElement('style');
     styleElement.textContent = `
@@ -130,7 +129,7 @@ export class PauseMenuUI {
       }
     `;
     document.head.appendChild(styleElement);
-    
+
     // Store style element reference for cleanup
     (this.element as any)._pauseStyleElement = styleElement;
   }
@@ -138,11 +137,11 @@ export class PauseMenuUI {
   private createContent(): HTMLElement {
     const content = document.createElement('div');
     content.className = 'pause-menu-content';
-    
+
     // Buttons container
     const buttonsDiv = document.createElement('div');
     buttonsDiv.className = 'pause-menu-buttons';
-    
+
     // Resume button
     const resumeButton = document.createElement('button');
     resumeButton.className = 'pause-menu-button resume';
@@ -158,7 +157,7 @@ export class PauseMenuUI {
       this.close();
     });
     buttonsDiv.appendChild(resumeButton);
-    
+
     // Settings button
     const settingsButton = document.createElement('button');
     settingsButton.className = 'pause-menu-button settings';
@@ -173,7 +172,7 @@ export class PauseMenuUI {
       }
     });
     buttonsDiv.appendChild(settingsButton);
-    
+
     // Restart button
     const restartButton = document.createElement('button');
     restartButton.className = 'pause-menu-button restart';
@@ -191,18 +190,18 @@ export class PauseMenuUI {
       }
     });
     buttonsDiv.appendChild(restartButton);
-    
+
     content.appendChild(buttonsDiv);
-    
+
     // Game info
     const infoDiv = document.createElement('div');
     infoDiv.className = 'pause-info';
-    
-    const stats = this.game.getGameStatistics();
+
+    const stats = this.game.getGameStats();
     const currentWave = this.game.getCurrentWave();
     const score = this.game.getScore();
     const lives = this.game.getLives();
-    
+
     infoDiv.innerHTML = `
       <div class="pause-info-item">
         <span class="pause-info-label">Current Wave:</span>
@@ -222,12 +221,12 @@ export class PauseMenuUI {
       </div>
       <div class="pause-info-item">
         <span class="pause-info-label">Time Played:</span>
-        <span class="pause-info-value">${this.formatTime(stats.timePlayed)}</span>
+        <span class="pause-info-value">${this.formatTime(stats.gameTime)}</span>
       </div>
     `;
-    
+
     content.appendChild(infoDiv);
-    
+
     return content;
   }
 
@@ -251,12 +250,12 @@ export class PauseMenuUI {
     if (styleElement) {
       styleElement.remove();
     }
-    
+
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;
     }
-    
+
     this.onResume = null;
     this.onRestart = null;
     this.onSettings = null;

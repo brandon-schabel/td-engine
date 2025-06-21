@@ -2,33 +2,53 @@
 export interface GameSettings {
   // Difficulty preset
   difficulty: 'CASUAL' | 'NORMAL' | 'CHALLENGE';
-  
+
   // Audio settings
-  masterVolume: number; // 0-1
+  masterVolume: number; // 0-100
+  sfxVolume: number; // 0-100
+  musicVolume: number; // 0-100
   soundEnabled: boolean;
-  
+
   // Visual settings
   visualQuality: 'LOW' | 'MEDIUM' | 'HIGH';
   showFPS: boolean;
-  
+  showFps: boolean; // Alias for compatibility
+  particleEffects: boolean;
+
+  // Gameplay settings
+  autoPause: boolean;
+
   // Map preferences
   mapSize: 'SMALL' | 'MEDIUM' | 'LARGE';
   terrain: 'FOREST' | 'DESERT' | 'ARCTIC';
   pathComplexity: 'SIMPLE' | 'COMPLEX';
-  
+
   // Mobile controls
   mobileJoystickEnabled: boolean;
   hapticFeedbackEnabled: boolean;
   touchControlsLayout: 'default' | 'lefty';
 }
 
+// Difficulty enum for UI compatibility
+export enum Difficulty {
+  EASY = 'CASUAL',
+  NORMAL = 'NORMAL',
+  HARD = 'CHALLENGE',
+  EXPERT = 'CHALLENGE' // Map to CHALLENGE for now
+}
+
 // Default settings
 export const DEFAULT_SETTINGS: GameSettings = {
   difficulty: 'NORMAL',
-  masterVolume: 0.7,
+  masterVolume: 70,
+  sfxVolume: 70,
+  musicVolume: 50,
   soundEnabled: true,
   visualQuality: 'MEDIUM',
   showFPS: false,
+  showFps: false,
+  particleEffects: true,
+  autoPause: true,
   mapSize: 'MEDIUM',
   terrain: 'FOREST',
   pathComplexity: 'SIMPLE',
@@ -97,12 +117,61 @@ export const VISUAL_QUALITY_CONFIGS = {
 // Settings persistence
 const SETTINGS_KEY = 'tower-defense-settings';
 
-export class SettingsManager {
+export class SettingsManager implements GameSettings {
   private static instance: SettingsManager;
-  private settings: GameSettings;
+  private _settings: GameSettings;
+
+  // GameSettings interface properties
+  get difficulty() { return this._settings.difficulty; }
+  set difficulty(value) { this._settings.difficulty = value; }
+
+  get masterVolume() { return this._settings.masterVolume; }
+  set masterVolume(value) { this._settings.masterVolume = value; }
+
+  get sfxVolume() { return this._settings.sfxVolume; }
+  set sfxVolume(value) { this._settings.sfxVolume = value; }
+
+  get musicVolume() { return this._settings.musicVolume; }
+  set musicVolume(value) { this._settings.musicVolume = value; }
+
+  get soundEnabled() { return this._settings.soundEnabled; }
+  set soundEnabled(value) { this._settings.soundEnabled = value; }
+
+  get visualQuality() { return this._settings.visualQuality; }
+  set visualQuality(value) { this._settings.visualQuality = value; }
+
+  get showFPS() { return this._settings.showFPS; }
+  set showFPS(value) { this._settings.showFPS = value; }
+
+  get showFps() { return this._settings.showFps; }
+  set showFps(value) { this._settings.showFps = value; }
+
+  get particleEffects() { return this._settings.particleEffects; }
+  set particleEffects(value) { this._settings.particleEffects = value; }
+
+  get autoPause() { return this._settings.autoPause; }
+  set autoPause(value) { this._settings.autoPause = value; }
+
+  get mapSize() { return this._settings.mapSize; }
+  set mapSize(value) { this._settings.mapSize = value; }
+
+  get terrain() { return this._settings.terrain; }
+  set terrain(value) { this._settings.terrain = value; }
+
+  get pathComplexity() { return this._settings.pathComplexity; }
+  set pathComplexity(value) { this._settings.pathComplexity = value; }
+
+  get mobileJoystickEnabled() { return this._settings.mobileJoystickEnabled; }
+  set mobileJoystickEnabled(value) { this._settings.mobileJoystickEnabled = value; }
+
+  get hapticFeedbackEnabled() { return this._settings.hapticFeedbackEnabled; }
+  set hapticFeedbackEnabled(value) { this._settings.hapticFeedbackEnabled = value; }
+
+  get touchControlsLayout() { return this._settings.touchControlsLayout; }
+  set touchControlsLayout(value) { this._settings.touchControlsLayout = value; }
 
   private constructor() {
-    this.settings = this.loadSettings();
+    this._settings = this.loadSettings();
   }
 
   static getInstance(): SettingsManager {
@@ -113,17 +182,25 @@ export class SettingsManager {
   }
 
   getSettings(): GameSettings {
-    return { ...this.settings };
+    return { ...this._settings };
   }
 
   updateSettings(newSettings: Partial<GameSettings>): void {
-    this.settings = { ...this.settings, ...newSettings };
+    this._settings = { ...this._settings, ...newSettings };
+    this.saveSettings();
+  }
+
+  reset(): void {
+    this._settings = { ...DEFAULT_SETTINGS };
+    this.saveSettings();
+  }
+
+  save(): void {
     this.saveSettings();
   }
 
   resetToDefaults(): void {
-    this.settings = { ...DEFAULT_SETTINGS };
-    this.saveSettings();
+    this.reset();
   }
 
   private loadSettings(): GameSettings {
@@ -141,9 +218,14 @@ export class SettingsManager {
 
   private saveSettings(): void {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this._settings));
     } catch (error) {
       console.warn('Failed to save settings:', error);
     }
   }
+}
+
+// Namespace pattern to allow both interface and class usage
+export namespace GameSettings {
+  export const getInstance = SettingsManager.getInstance;
 }

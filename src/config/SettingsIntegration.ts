@@ -16,35 +16,35 @@ export function applySettingsToGame(settings: GameSettings) {
       RAPID: Math.round(TOWER_COSTS.RAPID * difficultyPreset.towerCostMultiplier),
       WALL: Math.round(TOWER_COSTS.WALL * difficultyPreset.towerCostMultiplier)
     },
-    
+
     // Starting game state
     startingCurrency: difficultyPreset.startingCurrency,
     startingLives: difficultyPreset.startingLives,
-    
+
     // Player stats (unchanged from base)
     playerStats: { ...BASE_PLAYER_STATS },
-    
+
     // Game mechanics (unchanged from base)
     mechanics: { ...GAME_MECHANICS },
-    
+
     // Enemy modifiers
     enemyHealthMultiplier: difficultyPreset.enemyHealthMultiplier,
     enemySpeedMultiplier: difficultyPreset.enemySpeedMultiplier,
     waveDelayMultiplier: difficultyPreset.waveDelayMultiplier,
-    
+
     // Map configuration
     mapConfig: {
       ...mapConfig,
       biome: settings.terrain.toLowerCase(),
       pathComplexity: settings.pathComplexity === 'COMPLEX' ? 0.8 : 0.4
     },
-    
+
     // Audio settings
     audioConfig: {
       masterVolume: settings.masterVolume,
       soundEnabled: settings.soundEnabled
     },
-    
+
     // Visual settings
     visualConfig: {
       ...visualConfig,
@@ -94,10 +94,15 @@ export function getCurrentGameConfig(): SimpleGameConfig {
   // For now, return a default configuration
   const defaultSettings: GameSettings = {
     difficulty: 'NORMAL',
-    masterVolume: 0.7,
+    masterVolume: 70,
+    sfxVolume: 70,
+    musicVolume: 50,
     soundEnabled: true,
     visualQuality: 'MEDIUM',
     showFPS: false,
+    showFps: false,
+    particleEffects: true,
+    autoPause: true,
     mapSize: 'MEDIUM',
     terrain: 'FOREST',
     pathComplexity: 'SIMPLE',
@@ -105,6 +110,6 @@ export function getCurrentGameConfig(): SimpleGameConfig {
     hapticFeedbackEnabled: true,
     touchControlsLayout: 'default'
   };
-  
+
   return applySettingsToGame(defaultSettings);
 }
