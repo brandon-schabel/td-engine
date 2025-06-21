@@ -1,12 +1,9 @@
 import { GameWithEvents } from "./core/GameWithEvents";
 import { TowerType } from "./entities/Tower";
 import { AudioManager, SoundType } from "./audio/AudioManager";
-// Dialog imports removed - using FloatingUIManager instead
-import { DialogManager } from "./ui/systems/DialogManager";
 import { ANIMATION_CONFIG } from "./config/AnimationConfig";
 import { RESPONSIVE_CONFIG, isMobile } from "./config/ResponsiveConfig";
 import { injectResponsiveStyles } from "./ui/styles/generateResponsiveStyles";
-import { injectDialogStyles } from "./ui/styles/injectDialogStyles";
 // Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from "./config/SettingsIntegration";
 import {
@@ -23,9 +20,6 @@ import { TouchIndicator } from "./ui/components/game/TouchIndicator";
 
 // Inject responsive styles
 injectResponsiveStyles();
-
-// Inject dialog-specific CSS fixes
-injectDialogStyles();
 
 // Get canvas element
 let canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
@@ -89,33 +83,6 @@ window.addEventListener("resize", () => {
 });
 // Touch input is now handled within the SimpleGameUI
 const audioManager = new AudioManager();
-const dialogManager = DialogManager.getInstance();
-
-// Dialog instances - being phased out in favor of FloatingUIManager
-// Keeping empty functions for backward compatibility temporarily
-
-// Early initialization of dialogs that don't require a game instance
-function initializeEarlyDialogs() {
-  // Register the game settings dialog for the main menu
-  import('@/ui/components/dialogs/GameSettingsDialog').then(({ GameSettingsDialog }) => {
-    const dialog = new GameSettingsDialog({
-      audioManager,
-      onStartGame: (settings) => {
-        (window as any).gameSettings = settings;
-        dialogManager.hide('gameSettings');
-        initializeGame();
-      }
-    });
-    dialogManager.register('gameSettings', dialog);
-  }).catch(error => {
-    console.error('[Main] Failed to load GameSettingsDialog:', error);
-  });
-}
-
-// Initialize dialogs that require a game instance
-function initializeGameDialogs(_gameInstance: GameWithEvents) {
-  // Dialogs now use FloatingUIManager in SimpleGameUI
-}
 
 // Initialize game with settings
 function initializeGame() {
@@ -187,8 +154,7 @@ function initializeGame() {
     (window as any).game = game;
   }
 
-  // Initialize game-dependent dialogs now that we have a game instance
-  initializeGameDialogs(game);
+  // Dialogs now use FloatingUIManager
 
   // Setup game end event listener
   document.addEventListener("gameEnd", handleGameEnd as EventListener);
@@ -249,16 +215,12 @@ function showMainMenu() {
           initializeGame();
         },
         onSettings: () => {
-          // Show settings dialog
-          if (dialogManager) {
-            dialogManager.show('gameSettings');
-          }
+          // Settings are handled in-game
+          console.log('[Main] Settings requested from main menu');
         },
         onLeaderboard: () => {
-          // Show leaderboard dialog
-          if (dialogManager) {
-            dialogManager.show('leaderboard');
-          }
+          // Leaderboard not implemented yet
+          console.log('[Main] Leaderboard requested from main menu');
         }
       });
     }).catch(error => {
@@ -272,21 +234,14 @@ function showMainMenu() {
     initializeGame();
   });
 
-  // Close any open dialogs
-  dialogManager.hideAll();
-
   // Settings are now handled in-game
 }
-
-// Initialize early dialogs before showing main menu
-initializeEarlyDialogs();
 
 // Show main menu on startup
 showMainMenu();
 
 // Debug: Make initializeGame available globally for testing
 (window as any).initializeGame = initializeGame;
-(window as any).dialogManager = dialogManager;
 
 // Debug: Add keyboard shortcut to start game
 document.addEventListener('keydown', (e) => {
@@ -301,7 +256,6 @@ document.addEventListener('keydown', (e) => {
       terrain: "FOREST",
       pathComplexity: "SIMPLE"
     };
-    dialogManager.hide('settings');
     initializeGame();
   }
 });

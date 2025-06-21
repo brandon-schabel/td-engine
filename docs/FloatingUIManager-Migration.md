@@ -116,7 +116,18 @@ pauseMenuUI.show({
 - [x] Update SimpleGameUI to use new components
 - [x] Remove dialog registrations from main.ts
 - [x] Test all UI functionality
-- [ ] Remove DialogManager system (future)
+- [x] Remove DialogManager system (COMPLETED)
+
+## Migration Completed (December 2024)
+
+The migration to FloatingUIManager is now complete. All dialog components have been removed:
+- Deleted `/src/ui/components/dialogs/` directory and all BaseDialog components
+- Deleted `/src/ui/systems/DialogManager.ts`
+- Deleted `/src/ui/styles/injectDialogStyles.ts`
+- Updated UIController with `showPauseMenu()` method
+- Updated SimpleGameUI to use UIController for pause menu
+- Updated main.ts to remove all DialogManager references
+- Cleaned up all test files for removed components
 
 ## Testing
 

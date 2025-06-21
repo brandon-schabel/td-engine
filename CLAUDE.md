@@ -77,8 +77,11 @@ Successfully migrated all UI to FloatingUIManager and removed:
 - VirtualJoystick component (unused)
 - Redundant CSS files (styles injected via TypeScript)
 - Dead code in SimpleGameUI (duplicate tower upgrade handlers)
+- DialogManager and BaseDialog system (replaced by FloatingUIManager)
+- All dialog components in `/src/ui/components/dialogs/`
+- Dialog-specific styles and injection
 
-The codebase now uses FloatingUIManager as the single UI system for all popups, dialogs, and floating elements.
+The codebase now uses FloatingUIManager as the single UI system for all popups, dialogs, and floating elements. UIController provides centralized management of all UI elements.
 
 ### UI Styling Migration (December 2024)
 
@@ -164,10 +167,11 @@ src/
 │   │   ├── PlayerUpgradeUI.ts
 │   │   ├── InventoryUI.ts
 │   │   ├── GameOverUI.ts
-│   │   └── MainMenuUI.ts
+│   │   ├── MainMenuUI.ts
+│   │   ├── PauseMenuUI.ts
+│   │   └── SettingsUI.ts
 │   ├── components/        # UI components
 │   │   ├── game/          # Game-specific UI
-│   │   ├── dialogs/       # Dialog components
 │   │   └── ui/            # Generic UI elements
 │   ├── icons/             # SVG icon system
 │   │   └── SvgIcons.ts
@@ -175,8 +179,7 @@ src/
 │   │   ├── StyleManager.ts # Style injection
 │   │   ├── UIStyles.ts    # Base UI styles
 │   │   └── ComponentStyles.ts # Component styles
-│   ├── systems/           # UI subsystems
-│   │   └── DialogManager.ts
+│   └── systems/           # UI subsystems (empty - all UI managed by FloatingUIManager)
 │   └── utils/             # UI utilities
 │       └── touchSupport.ts
 │

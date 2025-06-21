@@ -8,10 +8,6 @@ import { MobileControls } from "./components/game/MobileControls";
 import { IconButton } from "./components/game/IconButton";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { isMobile as checkIsMobile } from "@/config/ResponsiveConfig";
-import { DialogManager } from "./systems/DialogManager";
-import {
-  PauseDialog,
-} from "./components/dialogs";
 
 
 
@@ -21,61 +17,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     console.error("[SimpleGameUI] ERROR: game-container element not found!");
     return;
   }
-  // Dialog management
-  const dialogManager = DialogManager.getInstance();
-
-  // Dialog instances
-  let pauseDialog: PauseDialog;
-
-  // Floating UI instances - removed as they're now managed by UIController
-
-  // Initialize dialogs
-  const initializeDialogs = () => {
-    try {
-      // Check if dialogs are already registered from main.ts
-      // If they are, just get references to them
-
-
-      // Dialog system is initialized elsewhere, no test needed here
-
-      // Inventory now uses FloatingUIManager directly
-
-      // Settings now uses UIController and FloatingUIManager
-
-      // Pause Dialog - should already be registered
-      const existingPause = dialogManager.getDialog("pause");
-      if (existingPause) {
-        pauseDialog = existingPause as PauseDialog;
-      } else {
-        pauseDialog = new PauseDialog({
-          audioManager,
-          onResume: () => {
-            game.resume();
-          },
-          onSettings: () => {
-            // Use UIController to show settings
-            const uiController = game.getUIController();
-            uiController.showSettings();
-          },
-          onRestart: () => {
-            if (confirm("Are you sure you want to restart the game?")) {
-              window.location.reload();
-            }
-          },
-          onQuit: () => {
-            if (confirm("Are you sure you want to quit to main menu?")) {
-              window.location.reload();
-            }
-          },
-        });
-        dialogManager.register("pause", pauseDialog);
-      }
-
-      // Note: We can't directly access private dialogs Map, but we know what should be registered
-    } catch (error) {
-      console.error("[SimpleGameUI] Error initializing dialogs:", error);
-    }
-  };
+  // Get UIController reference
+  const uiController = game.getUIController();
 
   // Use the existing bottom UI container if available, otherwise create control bar
   let controlBar = document.getElementById("bottom-ui-container");
@@ -162,10 +105,28 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       audioManager.playUISound(SoundType.BUTTON_CLICK);
       if (game.isPaused()) {
         game.resume();
-        dialogManager.hide("pause");
+        uiController.close('pause-menu');
       } else {
         game.pause();
-        dialogManager.show("pause");
+        uiController.showPauseMenu({
+          onResume: () => {
+            game.resume();
+            uiController.close('pause-menu');
+          },
+          onSettings: () => {
+            uiController.showSettings();
+          },
+          onRestart: () => {
+            if (confirm("Are you sure you want to restart the game?")) {
+              window.location.reload();
+            }
+          },
+          onQuit: () => {
+            if (confirm("Are you sure you want to quit to main menu?")) {
+              window.location.reload();
+            }
+          }
+        });
       }
     }
   );
@@ -317,13 +278,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     }
 
     // Don't handle shortcuts when dialogs are open (except for ESC)
-    if (
-      dialogManager.getIsInputBlocked &&
-      dialogManager.getIsInputBlocked() &&
-      e.key !== "Escape"
-    ) {
-      return;
-    }
+    // UIController handles escape key globally
 
     switch (e.key.toLowerCase()) {
       case "b":
@@ -348,10 +303,28 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
         e.preventDefault();
         if (game.isPaused()) {
           game.resume();
-          dialogManager.hide("pause");
+          uiController.close('pause-menu');
         } else {
           game.pause();
-          dialogManager.show("pause");
+          uiController.showPauseMenu({
+            onResume: () => {
+              game.resume();
+              uiController.close('pause-menu');
+            },
+            onSettings: () => {
+              uiController.showSettings();
+            },
+            onRestart: () => {
+              if (confirm("Are you sure you want to restart the game?")) {
+                window.location.reload();
+              }
+            },
+            onQuit: () => {
+              if (confirm("Are you sure you want to quit to main menu?")) {
+                window.location.reload();
+              }
+            }
+          });
         }
         break;
       case "enter":
@@ -370,29 +343,26 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
         else if (game.getSelectedTower()) {
           game.deselectTower();
         }
-        // Close top dialog
-        else if (dialogManager.isAnyDialogOpen()) {
-          dialogManager.closeTopDialog();
-        }
+        // UIController handles closing dialogs on escape
         break;
       case "1":
         game.setSelectedTowerType(TowerType.BASIC);
-        dialogManager.hide("buildMenu");
+        uiController.close('build-menu');
         updateTowerPlacementIndicator();
         break;
       case "2":
         game.setSelectedTowerType(TowerType.SNIPER);
-        dialogManager.hide("buildMenu");
+        uiController.close('build-menu');
         updateTowerPlacementIndicator();
         break;
       case "3":
         game.setSelectedTowerType(TowerType.RAPID);
-        dialogManager.hide("buildMenu");
+        uiController.close('build-menu');
         updateTowerPlacementIndicator();
         break;
       case "4":
         game.setSelectedTowerType(TowerType.WALL);
-        dialogManager.hide("buildMenu");
+        uiController.close('build-menu');
         updateTowerPlacementIndicator();
         break;
     }
@@ -578,11 +548,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // All floating displays are now created using their respective components
 
-  // Initialize all dialogs FIRST before setting up any UI that depends on them
-  initializeDialogs();
-
-  // Now that dialogs are initialized, we can set up the interval for button updates
-  // Update button states periodically AFTER dialogs are initialized
+  // Update button states periodically
   setInterval(updateButtonStates, ANIMATION_CONFIG.durations.fast);
 
   // Mobile controls - use multiple detection methods
@@ -695,11 +661,6 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   });
   */
 
-  // Add debug test command
-  (window as any).testDialogs = () => {
-    // Debug dialog tests disabled
-  };
-
   // Add specific dialog test
   (window as any).testPlayerUpgrade = () => {
     console.log("[Debug] Testing player upgrade dialog...");
@@ -710,14 +671,6 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   (window as any).testInventory = () => {
     console.log("[Debug] Testing inventory UI...");
     showInventoryUI();
-  };
-
-  // Add force fix command
-  (window as any).fixDialogs = () => {
-    console.log("[Debug] Forcing dialog fixes...");
-    // Re-initialize dialogs
-    initializeDialogs();
-    console.log("[Debug] Dialogs re-initialized");
   };
 
   // Add debug command to test tower info dialog
@@ -831,7 +784,5 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     floatingUI.remove('currency');
     floatingUI.remove('wave');
     floatingUI.remove('camera-controls');
-
-    dialogManager.destroy();
   };
 }

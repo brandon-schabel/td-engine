@@ -15,6 +15,7 @@ import { InventoryUI } from '@/ui/floating/InventoryUI';
 import { BuildMenuUI } from '@/ui/floating/BuildMenuUI';
 import { GameOverUI } from '@/ui/floating/GameOverUI';
 import { SettingsUI } from '@/ui/floating/SettingsUI';
+import { PauseMenuUI } from '@/ui/floating/PauseMenuUI';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
 import type { Entity } from '@/entities/Entity';
@@ -42,6 +43,7 @@ export class UIController {
   private buildMenuUI: BuildMenuUI | null = null;
   private gameOverUI: GameOverUI | null = null;
   private settingsUI: SettingsUI | null = null;
+  private pauseMenuUI: PauseMenuUI | null = null;
 
   // Update tracking to prevent flickering
   private updateCache = new Map<string, any>();
@@ -204,6 +206,26 @@ export class UIController {
   }
 
   /**
+   * Show pause menu UI
+   */
+  public showPauseMenu(options?: {
+    onResume?: () => void;
+    onSettings?: () => void;
+    onRestart?: () => void;
+    onQuit?: () => void;
+  }): void {
+    // Close any existing pause menu
+    this.close('pause-menu');
+
+    if (!this.pauseMenuUI) {
+      this.pauseMenuUI = new PauseMenuUI(this.game);
+    }
+
+    this.pauseMenuUI.show(options);
+    this.register('pause-menu', this.pauseMenuUI, 'dialog');
+  }
+
+  /**
    * Create a health bar for an entity
    */
   public createHealthBar(entity: Entity & { health: number; maxHealth?: number }, options?: any): FloatingUIElement {
@@ -281,6 +303,7 @@ export class UIController {
     this.buildMenuUI = null;
     this.gameOverUI = null;
     this.settingsUI = null;
+    this.pauseMenuUI = null;
   }
 
   /**
