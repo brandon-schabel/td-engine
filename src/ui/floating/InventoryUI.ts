@@ -353,9 +353,11 @@ export class InventoryUI {
         const isSelected = index === this.selectedSlot;
         const hasSelectedClass = slot.getElement().classList.contains('selected');
         if (isSelected && !hasSelectedClass) {
-          slot.getElement().classList.add('selected');
+          slot.getElement().classList.add('selected', 'border-primary', 'shadow-glow-primary');
+          slot.getElement().classList.remove('border-subtle');
         } else if (!isSelected && hasSelectedClass) {
-          slot.getElement().classList.remove('selected');
+          slot.getElement().classList.remove('selected', 'border-primary', 'shadow-glow-primary');
+          slot.getElement().classList.add('border-subtle');
         }
       } else {
         // Handle slots beyond inventory size

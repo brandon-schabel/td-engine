@@ -198,7 +198,10 @@ export class BuildMenuUI {
         padding: 'sm',
         customClasses: [
           'tower-card',
+          'group',
           'ui-shimmer',
+          'hover:-translate-y-0.5',
+          'transition-transform',
           ...(canAfford ? [] : ['ui-disabled'])
         ],
         ariaLabel: `Build ${tower.name} for ${tower.cost} coins`
@@ -213,20 +216,54 @@ export class BuildMenuUI {
       
       // Create tower icon
       const iconWrapper = document.createElement('div');
-      iconWrapper.className = cn('tower-card-icon');
+      // Map tower types to specific color classes
+      const towerColorMap: Record<string, string> = {
+        'BASIC': 'text-game-tower-basic',
+        'SNIPER': 'text-game-tower-sniper',
+        'RAPID': 'text-game-tower-rapid',
+        'WALL': 'text-game-tower-wall'
+      };
+      const towerColorClass = towerColorMap[tower.type] || 'text-primary';
+      
+      iconWrapper.className = cn(
+        'tower-card-icon',
+        'w-12',
+        'h-12',
+        'mx-auto',
+        'mb-2',
+        'block',
+        'transition-transform',
+        'group-hover:scale-110-rotate-5',
+        towerColorClass
+      );
       iconWrapper.setAttribute('data-tower-type', tower.type);
       iconWrapper.innerHTML = createSvgIcon(tower.icon, { size: 48 });
       card.appendChild(iconWrapper);
       
       // Create tower name
       const nameElement = document.createElement('div');
-      nameElement.className = cn('tower-card-name');
+      nameElement.className = cn(
+        'tower-card-name',
+        'text-base',
+        'font-semibold',
+        'text-center',
+        'mb-2',
+        'text-primary',
+        'transition-colors',
+        'group-hover:text-primary'
+      );
       nameElement.textContent = tower.name;
       card.appendChild(nameElement);
       
       // Create cost display using createCompactResource
       const costDisplay = createCompactResource(tower.cost, IconType.COINS, {
-        customClasses: ['tower-card-cost']
+        customClasses: [
+          'tower-card-cost',
+          'mx-auto',
+          'transition-all',
+          'group-hover:scale-105',
+          'group-hover:bg-black/50'
+        ]
       });
       card.appendChild(costDisplay);
 

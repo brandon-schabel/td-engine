@@ -124,8 +124,10 @@ function createSwitchVisual(size: string, checked: boolean, disabled: boolean, c
     'duration-200',
     'ease-in-out',
     'rounded-full',
-    checked ? 'bg-primary' : 'bg-surface-secondary',
+    checked ? 'bg-primary' : 'bg-surface-tertiary',
     disabled ? '' : 'hover:shadow-md',
+    'border',
+    'border-surface-border',
     ...getSwitchSizeClasses(size),
     ...customClasses
   ];
@@ -138,12 +140,14 @@ function createSwitchVisual(size: string, checked: boolean, disabled: boolean, c
     'absolute',
     'bg-white',
     'rounded-full',
-    'shadow-sm',
-    'transition-transform',
+    'shadow-md',
+    'transition-all',
     'duration-200',
     'ease-in-out',
     'top-1/2',
     '-translate-y-1/2',
+    'border',
+    'border-white/20',
     ...getThumbSizeClasses(size),
     checked ? getThumbCheckedPosition(size) : 'left-0.5'
   ];
@@ -234,13 +238,13 @@ function updateSwitchState(switchEl: HTMLElement, checked: boolean): void {
   const thumb = switchEl.querySelector('div') as HTMLDivElement;
   
   if (checked) {
-    switchEl.classList.remove('bg-surface-secondary');
+    switchEl.classList.remove('bg-surface-tertiary');
     switchEl.classList.add('bg-primary');
     thumb.classList.remove('left-0.5');
     thumb.classList.add(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
   } else {
     switchEl.classList.remove('bg-primary');
-    switchEl.classList.add('bg-surface-secondary');
+    switchEl.classList.add('bg-surface-tertiary');
     thumb.classList.remove(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
     thumb.classList.add('left-0.5');
   }
@@ -296,7 +300,7 @@ function updateCheckboxState(checkboxEl: HTMLElement, checked: boolean): void {
  * Get size from element classes (helper for event handlers)
  */
 function getSizeFromElement(element: HTMLElement): string {
-  if (element.classList.contains('w-10')) return 'sm';
+  if (element.classList.contains('w-11')) return 'sm';
   if (element.classList.contains('w-16')) return 'lg';
   return 'md';
 }
@@ -307,11 +311,11 @@ function getSizeFromElement(element: HTMLElement): string {
 function getSwitchSizeClasses(size: string): string[] {
   switch (size) {
     case 'sm':
-      return ['w-10', 'h-5'];
+      return ['w-11', 'h-6'];
     case 'lg':
       return ['w-16', 'h-8'];
     default: // md
-      return ['w-12', 'h-6'];
+      return ['w-14', 'h-7'];
   }
 }
 
@@ -335,11 +339,11 @@ function getCheckboxSizeClasses(size: string): string[] {
 function getThumbSizeClasses(size: string): string[] {
   switch (size) {
     case 'sm':
-      return ['w-4', 'h-4'];
+      return ['w-5', 'h-5'];
     case 'lg':
       return ['w-7', 'h-7'];
     default: // md
-      return ['w-5', 'h-5'];
+      return ['w-6', 'h-6'];
   }
 }
 
@@ -349,11 +353,11 @@ function getThumbSizeClasses(size: string): string[] {
 function getThumbCheckedPosition(size: string): string {
   switch (size) {
     case 'sm':
-      return 'left-5';
+      return 'left-[1.375rem]';
     case 'lg':
       return 'left-8';
     default: // md
-      return 'left-6';
+      return 'left-[1.875rem]';
   }
 }
 

@@ -4,10 +4,11 @@ import { IconType } from "./icons/SvgIcons";
 import { AudioManager, SoundType } from "../audio/AudioManager";
 
 import { PowerUpDisplay } from "./components/game/SimplePowerUpDisplay";
+import { PlayerLevelDisplay } from "./components/game/PlayerLevelDisplay";
 import { MobileControls } from "./components/game/MobileControls";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { isMobile as checkIsMobile } from "@/config/ResponsiveConfig";
-import { createIconButton, createResourceDisplay, cn } from "@/ui/elements";
+import { createIconButton, createResourceDisplay, createTooltip, cn } from "@/ui/elements";
 
 
 
@@ -24,14 +25,14 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   let controlBar = document.getElementById("bottom-ui-container");
   if (!controlBar) {
     controlBar = document.createElement("div");
-    controlBar.className = "ui-control-bar";
+    controlBar.className = cn('ui-control-bar');
     gameContainer.appendChild(controlBar);
   } else {
     console.log("[SimpleGameUI] Using existing bottom-ui-container");
     // Clear existing content
     controlBar.innerHTML = "";
     // Add the appropriate class
-    controlBar.className = "ui-control-bar";
+    controlBar.className = cn('ui-control-bar');
   }
 
   // Create control buttons using the new abstraction
@@ -156,27 +157,29 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     console.log("[SimpleGameUI] Control bar added to DOM");
   }
 
-  // Create mobile tower placement indicator
-  const towerPlacementIndicator = document.createElement("div");
+  // Create mobile tower placement indicator using createTooltip
+  const towerPlacementIndicator = createTooltip({
+    content: '',
+    className: cn(
+      'fixed',
+      'top-1/2',
+      'left-1/2',
+      'transform',
+      '-translate-x-1/2',
+      '-translate-y-1/2',
+      'bg-surface-secondary',
+      'text-primary',
+      'px-4',
+      'py-2',
+      'rounded-lg',
+      'shadow-lg',
+      'pointer-events-none',
+      'opacity-0',
+      'transition-opacity',
+      'z-20'
+    )
+  });
   towerPlacementIndicator.id = "tower-placement-indicator";
-  towerPlacementIndicator.className = cn(
-    'fixed',
-    'top-1/2',
-    'left-1/2',
-    'transform',
-    '-translate-x-1/2',
-    '-translate-y-1/2',
-    'bg-surface-secondary',
-    'text-primary',
-    'px-4',
-    'py-2',
-    'rounded-lg',
-    'shadow-lg',
-    'pointer-events-none',
-    'opacity-0',
-    'transition-opacity',
-    'z-20'
-  );
   gameContainer.appendChild(towerPlacementIndicator);
 
   // Update tower placement indicator when tower type changes
@@ -424,7 +427,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     format: 'currency',
     prefix: '$',
     id: 'currency-value',
-    customClasses: ['resource-item']
+    variant: 'default',
+    customClasses: ['resource-item', 'shadow-md', 'backdrop-blur-sm']
   });
   currencyHUD.setContent(currencyDisplay);
 
@@ -460,7 +464,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     iconHtml: '🌊',
     format: 'custom',
     id: 'wave-value',
-    customClasses: ['resource-item', 'wave-info']
+    variant: 'default',
+    customClasses: ['resource-item', 'wave-info', 'shadow-md', 'backdrop-blur-sm']
   });
   waveHUD.setContent(waveDisplay);
 
@@ -474,13 +479,17 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Update wave value every 100ms
   const waveUpdateInterval = setInterval(() => {
-    const currentWave = game.getCurrentWave();
-    const enemiesRemaining = game.getEnemiesRemaining();
+    const currentWave = game.getCurrentWave() || 1;
+    const enemiesRemaining = game.getEnemiesRemaining() || 0;
     const isWaveActive = game.isWaveActive();
 
-    let waveText = `Wave ${currentWave}`;
-    if (isWaveActive && enemiesRemaining > 0) {
-      waveText = `Wave ${currentWave} - ${enemiesRemaining} enemies`;
+    // Validate that we have valid numbers
+    const validWave = !isNaN(currentWave) ? currentWave : 1;
+    const validEnemies = !isNaN(enemiesRemaining) ? enemiesRemaining : 0;
+
+    let waveText = `Wave ${validWave}`;
+    if (isWaveActive && validEnemies > 0) {
+      waveText = `Wave ${validWave} - ${validEnemies} enemies`;
     }
     
     if ((waveDisplay as any).updateValue) {
@@ -490,74 +499,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Player health bar is now created in Game.ts to follow the player in world space
 
-  // Create camera controls using FloatingUIManager
-  const cameraControls = floatingUI.create('camera-controls', 'custom', {
-    persistent: true,
-    autoHide: false,
-    className: 'camera-controls-container'
-  });
-
-  // Position camera controls fixed at top right
-  const cameraControlsElement = cameraControls.getElement();
-  cameraControlsElement.classList.add('camera-controls-positioned');
-
-  // Create zoom display
-  const zoomDisplay = document.createElement('div');
-  zoomDisplay.className = cn('text-sm', 'font-medium', 'text-secondary', 'mb-2', 'text-center');
-
-  // Create control buttons using createIconButton
-  const zoomInButton = createIconButton(IconType.ZOOM_IN, {
-    ariaLabel: 'Zoom In',
-    onClick: () => {
-      game.getCamera().zoomIn();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-    },
-    variant: 'ghost',
-    size: 'sm',
-    customClasses: ['camera-control-button', 'zoom-in']
-  });
-
-  const zoomOutButton = createIconButton(IconType.ZOOM_OUT, {
-    ariaLabel: 'Zoom Out',
-    onClick: () => {
-      game.getCamera().zoomOut();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-    },
-    variant: 'ghost',
-    size: 'sm',
-    customClasses: ['camera-control-button', 'zoom-out']
-  });
-
-  const resetButton = createIconButton(IconType.RESET_ZOOM, {
-    ariaLabel: 'Reset Zoom',
-    onClick: () => {
-      game.getCamera().reset();
-      audioManager.playUISound(SoundType.BUTTON_CLICK);
-    },
-    variant: 'ghost',
-    size: 'sm',
-    customClasses: ['camera-control-button', 'reset-zoom']
-  });
-
-  // Add controls to container
-  const controlsContainer = document.createElement('div');
-  controlsContainer.appendChild(zoomDisplay);
-  const buttonRow = document.createElement('div');
-  buttonRow.className = cn('flex', 'gap-1', 'justify-center');
-  buttonRow.appendChild(zoomInButton);
-  buttonRow.appendChild(zoomOutButton);
-  buttonRow.appendChild(resetButton);
-  controlsContainer.appendChild(buttonRow);
-
-  cameraControls.setContent(controlsContainer).enable();
-
-  // Update zoom display every 100ms
-  const updateZoomDisplay = () => {
-    const zoom = game.getCamera().getZoom();
-    zoomDisplay.textContent = `Zoom: ${(zoom * 100).toFixed(0)}%`;
-  };
-  const zoomUpdateInterval = setInterval(updateZoomDisplay, 100);
-  updateZoomDisplay();
+  // Camera controls have been moved to Settings popover (BS-23)
 
   // Create power-up display
   const powerUpDisplay = new PowerUpDisplay({ game });
@@ -566,23 +508,37 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Set reference on game for notifications
   game.setPowerUpDisplay(powerUpDisplay);
 
+  // Create player level display
+  const playerLevelDisplay = new PlayerLevelDisplay({ game });
+  playerLevelDisplay.mount(gameContainer);
+  
+  // Set reference on game for level up notifications
+  game.setPlayerLevelDisplay(playerLevelDisplay);
+
   // All floating displays are now created using their respective components
 
   // Update button states periodically
   setInterval(updateButtonStates, ANIMATION_CONFIG.durations.fast);
 
-  // Mobile controls - use multiple detection methods
-  const isMobile =
-    "ontouchstart" in window ||
-    navigator.maxTouchPoints > 0 ||
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
+  // Mobile controls - use multiple detection methods with more reliable checks
+  const isTouchDevice = 'ontouchstart' in window || 
+    navigator.maxTouchPoints > 0 || 
+    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  
+  const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+  
+  // Consider it mobile if it's either a touch device OR has mobile user agent
+  const isMobile = isTouchDevice || isMobileUserAgent;
 
   console.log("[SimpleGameUI] Mobile detection:", {
     isMobile,
+    isTouchDevice,
+    isMobileUserAgent,
     ontouchstart: "ontouchstart" in window,
     maxTouchPoints: navigator.maxTouchPoints,
+    pointerCoarse: window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false,
     userAgent: navigator.userAgent,
   });
 
@@ -627,17 +583,23 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     // Force visibility after a short delay to ensure DOM is ready
     if (showTouchJoysticks) {
       setTimeout(() => {
+        if (mobileControls) {
+          mobileControls.show();
+          console.log("[SimpleGameUI] Forced mobile controls visibility via show method");
+        }
+        
+        // Double-check visibility
         const controlsEl = document.querySelector(".mobile-controls");
         if (controlsEl) {
-          (controlsEl as HTMLElement).classList.remove('hidden');
-          (controlsEl as HTMLElement).classList.add('block');
-          console.log("[SimpleGameUI] Forced mobile controls visibility");
-        } else {
-          console.log(
-            "[SimpleGameUI] Mobile controls element not found in DOM!"
-          );
+          const styles = window.getComputedStyle(controlsEl as HTMLElement);
+          console.log("[SimpleGameUI] Mobile controls computed styles:", {
+            display: styles.display,
+            visibility: styles.visibility,
+            opacity: styles.opacity,
+            zIndex: styles.zIndex
+          });
         }
-      }, 100);
+      }, 200); // Slightly longer delay for reliability
     }
   }
 
@@ -800,15 +762,12 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     // Tower event listeners removed - Game.ts handles tower upgrades directly
 
     // Clean up floating UI elements
-    cameraControls.destroy();
     powerUpDisplay.cleanup();
 
     // Clean up new floating UI system HUD elements
     clearInterval(currencyUpdateInterval);
     clearInterval(waveUpdateInterval);
-    clearInterval(zoomUpdateInterval);
     floatingUI.remove('currency');
     floatingUI.remove('wave');
-    floatingUI.remove('camera-controls');
   };
 }

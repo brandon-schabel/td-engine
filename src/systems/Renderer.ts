@@ -37,6 +37,7 @@ export class Renderer {
   private textureManager: TextureManager;
   private environmentalEffects: EnvironmentalEffect[] = [];
   private debugMode: boolean = false;
+  private biomeLogged: boolean = false;
 
   constructor(canvas: HTMLCanvasElement, grid: Grid, camera: Camera, textureManager?: TextureManager) {
     this.canvas = canvas;
@@ -1439,6 +1440,13 @@ export class Renderer {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
+    
+    // Only log biome on first render
+    if (!this.biomeLogged) {
+      console.log('[Renderer] Current biome:', biome, 'Colors:', biomeColors);
+      this.biomeLogged = true;
+    }
+    
     this.clear(adjustColorBrightness(biomeColors.primary, 0.3));
     
     // Render grid with biome colors

@@ -45,7 +45,7 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
     name,
     id,
     disabled = false,
-    trackColor = 'bg-surface-secondary',
+    trackColor = 'bg-surface-tertiary',
     thumbColor = 'bg-primary',
     fillColor = 'bg-primary',
     onChange,
@@ -100,6 +100,8 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
     'w-full',
     'rounded-full',
     trackColor,
+    'border',
+    'border-surface-border',
     ...getTrackSizeClasses(size)
   );
 
@@ -298,7 +300,7 @@ function getSliderStyles(id: string, size: string, _thumbColor: string, disabled
     
     .${id}::-webkit-slider-thumb {
       background-color: var(--color-primary);
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.1);
     }
     
     .${id}:not(:disabled)::-webkit-slider-thumb:hover {
@@ -317,7 +319,7 @@ function getSliderStyles(id: string, size: string, _thumbColor: string, disabled
       border-radius: 50%;
       border: ${thumbBorder} solid white;
       background-color: var(--color-primary);
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.1);
       cursor: ${disabled ? 'not-allowed' : 'pointer'};
       transition: all 150ms ease-in-out;
       ${disabledOpacity}

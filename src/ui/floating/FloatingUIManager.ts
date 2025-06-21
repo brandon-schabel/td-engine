@@ -202,22 +202,54 @@ export class FloatingUIManager {
     const id = `damage_${entity.id}_${Date.now()}`;
     
     // Calculate damage tier based on value
-    let tier = '';
-    if (damage <= 10) {
-      tier = 'tier-1';
-    } else if (damage <= 30) {
-      tier = 'tier-2';
-    } else if (damage <= 50) {
-      tier = 'tier-3';
-    } else if (damage <= 90) {
-      tier = 'tier-4';
-    } else if (damage <= 150) {
-      tier = 'tier-5';
-    } else if (damage <= 250) {
-      tier = 'tier-6';
+    let tierClass = '';
+    let fontSize = 'text-base';
+    let animation = 'animate-damage-float';
+    let filterClass = '';
+    
+    if (damageType === 'heal') {
+      tierClass = 'text-damage-heal';
+    } else if (damageType === 'critical') {
+      tierClass = 'text-damage-critical';
+      fontSize = 'text-lg';
+      animation = 'animate-damage-float-critical';
     } else {
-      tier = 'tier-7';
+      // Normal damage tiers
+      if (damage <= 10) {
+        tierClass = 'text-damage-tier-1';
+      } else if (damage <= 30) {
+        tierClass = 'text-damage-tier-2';
+      } else if (damage <= 50) {
+        tierClass = 'text-damage-tier-3';
+      } else if (damage <= 90) {
+        tierClass = 'text-damage-tier-4';
+      } else if (damage <= 150) {
+        tierClass = 'text-damage-tier-5';
+        fontSize = 'text-lg';
+      } else if (damage <= 250) {
+        tierClass = 'text-damage-tier-6';
+        fontSize = 'text-lg';
+        filterClass = 'filter-drop-shadow-tier-6';
+      } else {
+        tierClass = 'text-damage-tier-7';
+        fontSize = 'text-xl';
+        filterClass = 'filter-drop-shadow-tier-7';
+        animation = 'animate-damage-float-epic';
+      }
     }
+    
+    // Build the class string
+    const className = [
+      'absolute',
+      fontSize,
+      'font-bold',
+      'pointer-events-none',
+      'z-50',
+      'text-shadow-damage',
+      tierClass,
+      animation,
+      filterClass
+    ].filter(Boolean).join(' ');
     
     // Create the damage number element
     const element = this.create(id, 'custom', {
@@ -225,7 +257,7 @@ export class FloatingUIManager {
       anchor: 'center',
       smoothing: 0, // No smoothing for damage numbers
       autoHide: false,
-      className: `damage-number damage-${tier} ${damageType}`,
+      className,
       persistent: false
     });
 
@@ -330,13 +362,19 @@ export class FloatingUIManager {
     // Create modal overlay if requested
     let overlayElement: HTMLDivElement | null = null;
     if (options.modal) {
+      // Remove any existing overlay with the same ID to prevent duplicates
+      const existingOverlay = document.getElementById(`${id}_overlay`);
+      if (existingOverlay) {
+        existingOverlay.remove();
+      }
+      
       overlayElement = document.createElement('div');
       overlayElement.className = 'ui-dialog-overlay ui-fade-in';
       overlayElement.id = `${id}_overlay`;
       this.container.appendChild(overlayElement);
     }
 
-    // Create the dialog element
+    // Create the dialog element with screen space positioning
     const element = this.create(id, 'dialog', {
       offset: { x: 0, y: 0 },
       anchor: 'center',
@@ -344,6 +382,7 @@ export class FloatingUIManager {
       autoHide: false,
       className: `ui-dialog ui-scale-in ${options.className || ''}`,
       persistent: true,
+      screenSpace: true, // Use screen space for dialogs
       zIndex: 1000
     });
 
@@ -406,15 +445,15 @@ export class FloatingUIManager {
       }
     }
 
-    // Position in center of screen
+    // Position in center of viewport (not canvas)
     const centerEntity = {
       position: {
-        x: this.canvas.width / 2,
-        y: this.canvas.height / 2
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
       },
       getPosition: () => ({
-        x: this.canvas.width / 2,
-        y: this.canvas.height / 2
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
       })
     };
 

@@ -47,10 +47,11 @@ export const TOWER_STATS = {
 import { TOWER_UPGRADE_CONFIG, UPGRADE_CONSTANTS } from './UpgradeConfig';
 
 export const TOWER_UPGRADES = {
-  maxLevel: UPGRADE_CONSTANTS.maxLevel,
-  costMultiplier: UPGRADE_CONSTANTS.defaultCostMultiplier,
+  maxLevel: UPGRADE_CONSTANTS.maxLevelTower,
+  costMultiplier: UPGRADE_CONSTANTS.towerCostMultiplier,
   baseCosts: TOWER_UPGRADE_CONFIG.baseCosts,
-  bonusMultipliers: TOWER_UPGRADE_CONFIG.bonusMultipliers
+  bonusMultipliers: TOWER_UPGRADE_CONFIG.bonusMultipliers,
+  costMultipliers: TOWER_UPGRADE_CONFIG.costMultipliers
 } as const;
 
 // Tower visual configuration

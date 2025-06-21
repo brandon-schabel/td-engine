@@ -48,7 +48,7 @@ export class PlayerUpgradeUI {
         autoHide: false,
         persistent: true,
         zIndex: 1000,
-        className: 'player-upgrade-ui',
+        className: '',
         screenSpace: true
       });
     } else {
@@ -79,7 +79,7 @@ export class PlayerUpgradeUI {
         autoHide: false,
         persistent: true,
         zIndex: 1000,
-        className: 'player-upgrade-ui',
+        className: '',
         screenSpace: true
       });
 
@@ -118,7 +118,7 @@ export class PlayerUpgradeUI {
     const currency = this.game.getCurrency();
 
     const content = document.createElement('div');
-    content.className = 'ui-dialog';
+    content.className = cn('bg-surface-primary', 'rounded-lg', 'border', 'border-white/10', 'min-w-[400px]');
 
     // Create header with close button
     const header = createDialogHeader('Player Upgrades', () => this.close());
@@ -126,24 +126,24 @@ export class PlayerUpgradeUI {
     
     // Create scrollable content area
     const dialogContent = document.createElement('div');
-    dialogContent.className = cn('ui-dialog-content', 'ui-scrollable');
+    dialogContent.className = cn('p-6', 'space-y-6', 'max-h-[500px]', 'overflow-y-auto');
     
     // Create currency display
     const currencyDisplay = createResourceDisplay({
       iconHtml: '💰',
       value: currency,
-      label: 'Currency',
-      customClasses: ['ui-backdrop-blur', 'ui-mb-md']
+      label: '',
+      customClasses: ['mb-4']
     });
     dialogContent.appendChild(currencyDisplay);
     
     // Create stats section
     const statsSection = document.createElement('div');
-    statsSection.className = 'ui-mb-lg';
+    statsSection.className = cn('space-y-3');
     
     const statsTitle = document.createElement('h3');
-    statsTitle.className = cn('ui-dialog-title', 'ui-font-base', 'ui-mb-md');
-    statsTitle.textContent = 'Stats';
+    statsTitle.className = cn('text-lg', 'font-semibold', 'text-primary', 'mb-3');
+    statsTitle.textContent = 'STATS';
     statsSection.appendChild(statsTitle);
     
     // Create stats grid
@@ -181,14 +181,15 @@ export class PlayerUpgradeUI {
     
     // Create abilities section
     const abilitiesSection = document.createElement('div');
+    abilitiesSection.className = cn('space-y-3');
     
     const abilitiesTitle = document.createElement('h3');
-    abilitiesTitle.className = cn('ui-dialog-title', 'ui-font-base', 'ui-mb-md');
-    abilitiesTitle.textContent = 'Abilities';
+    abilitiesTitle.className = cn('text-lg', 'font-semibold', 'text-primary', 'mb-3');
+    abilitiesTitle.textContent = 'ABILITIES';
     abilitiesSection.appendChild(abilitiesTitle);
     
     const upgradeTree = document.createElement('div');
-    upgradeTree.className = 'upgrade-tree';
+    upgradeTree.className = cn('space-y-3');
     
     // Render abilities using DOM elements
     this.renderAbilitiesDOM(upgradeTree);
@@ -289,36 +290,33 @@ export class PlayerUpgradeUI {
 
       // Create the ability card header
       const headerDiv = document.createElement('div');
-      headerDiv.className = 'ui-flex-between ui-mb-xs';
+      headerDiv.className = cn('flex', 'justify-between', 'items-center', 'mb-2');
       
       const nameSpan = document.createElement('span');
-      nameSpan.className = 'upgrade-name';
-      nameSpan.textContent = ability.name;
+      nameSpan.className = cn('font-medium', 'text-primary');
+      nameSpan.textContent = `${ability.name}Level ${ability.level}/${ability.maxLevel}`;
       headerDiv.appendChild(nameSpan);
-      
-      const levelSpan = document.createElement('span');
-      levelSpan.className = 'ui-text-success';
-      levelSpan.textContent = `Level ${ability.level}/${ability.maxLevel}`;
-      headerDiv.appendChild(levelSpan);
       
       // Create the ability card
       const card = createStructuredCard({
         header: headerDiv,
         body: ability.description,
         customClasses: [
-          'upgrade-node',
-          'hover-lift',
-          isMaxLevel ? 'unlocked' : canUpgrade ? '' : 'locked'
-        ].filter(Boolean)
+          'bg-surface-secondary',
+          'border',
+          isMaxLevel ? 'border-success' : canUpgrade ? 'border-white/20' : 'border-white/10',
+          'hover:border-primary',
+          'transition-all'
+        ]
       });
 
       // Add footer content
       if (!isMaxLevel) {
         const footer = document.createElement('div');
-        footer.className = cn('ui-flex-between', 'ui-mt-sm');
+        footer.className = cn('flex', 'justify-between', 'items-center', 'mt-3', 'pt-3', 'border-t', 'border-white/10');
         
         const costSpan = document.createElement('span');
-        costSpan.className = cn('upgrade-cost', 'ui-cost');
+        costSpan.className = cn('text-sm', canAfford ? 'text-success' : 'text-secondary');
         costSpan.textContent = `Cost: ${ability.cost}`;
         footer.appendChild(costSpan);
         
@@ -335,7 +333,7 @@ export class PlayerUpgradeUI {
         card.appendChild(footer);
       } else {
         const maxLevelText = document.createElement('div');
-        maxLevelText.className = cn('ui-text-center', 'ui-mt-sm', 'ui-text-success');
+        maxLevelText.className = cn('text-center', 'mt-3', 'text-success', 'text-sm', 'font-medium');
         maxLevelText.textContent = 'Max Level';
         card.appendChild(maxLevelText);
       }

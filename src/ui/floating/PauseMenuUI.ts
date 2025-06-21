@@ -47,13 +47,13 @@ export class PauseMenuUI {
       title: 'Game Paused',
       modal: true,
       closeable: false,
-      className: 'pause-menu-dialog'
+      className: cn('min-w-[400px]', 'text-center', 'sm:min-w-[280px]')
     });
   }
 
   private createContent(): HTMLElement {
     const content = document.createElement('div');
-    content.className = 'pause-menu-content';
+    content.className = cn('py-4');
 
     // Buttons container
     const buttonsDiv = document.createElement('div');
@@ -132,8 +132,7 @@ export class PauseMenuUI {
 
     // Game info
     const infoDiv = document.createElement('div');
-    infoDiv.className = cn('mt-5', 'p-4', 'rounded-md', 'text-sm', 'text-secondary');
-    infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    infoDiv.className = cn('mt-5', 'p-4', 'rounded-md', 'text-sm', 'text-secondary', 'bg-black/30');
 
     const stats = this.game.getGameStats();
     const currentWave = this.game.getCurrentWave();

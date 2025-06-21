@@ -98,6 +98,7 @@ export enum IconType {
   DIFFICULTY = "DIFFICULTY",
   MAP = "MAP",
   RESET = "RESET",
+  TREE = "TREE",
   
   // Form/Input Icons
   SEARCH = "SEARCH",
@@ -580,6 +581,11 @@ const ICON_PATHS: Record<IconType, string> = {
     <path d="M1 6 L1 18 L8 21 L16 18 L23 21 L23 9 L16 6 L8 9 L1 6" fill="none" stroke="currentColor" stroke-width="2"/>
     <line x1="8" y1="9" x2="8" y2="21" stroke="currentColor" stroke-width="2"/>
     <line x1="16" y1="6" x2="16" y2="18" stroke="currentColor" stroke-width="2"/>
+  `,
+
+  [IconType.TREE]: `
+    <path d="M12 2 L7 8 L9 8 L5 14 L8 14 L4 20 L20 20 L16 14 L19 14 L15 8 L17 8 Z" fill="currentColor"/>
+    <rect x="10" y="18" width="4" height="4" fill="currentColor"/>
   `,
 
   [IconType.RESET]: `

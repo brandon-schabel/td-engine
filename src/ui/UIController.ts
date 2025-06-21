@@ -16,11 +16,13 @@ import { BuildMenuUI } from '@/ui/floating/BuildMenuUI';
 import { GameOverUI } from '@/ui/floating/GameOverUI';
 import { SettingsUI } from '@/ui/floating/SettingsUI';
 import { PauseMenuUI } from '@/ui/floating/PauseMenuUI';
+import { UIStateManager, UIPanelType } from './UIStateManager';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
 import type { Entity } from '@/entities/Entity';
 import type { TowerType } from '@/entities/Tower';
 import type { GameSettings } from '@/config/GameSettings';
+import { cn } from '@/ui/styles/UtilityStyles';
 
 export interface UIElementInfo {
   id: string;
@@ -33,6 +35,7 @@ export interface UIElementInfo {
 export class UIController {
   private game: Game;
   private floatingUI: FloatingUIManager;
+  private stateManager: UIStateManager;
   private activeElements = new Map<string, UIElementInfo>();
   private escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -44,6 +47,7 @@ export class UIController {
   private gameOverUI: GameOverUI | null = null;
   private settingsUI: SettingsUI | null = null;
   private pauseMenuUI: PauseMenuUI | null = null;
+  private preGameConfigUI: any | null = null; // Dynamic import
 
   // Update tracking to prevent flickering
   private updateCache = new Map<string, any>();
@@ -51,7 +55,9 @@ export class UIController {
   constructor(game: Game) {
     this.game = game;
     this.floatingUI = game.getFloatingUIManager();
+    this.stateManager = new UIStateManager(this);
     this.setupEscapeHandler();
+    this.setupStateListeners();
   }
 
   private setupEscapeHandler(): void {
@@ -63,15 +69,47 @@ export class UIController {
     window.addEventListener('keydown', this.escapeHandler);
   }
 
+  private setupStateListeners(): void {
+    // Listen for panel close events to sync with UI components
+    this.stateManager.on('panelClosed', ({ panel }) => {
+      // Ensure UI component is properly cleaned up when state manager closes panel
+      const mappings: Partial<Record<UIPanelType, string>> = {
+        [UIPanelType.PAUSE_MENU]: 'pause-menu',
+        [UIPanelType.SETTINGS]: 'settings',
+        [UIPanelType.TOWER_UPGRADE]: 'tower-upgrade',
+        [UIPanelType.PLAYER_UPGRADE]: 'player-upgrade',
+        [UIPanelType.INVENTORY]: 'inventory',
+        [UIPanelType.BUILD_MENU]: 'build-menu',
+        [UIPanelType.GAME_OVER]: 'game-over',
+        [UIPanelType.BUILD_MODE]: 'build-mode'
+      };
+
+      const elementId = mappings[panel];
+      if (elementId && this.activeElements.has(elementId)) {
+        this.close(elementId);
+      }
+    });
+
+    // Listen for build mode changes to hide/show UI elements
+    this.stateManager.on('panelOpened', ({ panel }) => {
+      if (panel === UIPanelType.BUILD_MODE) {
+        this.hideBuildModeUI();
+      }
+    });
+
+    this.stateManager.on('panelClosed', ({ panel }) => {
+      if (panel === UIPanelType.BUILD_MODE) {
+        this.showBuildModeUI();
+      }
+    });
+  }
+
   /**
    * Close all non-persistent dialogs and popups
    */
   public closeAllDialogs(): void {
-    for (const [id, info] of this.activeElements.entries()) {
-      if (info.closeable && info.type !== 'hud' && info.type !== 'healthbar') {
-        this.close(id);
-      }
-    }
+    // Use state manager to close all transient panels
+    this.stateManager.closeTransientPanels();
   }
 
   /**
@@ -93,6 +131,24 @@ export class UIController {
   public close(id: string): void {
     const info = this.activeElements.get(id);
     if (!info) return;
+
+    // Map element ID to panel type and notify state manager
+    const panelMappings: Record<string, UIPanelType> = {
+      'pause-menu': UIPanelType.PAUSE_MENU,
+      'settings': UIPanelType.SETTINGS,
+      'tower-upgrade': UIPanelType.TOWER_UPGRADE,
+      'player-upgrade': UIPanelType.PLAYER_UPGRADE,
+      'inventory': UIPanelType.INVENTORY,
+      'build-menu': UIPanelType.BUILD_MENU,
+      'game-over': UIPanelType.GAME_OVER,
+      'build-mode': UIPanelType.BUILD_MODE,
+      'pre-game-config': UIPanelType.PRE_GAME_CONFIG
+    };
+
+    const panelType = panelMappings[id];
+    if (panelType) {
+      this.stateManager.closePanel(panelType);
+    }
 
     // Call destroy on the element if it exists
     if (info.element && typeof info.element.destroy === 'function') {
@@ -117,8 +173,19 @@ export class UIController {
    * Show build menu at screen position
    */
   public showBuildMenu(screenX: number, screenY: number, onTowerSelect: (type: TowerType) => void, anchorElement?: HTMLElement): void {
-    // Close any existing build menu
-    this.close('build-menu');
+    // Check if build menu is already open
+    if (this.isOpen('build-menu')) {
+      // Build menu is already open, just update position if needed
+      if (this.buildMenuUI) {
+        this.buildMenuUI.show(screenX, screenY, onTowerSelect, anchorElement);
+      }
+      return;
+    }
+
+    // Use state manager to handle panel opening
+    if (!this.stateManager.openPanel(UIPanelType.BUILD_MENU, { screenX, screenY, onTowerSelect })) {
+      return;
+    }
 
     if (!this.buildMenuUI) {
       this.buildMenuUI = new BuildMenuUI(this.game);
@@ -134,6 +201,11 @@ export class UIController {
    * Show tower upgrade UI for selected tower
    */
   public showTowerUpgrade(tower: Tower): void {
+    // Use state manager to handle panel opening
+    if (!this.stateManager.openPanel(UIPanelType.TOWER_UPGRADE, { towerId: tower.id })) {
+      return;
+    }
+
     // Close any existing tower upgrade UI
     this.close('tower-upgrade');
 
@@ -148,13 +220,16 @@ export class UIController {
    * Show player upgrade UI
    */
   public showPlayerUpgrade(player: Player, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement): void {
+    // Use state manager to handle panel opening
+    if (!this.stateManager.openPanel(UIPanelType.PLAYER_UPGRADE, { playerId: player.id, screenPos })) {
+      return;
+    }
+
     // Close any existing player upgrade UI
     this.close('player-upgrade');
 
-    if (!this.playerUpgradeUI) {
-      this.playerUpgradeUI = new PlayerUpgradeUI(player, this.game, screenPos, anchorElement);
-    }
-
+    // Always create a new instance to ensure fresh state
+    this.playerUpgradeUI = new PlayerUpgradeUI(player, this.game, screenPos, anchorElement);
     this.register('player-upgrade', this.playerUpgradeUI, 'dialog');
   }
 
@@ -162,17 +237,19 @@ export class UIController {
    * Show inventory UI
    */
   public showInventory(screenPos?: { x: number; y: number }, anchorElement?: HTMLElement): void {
-    // Toggle inventory
-    if (this.activeElements.has('inventory')) {
+    // Toggle inventory using state manager
+    if (!this.stateManager.togglePanel(UIPanelType.INVENTORY, { screenPos })) {
+      return;
+    }
+
+    // If inventory is now closed, clean up
+    if (!this.stateManager.isPanelOpen(UIPanelType.INVENTORY)) {
       this.close('inventory');
       return;
     }
 
-    if (!this.inventoryUI) {
-      this.inventoryUI = new InventoryUI(this.game, screenPos, anchorElement);
-    }
-
-    this.inventoryUI.show();
+    // Always create a new instance to ensure fresh state
+    this.inventoryUI = new InventoryUI(this.game, screenPos, anchorElement);
     this.register('inventory', this.inventoryUI, 'dialog');
   }
 
@@ -180,6 +257,11 @@ export class UIController {
    * Show game over UI
    */
   public showGameOver(stats: any): void {
+    // Use state manager to handle panel opening
+    if (!this.stateManager.openPanel(UIPanelType.GAME_OVER, { stats })) {
+      return;
+    }
+
     this.closeAllDialogs();
 
     if (!this.gameOverUI) {
@@ -194,6 +276,11 @@ export class UIController {
    * Show settings UI
    */
   public showSettings(anchorElement?: HTMLElement, onSettingsChange?: (settings: GameSettings) => void): void {
+    // Use state manager to handle panel opening
+    if (!this.stateManager.openPanel(UIPanelType.SETTINGS, { onSettingsChange })) {
+      return;
+    }
+
     // Close any existing settings UI
     this.close('settings');
 
@@ -214,6 +301,11 @@ export class UIController {
     onRestart?: () => void;
     onQuit?: () => void;
   }): void {
+    // Use state manager to handle panel opening
+    if (!this.stateManager.openPanel(UIPanelType.PAUSE_MENU, options)) {
+      return;
+    }
+
     // Close any existing pause menu
     this.close('pause-menu');
 
@@ -223,6 +315,31 @@ export class UIController {
 
     this.pauseMenuUI.show(options);
     this.register('pause-menu', this.pauseMenuUI, 'dialog');
+  }
+
+  /**
+   * Show pre-game configuration UI
+   */
+  public showPreGameConfig(callbacks?: {
+    onStartGame?: (config: any) => void;
+    onBack?: () => void;
+  }): void {
+    // Use state manager to handle panel opening
+    if (!this.stateManager.openPanel(UIPanelType.PRE_GAME_CONFIG, callbacks)) {
+      return;
+    }
+
+    // Close any existing pre-game config
+    this.close('pre-game-config');
+
+    // Dynamic import to avoid circular dependencies
+    import('@/ui/floating/PreGameConfigUI').then(({ PreGameConfigUI }) => {
+      this.preGameConfigUI = new PreGameConfigUI(this.floatingUI, this.game);
+      this.preGameConfigUI.show(callbacks);
+      this.register('pre-game-config', this.preGameConfigUI, 'dialog');
+    }).catch(error => {
+      console.error('[UIController] Failed to load PreGameConfigUI:', error);
+    });
   }
 
   /**
@@ -304,6 +421,9 @@ export class UIController {
     this.gameOverUI = null;
     this.settingsUI = null;
     this.pauseMenuUI = null;
+    
+    // Reset state manager
+    this.stateManager.reset();
   }
 
   /**
@@ -318,5 +438,114 @@ export class UIController {
    */
   public isOpen(id: string): boolean {
     return this.activeElements.has(id);
+  }
+
+  /**
+   * Get the UI state manager
+   */
+  public getStateManager(): UIStateManager {
+    return this.stateManager;
+  }
+
+  /**
+   * Restore UI state from a snapshot
+   */
+  public restoreUIState(snapshot: Record<string, any>): void {
+    this.stateManager.restoreStateSnapshot(snapshot);
+  }
+
+  /**
+   * Get current UI state snapshot
+   */
+  public getUIStateSnapshot(): Record<string, any> {
+    return this.stateManager.getStateSnapshot();
+  }
+
+  /**
+   * Enter build mode (for tower placement)
+   */
+  public enterBuildMode(towerType: TowerType): void {
+    this.stateManager.enterBuildMode({ towerType });
+  }
+
+  /**
+   * Exit build mode
+   */
+  public exitBuildMode(): void {
+    this.stateManager.exitBuildMode();
+  }
+
+  /**
+   * Check if in build mode
+   */
+  public isInBuildMode(): boolean {
+    return this.stateManager.isInBuildMode();
+  }
+
+  /**
+   * Hide UI elements during build mode
+   */
+  private hideBuildModeUI(): void {
+    // Hide HUD elements
+    const hudElements = [
+      '.ui-control-bar',
+      '.static-hud',
+      '.mobile-controls'
+    ];
+
+    hudElements.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        (element as HTMLElement).style.visibility = 'hidden';
+      });
+    });
+
+    // Add build mode indicator
+    const indicator = document.getElementById('build-mode-indicator');
+    if (!indicator) {
+      const buildIndicator = document.createElement('div');
+      buildIndicator.id = 'build-mode-indicator';
+      buildIndicator.className = cn(
+        'fixed',
+        'top-4',
+        'left-1/2',
+        'transform',
+        '-translate-x-1/2',
+        'bg-surface-secondary',
+        'text-primary',
+        'px-4',
+        'py-2',
+        'rounded-lg',
+        'shadow-lg',
+        'z-50'
+      );
+      buildIndicator.textContent = 'Place tower or press ESC to cancel';
+      document.body.appendChild(buildIndicator);
+    }
+  }
+
+  /**
+   * Show UI elements after build mode
+   */
+  private showBuildModeUI(): void {
+    // Show HUD elements
+    const hudElements = [
+      '.ui-control-bar',
+      '.static-hud',
+      '.mobile-controls'
+    ];
+
+    hudElements.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        (element as HTMLElement).style.visibility = '';
+      });
+    });
+
+    // Remove build mode indicator
+    const indicator = document.getElementById('build-mode-indicator');
+    if (indicator) {
+      indicator.remove();
+    }
   }
 }

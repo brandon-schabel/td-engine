@@ -80,11 +80,11 @@ export class ItemSlot {
     slot.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer!.dropEffect = 'move';
-      slot.classList.add('border-yellow-400', 'bg-yellow-400/10');
+      slot.classList.add('drag-over', 'border-yellow-400', 'bg-yellow-400\\/10');
     });
     
     slot.addEventListener('dragleave', () => {
-      slot.classList.remove('border-yellow-400', 'bg-yellow-400/10');
+      slot.classList.remove('drag-over', 'border-yellow-400', 'bg-yellow-400\\/10');
     });
     
     slot.addEventListener('drop', (e) => {
@@ -93,7 +93,7 @@ export class ItemSlot {
       if (this.options.onDrop && fromIndex !== this.index) {
         this.options.onDrop(fromIndex, this.index);
       }
-      slot.classList.remove('border-yellow-400', 'bg-yellow-400/10');
+      slot.classList.remove('drag-over', 'border-yellow-400', 'bg-yellow-400\\/10');
     });
     
     return slot;
@@ -116,6 +116,7 @@ export class ItemSlot {
       };
       
       this.element.className = cn(
+        'inventory-slot',
         'w-[60px]',
         'h-[60px]',
         'aspect-square',
@@ -126,7 +127,9 @@ export class ItemSlot {
         'transition-all',
         'relative',
         'cursor-pointer',
-        'hover:shadow-md'
+        'hover:shadow-md',
+        'hover:scale-105',
+        `rarity-${this.item.rarity.toLowerCase()}`
       );
       
       // Item icon (simplified)
@@ -167,6 +170,7 @@ export class ItemSlot {
     } else {
       // Reset to empty slot
       this.element.className = cn(
+        'inventory-slot',
         'w-[60px]',
         'h-[60px]',
         'aspect-square',
@@ -178,7 +182,9 @@ export class ItemSlot {
         'relative',
         'cursor-pointer',
         'hover:border-primary',
-        'hover:shadow-md'
+        'hover:bg-surface-hover',
+        'hover:shadow-md',
+        'hover:scale-105'
       );
     }
   }

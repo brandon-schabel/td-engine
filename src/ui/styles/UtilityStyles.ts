@@ -270,6 +270,29 @@ const utilityStyles = `
   .text-on-success { color: var(--color-text-on-success); }
   .text-on-warning { color: var(--color-text-on-warning); }
   
+  /* Tower type colors */
+  .text-game-tower-basic { color: var(--color-game-tower-basic); }
+  .text-game-tower-sniper { color: var(--color-game-tower-frost); }
+  .text-game-tower-rapid { color: var(--color-game-tower-artillery); }
+  .text-game-tower-wall { color: var(--color-game-tower-wall); }
+  
+  /* Damage number color utilities */
+  .text-damage-tier-1 { color: #FFFFFF; } /* White for 1-10 damage */
+  .text-damage-tier-2 { color: #7FFF00; } /* Chartreuse for 10-30 damage */
+  .text-damage-tier-3 { color: #FFA500; } /* Orange for 30-50 damage */
+  .text-damage-tier-4 { color: #FF0000; } /* Red for 50-90 damage */
+  .text-damage-tier-5 { color: #FF69B4; } /* Hot pink for 90-150 damage */
+  .text-damage-tier-6 { color: #0080FF; } /* Blue for 150-250 damage */
+  .text-damage-tier-7 { color: #9400D3; } /* Purple for 250+ damage */
+  .text-damage-heal { color: #00FF00; } /* Bright green for healing */
+  .text-damage-critical { color: #FF0000; } /* Red for critical hits */
+  
+  /* Tower type border colors */
+  .border-game-tower-basic { border-color: var(--color-game-tower-basic); }
+  .border-game-tower-sniper { border-color: var(--color-game-tower-frost); }
+  .border-game-tower-rapid { border-color: var(--color-game-tower-artillery); }
+  .border-game-tower-wall { border-color: var(--color-game-tower-wall); }
+  
   /* Border colors */
   .border-transparent { border-color: transparent; }
   .border-primary { border-color: var(--color-primary); }
@@ -280,6 +303,14 @@ const utilityStyles = `
   .border-danger-dark { border-color: var(--color-danger-dark); }
   .border-default { border-color: var(--color-border-primary); }
   .border-subtle { border-color: var(--color-border-subtle); }
+  
+  /* Rarity border colors */
+  .border-gray-400 { border-color: #9CA3AF; }
+  .border-green-400 { border-color: #4ADE80; }
+  .border-blue-400 { border-color: #60A5FA; }
+  .border-purple-400 { border-color: #C084FC; }
+  .border-yellow-400 { border-color: #FACC15; }
+  .border-danger\\/50 { border-color: rgba(220, 53, 69, 0.5); }
   
   /* --- BORDERS --- */
   .border-0 { border-width: 0; }
@@ -324,6 +355,13 @@ const utilityStyles = `
   .opacity-60 { opacity: var(--opacity-60); }
   .opacity-70 { opacity: var(--opacity-70); }
   .opacity-75 { opacity: var(--opacity-75); }
+  
+  /* Text shadows for damage numbers */
+  .text-shadow-damage { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 1px 1px 2px rgba(0, 0, 0, 0.9); }
+  
+  /* Filter effects */
+  .filter-drop-shadow-tier-6 { filter: drop-shadow(0 0 3px #0080FF); }
+  .filter-drop-shadow-tier-7 { filter: drop-shadow(0 0 4px #9400D3); }
   .opacity-80 { opacity: var(--opacity-80); }
   .opacity-90 { opacity: var(--opacity-90); }
   .opacity-95 { opacity: var(--opacity-95); }
@@ -425,11 +463,38 @@ const utilityStyles = `
   .hover\\:opacity-75:hover { opacity: var(--opacity-75); }
   .hover\\:opacity-100:hover { opacity: var(--opacity-100); }
   .hover\\:shadow-lg:hover { box-shadow: var(--shadow-lg); }
+  .hover\\:shadow-md:hover { box-shadow: var(--shadow-md); }
   .hover\\:bg-primary-dark:hover { background-color: var(--color-primary-dark); }
   .hover\\:bg-secondary-dark:hover { background-color: var(--color-secondary-dark); }
   .hover\\:bg-danger-dark:hover { background-color: var(--color-danger-dark); }
   .hover\\:bg-success-dark:hover { background-color: var(--color-success-dark); }
   .hover\\:bg-warning-dark:hover { background-color: var(--color-warning-dark); }
+  
+  /* Hover transforms */
+  .hover\\:-translate-y-0\\.5:hover { transform: translateY(-0.125rem); }
+  .hover\\:-translate-y-1:hover { transform: translateY(-0.25rem); }
+  .hover\\:scale-105:hover { transform: scale(1.05); }
+  .hover\\:scale-110:hover { transform: scale(1.1); }
+  .hover\\:scale-125:hover { transform: scale(1.25); }
+  .hover\\:rotate-5:hover { transform: rotate(5deg); }
+  
+  /* Combined transforms for hover */
+  .hover\\:scale-110-rotate-5:hover { transform: scale(1.1) rotate(5deg); }
+  
+  /* Hover border colors */
+  .hover\\:border-primary:hover { border-color: var(--color-primary); }
+  .hover\\:border-warning:hover { border-color: var(--color-warning); }
+  .hover\\:border-yellow-400:hover { border-color: #FACC15; }
+  
+  /* Hover background colors */
+  .hover\\:bg-surface-hover:hover { background-color: var(--color-surface-hover); }
+  .hover\\:bg-yellow-400\\/10:hover { background-color: rgba(250, 204, 21, 0.1); }
+  
+  /* Group hover utilities */
+  .group:hover .group-hover\\:scale-110 { transform: scale(1.1); }
+  .group:hover .group-hover\\:rotate-5 { transform: rotate(5deg); }
+  .group:hover .group-hover\\:scale-110-rotate-5 { transform: scale(1.1) rotate(5deg); }
+  .group:hover .group-hover\\:text-primary { color: var(--color-primary); }
   
   .focus\\:outline-none:focus { outline: none; }
   .focus\\:ring-2:focus { box-shadow: 0 0 0 2px var(--color-primary); }
@@ -544,6 +609,51 @@ const utilityStyles = `
   .invisible { visibility: hidden; }
   .z-50 { z-index: 50; }
   
+  /* Additional opacity utilities */
+  .opacity-40 { opacity: var(--opacity-40); }
+  .opacity-60 { opacity: var(--opacity-60); }
+  .opacity-80 { opacity: var(--opacity-80); }
+  
+  /* Shadow utilities for box-shadow */
+  .shadow-glow-primary { box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3); }
+  
+  /* Width utilities */
+  .w-\\[60px\\] { width: 60px; }
+  .h-\\[60px\\] { height: 60px; }
+  
+  /* Additional background colors */
+  .bg-yellow-400\\/10 { background-color: rgba(250, 204, 21, 0.1); }
+  .bg-black\\/80 { background-color: rgba(0, 0, 0, 0.8); }
+  .bg-black\\/30 { background-color: rgba(0, 0, 0, 0.3); }
+  .bg-black\\/50 { background-color: rgba(0, 0, 0, 0.5); }
+  .bg-danger\\/20 { background-color: rgba(220, 53, 69, 0.2); }
+  .bg-danger\\/50 { background-color: rgba(220, 53, 69, 0.5); }
+  .bg-primary\\/10 { background-color: rgba(74, 144, 226, 0.1); }
+  
+  /* Control colors */
+  .bg-controls-joystick-base { background-color: var(--color-controls-joystick-base); }
+  .bg-controls-joystick-knob { background-color: var(--color-controls-joystick-knob); }
+  .border-controls-joystick-baseBorder { border-color: var(--color-controls-joystick-baseBorder); }
+  .border-controls-joystick-knobBorder { border-color: var(--color-controls-joystick-knobBorder); }
+  
+  /* Additional position utilities */
+  .bottom-1 { bottom: var(--spacing-1); }
+  .right-1 { right: var(--spacing-1); }
+  .bottom-2 { bottom: var(--spacing-2); }
+  .right-2 { right: var(--spacing-2); }
+  
+  /* Minimum width utilities */
+  .min-w-\\[20px\\] { min-width: 20px; }
+  
+  /* Transform origin */
+  .origin-center { transform-origin: center; }
+  .origin-bottom { transform-origin: bottom; }
+  
+  /* Additional scale transforms */
+  .scale-95 { transform: scale(0.95); }
+  .scale-110 { transform: scale(1.1); }
+  .scale-125 { transform: scale(1.25); }
+  
   /* --- UTILITIES FOR COMMON PATTERNS --- */
   .btn-base {
     display: inline-flex;
@@ -619,10 +729,8 @@ const utilityStyles = `
   .scale-105 { transform: scale(1.05); }
   
   /* --- ANIMATION --- */
-  .animate-bounce-in {
-    animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  }
   
+  /* Animation Keyframes */
   @keyframes bounce-in {
     0% {
       opacity: 0;
@@ -637,10 +745,6 @@ const utilityStyles = `
     }
   }
   
-  .animate-slide-up {
-    animation: slide-up 0.3s ease-out;
-  }
-  
   @keyframes slide-up {
     from {
       opacity: 0;
@@ -652,8 +756,26 @@ const utilityStyles = `
     }
   }
   
-  .animate-shake {
-    animation: shake 0.5s ease-in-out;
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
   
   @keyframes shake {
@@ -669,10 +791,6 @@ const utilityStyles = `
     90% { transform: translate(-50%, 0) rotate(0deg); }
   }
   
-  .animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
   @keyframes pulse {
     0%, 100% {
       opacity: 1;
@@ -680,6 +798,229 @@ const utilityStyles = `
     50% {
       opacity: 0.5;
     }
+  }
+  
+  @keyframes breathe {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+  
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    }
+  }
+  
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes damage-float {
+    0% {
+      transform: translateY(0) scale(0.8);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-40px) scale(1);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes damage-float-critical {
+    0% {
+      transform: translateY(0) scale(0.8) rotate(-5deg);
+      opacity: 1;
+    }
+    20% {
+      transform: translateY(-10px) scale(1.3) rotate(5deg);
+    }
+    100% {
+      transform: translateY(-50px) scale(1.1) rotate(0deg);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes damage-float-epic {
+    0% {
+      transform: translateY(0) scale(0.5);
+      opacity: 0.8;
+    }
+    15% {
+      transform: translateY(-15px) scale(1.4);
+      opacity: 1;
+    }
+    30% {
+      transform: translateY(-25px) scale(1.2);
+    }
+    100% {
+      transform: translateY(-60px) scale(1);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes touchPulse {
+    0% {
+      transform: translate(-50%, -50%) scale(0.5);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1.2);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes rippleEffect {
+    0% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.6;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(3);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes powerupNotification {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.5);
+    }
+    20% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    40% {
+      transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -70%) scale(0.8);
+    }
+  }
+  
+  @keyframes slideDownAndUp {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -20px);
+    }
+    15%, 85% {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -20px);
+    }
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -20px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+  
+  @keyframes tooltip-fade-in {
+    to {
+      opacity: 1;
+      margin-bottom: 8px;
+    }
+  }
+  
+  /* Animation Utility Classes */
+  .animate-bounce-in {
+    animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-breathe {
+    animation: breathe 3s ease-in-out infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+  
+  .animate-fadeInScale {
+    animation: fadeInScale 0.3s ease-out;
+  }
+  
+  .animate-damage-float {
+    animation: damage-float 1s ease-out forwards;
+  }
+  
+  .animate-damage-float-critical {
+    animation: damage-float-critical 1s ease-out forwards;
+  }
+  
+  .animate-damage-float-epic {
+    animation: damage-float-epic 1s ease-out forwards;
+  }
+  
+  .animate-touchPulse {
+    animation: touchPulse 0.5s ease-out;
+  }
+  
+  .animate-rippleEffect {
+    animation: rippleEffect 0.6s ease-out forwards;
+  }
+  
+  .animate-powerupNotification {
+    animation: powerupNotification 2s ease-out forwards;
+  }
+  
+  .animate-slideDownAndUp {
+    animation: slideDownAndUp 3s ease-out forwards;
+  }
+  
+  .animate-slideDownAndUp-4s {
+    animation: slideDownAndUp 4s ease-out forwards;
+  }
+  
+  .animate-slideDown {
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  .animate-tooltip-fade-in {
+    animation: tooltip-fade-in 0.2s ease forwards;
+    animation-delay: 0.5s;
   }
   
   /* --- VISIBILITY --- */

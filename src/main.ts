@@ -11,6 +11,7 @@ import {
   BiomeType,
   MapDifficulty,
   DecorationLevel,
+  MapSize,
 } from "./types/MapData";
 import { createSvgIcon, IconType } from "./ui/icons/SvgIcons";
 import { setupGameUI } from "./ui/setupGameUI";
@@ -85,7 +86,9 @@ window.addEventListener("resize", () => {
 const audioManager = new AudioManager();
 
 // Initialize game with settings
-function initializeGame() {
+function initializeGame(preGameConfig?: any) {
+  console.log('[initializeGame] Called with config:', preGameConfig);
+  
   // Clear the game container and restore the original structure
   const gameContainer = document.getElementById("game-container");
   if (gameContainer) {
@@ -110,41 +113,73 @@ function initializeGame() {
   // Resize the new canvas
   resizeCanvas();
 
-  // Get applied game configuration from settings
-  const gameConfig = applySettingsToGame(
-    (window as any).gameSettings || {
-      difficulty: "NORMAL",
-      masterVolume: 0.7,
-      soundEnabled: true,
-      visualQuality: "MEDIUM",
-      showFPS: false,
-      mapSize: "MEDIUM",
-      terrain: "FOREST",
-      pathComplexity: "SIMPLE",
-    }
-  );
+  // Use pre-game config if provided, otherwise use default settings
+  let mapGenConfig: MapGenerationConfig;
+  
+  if (preGameConfig) {
+    // Use the configuration from the pre-game dialog
+    const sizePresets = {
+      SMALL: { width: 20, height: 20 },
+      MEDIUM: { width: 30, height: 30 },
+      LARGE: { width: 40, height: 40 },
+      HUGE: { width: 50, height: 50 }
+    };
+    
+    const preset = sizePresets[preGameConfig.mapSize] || sizePresets.MEDIUM;
+    
+    mapGenConfig = {
+      width: preset.width,
+      height: preset.height,
+      cellSize: 32,
+      biome: preGameConfig.biome,
+      difficulty: preGameConfig.difficulty,
+      seed: Date.now(),
+      pathComplexity: 0.7,
+      obstacleCount: Math.floor(preset.width * preset.height * 0.1),
+      decorationLevel: DecorationLevel.DENSE,
+      enableWater: true,
+      enableAnimations: true,
+      chokePointCount: 3,
+      openAreaCount: 2,
+      playerAdvantageSpots: 2,
+    };
+  } else {
+    // Fallback to settings-based configuration
+    const gameConfig = applySettingsToGame(
+      (window as any).gameSettings || {
+        difficulty: "NORMAL",
+        masterVolume: 0.7,
+        soundEnabled: true,
+        visualQuality: "MEDIUM",
+        showFPS: false,
+        mapSize: "MEDIUM",
+        terrain: "FOREST",
+        pathComplexity: "SIMPLE",
+      }
+    );
 
-  // Convert to map generation config
-  const mapGenConfig: MapGenerationConfig = {
-    width: gameConfig.mapConfig.width,
-    height: gameConfig.mapConfig.height,
-    cellSize: gameConfig.mapConfig.cellSize,
-    biome: gameConfig.mapConfig.biome.toUpperCase() as BiomeType,
-    difficulty: MapDifficulty.MEDIUM,
-    seed: Date.now(),
-    pathComplexity: gameConfig.mapConfig.pathComplexity,
-    obstacleCount: Math.floor(
-      gameConfig.mapConfig.width * gameConfig.mapConfig.height * 0.1
-    ),
-    decorationLevel: DecorationLevel.DENSE,
-    enableWater: true,
-    enableAnimations: true,
-    chokePointCount: 3,
-    openAreaCount: 2,
-    playerAdvantageSpots: 2,
-  };
+    mapGenConfig = {
+      width: gameConfig.mapConfig.width,
+      height: gameConfig.mapConfig.height,
+      cellSize: gameConfig.mapConfig.cellSize,
+      biome: gameConfig.mapConfig.biome.toUpperCase() as BiomeType,
+      difficulty: MapDifficulty.MEDIUM,
+      seed: Date.now(),
+      pathComplexity: gameConfig.mapConfig.pathComplexity,
+      obstacleCount: Math.floor(
+        gameConfig.mapConfig.width * gameConfig.mapConfig.height * 0.1
+      ),
+      decorationLevel: DecorationLevel.DENSE,
+      enableWater: true,
+      enableAnimations: true,
+      chokePointCount: 3,
+      openAreaCount: 2,
+      playerAdvantageSpots: 2,
+    };
+  }
 
   // Create game instance with configuration
+  console.log('[Main] Creating game with config:', mapGenConfig);
   game = new GameWithEvents(canvas, mapGenConfig);
   gameInitialized = true;
 
@@ -160,7 +195,9 @@ function initializeGame() {
   document.addEventListener("gameEnd", handleGameEnd as EventListener);
 
   // Start the main game setup
+  console.log('[initializeGame] Starting setupModernGameUI...');
   setupModernGameUI();
+  console.log('[initializeGame] Complete');
 }
 
 function handleGameEnd(_event: Event) {
@@ -206,13 +243,19 @@ function showMainMenu() {
     import('@/ui/floating/MainMenuUI').then(({ MainMenuUI }) => {
       const mainMenuUI = new MainMenuUI(floatingUI, audioManager);
       mainMenuUI.show({
-        onStart: () => {
-          // Clean up menu UI
-          mainMenuUI.destroy();
-          floatingUI.destroy();
+        onStart: (config?: any) => {
+          console.log('[Main] MainMenu onStart called with config:', config);
+          
+          try {
+            // Clean up menu UI
+            mainMenuUI.destroy();
+            floatingUI.destroy();
 
-          // Start the game
-          initializeGame();
+            // Start the game with config if provided
+            initializeGame(config);
+          } catch (error) {
+            console.error('[Main] Error starting game:', error);
+          }
         },
         onSettings: () => {
           // Settings are handled in-game
@@ -541,6 +584,8 @@ document.addEventListener("keyup", (e) => {
 });
 
 async function setupModernGameUI() {
+  console.log('[setupModernGameUI] Called, game:', game);
+  
   // Setup game handlers
   setupGameHandlers();
 
@@ -558,5 +603,7 @@ async function setupModernGameUI() {
 
 
   // Start the game
+  console.log('[setupModernGameUI] Starting game.start()...');
   game.start();
+  console.log('[setupModernGameUI] game.start() called');
 }

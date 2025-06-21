@@ -13,17 +13,19 @@
 // Shared upgrade constants
 export const UPGRADE_CONSTANTS = {
   // Universal settings
-  maxLevel: 99,
-  defaultCostMultiplier: 1.08, // 8% increase per level for 99 levels
-  
+  maxLevel: 30, // Keep at 99 for player upgrades
+  maxLevelTower: 10, // 10 levels for tower upgrades
+  defaultCostMultiplier: 1.08, // 8% increase per level for player
+  towerCostMultiplier: 1.25, // 25% increase per level for towers
+
   // Visual settings
   visualIntensityMultiplier: 1.8,
   visualUpgradeMultiplier: 0.2,
   levelCalculationDivisor: {
-    player: 20, // Every 20 upgrades = 1 visual level (5 visual levels total)
-    tower: 20   // Every 20 upgrades = 1 visual level (5 visual levels total)
+    player: 2, // Every 2 upgrades = 1 visual level (5 visual levels total with 10 max)
+    tower: 2   // Every 2 upgrades = 1 visual level (5 visual levels total with 10 max)
   },
-  
+
   // Cost scaling options
   costScaling: {
     exponential: 1.08,    // Standard 8% growth for 99 levels
@@ -31,7 +33,7 @@ export const UPGRADE_CONSTANTS = {
     aggressive: 1.10,     // Steeper 10% curve
     linear: 1.0           // For testing/special modes
   },
-  
+
   // Discount settings
   bulkDiscounts: {
     fiveLevels: 0.95,    // 5% discount for 5 levels at once
@@ -39,16 +41,16 @@ export const UPGRADE_CONSTANTS = {
     twentyLevels: 0.85,  // 15% discount for 20 levels at once
     maxLevels: 0.80      // 20% discount for maxing an upgrade
   },
-  
+
   // Milestone bonuses (additional boost at certain levels)
   milestones: {
     levels: [10, 25, 50, 75, 99],
     bonusMultiplier: 1.1  // 10% extra effect at milestone levels
   },
-  
+
   // Bulk upgrade increments
   bulkIncrements: [1, 5, 10, 25, 'MAX'] as const,
-  
+
   // Refund settings
   refundRates: {
     immediate: 0.9,      // 90% refund within 30 seconds
@@ -60,27 +62,27 @@ export const UPGRADE_CONSTANTS = {
 
 // Tower-specific upgrade configuration
 export const TOWER_UPGRADE_CONFIG = {
-  // Base costs for each upgrade type (cheaper for 99 levels)
+  // Base costs for each upgrade type (adjusted for 10 levels)
   baseCosts: {
-    DAMAGE: 8,
-    RANGE: 10,
-    FIRE_RATE: 12
+    DAMAGE: 50,
+    RANGE: 60,
+    FIRE_RATE: 70
   },
-  
-  // Cost multipliers (can override default)
+
+  // Cost multipliers for towers (higher due to fewer levels)
   costMultipliers: {
-    DAMAGE: UPGRADE_CONSTANTS.costScaling.exponential,
-    RANGE: UPGRADE_CONSTANTS.costScaling.moderate,
-    FIRE_RATE: UPGRADE_CONSTANTS.costScaling.exponential
+    DAMAGE: 1.25,
+    RANGE: 1.25,
+    FIRE_RATE: 1.25
   },
-  
-  // Effect multipliers per level (smaller for 99 levels)
+
+  // Effect multipliers per level (adjusted for 10 levels)
   bonusMultipliers: {
-    DAMAGE: 0.02,      // 2% increase per level (198% total at max)
-    RANGE: 0.015,      // 1.5% increase per level (148.5% total at max)
-    FIRE_RATE: 0.018   // 1.8% increase per level (178.2% total at max)
+    DAMAGE: 0.15,      // 15% increase per level (150% total at max)
+    RANGE: 0.12,       // 12% increase per level (120% total at max)
+    FIRE_RATE: 0.13    // 13% increase per level (130% total at max)
   },
-  
+
   // Tower type specific modifiers
   towerTypeModifiers: {
     BASIC: { costModifier: 1.0, effectModifier: 1.0 },
@@ -92,15 +94,15 @@ export const TOWER_UPGRADE_CONFIG = {
 
 // Player-specific upgrade configuration
 export const PLAYER_UPGRADE_CONFIG = {
-  // Base costs for each upgrade type (cheaper for 99 levels)
+  // Base costs for each upgrade type (adjusted for 10 levels)
   baseCosts: {
-    DAMAGE: 12,
-    SPEED: 10,
-    FIRE_RATE: 15,
-    HEALTH: 18,
-    REGENERATION: 20
+    DAMAGE: 80,
+    SPEED: 70,
+    FIRE_RATE: 90,
+    HEALTH: 100,
+    REGENERATION: 120
   },
-  
+
   // Cost multipliers (can override default)
   costMultipliers: {
     DAMAGE: UPGRADE_CONSTANTS.costScaling.exponential,
@@ -109,8 +111,8 @@ export const PLAYER_UPGRADE_CONFIG = {
     HEALTH: UPGRADE_CONSTANTS.costScaling.moderate,
     REGENERATION: UPGRADE_CONSTANTS.costScaling.aggressive
   },
-  
-  // Effect multipliers per level (smaller for 99 levels)
+
+  // Effect multipliers per level (adjusted for 10 levels - player upgrades remain at 99)
   bonusMultipliers: {
     DAMAGE: 0.025,     // 2.5% increase per level (247.5% total at max)
     SPEED: 0.02,       // 2% increase per level (198% total at max)
@@ -126,7 +128,7 @@ export const UPGRADE_PREREQUISITES = {
   tower: {
     // No prerequisites for towers currently
   },
-  
+
   // Player prerequisites
   player: {
     // Regeneration requires at least level 2 health
@@ -186,7 +188,7 @@ export const UPGRADE_SYNERGIES = {
       }
     }
   ],
-  
+
   // Tower synergies (could be expanded)
   tower: [
     {

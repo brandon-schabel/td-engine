@@ -44,9 +44,10 @@ const baseUIStyles = `
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     color: var(--color-text-primary);
-    max-width: 90vw;
-    max-height: 85vh;
-    margin: var(--spacing-5);
+    min-width: 300px;
+    max-width: min(90vw, 500px);
+    max-height: 80vh;
+    margin: var(--spacing-3);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -54,7 +55,7 @@ const baseUIStyles = `
     transition: all var(--duration-dialogOpen) var(--easing-smooth);
     z-index: var(--z-modal);
   }
-
+  
   .ui-dialog-overlay {
     position: fixed;
     top: 0;
@@ -401,6 +402,16 @@ const baseUIStyles = `
       transform: scale(1);
     }
   }
+  
+  /* Mobile-specific dialog adjustments */
+  @media (max-width: 480px) {
+    .ui-dialog {
+      min-width: 280px;
+      max-width: 95vw;
+      max-height: 70vh;
+      margin: var(--spacing-2);
+    }
+  }
 
   /* Control bar */
   .ui-control-bar {
@@ -408,15 +419,53 @@ const baseUIStyles = `
     bottom: 0;
     left: 0;
     right: 0;
-    height: clamp(50px, 10vh, 60px);
+    height: 60px; /* Default desktop height */
     background: linear-gradient(to top, rgba(10, 10, 20, 0.9), rgba(10, 10, 20, 0.7));
     border-top: var(--border-width-thick) solid var(--color-border-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: clamp(var(--spacing-2), 2vw, var(--spacing-3));
-    padding: 0 clamp(var(--spacing-2), 2vw, var(--spacing-5));
+    gap: var(--spacing-3);
+    padding: 0 var(--spacing-4);
     z-index: var(--z-hud);
+    transition: height var(--duration-fast) var(--easing-smooth);
+  }
+  
+  /* Mobile responsive control bar */
+  @media (max-width: 768px) {
+    .ui-control-bar {
+      height: 48px; /* Smaller height on mobile */
+      gap: var(--spacing-2);
+      padding: 0 var(--spacing-2);
+    }
+    
+    /* Smaller buttons on mobile */
+    .ui-control-bar .ui-button {
+      padding: var(--spacing-1) var(--spacing-2);
+      font-size: var(--font-sm);
+    }
+    
+    .ui-control-bar .ui-icon-button {
+      width: 36px;
+      height: 36px;
+    }
+    
+    .ui-control-bar .ui-icon-button svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+  
+  /* Landscape mobile */
+  @media (max-width: 768px) and (orientation: landscape) {
+    .ui-control-bar {
+      height: 40px; /* Even smaller in landscape */
+    }
+    
+    .ui-control-bar .ui-icon-button {
+      width: 32px;
+      height: 32px;
+    }
   }
 
   /* Placement indicator */

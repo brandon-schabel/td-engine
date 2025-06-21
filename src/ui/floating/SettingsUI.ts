@@ -12,12 +12,17 @@ export class SettingsUI {
   private game: Game;
   private settings: SettingsManager;
   private onSettingsChange: ((settings: GameSettings) => void) | null = null;
+  private cameraControlsMinimized: boolean = false;
 
   constructor(game: Game, _anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
     this.settings = SettingsManager.getInstance();
     // _anchorElement parameter kept for backward compatibility but not used with createDialog
+    
+    // Load camera controls state from localStorage
+    const savedState = localStorage.getItem('cameraControlsMinimized');
+    this.cameraControlsMinimized = savedState === 'true';
   }
 
   public show(onSettingsChange?: (settings: GameSettings) => void): void {
@@ -208,6 +213,114 @@ export class SettingsUI {
     });
 
     content.appendChild(gameplaySection);
+
+    // Camera Controls Section
+    const cameraSection = document.createElement('div');
+    cameraSection.className = cn('mb-8', 'rounded-md', 'p-4', 'border', 'border-white/5', 'transition-all');
+    
+    const cameraHeader = createHeader({
+      title: 'Camera Controls',
+      level: 3,
+      variant: 'compact',
+      showCloseButton: false,
+      icon: createSvgIcon(IconType.ZOOM_IN, { size: 20 }),
+      customClasses: ['mb-4', 'text-lg', 'font-semibold']
+    });
+    
+    // Add minimize/maximize button to header
+    const headerContainer = document.createElement('div');
+    headerContainer.className = cn('flex', 'items-center', 'justify-between', 'mb-4');
+    headerContainer.appendChild(cameraHeader);
+    
+    const minimizeButton = createButton({
+      text: this.cameraControlsMinimized ? 'Expand' : 'Minimize',
+      variant: 'ghost',
+      size: 'xs',
+      icon: this.cameraControlsMinimized ? IconType.EXPAND : IconType.COLLAPSE,
+      customClasses: ['ml-auto'],
+      onClick: () => {
+        this.cameraControlsMinimized = !this.cameraControlsMinimized;
+        localStorage.setItem('cameraControlsMinimized', String(this.cameraControlsMinimized));
+        this.updateContent();
+      }
+    });
+    headerContainer.appendChild(minimizeButton);
+    
+    cameraSection.appendChild(headerContainer);
+    
+    if (!this.cameraControlsMinimized) {
+      // Camera controls content
+      const cameraControls = document.createElement('div');
+      cameraControls.className = cn('space-y-4');
+      
+      // Current zoom display
+      const zoomDisplay = document.createElement('div');
+      zoomDisplay.className = cn('text-center', 'text-secondary', 'mb-4');
+      const currentZoom = Math.round(this.game.getCamera().getZoom() * 100);
+      zoomDisplay.textContent = `Current Zoom: ${currentZoom}%`;
+      cameraControls.appendChild(zoomDisplay);
+      
+      // Zoom buttons
+      const buttonContainer = document.createElement('div');
+      buttonContainer.className = cn('flex', 'gap-2', 'justify-center', 'mb-4');
+      
+      const zoomInButton = createButton({
+        text: 'Zoom In',
+        icon: IconType.ZOOM_IN,
+        variant: 'outline',
+        size: 'sm',
+        onClick: () => {
+          this.game.getCamera().zoomIn();
+          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+          this.updateContent();
+        }
+      });
+      buttonContainer.appendChild(zoomInButton);
+      
+      const zoomOutButton = createButton({
+        text: 'Zoom Out',
+        icon: IconType.ZOOM_OUT,
+        variant: 'outline',
+        size: 'sm',
+        onClick: () => {
+          this.game.getCamera().zoomOut();
+          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+          this.updateContent();
+        }
+      });
+      buttonContainer.appendChild(zoomOutButton);
+      
+      const resetZoomButton = createButton({
+        text: 'Reset',
+        icon: IconType.RESET_ZOOM,
+        variant: 'outline',
+        size: 'sm',
+        onClick: () => {
+          this.game.getCamera().reset();
+          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+          this.updateContent();
+        }
+      });
+      buttonContainer.appendChild(resetZoomButton);
+      
+      cameraControls.appendChild(buttonContainer);
+      
+      // Camera follow toggle
+      this.createToggleSetting(cameraControls, {
+        label: 'Follow Player',
+        value: this.game.getCamera().isFollowingTarget(),
+        onChange: (value) => {
+          this.game.getCamera().setFollowTarget(value);
+          if (value) {
+            this.game.resetCameraToPlayer();
+          }
+        }
+      });
+      
+      cameraSection.appendChild(cameraControls);
+    }
+    
+    content.appendChild(cameraSection);
 
     // Footer buttons
     const footer = document.createElement('div');

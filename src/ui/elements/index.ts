@@ -53,3 +53,7 @@ export type { CreateSliderOptions } from './Slider';
 // Tooltip exports
 export { createTooltip, addTooltip, createHelpTooltip, createRichTooltip } from './Tooltip';
 export type { CreateTooltipOptions, TooltipInstance } from './Tooltip';
+
+// ProgressBar exports
+export { createProgressBar, createTimerProgressBar, createSegmentedProgressBar } from './ProgressBar';
+export type { CreateProgressBarOptions, CreateTimerProgressBarOptions } from './ProgressBar';

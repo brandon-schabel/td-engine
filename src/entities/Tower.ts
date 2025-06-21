@@ -45,6 +45,9 @@ export class Tower extends Entity implements ShootingCapable {
   // Upgrade levels
   private upgradeLevels: Map<UpgradeType, number> = new Map();
   private level: number = 1;
+  
+  // Repair tracking
+  private damageTaken: number = 0;
 
   constructor(towerType: TowerType, position: Vector2) {
     const stats = TOWER_STATS[towerType];
@@ -119,7 +122,7 @@ export class Tower extends Entity implements ShootingCapable {
   // Upgrade system methods
   upgrade(upgradeType: UpgradeType): boolean {
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    const maxLevel = UPGRADE_CONSTANTS.maxLevel;
+    const maxLevel = UPGRADE_CONSTANTS.maxLevelTower;
     
     if (currentLevel >= maxLevel) {
       return false;
@@ -147,7 +150,7 @@ export class Tower extends Entity implements ShootingCapable {
       return false;
     }
     const currentLevel = this.upgradeLevels.get(upgradeType) || 0;
-    return currentLevel < UPGRADE_CONSTANTS.maxLevel;
+    return currentLevel < UPGRADE_CONSTANTS.maxLevelTower;
   }
 
   getUpgradeLevel(upgradeType: UpgradeType): number {
@@ -181,7 +184,8 @@ export class Tower extends Entity implements ShootingCapable {
       return 0; // Max level reached
     }
     
-    return calculateUpgradeCost(baseCost, TOWER_UPGRADES.costMultiplier, currentLevel);
+    const costMultiplier = TOWER_UPGRADES.costMultipliers?.[upgradeType] || TOWER_UPGRADES.costMultiplier;
+    return calculateUpgradeCost(baseCost, costMultiplier, currentLevel);
   }
 
   canAffordUpgrade(upgradeType: UpgradeType, availableCurrency: number): boolean {
@@ -338,5 +342,84 @@ export class Tower extends Entity implements ShootingCapable {
     
     // Sell value is based on economy sell refund configuration
     return calculateSellValue(baseCost, upgradeCostSpent, 1 - GAMEPLAY_CONSTANTS.economy.sellRefund);
+  }
+  
+  // Repair functionality
+  override takeDamage(damage: number): void {
+    const previousHealth = this.health;
+    super.takeDamage(damage);
+    const actualDamage = previousHealth - this.health;
+    this.damageTaken += actualDamage;
+  }
+  
+  getDamageTaken(): number {
+    return this.damageTaken;
+  }
+  
+  canRepair(): boolean {
+    // Can't repair if dead, at full health, or if it's a wall
+    return this.isAlive && this.health < this.maxHealth && this.towerType !== TowerType.WALL;
+  }
+  
+  getRepairCost(): number {
+    if (!this.canRepair()) return 0;
+    
+    // Calculate repair cost based on damage percentage
+    const damagePercentage = (this.maxHealth - this.health) / this.maxHealth;
+    const totalValue = this.getTotalValue();
+    
+    // Cost is proportional to damage, max 20% of tower value
+    const repairCost = damagePercentage * totalValue * 0.2;
+    
+    return Math.floor(repairCost);
+  }
+  
+  repair(): boolean {
+    if (!this.canRepair()) return false;
+    
+    this.health = this.maxHealth;
+    this.damageTaken = 0;
+    
+    // Dispatch repair event
+    this.dispatchEvent?.(new CustomEvent('towerRepaired', {
+      detail: { tower: this }
+    }));
+    
+    return true;
+  }
+  
+  getTotalValue(): number {
+    // Base cost plus all upgrade costs
+    const baseCost = TOWER_COSTS[this.towerType];
+    let totalCost = baseCost;
+    
+    const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
+    upgradeTypes.forEach(type => {
+      const level = this.getUpgradeLevel(type);
+      const upgradeBaseCost = TOWER_UPGRADES.baseCosts[type];
+      const costMultiplier = TOWER_UPGRADES.costMultipliers?.[type] || TOWER_UPGRADES.costMultiplier;
+      
+      for (let i = 1; i <= level; i++) {
+        totalCost += calculateUpgradeCost(upgradeBaseCost, costMultiplier, i - 1);
+      }
+    });
+    
+    return totalCost;
+  }
+  
+  getRepairInfo(): {
+    canRepair: boolean;
+    cost: number;
+    healthMissing: number;
+    healthPercentage: number;
+    isDestroyed: boolean;
+  } {
+    return {
+      canRepair: this.canRepair(),
+      cost: this.getRepairCost(),
+      healthMissing: this.maxHealth - this.health,
+      healthPercentage: this.health / this.maxHealth,
+      isDestroyed: !this.isAlive
+    };
   }
 }

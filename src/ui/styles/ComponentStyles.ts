@@ -3,15 +3,6 @@ import { styleManager } from './StyleManager';
 const componentStyles = `
   /* Tower Card Styles - Complex animations and pseudo-elements */
 
-  .tower-card-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto var(--spacing-sm);
-    display: block;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-    transition: transform var(--duration-cardHover) var(--easing-smooth);
-  }
-
   .tower-card:hover .tower-card-icon {
     transform: scale(1.1) rotate(5deg);
   }
@@ -74,15 +65,7 @@ const componentStyles = `
     color: var(--color-text-secondary);
   }
 
-  /* Health Bar Styles */
-  .health-bar-container {
-    position: absolute;
-    width: 100%;
-    height: 4px;
-    background-color: rgba(0, 0, 0, var(--opacity-30));
-    border-radius: 2px;
-    overflow: hidden;
-  }
+
 
   /* Floating Health Bar Styles */
   .floating-healthbar,
@@ -95,29 +78,6 @@ const componentStyles = `
   .entity-healthbar .healthbar-container {
     box-shadow: var(--shadow-sm);
   }
-
-  .health-bar-fill {
-    height: 100%;
-    background-color: var(--color-game-health-high);
-    transition: width var(--duration-healthChange) var(--easing-smooth);
-  }
-
-  .health-bar-fill.medium {
-    background-color: var(--color-game-health-medium);
-  }
-
-  .health-bar-fill.low {
-    background-color: var(--color-game-health-low);
-  }
-
-  /* Inventory Styles */
-  .inventory-dialog {
-    /* Extends: ui-dialog */
-    width: 600px;
-    max-width: 90vw;
-    max-height: 90vh;
-  }
-  
 
   .inventory-grid {
     display: grid;
@@ -180,15 +140,6 @@ const componentStyles = `
   .inventory-tab.active {
     background: rgba(76, 175, 80, 0.2);
     color: #4CAF50;
-  }
-  
-  .inventory-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-md);
-    border-top: 1px solid var(--color-border-default);
   }
   
   .inventory-stats {
@@ -405,7 +356,6 @@ const componentStyles = `
     background: linear-gradient(135deg, rgba(33, 37, 41, 0.98) 0%, rgba(40, 44, 48, 0.98) 100%);
     border: 2px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    animation: slideUp 0.3s ease-out;
     min-width: 320px;
     max-width: 400px;
   }
@@ -416,16 +366,6 @@ const componentStyles = `
     transform-origin: bottom center;
   }
 
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
 
   .build-menu-ui .ui-dialog-title {
     /* Extends: ui-gradient-text */
@@ -485,105 +425,6 @@ const componentStyles = `
     color: #FF9800;
   }
 
-  /* Floating Damage Numbers */
-  .damage-number {
-    position: absolute;
-    font-size: var(--font-base);
-    font-weight: 700;
-    pointer-events: none;
-    z-index: var(--z-floatingText);
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 1px 1px 2px rgba(0, 0, 0, 0.9);
-    animation: damage-float 1s ease-out forwards;
-  }
-
-  /* Damage tiers based on value */
-  .damage-number.damage-tier-1 {
-    color: #FFFFFF; /* White for 1-10 damage */
-  }
-
-  .damage-number.damage-tier-2 {
-    color: #7FFF00; /* Chartreuse (green-yellow) for 10-30 damage */
-  }
-
-  .damage-number.damage-tier-3 {
-    color: #FFA500; /* Orange for 30-50 damage */
-  }
-
-  .damage-number.damage-tier-4 {
-    color: #FF0000; /* Red for 50-90 damage */
-  }
-
-  .damage-number.damage-tier-5 {
-    color: #FF69B4; /* Hot pink for 90-150 damage */
-    font-size: calc(var(--font-base) * 1.1);
-  }
-
-  .damage-number.damage-tier-6 {
-    color: #0080FF; /* Blue for 150-250 damage */
-    font-size: calc(var(--font-base) * 1.15);
-    filter: drop-shadow(0 0 3px #0080FF);
-  }
-
-  .damage-number.damage-tier-7 {
-    color: #9400D3; /* Purple for 250+ damage */
-    font-size: calc(var(--font-base) * 1.2);
-    filter: drop-shadow(0 0 4px #9400D3);
-    animation: damage-float-epic 1s ease-out forwards;
-  }
-
-  /* Special case for healing */
-  .damage-number.heal {
-    color: #00FF00 !important; /* Bright green for healing */
-  }
-
-  /* Critical hits get larger size and special animation */
-  .damage-number.critical {
-    font-size: calc(var(--font-lg) * 1.1);
-    animation: damage-float-critical 1s ease-out forwards;
-  }
-
-  @keyframes damage-float {
-    0% {
-      transform: translateY(0) scale(0.8);
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(-40px) scale(1);
-      opacity: 0;
-    }
-  }
-
-  @keyframes damage-float-critical {
-    0% {
-      transform: translateY(0) scale(0.8) rotate(-5deg);
-      opacity: 1;
-    }
-    20% {
-      transform: translateY(-10px) scale(1.3) rotate(5deg);
-    }
-    100% {
-      transform: translateY(-50px) scale(1.1) rotate(0deg);
-      opacity: 0;
-    }
-  }
-
-  @keyframes damage-float-epic {
-    0% {
-      transform: translateY(0) scale(0.5);
-      opacity: 0.8;
-    }
-    15% {
-      transform: translateY(-15px) scale(1.4);
-      opacity: 1;
-    }
-    30% {
-      transform: translateY(-25px) scale(1.2);
-    }
-    100% {
-      transform: translateY(-60px) scale(1);
-      opacity: 0;
-    }
-  }
 
   /* Tooltip Styles */
   .game-tooltip {
@@ -630,149 +471,6 @@ const componentStyles = `
     font-weight: var(--font-weight-semibold);
   }
 
-  /* Upgrade UI Styles */
-  .player-upgrade-ui {
-    background: linear-gradient(135deg, rgba(33, 37, 41, 0.98) 0%, rgba(40, 44, 48, 0.98) 100%);
-  }
-
-  .player-upgrade-ui .ui-dialog-title {
-    /* Extends: ui-gradient-text */
-    background: linear-gradient(90deg, var(--color-status-success) 0%, #45a049 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .upgrade-tree {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    position: relative;
-  }
-
-  .upgrade-tree::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: radial-gradient(circle at 50% 50%, rgba(76, 175, 80, 0.05) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  .upgrade-node {
-    background: linear-gradient(135deg, rgba(40, 44, 48, 0.9) 0%, rgba(48, 52, 56, 0.9) 100%);
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .upgrade-node::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 100%);
-    opacity: 0;
-    transition: opacity var(--duration-cardHover) var(--easing-smooth);
-  }
-
-  .upgrade-node:hover:not(.locked)::before {
-    opacity: 1;
-  }
-
-  .upgrade-node:hover:not(.locked) {
-    border-color: var(--color-button-primary);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  }
-
-  .upgrade-node.unlocked {
-    border-color: var(--color-status-success);
-    background: linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(52, 211, 153, 0.1) 100%);
-    box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
-  }
-
-  .upgrade-node.unlocked::after {
-    content: '✓';
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    background: var(--color-status-success);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: var(--font-weight-bold);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-
-  .upgrade-node.locked {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(0.7);
-  }
-
-  .upgrade-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto var(--spacing-sm);
-    opacity: 0.8;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-    transition: all var(--duration-cardHover) var(--easing-smooth);
-  }
-
-  .upgrade-node:hover:not(.locked) .upgrade-icon {
-    transform: scale(1.1) rotate(5deg);
-    opacity: 1;
-  }
-
-  .upgrade-node.unlocked .upgrade-icon {
-    opacity: 1;
-    filter: drop-shadow(0 0 8px var(--color-status-success));
-  }
-
-  .upgrade-name {
-    font-size: var(--font-base);
-    font-weight: var(--font-weight-semibold);
-    margin-bottom: var(--spacing-xs);
-    color: var(--color-text-primary);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    transition: color var(--duration-cardHover) var(--easing-smooth);
-  }
-
-  .upgrade-node:hover:not(.locked) .upgrade-name {
-    color: var(--color-button-primary);
-  }
-
-  .upgrade-description {
-    font-size: var(--font-sm);
-    color: var(--color-text-secondary);
-    margin-bottom: var(--spacing-sm);
-    line-height: 1.4;
-  }
-
-  .upgrade-cost {
-    transition: all var(--duration-cardHover) var(--easing-smooth);
-  }
-
-  .upgrade-node:hover:not(.locked) .upgrade-cost {
-    background: rgba(255, 152, 0, 0.2);
-    border-color: rgba(255, 152, 0, 0.5);
-    transform: scale(1.05);
-  }
-
-  /* Progress indicator for upgrade levels */
-  .upgrade-level-indicator {
-    margin-top: var(--spacing-sm);
-  }
 
   /* Menu and Settings Styles */
   .game-menu {
@@ -846,13 +544,7 @@ const componentStyles = `
     right: 0;
     pointer-events: none;
     z-index: var(--z-controls);
-    display: none;
-  }
-
-  @media (max-width: 768px) {
-    .mobile-controls {
-      display: block;
-    }
+    /* Remove default display:none to let utility classes control visibility */
   }
 
   .mobile-joystick {
@@ -914,19 +606,7 @@ const componentStyles = `
     border: 2px solid rgba(255, 255, 255, 0.6);
     pointer-events: none;
     transform: translate(-50%, -50%);
-    animation: touchPulse 0.5s ease-out;
     z-index: 10000;
-  }
-
-  @keyframes touchPulse {
-    0% {
-      transform: translate(-50%, -50%) scale(0.5);
-      opacity: 1;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(1.2);
-      opacity: 0;
-    }
   }
 
   .touch-ripple {
@@ -937,19 +617,7 @@ const componentStyles = `
     background: rgba(255, 255, 255, 0.4);
     pointer-events: none;
     transform: translate(-50%, -50%);
-    animation: rippleEffect 0.6s ease-out forwards;
     z-index: 10000;
-  }
-
-  @keyframes rippleEffect {
-    0% {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 0.6;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(3);
-      opacity: 0;
-    }
   }
 
   /* Simple Game UI Build Menu */
@@ -1526,71 +1194,6 @@ const componentStyles = `
     background: var(--color-surface-secondary);
   }
 
-  .upgrade-card-icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-primary);
-  }
-
-  .upgrade-card-info {
-    flex: 1;
-  }
-
-  .upgrade-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-  }
-
-  .upgrade-card-name {
-    font-size: var(--font-base);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text-primary);
-  }
-
-  .upgrade-card-name.maxed {
-    color: var(--color-text-secondary);
-  }
-
-  .upgrade-card-level {
-    font-size: var(--font-sm);
-    color: var(--color-text-secondary);
-  }
-
-  .upgrade-card-description {
-    font-size: var(--font-sm);
-    color: var(--color-text-secondary);
-    margin-bottom: 4px;
-  }
-
-  .upgrade-card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .upgrade-card-effect {
-    font-size: var(--font-xs);
-    color: var(--color-status-success);
-  }
-
-  .upgrade-card-cost {
-    /* Extends: ui-cost (base styles) */
-    background: none;
-    border: none;
-    padding: 0;
-    color: var(--color-text-secondary);
-  }
-
-  .upgrade-card-cost.affordable {
-    color: var(--color-text-success);
-  }
 
   .tower-upgrade-actions {
     display: flex;
@@ -1763,65 +1366,6 @@ const componentStyles = `
     background: rgba(0, 0, 0, 0.3);
   }
 
-  .upgrade-icon {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-text-secondary);
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-xs);
-    flex-shrink: 0;
-  }
-
-  .tower-upgrade-card.compact.can-afford .upgrade-icon {
-    color: var(--color-text-primary);
-  }
-
-  .upgrade-info {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
-    min-width: 0;
-  }
-
-  .upgrade-name {
-    font-size: var(--font-sm);
-    font-weight: 500;
-    color: var(--color-text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .tower-upgrade-card.compact.maxed .upgrade-name {
-    color: var(--color-text-secondary);
-  }
-
-  .upgrade-cost {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: var(--font-xs);
-    color: var(--color-text-secondary);
-    white-space: nowrap;
-  }
-
-  .upgrade-cost.affordable {
-    color: var(--color-text-success);
-    font-weight: var(--font-weight-semibold);
-  }
-
-  .upgrade-maxed {
-    font-size: var(--font-xs);
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: var(--font-weight-semibold);
-  }
 
   .tower-upgrade-actions.compact {
     display: flex;
@@ -1950,27 +1494,8 @@ const componentStyles = `
     align-items: center;
     gap: 12px;
     box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
-    animation: powerupNotification 2s ease-out forwards;
     z-index: 1500;
     pointer-events: none;
-  }
-
-  @keyframes powerupNotification {
-    0% {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.5);
-    }
-    20% {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1.1);
-    }
-    40% {
-      transform: translate(-50%, -50%) scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: translate(-50%, -70%) scale(0.8);
-    }
   }
 
   .powerup-notification-content {
@@ -2010,7 +1535,6 @@ const componentStyles = `
     align-items: center;
     gap: 8px;
     box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
-    animation: slideDownAndUp 3s ease-out forwards;
     z-index: 1500;
     pointer-events: none;
   }
@@ -2032,24 +1556,8 @@ const componentStyles = `
     align-items: center;
     gap: 8px;
     box-shadow: 0 4px 16px rgba(255, 152, 0, 0.3);
-    animation: slideDownAndUp 4s ease-out forwards;
     z-index: 1500;
     pointer-events: none;
-  }
-
-  @keyframes slideDownAndUp {
-    0% {
-      opacity: 0;
-      transform: translate(-50%, -20px);
-    }
-    15%, 85% {
-      opacity: 1;
-      transform: translate(-50%, 0);
-    }
-    100% {
-      opacity: 0;
-      transform: translate(-50%, -20px);
-    }
   }
 
   /* Item Tooltip Styles */
@@ -2128,9 +1636,6 @@ const componentStyles = `
       height: 36px;
     }
 
-    .upgrade-tree {
-      grid-template-columns: 1fr;
-    }
 
     .game-hud {
       padding: var(--spacing-sm);
@@ -2185,7 +1690,6 @@ const componentStyles = `
   .build-menu-ui,
   .tower-upgrade-ui,
   .inventory-ui,
-  .player-upgrade-ui,
   .settings-menu {
     pointer-events: auto;
   }
@@ -2217,7 +1721,6 @@ const componentStyles = `
   }
 
   /* Other floating UI components */
-  .inventory-dialog,
   .pause-menu-ui,
   .settings-ui,
   .game-over-ui {
@@ -2351,17 +1854,9 @@ const componentStyles = `
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
-    animation: tooltip-fade-in 0.2s ease forwards;
-    animation-delay: 0.5s;
     z-index: 1000;
   }
 
-  @keyframes tooltip-fade-in {
-    to {
-      opacity: 1;
-      margin-bottom: 8px;
-    }
-  }
 
   .settings-ui,
   .game-over-ui {
@@ -2726,114 +2221,6 @@ const componentStyles = `
     justify-content: center;
   }
 
-  /* Pause Menu Styles */
-  .pause-menu-dialog {
-    min-width: 400px;
-    text-align: center;
-  }
-
-  @media (max-width: 768px) {
-    .pause-menu-dialog {
-      min-width: 280px;
-    }
-  }
-
-  .pause-menu-dialog .dialog-title {
-    font-size: 32px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-  }
-
-  @media (max-width: 768px) {
-    .pause-menu-dialog .dialog-title {
-      font-size: 24px;
-    }
-  }
-
-  .pause-menu-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg) 0;
-  }
-
-  .pause-menu-button {
-    padding: var(--spacing-md) var(--spacing-xl);
-    background: var(--color-button-primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: var(--font-weight-bold);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  @media (max-width: 768px) {
-    .pause-menu-button {
-      font-size: 16px;
-    }
-  }
-
-  .pause-menu-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .pause-menu-button.resume {
-    background: var(--color-button-success);
-  }
-
-  .pause-menu-button.restart {
-    background: var(--color-button-danger);
-  }
-
-  .pause-menu-button.settings {
-    background: var(--color-button-secondary);
-  }
-
-  .pause-info {
-    margin-top: var(--spacing-lg);
-    padding: var(--spacing-md);
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    font-size: 14px;
-    color: var(--color-text-secondary);
-  }
-
-  @media (max-width: 768px) {
-    .pause-info {
-      font-size: 12px;
-    }
-  }
-
-  .pause-info-item {
-    display: flex;
-    justify-content: space-between;
-    margin: var(--spacing-sm) 0;
-  }
-
-  .pause-info-label {
-    color: var(--color-text-primary);
-  }
-
-  .pause-info-value {
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text-success);
-  }
-
-  /* Health Bar Helper Styles */
-  .health-bar-wrapper {
-    position: relative;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 2px;
-  }
 
   .health-fill {
     height: 100%;
@@ -2852,40 +2239,6 @@ const componentStyles = `
     pointer-events: none;
   }
 
-  /* Damage Number Animation */
-  .damage-number {
-    position: absolute;
-    font-weight: var(--font-weight-bold);
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    pointer-events: none;
-    animation: damage-float 1s ease-out forwards;
-    z-index: 1000;
-  }
-
-  .damage-number.critical {
-    font-size: 24px;
-    color: #ff0000;
-  }
-
-  .damage-number.normal {
-    font-size: 18px;
-    color: #ffcc00;
-  }
-
-  @keyframes damage-float {
-    0% {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: translateY(-30px) scale(1.2);
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(-50px) scale(0.8);
-      opacity: 0;
-    }
-  }
 
   /* Tooltip Helper Styles */
   .tooltip-title {
@@ -2951,32 +2304,11 @@ const componentStyles = `
     font-weight: var(--font-weight-bold);
     z-index: 10000;
     pointer-events: none;
-    animation: slideDown 0.3s ease-out;
     border: var(--border-width-default) solid #4CAF50;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translate(-50%, -20px);
-    }
-    to {
-      opacity: 1;
-      transform: translate(-50%, 0);
-    }
-  }
 
-  @keyframes slideUp {
-    from {
-      opacity: 1;
-      transform: translate(-50%, 0);
-    }
-    to {
-      opacity: 0;
-      transform: translate(-50%, -20px);
-    }
-  }
 
   /* Fallback Inventory Full Notification */
   .inventory-full-notification-fallback {
@@ -2992,16 +2324,10 @@ const componentStyles = `
     font-weight: var(--font-weight-bold);
     z-index: 10000;
     pointer-events: none;
-    animation: slideDown 0.3s ease-out;
     border: var(--border-width-default) solid #FFC107;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
-  /* Slide up animation for notifications */
-  .item-pickup-notification-fallback.slide-up,
-  .inventory-full-notification-fallback.slide-up {
-    animation: slideUp 0.3s ease-in forwards;
-  }
 
   /* Tower placement indicator */
   .ui-placement-indicator {
@@ -3041,17 +2367,6 @@ const componentStyles = `
     pointer-events: none;
   }
 
-  /* Health bar helper styles */
-  .health-bar-wrapper {
-    position: relative;
-    background: rgba(0, 0, 0, 0.3);
-    border: var(--border-width-default) solid rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    overflow: hidden;
-    width: var(--bar-width, 60px);
-    height: var(--bar-height, 8px);
-  }
-
   .health-fill {
     position: absolute;
     top: 0;
@@ -3073,25 +2388,6 @@ const componentStyles = `
     font-size: var(--text-size, 10px);
   }
 
-  /* Damage number styles */
-  .damage-number {
-    position: absolute;
-    font-weight: var(--font-weight-bold);
-    pointer-events: none;
-    z-index: 1000;
-  }
-
-  .damage-number.normal {
-    color: #ffcc00;
-    font-size: 18px;
-    animation: damage-float 1s ease-out forwards;
-  }
-
-  .damage-number.critical {
-    color: #ff4444;
-    font-size: 24px;
-    animation: damage-float-critical 1s ease-out forwards;
-  }
 
   /* Tooltip helper styles */
   .tooltip-helper {

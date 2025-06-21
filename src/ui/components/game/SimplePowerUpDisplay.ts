@@ -13,13 +13,15 @@ import { IconType, createSvgIcon } from "@/ui/icons/SvgIcons";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { UI_CONSTANTS } from "@/config/UIConstants";
 import type { FloatingUIManager } from "@/ui/floating/FloatingUIManager";
-import { cn } from "@/ui/elements";
+import { cn, createTimerProgressBar } from "@/ui/elements";
+import type { ActivePowerUp } from "@/entities/player/PlayerPowerUps";
 
 export class PowerUpDisplay {
   private game: Game;
   private floatingUI: FloatingUIManager;
   private updateInterval: number | null = null;
   private activePowerUpIds: Set<string> = new Set();
+  private powerUpProgressBars: Map<string, HTMLDivElement> = new Map();
 
   constructor(options: { game: Game; visible?: boolean }) {
     this.game = options.game;
@@ -68,38 +70,44 @@ export class PowerUpDisplay {
 
   private update(): void {
     const player = this.game.getPlayer();
-    const activePowerUps = player.getActivePowerUps();
+    const playerPowerUps = player.getPlayerPowerUps();
+    const activePowerUps = playerPowerUps.getActivePowerUps();
     const itemsContainer = document.getElementById('powerup-items');
 
     if (!itemsContainer) return;
 
     // Remove power-ups that are no longer active
     for (const powerUpId of this.activePowerUpIds) {
-      const [type] = powerUpId.split('-');
+      const [, type] = powerUpId.split('-');
       if (!activePowerUps.has(type)) {
         this.floatingUI.remove(powerUpId);
         this.activePowerUpIds.delete(powerUpId);
+        
+        // Destroy the progress bar
+        const progressBar = this.powerUpProgressBars.get(powerUpId);
+        if (progressBar && (progressBar as any).destroy) {
+          (progressBar as any).destroy();
+        }
+        this.powerUpProgressBars.delete(powerUpId);
       }
     }
 
     // Update or create elements for active power-ups
     let index = 0;
-    activePowerUps.forEach((duration, type) => {
+    activePowerUps.forEach((powerUp, type) => {
       const powerUpId = `powerup-${type}-${index}`;
 
       if (!this.activePowerUpIds.has(powerUpId)) {
         // Create new power-up element
-        this.createPowerUpElement(type, powerUpId, index);
+        this.createPowerUpElement(type, powerUpId, index, powerUp);
         this.activePowerUpIds.add(powerUpId);
       }
 
-      // Update the content
-      this.updatePowerUpElement(powerUpId, type, duration);
       index++;
     });
   }
 
-  private createPowerUpElement(_type: string, powerUpId: string, index: number): void {
+  private createPowerUpElement(type: string, powerUpId: string, index: number, powerUp: ActivePowerUp): void {
     const powerUpElement = this.floatingUI.create(powerUpId, 'custom', {
       persistent: true,
       autoHide: false,
@@ -113,16 +121,16 @@ export class PowerUpDisplay {
         'py-2',
         'shadow-md',
         'transition-all',
-        'duration-300'
+        'duration-300',
+        'min-w-[240px]'
       )
     });
 
     // Position relative to the main container
-    const topOffset = UI_CONSTANTS.powerUpDisplay.position.top + (index * 40);
+    const topOffset = UI_CONSTANTS.powerUpDisplay.position.top + (index * 60);
 
     const element = powerUpElement.getElement();
     element.className = cn(
-      'powerup-item',
       'bg-surface-secondary',
       'border',
       'border-surface-border',
@@ -131,40 +139,56 @@ export class PowerUpDisplay {
       'py-2',
       'shadow-md',
       'transition-all',
-      'duration-300'
+      'duration-300',
+      'min-w-[240px]'
     );
     element.style.top = `${topOffset}px`;
+
+    // Create content with progress bar
+    const content = this.createPowerUpContent(type, powerUp);
+    powerUpElement.setContent(content);
 
     powerUpElement.enable();
   }
 
-  private updatePowerUpElement(powerUpId: string, type: string, duration: number): void {
-    const element = this.floatingUI.get(powerUpId);
-    if (!element) return;
+  private createPowerUpContent(type: string, powerUp: ActivePowerUp): HTMLDivElement {
+    const container = document.createElement('div');
+    container.className = cn('flex', 'flex-col', 'gap-2');
 
-    const remainingTime = Math.ceil(duration / 1000);
+    // Header with icon and name
+    const header = document.createElement('div');
+    header.className = cn('flex', 'items-center', 'gap-2');
+    
     const icon = createSvgIcon(this.getPowerUpIcon(type), { size: 20 });
     const name = this.getPowerUpName(type);
-
-    // Color state is handled by CSS classes
-
-    const content = document.createElement('div');
-    content.className = cn('flex', 'items-center', 'gap-2');
-    content.innerHTML = `
+    
+    header.innerHTML = `
       ${icon}
       <span class="${cn('text-sm', 'font-medium', 'text-primary')}">${name}</span>
-      <span class="${cn('text-sm', 'font-bold', 'ml-auto')}">${remainingTime}s</span>
     `;
-    element.setContent(content);
 
-    // Update state classes
-    const elementNode = element.getElement();
-    elementNode.classList.remove('border-warning', 'border-danger', 'animate-pulse');
-    if (remainingTime <= 3) {
-      elementNode.classList.add('border-danger', 'animate-pulse');
-    } else if (remainingTime <= 10) {
-      elementNode.classList.add('border-warning');
-    }
+    // Progress bar
+    const remainingTime = powerUp.endTime - Date.now();
+    const progressBar = createTimerProgressBar({
+      width: 200,
+      height: 8,
+      duration: remainingTime,
+      startTime: Date.now(),
+      powerUpType: type,
+      showTimeRemaining: true,
+      onComplete: () => {
+        // Power-up will be removed in the next update cycle
+      }
+    });
+
+    // Store progress bar reference
+    const powerUpId = `powerup-${type}-${Array.from(this.activePowerUpIds).filter(id => id.startsWith(`powerup-${type}`)).length}`;
+    this.powerUpProgressBars.set(powerUpId, progressBar);
+
+    container.appendChild(header);
+    container.appendChild(progressBar);
+
+    return container;
   }
 
   private getPowerUpIcon(type: string): IconType {
@@ -226,7 +250,6 @@ export class PowerUpDisplay {
 
     const element = notification.getElement();
     element.className = cn(
-      'powerup-notification',
       'fixed',
       'top-1/2',
       'left-1/2',
@@ -308,7 +331,6 @@ export class PowerUpDisplay {
 
     const element = notification.getElement();
     element.className = cn(
-      'item-pickup-notification',
       'fixed',
       'bottom-[120px]',
       'left-1/2',
@@ -374,7 +396,6 @@ export class PowerUpDisplay {
 
     const element = notification.getElement();
     element.className = cn(
-      'inventory-full-notification',
       'fixed',
       'bottom-[180px]',
       'left-1/2',
@@ -434,6 +455,14 @@ export class PowerUpDisplay {
       window.clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
+
+    // Clean up all progress bars
+    for (const [, progressBar] of this.powerUpProgressBars) {
+      if ((progressBar as any).destroy) {
+        (progressBar as any).destroy();
+      }
+    }
+    this.powerUpProgressBars.clear();
 
     // Clean up all power-up elements
     for (const powerUpId of this.activePowerUpIds) {

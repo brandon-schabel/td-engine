@@ -92,6 +92,13 @@ export class GameAudioHandler {
   }
 
   /**
+   * Tower destruction sound
+   */
+  playTowerDestroy(towerPosition: Vector2): void {
+    this.playPositionedSound(SoundType.TOWER_DESTROY, towerPosition);
+  }
+
+  /**
    * Player level up sound
    */
   playPlayerLevelUp(): void {

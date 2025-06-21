@@ -15,6 +15,7 @@ import type { FloatingUIManager } from './FloatingUIManager';
 import type { FloatingUIElement } from './FloatingUIElement';
 import { IconType } from '@/ui/icons/SvgIcons';
 import { formatNumber } from '@/utils/formatters';
+import { SoundType } from '@/audio/AudioManager';
 import {
   createCard,
   createClickableCard,
@@ -223,12 +224,26 @@ export class TowerUpgradeUI {
     towerInfo.className = cn('flex', 'items-center', 'gap-3');
 
     // Tower icon
+    const towerTypeMap: Record<string, string> = {
+      'BASIC': 'text-game-tower-basic border-game-tower-basic',
+      'SNIPER': 'text-game-tower-sniper border-game-tower-sniper',
+      'RAPID': 'text-game-tower-rapid border-game-tower-rapid',
+      'WALL': 'text-game-tower-wall border-game-tower-wall'
+    };
+    const towerTypeClasses = towerTypeMap[this.tower.towerType] || 'text-primary border-primary';
+    
     const towerIcon = createIconContainer({
       icon: this.getTowerIcon(),
-      size: 'sm',
+      size: 'md',
       variant: 'filled',
       color: 'primary',
-      customClasses: [`tower-type-${this.tower.towerType.toLowerCase()}`]
+      customClasses: [
+        'tower-icon',
+        'bg-black/30',
+        'border-2',
+        'transition-all',
+        ...towerTypeClasses.split(' ')
+      ]
     });
 
     // Tower details
@@ -248,7 +263,7 @@ export class TowerUpgradeUI {
 
     const towerStats = createInlineStats(stats, {
       variant: 'minimal',
-      showLabels: false
+      showLabels: true
     });
 
     towerDetails.appendChild(towerName);
@@ -311,8 +326,13 @@ export class TowerUpgradeUI {
         hoverable: canAfford && !isMaxed,
         clickable: canAfford && !isMaxed,
         customClasses: [
+          'tower-upgrade-card',
           'compact',
-          canAfford && !isMaxed ? 'can-afford' : '',
+          'bg-surface-secondary',
+          'transition-all',
+          'relative',
+          'overflow-hidden',
+          canAfford && !isMaxed ? 'can-afford hover:border-primary hover:bg-primary/10' : '',
           isMaxed ? 'maxed opacity-50' : ''
         ]
       }
@@ -325,7 +345,7 @@ export class TowerUpgradeUI {
     // Upgrade icon
     const icon = createIconContainer({
       icon: option.icon,
-      size: 'xs',
+      size: 'sm',
       variant: 'ghost',
       color: isMaxed ? 'muted' : 'primary'
     });
@@ -335,7 +355,7 @@ export class TowerUpgradeUI {
     info.className = cn('flex', 'flex-col', 'flex-1', 'min-w-0');
 
     const name = document.createElement('div');
-    name.className = cn('text-sm', 'font-medium', 'truncate');
+    name.className = cn('text-sm', 'font-medium', 'truncate', 'text-foreground');
     name.textContent = `${option.name} ${isMaxed ? 'MAX' : `${option.currentLevel}/${option.maxLevel}`}`;
 
     if (!isMaxed) {
@@ -378,6 +398,21 @@ export class TowerUpgradeUI {
     const container = document.createElement('div');
     container.className = cn('flex', 'gap-2');
 
+    // Repair button
+    const repairInfo = this.tower.getRepairInfo();
+    if (repairInfo.canRepair) {
+      const repairButton = createButton({
+        text: `Repair ${formatNumber(repairInfo.cost)}`,
+        variant: 'success',
+        size: 'sm',
+        icon: IconType.SETTINGS,
+        onClick: () => this.handleRepair(),
+        disabled: this.game.getCurrency() < repairInfo.cost,
+        customClasses: ['flex-1']
+      });
+      container.appendChild(repairButton);
+    }
+
     const sellButton = createButton({
       text: `Sell ${formatNumber(this.tower.getSellValue())}`,
       variant: 'danger',
@@ -406,6 +441,23 @@ export class TowerUpgradeUI {
       // Tower sold successfully - Game will handle cleanup
       this.destroy();
     }
+  }
+
+  private handleRepair(): void {
+    const repairInfo = this.tower.getRepairInfo();
+    if (!repairInfo.canRepair || this.game.getCurrency() < repairInfo.cost) {
+      return;
+    }
+    
+    // Deduct currency and repair
+    this.game.addCurrency(-repairInfo.cost);
+    this.tower.repair();
+    
+    // Play sound effect
+    this.game.getAudioManager()?.playUISound(SoundType.UPGRADE);
+    
+    // Update the UI
+    this.updateContent();
   }
 
   private getTowerName(): string {

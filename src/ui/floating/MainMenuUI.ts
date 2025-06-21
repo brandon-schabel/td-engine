@@ -14,6 +14,7 @@ import { SoundType } from '@/audio/AudioManager';
 import { AudioManager } from '@/audio/AudioManager';
 import { createButton } from '@/ui/elements';
 import { cn } from '@/ui/styles/UtilityStyles';
+import { PreGameConfigUI, type PreGameConfig } from './PreGameConfigUI';
 
 export class MainMenuUI {
   private floatingUI: FloatingUIManager;
@@ -76,7 +77,7 @@ export class MainMenuUI {
     buttonsContainer.className = cn('flex', 'flex-col', 'gap-4', 'mx-auto');
     buttonsContainer.style.maxWidth = '300px';
     
-    // Start Game button
+    // Start Game button - now opens pre-game config
     const startButton = createButton({
       text: 'Start Game',
       icon: IconType.PLAY,
@@ -84,10 +85,8 @@ export class MainMenuUI {
       size: 'lg',
       onClick: () => {
         this.audioManager?.playUISound(SoundType.BUTTON_CLICK);
-        if (this.onStart) {
-          this.onStart();
-        }
-        this.close();
+        // Show pre-game configuration dialog
+        this.showPreGameConfig();
       }
     });
     buttonsContainer.appendChild(startButton);
@@ -143,8 +142,40 @@ export class MainMenuUI {
       this.element = null;
     }
     
-    this.onStart = null;
-    this.onSettings = null;
-    this.onLeaderboard = null;
+    // Don't null out callbacks here - they might still be needed
+    // this.onStart = null;
+    // this.onSettings = null;
+    // this.onLeaderboard = null;
+  }
+
+  private showPreGameConfig(): void {
+    // Hide main menu
+    this.hide();
+    
+    // Show pre-game configuration
+    const preGameConfig = new PreGameConfigUI(this.floatingUI);
+    preGameConfig.show({
+      onStartGame: (config: PreGameConfig) => {
+        console.log('[MainMenuUI] onStartGame called with config:', config);
+        console.log('[MainMenuUI] this.onStart is:', this.onStart);
+        
+        // Pass the config to the start callback BEFORE closing
+        if (this.onStart) {
+          console.log('[MainMenuUI] Calling onStart callback...');
+          (this.onStart as any)(config);
+        }
+        
+        // Close main menu AFTER starting the game
+        this.close();
+      },
+      onBack: () => {
+        // Show main menu again
+        this.show({
+          onStart: this.onStart,
+          onSettings: this.onSettings,
+          onLeaderboard: this.onLeaderboard
+        });
+      }
+    });
   }
 }

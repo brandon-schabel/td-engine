@@ -217,7 +217,17 @@ function updateResourceContent(
  * Format value based on format type
  */
 function formatValue(value: number | string, format: string): string {
+  // For custom format, return the value as-is
+  if (format === 'custom') {
+    return String(value);
+  }
+  
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  // Check for NaN and handle it gracefully
+  if (isNaN(numValue)) {
+    return String(value);
+  }
   
   switch (format) {
     case 'currency':
@@ -246,10 +256,29 @@ function formatValue(value: number | string, format: string): string {
 function getVariantClasses(variant: string): string[] {
   switch (variant) {
     case 'compact':
-      return ['flex', 'items-center', 'gap-1'];
+      return [
+        'flex', 
+        'items-center', 
+        'gap-1',
+        'px-3',
+        'py-1.5',
+        'bg-surface-secondary',
+        'rounded-md',
+        'border',
+        'border-surface-border'
+      ];
     
     case 'large':
-      return ['flex', 'items-center', 'gap-3', 'p-3'];
+      return [
+        'flex', 
+        'items-center', 
+        'gap-3', 
+        'p-3',
+        'bg-surface-secondary',
+        'rounded-lg',
+        'border',
+        'border-surface-border'
+      ];
     
     case 'inline':
       return ['inline-flex', 'items-baseline', 'gap-1'];
@@ -268,7 +297,17 @@ function getVariantClasses(variant: string): string[] {
       ];
     
     default: // 'default'
-      return ['flex', 'items-center', 'gap-2'];
+      return [
+        'flex', 
+        'items-center', 
+        'gap-2',
+        'px-3',
+        'py-2',
+        'bg-surface-secondary',
+        'rounded-md',
+        'border',
+        'border-surface-border'
+      ];
   }
 }
 

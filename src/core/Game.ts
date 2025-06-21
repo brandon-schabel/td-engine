@@ -86,6 +86,7 @@ export class Game {
   private floatingUIManager: FloatingUIManager;
   private uiController: UIController;
   private powerUpDisplay: any = null; // Reference to PowerUpDisplay for notifications
+  private playerLevelDisplay: any = null; // Reference to PlayerLevelDisplay for notifications
 
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
@@ -95,6 +96,7 @@ export class Game {
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
+  private firstRenderLogged: boolean = false;
 
 
   constructor(
@@ -669,6 +671,12 @@ export class Game {
     );
     this.towers = this.towers.filter((tower) => {
       if (!tower.isAlive) {
+        // Play destruction sound
+        this.audioHandler.playTowerDestroy(tower.position);
+        
+        // Create destruction visual effect
+        this.createTowerDestructionEffect(tower);
+        
         // Remove health bar when tower dies
         const healthBarId = `healthbar_${tower.id}`;
         this.floatingUIManager.remove(healthBarId);
@@ -679,6 +687,11 @@ export class Game {
           this.currentTowerUpgradeUI = null;
           this.selectedTower = null;
         }
+        
+        // Clear grid cell
+        const gridPos = this.grid.worldToGrid(tower.position);
+        this.grid.setCellType(gridPos.x, gridPos.y, CellType.EMPTY);
+        
         return false;
       }
       return true;
@@ -770,6 +783,12 @@ export class Game {
   }
 
   render = (_deltaTime: number): void => {
+    // Log first render to debug
+    if (!this.firstRenderLogged) {
+      console.log('[Game] First render - Player:', this.player, 'Towers:', this.towers.length, 'Enemies:', this.enemies.length);
+      this.firstRenderLogged = true;
+    }
+    
     // Render main scene including player
     this.renderer.renderScene(
       this.towers,
@@ -1367,7 +1386,15 @@ export class Game {
     ) {
       // Award experience based on enemy reward (could be adjusted)
       const experienceGain = enemy.reward * GAMEPLAY_CONSTANTS.scoring.enemyKillBase; // XP based on base enemy score
-      (this.player as any).addExperience(experienceGain);
+      const leveledUp = (this.player as any).addExperience(experienceGain);
+      
+      // Show level up notification if player leveled up
+      if (leveledUp && this.playerLevelDisplay && this.playerLevelDisplay.showLevelUpNotification) {
+        const levelSystem = this.player.getPlayerLevelSystem();
+        const newLevel = levelSystem.getLevel();
+        const pointsEarned = newLevel === 10 || newLevel === 20 || newLevel === 30 || newLevel === 40 || newLevel === 50 ? 2 : 1;
+        this.playerLevelDisplay.showLevelUpNotification(newLevel, pointsEarned);
+      }
     }
 
     // Enhanced item drop system
@@ -1411,6 +1438,13 @@ export class Game {
 
   setSelectedTowerType(towerType: TowerType | null): void {
     this.selectedTowerType = towerType;
+    
+    // Enter or exit build mode based on tower selection
+    if (towerType) {
+      this.uiController.enterBuildMode(towerType);
+    } else {
+      this.uiController.exitBuildMode();
+    }
   }
 
   getSelectedTowerType(): TowerType | null {
@@ -1638,6 +1672,10 @@ export class Game {
   // Set PowerUpDisplay reference for notifications
   setPowerUpDisplay(powerUpDisplay: any): void {
     this.powerUpDisplay = powerUpDisplay;
+  }
+
+  setPlayerLevelDisplay(playerLevelDisplay: any): void {
+    this.playerLevelDisplay = playerLevelDisplay;
   }
 
   // Map generation methods
@@ -2084,7 +2122,7 @@ export class Game {
 
     // Create a simple notification element
     const notification = document.createElement("div");
-    notification.className = 'item-pickup-notification-fallback';
+    notification.className = 'item-pickup-notification-fallback animate-slideDown';
 
     // Create icon based on item type
     const getItemIcon = (item: InventoryItem): string => {
@@ -2108,12 +2146,9 @@ export class Game {
 
     // Remove after delay
     setTimeout(() => {
-      notification.classList.add('slide-up');
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, ANIMATION_CONFIG.durations.slow);
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
     }, ANIMATION_CONFIG.durations.slowest * 2);
   }
 
@@ -2129,7 +2164,7 @@ export class Game {
     console.warn('[Game] PowerUpDisplay not available, using fallback notification');
 
     const notification = document.createElement("div");
-    notification.className = 'inventory-full-notification-fallback';
+    notification.className = 'inventory-full-notification-fallback animate-slideDown';
 
     notification.innerHTML = `⚠️ Inventory full! ${item.name} used immediately`;
 
@@ -2137,12 +2172,9 @@ export class Game {
 
     // Remove after delay
     setTimeout(() => {
-      notification.classList.add('slide-up');
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, ANIMATION_CONFIG.durations.slow);
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
     }, ANIMATION_CONFIG.durations.slowest * 3);
   }
 
@@ -2290,5 +2322,142 @@ export class Game {
 
   getUIController(): UIController {
     return this.uiController;
+  }
+
+  /**
+   * Create visual destruction effect for tower
+   */
+  private createTowerDestructionEffect(tower: Tower): void {
+    // Create explosion particles
+    const particleCount = 15;
+    const colors = ['#ff6b6b', '#ffd166', '#f4a261', '#e76f51'];
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 * i) / particleCount;
+      const speed = 100 + Math.random() * 100;
+      const lifetime = 500 + Math.random() * 500;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      // Create particle element
+      const particle = this.floatingUIManager.create(
+        `destruction-particle-${tower.id}-${i}`,
+        'custom',
+        {
+          persistent: false,
+          autoHide: false,
+          smoothing: 0,
+          className: 'destruction-particle'
+        }
+      );
+      
+      // Create particle visual
+      const particleEl = document.createElement('div');
+      particleEl.style.cssText = `
+        width: 8px;
+        height: 8px;
+        background-color: ${color};
+        border-radius: 50%;
+        position: absolute;
+        pointer-events: none;
+      `;
+      
+      particle.setContent(particleEl);
+      particle.setTarget(tower as any);
+      particle.enable();
+      
+      // Animate particle
+      let elapsed = 0;
+      const startTime = Date.now();
+      const velocity = {
+        x: Math.cos(angle) * speed,
+        y: Math.sin(angle) * speed
+      };
+      
+      const updateParticle = () => {
+        elapsed = Date.now() - startTime;
+        if (elapsed >= lifetime) {
+          this.floatingUIManager.remove(particle.id);
+          return;
+        }
+        
+        const progress = elapsed / lifetime;
+        const currentPos = {
+          x: tower.position.x + (velocity.x * elapsed) / 1000,
+          y: tower.position.y + (velocity.y * elapsed) / 1000
+        };
+        
+        // Update position
+        particle.setTarget({
+          position: currentPos,
+          getPosition: () => currentPos
+        } as any);
+        
+        // Fade out and shrink
+        particleEl.style.opacity = String(1 - progress);
+        particleEl.style.transform = `scale(${1 - progress * 0.5})`;
+        
+        requestAnimationFrame(updateParticle);
+      };
+      
+      requestAnimationFrame(updateParticle);
+    }
+    
+    // Create shockwave effect
+    const shockwave = this.floatingUIManager.create(
+      `destruction-shockwave-${tower.id}`,
+      'custom',
+      {
+        persistent: false,
+        autoHide: false,
+        smoothing: 0,
+        className: 'destruction-shockwave'
+      }
+    );
+    
+    const shockwaveEl = document.createElement('div');
+    shockwaveEl.style.cssText = `
+      width: ${tower.radius * 2}px;
+      height: ${tower.radius * 2}px;
+      border: 3px solid #ff6b6b;
+      border-radius: 50%;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0.8;
+    `;
+    
+    shockwave.setContent(shockwaveEl);
+    shockwave.setTarget(tower as any);
+    shockwave.enable();
+    
+    // Animate shockwave
+    let shockwaveElapsed = 0;
+    const shockwaveStartTime = Date.now();
+    const shockwaveDuration = 600;
+    
+    const updateShockwave = () => {
+      shockwaveElapsed = Date.now() - shockwaveStartTime;
+      if (shockwaveElapsed >= shockwaveDuration) {
+        this.floatingUIManager.remove(shockwave.id);
+        return;
+      }
+      
+      const progress = shockwaveElapsed / shockwaveDuration;
+      const scale = 1 + progress * 2;
+      
+      shockwaveEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      shockwaveEl.style.opacity = String(0.8 * (1 - progress));
+      
+      requestAnimationFrame(updateShockwave);
+    };
+    
+    requestAnimationFrame(updateShockwave);
+    
+    // Show damage number indicating tower was destroyed
+    this.floatingUIManager.createDamageNumber(
+      tower,
+      'DESTROYED',
+      'critical'
+    );
   }
 }

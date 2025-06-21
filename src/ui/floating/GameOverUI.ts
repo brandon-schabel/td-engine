@@ -46,7 +46,7 @@ export class GameOverUI {
       title: 'Game Over',
       modal: true,
       closeable: false,
-      className: 'game-over-dialog'
+      className: cn('min-w-[500px]', 'text-center', 'max-w-[90vw]', 'sm:min-w-[320px]')
     });
 
     // Remove style injection - styles are now in ComponentStyles.ts
@@ -54,7 +54,7 @@ export class GameOverUI {
 
   private createContent(): HTMLElement {
     const content = document.createElement('div');
-    content.className = cn('game-over-content');
+    content.className = cn('py-6', 'px-0');
 
     const stats = this.game.getGameStats();
     const score = this.game.getScore();
@@ -62,21 +62,18 @@ export class GameOverUI {
 
     // Score display
     const statsDiv = document.createElement('div');
-    statsDiv.className = cn('rounded-lg', 'p-8', 'mb-8');
-    statsDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+    statsDiv.className = cn('rounded-lg', 'p-8', 'mb-8', 'bg-black/30');
 
     // Create score display with proper DOM elements
     const scoreDiv = document.createElement('div');
-    scoreDiv.className = cn('game-over-score', 'ui-pulse');
+    scoreDiv.className = cn('mb-6', 'animate-pulse');
     
     const scoreLabel = document.createElement('span');
     scoreLabel.className = cn('text-lg', 'text-secondary', 'block', 'mb-2');
     scoreLabel.textContent = 'Final Score';
     
     const scoreValue = document.createElement('span');
-    scoreValue.className = cn('font-bold', 'text-success', 'block');
-    scoreValue.style.fontSize = '48px';
-    scoreValue.style.textShadow = '0 4px 8px rgba(0, 0, 0, 0.5)';
+    scoreValue.className = cn('font-bold', 'text-success', 'block', 'text-5xl', 'drop-shadow-lg');
     scoreValue.textContent = formatNumber(score);
     
     scoreDiv.appendChild(scoreLabel);
@@ -139,9 +136,8 @@ export class GameOverUI {
         }
         this.close();
       },
-      customClasses: ['uppercase']
+      customClasses: ['uppercase', 'min-w-[180px]']
     });
-    restartButton.style.minWidth = '180px';
     buttonsDiv.appendChild(restartButton);
 
     // Create main menu button using button abstraction
@@ -159,9 +155,8 @@ export class GameOverUI {
         }
         this.close();
       },
-      customClasses: ['uppercase']
+      customClasses: ['uppercase', 'min-w-[180px]']
     });
-    menuButton.style.minWidth = '180px';
     buttonsDiv.appendChild(menuButton);
 
     content.appendChild(buttonsDiv);

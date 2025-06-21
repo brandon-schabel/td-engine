@@ -19,7 +19,7 @@ export class TouchIndicator {
     
     // Create new indicator
     const indicator = document.createElement('div');
-    indicator.className = 'touch-indicator';
+    indicator.className = 'touch-indicator animate-touchPulse';
     indicator.style.left = `${x}px`;
     indicator.style.top = `${y}px`;
     
@@ -34,7 +34,7 @@ export class TouchIndicator {
   
   showRipple(x: number, y: number): void {
     const ripple = document.createElement('div');
-    ripple.className = 'touch-ripple';
+    ripple.className = 'touch-ripple animate-rippleEffect';
     ripple.style.left = `${x}px`;
     ripple.style.top = `${y}px`;
     
