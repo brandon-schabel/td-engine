@@ -121,67 +121,6 @@ export class MainMenuUI {
     
     content.appendChild(buttonsContainer);
     
-    // Add styles
-    const style = document.createElement('style');
-    style.textContent = `
-      .main-menu-dialog {
-        min-width: 400px;
-      }
-      
-      .main-menu-content {
-        padding: var(--spacing-xl);
-        text-align: center;
-      }
-      
-      .main-menu-logo {
-        margin-bottom: var(--spacing-xl);
-      }
-      
-      .logo-icon {
-        margin-bottom: var(--spacing-md);
-        color: var(--color-button-primary);
-      }
-      
-      .logo-text {
-        font-size: var(--font-3xl);
-        font-weight: bold;
-        margin: 0 0 var(--spacing-xs) 0;
-        background: linear-gradient(45deg, var(--color-button-primary), var(--color-button-hover));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-      
-      .logo-subtitle {
-        font-size: var(--font-lg);
-        color: var(--color-text-secondary);
-      }
-      
-      .main-menu-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-md);
-        max-width: 300px;
-        margin: 0 auto;
-      }
-      
-      .main-menu-buttons .ui-button {
-        width: 100%;
-        justify-content: center;
-      }
-      
-      @media (max-width: 480px) {
-        .main-menu-dialog {
-          min-width: 90vw;
-        }
-        
-        .main-menu-content {
-          padding: var(--spacing-lg);
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    
     return content;
   }
   

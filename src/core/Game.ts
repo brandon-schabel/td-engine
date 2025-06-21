@@ -2084,23 +2084,7 @@ export class Game {
 
     // Create a simple notification element
     const notification = document.createElement("div");
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(76, 175, 80, 0.9);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      z-index: 10000;
-      pointer-events: none;
-      animation: slideDown 0.3s ease-out;
-      border: 1px solid #4CAF50;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    `;
+    notification.className = 'item-pickup-notification-fallback';
 
     // Create icon based on item type
     const getItemIcon = (item: InventoryItem): string => {
@@ -2119,44 +2103,15 @@ export class Game {
     const icon = getItemIcon(item);
     notification.innerHTML = `${icon} ${item.name} added to inventory`;
 
-    // Add animation styles
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes slideDown {
-        from {
-          opacity: 0;
-          transform: translate(-50%, -20px);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, 0);
-        }
-      }
-      @keyframes slideUp {
-        from {
-          opacity: 1;
-          transform: translate(-50%, 0);
-        }
-        to {
-          opacity: 0;
-          transform: translate(-50%, -20px);
-        }
-      }
-    `;
-    document.head.appendChild(style);
-
     // Add to page
     document.body.appendChild(notification);
 
     // Remove after delay
     setTimeout(() => {
-      notification.style.animation = `slideUp ${ANIMATION_CONFIG.durations.slow}ms ease-in`;
+      notification.classList.add('slide-up');
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);
-        }
-        if (style.parentNode) {
-          style.parentNode.removeChild(style);
         }
       }, ANIMATION_CONFIG.durations.slow);
     }, ANIMATION_CONFIG.durations.slowest * 2);
@@ -2174,23 +2129,7 @@ export class Game {
     console.warn('[Game] PowerUpDisplay not available, using fallback notification');
 
     const notification = document.createElement("div");
-    notification.style.cssText = `
-      position: fixed;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255, 193, 7, 0.9);
-      color: #000;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      z-index: 10000;
-      pointer-events: none;
-      animation: slideDown 0.3s ease-out;
-      border: 1px solid #FFC107;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    `;
+    notification.className = 'inventory-full-notification-fallback';
 
     notification.innerHTML = `⚠️ Inventory full! ${item.name} used immediately`;
 
@@ -2198,7 +2137,7 @@ export class Game {
 
     // Remove after delay
     setTimeout(() => {
-      notification.style.animation = `slideUp ${ANIMATION_CONFIG.durations.slow}ms ease-in`;
+      notification.classList.add('slide-up');
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);

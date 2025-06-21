@@ -3,9 +3,6 @@ import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
-import { UI_CONSTANTS } from '@/config/UIConstants';
-import { COLOR_THEME } from '@/config/ColorTheme';
-import { isMobile } from '@/config/ResponsiveConfig';
 import { GameSettings, Difficulty, SettingsManager } from '@/config/GameSettings';
 import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
 
@@ -15,14 +12,12 @@ export class SettingsUI {
   private game: Game;
   private settings: SettingsManager;
   private onSettingsChange: ((settings: GameSettings) => void) | null = null;
-  private anchorElement: HTMLElement | null = null;
-  private modalOverlay: HTMLElement | null = null;
 
-  constructor(game: Game, anchorElement?: HTMLElement) {
+  constructor(game: Game, _anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
     this.settings = SettingsManager.getInstance();
-    this.anchorElement = anchorElement || null;
+    // _anchorElement parameter kept for backward compatibility but not used with createDialog
   }
 
   public show(onSettingsChange?: (settings: GameSettings) => void): void {
@@ -40,350 +35,30 @@ export class SettingsUI {
   private create(): void {
     const elementId = 'settings-ui';
 
-    // Create the dialog element
-    this.element = this.floatingUI.create(elementId, 'dialog', {
-      persistent: true,
-      autoHide: false,
-      className: 'settings-dialog',
-      screenSpace: true,
-      anchorElement: this.anchorElement || undefined,
-      anchor: this.anchorElement ? 'top' : 'center',
-      offset: this.anchorElement ? { x: 0, y: -10 } : { x: 0, y: 0 },
-      zIndex: 400 // Ensure it's above the overlay
-    });
+    // Create the dialog element using createDialog
+    this.element = this.floatingUI.createDialog(
+      elementId,
+      this.createContent(),
+      {
+        title: 'Game Settings',
+        modal: true,
+        closeable: true,
+        onClose: () => this.handleClose(),
+        className: 'settings-dialog'
+      }
+    );
 
-    // Create the dialog structure
-    const dialogContent = this.createDialogStructure();
-    this.element.setContent(dialogContent);
-
-    // Position at center of screen if no anchor
-    if (!this.anchorElement) {
-      const centerPos = {
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
-        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-        getPosition: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
-      };
-      this.element.setTarget(centerPos as any);
-    }
+    // Position at center of screen
+    const centerPos = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      getPosition: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    };
+    this.element.setTarget(centerPos as any);
 
     // Enable the element
     this.element.enable();
-    
-    // Add modal overlay
-    this.addModalOverlay();
-
-    // Add custom styles for settings
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .settings-dialog {
-        min-width: ${isMobile(window.innerWidth) ? '320px' : '500px'};
-        max-width: 90vw;
-        pointer-events: auto;
-      }
-      
-      .settings-dialog-content {
-        background: ${COLOR_THEME.ui.background.primary};
-        border: 1px solid ${COLOR_THEME.ui.border.default};
-        border-radius: 8px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        display: flex;
-        flex-direction: column;
-        max-height: 90vh;
-      }
-      
-      .settings-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: ${UI_CONSTANTS.spacing.md}px;
-        border-bottom: 1px solid ${COLOR_THEME.ui.border.default};
-      }
-      
-      .settings-title {
-        font-size: ${isMobile(window.innerWidth) ? '18px' : '20px'};
-        font-weight: bold;
-        color: ${COLOR_THEME.ui.text.primary};
-        margin: 0;
-      }
-      
-      .settings-close {
-        background: ${COLOR_THEME.ui.button.secondary};
-        border: 1px solid ${COLOR_THEME.ui.border.default};
-        border-radius: 4px;
-        color: ${COLOR_THEME.ui.text.primary};
-        cursor: pointer;
-        padding: ${UI_CONSTANTS.spacing.xs}px;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-      }
-      
-      .settings-close:hover {
-        background: ${COLOR_THEME.ui.button.danger};
-        transform: scale(1.1);
-      }
-      
-      .settings-close svg {
-        width: 20px;
-        height: 20px;
-      }
-      
-      .settings-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: ${UI_CONSTANTS.spacing.md}px;
-      }
-      
-      .settings-content {
-        padding: ${UI_CONSTANTS.spacing.md}px 0;
-      }
-      
-      .settings-section {
-        margin-bottom: ${UI_CONSTANTS.spacing.xl}px;
-        padding: ${UI_CONSTANTS.spacing.md}px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-      }
-      
-      .settings-section-title {
-        font-size: ${isMobile(window.innerWidth) ? '16px' : '18px'};
-        font-weight: bold;
-        color: ${COLOR_THEME.ui.text.primary};
-        margin-bottom: ${UI_CONSTANTS.spacing.md}px;
-        display: flex;
-        align-items: center;
-        gap: ${UI_CONSTANTS.spacing.sm}px;
-      }
-      
-      .settings-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin: ${UI_CONSTANTS.spacing.md}px 0;
-        padding: ${UI_CONSTANTS.spacing.sm}px 0;
-      }
-      
-      .settings-label {
-        color: ${COLOR_THEME.ui.text.secondary};
-        font-size: ${isMobile(window.innerWidth) ? '14px' : '16px'};
-        flex: 1;
-      }
-      
-      .settings-control {
-        display: flex;
-        align-items: center;
-        gap: ${UI_CONSTANTS.spacing.sm}px;
-      }
-      
-      .slider-container {
-        display: flex;
-        align-items: center;
-        gap: ${UI_CONSTANTS.spacing.sm}px;
-        min-width: ${isMobile(window.innerWidth) ? '120px' : '150px'};
-      }
-      
-      .slider {
-        flex: 1;
-        height: 6px;
-        background: ${COLOR_THEME.ui.background.primary};
-        border-radius: 3px;
-        outline: none;
-        -webkit-appearance: none;
-      }
-      
-      .slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 20px;
-        height: 20px;
-        background: ${COLOR_THEME.ui.button.primary};
-        border-radius: 50%;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      
-      .slider::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-        background: ${COLOR_THEME.ui.button.success};
-      }
-      
-      .slider-value {
-        min-width: 40px;
-        text-align: right;
-        color: ${COLOR_THEME.ui.text.primary};
-        font-weight: bold;
-      }
-      
-      .toggle-switch {
-        position: relative;
-        width: 60px;
-        height: 30px;
-        background: ${COLOR_THEME.ui.background.primary};
-        border-radius: 15px;
-        cursor: pointer;
-        transition: background 0.3s;
-      }
-      
-      .toggle-switch.active {
-        background: ${COLOR_THEME.ui.button.success};
-      }
-      
-      .toggle-switch-handle {
-        position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 24px;
-        height: 24px;
-        background: white;
-        border-radius: 50%;
-        transition: transform 0.3s;
-      }
-      
-      .toggle-switch.active .toggle-switch-handle {
-        transform: translateX(30px);
-      }
-      
-      .difficulty-buttons {
-        display: flex;
-        gap: ${UI_CONSTANTS.spacing.sm}px;
-        flex-wrap: wrap;
-      }
-      
-      .difficulty-button {
-        padding: ${UI_CONSTANTS.spacing.sm}px ${UI_CONSTANTS.spacing.md}px;
-        background: ${COLOR_THEME.ui.button.secondary};
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: all 0.2s;
-        font-size: ${isMobile(window.innerWidth) ? '12px' : '14px'};
-      }
-      
-      .difficulty-button:hover {
-        opacity: 0.8;
-      }
-      
-      .difficulty-button.active {
-        background: ${COLOR_THEME.ui.button.primary};
-      }
-      
-      .difficulty-button.easy {
-        background: #4CAF50;
-      }
-      
-      .difficulty-button.normal.active {
-        background: #2196F3;
-      }
-      
-      .difficulty-button.hard {
-        background: #FF9800;
-      }
-      
-      .difficulty-button.expert {
-        background: #F44336;
-      }
-      
-      .settings-footer {
-        display: flex;
-        justify-content: space-between;
-        gap: ${UI_CONSTANTS.spacing.md}px;
-        margin-top: ${UI_CONSTANTS.spacing.xl}px;
-      }
-      
-      .settings-button {
-        flex: 1;
-        padding: ${UI_CONSTANTS.spacing.md}px;
-        background: ${COLOR_THEME.ui.button.primary};
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: ${isMobile(window.innerWidth) ? '14px' : '16px'};
-      }
-      
-      .settings-button:hover {
-        opacity: 0.8;
-      }
-      
-      .settings-button.save {
-        background: ${COLOR_THEME.ui.button.success};
-      }
-      
-      .settings-button.reset {
-        background: ${COLOR_THEME.ui.button.danger};
-      }
-    `;
-    document.head.appendChild(styleElement);
-
-    // Store style element reference for cleanup
-    (this.element as any)._settingsStyleElement = styleElement;
-  }
-
-  private createDialogStructure(): HTMLElement {
-    const dialog = document.createElement('div');
-    dialog.className = 'settings-dialog-content';
-
-    // Create header
-    const header = document.createElement('div');
-    header.className = 'settings-header';
-    
-    const title = document.createElement('h2');
-    title.className = 'settings-title';
-    title.textContent = 'Game Settings';
-    header.appendChild(title);
-
-    // Create close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'ui-button settings-close';
-    closeButton.innerHTML = createSvgIcon(IconType.CLOSE, { size: 20 });
-    closeButton.title = 'Close';
-    closeButton.setAttribute('aria-label', 'Close settings');
-    addClickAndTouchSupport(closeButton, () => this.handleClose());
-    header.appendChild(closeButton);
-
-    dialog.appendChild(header);
-
-    // Create content wrapper
-    const contentWrapper = document.createElement('div');
-    contentWrapper.className = 'settings-body';
-    contentWrapper.appendChild(this.createContent());
-    dialog.appendChild(contentWrapper);
-
-    return dialog;
-  }
-
-  private addModalOverlay(): void {
-    if (this.modalOverlay) return;
-
-    this.modalOverlay = document.createElement('div');
-    this.modalOverlay.className = 'settings-modal-overlay';
-    this.modalOverlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 398;
-      backdrop-filter: blur(4px);
-    `;
-    
-    this.modalOverlay.addEventListener('click', () => this.handleClose());
-    document.body.appendChild(this.modalOverlay);
-  }
-
-  private removeModalOverlay(): void {
-    if (this.modalOverlay) {
-      this.modalOverlay.remove();
-      this.modalOverlay = null;
-    }
   }
 
   private createContent(): HTMLElement {
@@ -622,7 +297,15 @@ export class SettingsUI {
 
   private updateContent(): void {
     if (!this.element) return;
-    this.element.setContent(this.createContent());
+    
+    // Find the content area within the dialog
+    const contentElement = this.element.getElement().querySelector('.ui-dialog-content');
+    if (contentElement) {
+      // Clear existing content
+      contentElement.innerHTML = '';
+      // Add new content
+      contentElement.appendChild(this.createContent());
+    }
   }
 
   private handleClose(): void {
@@ -642,15 +325,6 @@ export class SettingsUI {
   }
 
   public destroy(): void {
-    // Clean up custom styles
-    const styleElement = this.element && (this.element as any)._settingsStyleElement;
-    if (styleElement) {
-      styleElement.remove();
-    }
-
-    // Remove modal overlay
-    this.removeModalOverlay();
-
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;

@@ -178,9 +178,9 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       };
       const towerName = towerNames[selectedType] || selectedType;
       towerPlacementIndicator.innerHTML = `📍 Tap to place ${towerName}`;
-      towerPlacementIndicator.style.display = "block";
+      towerPlacementIndicator.classList.add('visible');
     } else {
-      towerPlacementIndicator.style.display = "none";
+      towerPlacementIndicator.classList.remove('visible');
     }
   };
 
@@ -376,11 +376,11 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   const updateButtonStates = () => {
     // Update start wave button state
     if (game.isWaveComplete() && !game.isGameOverPublic()) {
-      startWaveButton.style.opacity = "1";
-      startWaveButton.style.pointerEvents = "auto";
+      startWaveButton.classList.remove('disabled');
+      startWaveButton.disabled = false;
     } else {
-      startWaveButton.style.opacity = "0.5";
-      startWaveButton.style.pointerEvents = "none";
+      startWaveButton.classList.add('disabled');
+      startWaveButton.disabled = true;
     }
   };
 
@@ -479,7 +479,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Position camera controls fixed at top right
   const cameraControlsElement = cameraControls.getElement();
-  cameraControlsElement.style.cssText = 'position: fixed; top: 120px; right: 10px;';
+  cameraControlsElement.classList.add('camera-controls-positioned');
 
   // Create zoom display
   const zoomDisplay = document.createElement('div');
@@ -609,8 +609,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       setTimeout(() => {
         const controlsEl = document.querySelector(".mobile-controls");
         if (controlsEl) {
-          (controlsEl as HTMLElement).style.display = "block";
-          (controlsEl as HTMLElement).style.visibility = "visible";
+          (controlsEl as HTMLElement).classList.add('visible');
+          (controlsEl as HTMLElement).classList.remove('hidden');
           console.log("[SimpleGameUI] Forced mobile controls visibility");
         } else {
           console.log(
@@ -709,9 +709,15 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       ".mobile-controls"
     ) as HTMLElement;
     if (controlsEl) {
-      const currentDisplay = window.getComputedStyle(controlsEl).display;
-      controlsEl.style.display = currentDisplay === "none" ? "block" : "none";
-      console.log("[Debug] Mobile controls display:", controlsEl.style.display);
+      const isVisible = controlsEl.classList.contains('visible');
+      if (isVisible) {
+        controlsEl.classList.remove('visible');
+        controlsEl.classList.add('hidden');
+      } else {
+        controlsEl.classList.add('visible');
+        controlsEl.classList.remove('hidden');
+      }
+      console.log("[Debug] Mobile controls visible:", !isVisible);
 
       // Log all joystick elements
       // Joysticks are initialized elsewhere

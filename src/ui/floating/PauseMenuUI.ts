@@ -3,9 +3,6 @@ import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
-import { UI_CONSTANTS } from '@/config/UIConstants';
-import { COLOR_THEME } from '@/config/ColorTheme';
-import { isMobile } from '@/config/ResponsiveConfig';
 
 export class PauseMenuUI {
   private floatingUI: FloatingUIManager;
@@ -47,91 +44,6 @@ export class PauseMenuUI {
       closeable: false,
       className: 'pause-menu-dialog'
     });
-
-    // Add custom styles for pause menu
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .pause-menu-dialog {
-        min-width: ${isMobile(window.innerWidth) ? '280px' : '400px'};
-        text-align: center;
-      }
-      
-      .pause-menu-dialog .dialog-title {
-        font-size: ${isMobile(window.innerWidth) ? '24px' : '32px'};
-        text-transform: uppercase;
-        letter-spacing: 2px;
-      }
-      
-      .pause-menu-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: ${UI_CONSTANTS.spacing.md}px;
-        padding: ${UI_CONSTANTS.spacing.lg}px 0;
-      }
-      
-      .pause-menu-button {
-        padding: ${UI_CONSTANTS.spacing.md}px ${UI_CONSTANTS.spacing.xl}px;
-        background: ${COLOR_THEME.ui.button.primary};
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: ${isMobile(window.innerWidth) ? '16px' : '18px'};
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: ${UI_CONSTANTS.spacing.sm}px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      
-      .pause-menu-button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
-      
-      .pause-menu-button.resume {
-        background: ${COLOR_THEME.ui.button.success};
-      }
-      
-      .pause-menu-button.restart {
-        background: ${COLOR_THEME.ui.button.danger};
-      }
-      
-      .pause-menu-button.settings {
-        background: ${COLOR_THEME.ui.button.secondary};
-      }
-      
-      .pause-info {
-        margin-top: ${UI_CONSTANTS.spacing.lg}px;
-        padding: ${UI_CONSTANTS.spacing.md}px;
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 8px;
-        font-size: ${isMobile(window.innerWidth) ? '12px' : '14px'};
-        color: ${COLOR_THEME.ui.text.secondary};
-      }
-      
-      .pause-info-item {
-        display: flex;
-        justify-content: space-between;
-        margin: ${UI_CONSTANTS.spacing.sm}px 0;
-      }
-      
-      .pause-info-label {
-        color: ${COLOR_THEME.ui.text.primary};
-      }
-      
-      .pause-info-value {
-        font-weight: bold;
-        color: ${COLOR_THEME.ui.text.success};
-      }
-    `;
-    document.head.appendChild(styleElement);
-
-    // Store style element reference for cleanup
-    (this.element as any)._pauseStyleElement = styleElement;
   }
 
   private createContent(): HTMLElement {
@@ -245,12 +157,6 @@ export class PauseMenuUI {
   }
 
   public destroy(): void {
-    // Clean up custom styles
-    const styleElement = this.element && (this.element as any)._pauseStyleElement;
-    if (styleElement) {
-      styleElement.remove();
-    }
-
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;

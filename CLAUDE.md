@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Keep this file update with the 10 most important changes, for example for architectural changes it should mention to never use the old way anymore, when the old way is found, remove it in place of the new way until the codebase is refactored to the new way(that is if something changes)
+
 ## TDD
 
 Before writing a new feature and integrating it, ensure the tests are in a passing, after implementing the feature make sure tests are still passing, and make sure any new tests are passing
@@ -86,8 +88,9 @@ The codebase now uses FloatingUIManager as the single UI system for all popups, 
 ### UI Styling Migration (December 2024)
 
 Completed migration from inline styles to centralized CSS class-based styling system:
-- **Migrated Components**: TowerUpgradeUI, BuildMenuUI, InventoryUI, PlayerUpgradeUI, IconButton, SimplePowerUpDisplay, SimpleItemTooltip
-- **Removed all inline styles** - No more `style.cssText` or inline style attributes
+- **Migrated Components**: All UI components including TowerUpgradeUI, BuildMenuUI, InventoryUI, PlayerUpgradeUI, IconButton, SimplePowerUpDisplay, SimpleItemTooltip, MainMenuUI, PauseMenuUI, SettingsUI, Game.ts notifications, SimpleGameUI controls, and helpers.ts utilities
+- **Removed all inline styles** - No more `style.cssText`, `createElement('style')`, or direct style property manipulation
+- **Unified Dialog System**: SettingsUI refactored to use `floatingUI.createDialog()` eliminating duplicate modal overlay logic
 - **Centralized styles** - All styles now in `ComponentStyles.ts` using CSS classes
 - **Design token integration** - CSS custom properties generated from configuration files
 - **Performance improvements** - CSS animations instead of JavaScript
