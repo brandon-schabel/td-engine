@@ -9,7 +9,7 @@ import { ItemTooltip } from '../components/inventory/SimpleItemTooltip';
 import { IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { isMobile, isTablet } from '@/config/ResponsiveConfig';
-import { createDialogHeader, createTabBar, createButton, type Tab } from '@/ui/elements';
+import { createDialogHeader, createTabBar, createButton, cn, type Tab } from '@/ui/elements';
 
 export class InventoryUI {
   private floatingUI: FloatingUIManager;
@@ -117,7 +117,7 @@ export class InventoryUI {
     if (!this.element) return;
 
     const content = document.createElement('div');
-    content.className = 'inventory-dialog ui-dialog';
+    content.className = cn('ui-dialog', 'p-0');
     
     // Create header with close button
     const header = createDialogHeader('Inventory', () => this.close());
@@ -126,30 +126,32 @@ export class InventoryUI {
     // Create tabs section
     const tabsContainer = document.createElement('div');
     tabsContainer.id = 'inventory-tabs';
-    tabsContainer.className = 'inventory-tabs';
+    tabsContainer.className = cn('p-4', 'pb-0');
     content.appendChild(tabsContainer);
     
     // Create inventory grid
     const grid = document.createElement('div');
     grid.id = 'inventory-grid';
-    grid.className = 'inventory-grid';
-    grid.dataset.columns = String(isMobile(window.innerWidth) ? 4 : isTablet(window.innerWidth) ? 6 : 8);
+    grid.className = cn('grid', 'gap-2', 'p-2', 'rounded-md', 'max-h-[400px]', 'overflow-y-auto');
+    const columns = isMobile(window.innerWidth) ? 4 : isTablet(window.innerWidth) ? 6 : 8;
+    grid.dataset.columns = String(columns);
+    grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
     content.appendChild(grid);
     
     // Create footer
     const footer = document.createElement('div');
-    footer.className = 'inventory-footer';
+    footer.className = cn('flex', 'justify-between', 'items-center', 'mt-5', 'pt-4', 'border-t', 'border-default', 'p-4');
     
     // Stats display
     const stats = document.createElement('div');
-    stats.className = 'inventory-stats';
+    stats.className = cn('text-sm', 'text-secondary');
     stats.id = 'inventory-stats';
     stats.textContent = '0/0 slots';
     footer.appendChild(stats);
     
     // Action buttons container
     const actions = document.createElement('div');
-    actions.className = 'inventory-actions';
+    actions.className = cn('flex', 'gap-2');
     
     // Sort button
     const sortButton = createButton({
@@ -241,7 +243,7 @@ export class InventoryUI {
       onChange: (tabId) => {
         this.setActiveTab(tabId as ItemType | 'ALL');
       },
-      customClasses: ['inventory-tab-bar']
+      customClasses: []
     });
     
     tabsContainer.appendChild(tabBar);

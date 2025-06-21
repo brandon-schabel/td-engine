@@ -1,4 +1,6 @@
-import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
+import { IconType } from '@/ui/icons/SvgIcons';
+import { createIconButton as createIconButtonElement } from '@/ui/elements';
+import type { CreateButtonOptions } from '@/ui/elements';
 
 export interface IconButtonOptions {
   iconType: IconType;
@@ -20,34 +22,32 @@ export class IconButton {
   }
 
   private createButton(): HTMLButtonElement {
-    const button = document.createElement('button');
-    
-    // Set base class
-    button.className = 'icon-button';
-    
-    // Add custom class if provided
+    // Map old options to new createIconButton options
+    const buttonOptions: Partial<CreateButtonOptions> = {
+      ariaLabel: this.options.title,
+      onClick: this.options.onClick,
+      variant: 'ghost', // Default to ghost variant for icon buttons
+      iconSize: this.options.iconSize,
+      customClasses: []
+    };
+
+    // Add custom classes
     if (this.options.className) {
-      button.className += ' ' + this.options.className;
+      buttonOptions.customClasses!.push(...this.options.className.split(' '));
     }
-    
-    // Set data attributes for styling
-    if (this.options.baseColor) {
-      button.dataset.baseColor = this.options.baseColor;
+
+    // Create button using the new abstraction
+    const button = createIconButtonElement(this.options.iconType, buttonOptions);
+
+    // Handle custom colors if provided (via CSS custom properties)
+    if (this.options.baseColor || this.options.hoverColor) {
+      if (this.options.baseColor) {
+        button.style.setProperty('--button-color', this.options.baseColor);
+      }
+      if (this.options.hoverColor) {
+        button.style.setProperty('--button-hover-color', this.options.hoverColor);
+      }
     }
-    if (this.options.hoverColor) {
-      button.dataset.hoverColor = this.options.hoverColor;
-    }
-    
-    if (this.options.title) {
-      button.title = this.options.title;
-    }
-    
-    // Add icon
-    const iconSize = this.options.iconSize || 18;
-    button.innerHTML = createSvgIcon(this.options.iconType, { size: iconSize });
-    
-    // Add click handler
-    button.addEventListener('click', this.options.onClick);
     
     return button;
   }

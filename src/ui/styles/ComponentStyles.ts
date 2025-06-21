@@ -1,26 +1,7 @@
 import { styleManager } from './StyleManager';
 
 const componentStyles = `
-  /* Tower Card Styles - Using utility classes as base */
-  .tower-card {
-    /* Extends: ui-card hover-lift ui-shimmer */
-    box-shadow: var(--shadow-md);
-  }
-
-  .tower-card.disabled {
-    /* Extends: ui-disabled */
-  }
-
-  .tower-card.disabled:hover {
-    border-color: var(--color-border-subtle);
-    transform: none;
-    box-shadow: var(--shadow-md);
-    background: var(--gradient-card-default);
-  }
-
-  .tower-card.disabled::before {
-    display: none;
-  }
+  /* Tower Card Styles - Complex animations and pseudo-elements */
 
   .tower-card-icon {
     width: 48px;
@@ -137,17 +118,6 @@ const componentStyles = `
     max-height: 90vh;
   }
   
-  .inventory-header {
-    /* Extends: ui-header */
-  }
-  
-  .inventory-title {
-    /* Extends: ui-title-lg */
-  }
-  
-  .inventory-close {
-    /* Extends: ui-button danger */
-  }
 
   .inventory-grid {
     display: grid;
@@ -233,12 +203,6 @@ const componentStyles = `
     justify-content: center;
   }
   
-  .action-button {
-    /* Extends: ui-button sm */
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
   
   .action-button.use-button {
     /* Custom color */
@@ -342,48 +306,7 @@ const componentStyles = `
     background: #FFD700;
   }
 
-  /* Player Stats Styles */
-  .player-stats {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: var(--radius-md);
-    border: var(--border-width-default) solid rgba(255, 255, 255, 0.05);
-  }
-
-  .stat-item {
-    /* Extends: ui-card */
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    background: rgba(255, 255, 255, 0.02);
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    border: var(--border-width-default) solid rgba(255, 255, 255, 0.05);
-  }
-
-  .stat-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
-  }
-
-  .stat-label {
-    /* Extends: ui-stat-label */
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-  }
-
-  .stat-value {
-    /* Extends: ui-stat-value */
-    font-size: var(--font-lg);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
+  /* Player Stats Styles - Colors only */
 
   .stat-item[data-stat="health"] .stat-value {
     color: var(--color-status-success);
@@ -476,23 +399,6 @@ const componentStyles = `
     flex-wrap: wrap;
   }
 
-  .resource-item {
-    /* Extends: ui-resource-item ui-backdrop-blur */
-    font-weight: var(--font-weight-bold);
-    font-size: 16px;
-    width: fit-content;
-    min-width: 120px;
-    max-width: 200px;
-  }
-
-  .resource-icon {
-    /* Extends: ui-resource-icon */
-    font-size: 20px;
-  }
-
-  .resource-value {
-    /* Extends: ui-resource-value */
-  }
 
   /* Build Menu Specific Styles */
   .build-menu-ui .ui-card {
@@ -759,7 +665,6 @@ const componentStyles = `
   }
 
   .upgrade-node {
-    /* Extends: ui-card hover-lift */
     background: linear-gradient(135deg, rgba(40, 44, 48, 0.9) 0%, rgba(48, 52, 56, 0.9) 100%);
     text-align: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -855,7 +760,6 @@ const componentStyles = `
   }
 
   .upgrade-cost {
-    /* Extends: ui-cost */
     transition: all var(--duration-cardHover) var(--easing-smooth);
   }
 
@@ -867,12 +771,7 @@ const componentStyles = `
 
   /* Progress indicator for upgrade levels */
   .upgrade-level-indicator {
-    /* Extends: ui-level-indicator */
     margin-top: var(--spacing-sm);
-  }
-
-  .upgrade-level-dot {
-    /* Extends: ui-level-dot */
   }
 
   /* Menu and Settings Styles */
@@ -885,17 +784,11 @@ const componentStyles = `
   }
 
   .menu-title {
-    /* Extends: ui-title-lg */
     text-align: center;
     margin-bottom: var(--spacing-lg);
   }
 
-  .menu-section {
-    /* Extends: ui-section */
-  }
-
   .menu-section-title {
-    /* Extends: ui-title-sm ui-text-secondary */
     margin-bottom: var(--spacing-sm);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1147,7 +1040,6 @@ const componentStyles = `
   }
 
   .settings-divider {
-    /* Extends: ui-divider gradient */
     margin: var(--spacing-lg) 0;
   }
 
@@ -1231,7 +1123,6 @@ const componentStyles = `
 
   /* Difficulty Badge */
   .difficulty-badge {
-    /* Extends: ui-badge */
     cursor: pointer;
     transition: all var(--duration-buttonHover) var(--easing-smooth);
   }
@@ -1239,18 +1130,6 @@ const componentStyles = `
   .difficulty-badge:hover {
     background: var(--color-surface-hover);
     transform: translateY(-1px);
-  }
-
-  .difficulty-badge.easy {
-    /* Extends: ui-badge success */
-  }
-
-  .difficulty-badge.normal {
-    /* Extends: ui-badge warning */
-  }
-
-  .difficulty-badge.hard {
-    /* Extends: ui-badge danger */
   }
 
   /* Settings Dialog Styles */
@@ -1301,7 +1180,6 @@ const componentStyles = `
   }
 
   .difficulty-preset-button {
-    /* Extends: ui-button */
     flex: 1;
     min-width: clamp(80px, 20vw, 120px);
     padding: 12px;
@@ -1312,7 +1190,6 @@ const componentStyles = `
   }
 
   .difficulty-preset-button.active {
-    /* Extends: ui-active */
     border-color: #4CAF50;
     background: rgba(76, 175, 80, 0.2);
     color: white;
@@ -1368,7 +1245,6 @@ const componentStyles = `
   }
 
   .game-over-score {
-    /* Extends: ui-pulse */
     margin-bottom: var(--spacing-lg);
   }
 
@@ -1445,7 +1321,6 @@ const componentStyles = `
 
   .game-over-button-restart,
   .game-over-button-menu {
-    /* Extends: ui-button */
     text-transform: uppercase;
     letter-spacing: 1px;
     min-width: 180px;
@@ -1456,10 +1331,6 @@ const componentStyles = `
     .game-over-button-menu {
       min-width: 140px;
     }
-  }
-
-  .game-over-button-restart {
-    /* Extends: ui-button success */
   }
 
   .game-over-message {
@@ -1488,12 +1359,7 @@ const componentStyles = `
   }
 
   .tower-upgrade-header {
-    /* Extends: ui-header */
     gap: var(--spacing-md);
-  }
-
-  .tower-upgrade-icon {
-    /* Extends: ui-icon-container md */
   }
 
   /* Tower type specific icon colors */

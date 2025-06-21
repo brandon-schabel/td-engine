@@ -62,18 +62,21 @@ export class GameOverUI {
 
     // Score display
     const statsDiv = document.createElement('div');
-    statsDiv.className = cn('game-over-stats');
+    statsDiv.className = cn('rounded-lg', 'p-8', 'mb-8');
+    statsDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
 
     // Create score display with proper DOM elements
     const scoreDiv = document.createElement('div');
     scoreDiv.className = cn('game-over-score', 'ui-pulse');
     
     const scoreLabel = document.createElement('span');
-    scoreLabel.className = cn('game-over-score-label');
+    scoreLabel.className = cn('text-lg', 'text-secondary', 'block', 'mb-2');
     scoreLabel.textContent = 'Final Score';
     
     const scoreValue = document.createElement('span');
-    scoreValue.className = cn('game-over-score-value');
+    scoreValue.className = cn('font-bold', 'text-success', 'block');
+    scoreValue.style.fontSize = '48px';
+    scoreValue.style.textShadow = '0 4px 8px rgba(0, 0, 0, 0.5)';
     scoreValue.textContent = formatNumber(score);
     
     scoreDiv.appendChild(scoreLabel);
@@ -111,8 +114,7 @@ export class GameOverUI {
       variant: 'large',
       showLabels: true,
       showIcons: true,
-      gap: 'md',
-      customClasses: ['game-over-stat-grid']
+      gap: 'md'
     });
 
     statsDiv.appendChild(statGrid);
@@ -120,7 +122,7 @@ export class GameOverUI {
 
     // Buttons container
     const buttonsDiv = document.createElement('div');
-    buttonsDiv.className = cn('game-over-buttons');
+    buttonsDiv.className = cn('flex', 'gap-4', 'justify-center', 'flex-wrap');
 
     // Create restart button using button abstraction
     const restartButton = createButton({
@@ -137,8 +139,9 @@ export class GameOverUI {
         }
         this.close();
       },
-      customClasses: ['game-over-button-restart']
+      customClasses: ['uppercase']
     });
+    restartButton.style.minWidth = '180px';
     buttonsDiv.appendChild(restartButton);
 
     // Create main menu button using button abstraction
@@ -156,15 +159,16 @@ export class GameOverUI {
         }
         this.close();
       },
-      customClasses: ['game-over-button-menu']
+      customClasses: ['uppercase']
     });
+    menuButton.style.minWidth = '180px';
     buttonsDiv.appendChild(menuButton);
 
     content.appendChild(buttonsDiv);
 
     // Message
     const message = document.createElement('div');
-    message.className = cn('game-over-message');
+    message.className = cn('text-base', 'text-secondary', 'mt-5', 'italic');
     message.textContent = this.getGameOverMessage(wave);
     content.appendChild(message);
 

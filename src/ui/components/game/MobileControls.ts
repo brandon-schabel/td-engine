@@ -14,6 +14,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { UI_CONSTANTS } from '@/config/UIConstants';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 import { RESPONSIVE_CONFIG, getBreakpoint } from '@/config/ResponsiveConfig';
+import { cn } from '@/ui/elements';
 
 export interface MobileControlsOptions {
   game: Game;
@@ -88,13 +89,32 @@ export class MobileControls {
     this.controlsHeight = vh < RESPONSIVE_CONFIG.breakpoints.landscape.mobile ? 150 : 200;
     
     const controls = document.createElement('div');
-    controls.className = 'mobile-controls';
+    controls.className = cn(
+      'mobile-controls',
+      'fixed',
+      'bottom-0',
+      'left-0',
+      'right-0',
+      'pointer-events-none',
+      'z-50'
+    );
     controls.style.height = `${this.controlsHeight + this.safeAreaBottom}px`;
     controls.style.paddingBottom = `${this.safeAreaBottom}px`;
 
     // Movement joystick (left side)
     const moveJoystick = document.createElement('div');
-    moveJoystick.className = 'mobile-joystick move-joystick';
+    moveJoystick.className = cn(
+      'mobile-joystick',
+      'move-joystick',
+      'absolute',
+      'bg-surface-secondary',
+      'border-2',
+      'border-surface-border',
+      'rounded-full',
+      'opacity-80',
+      'pointer-events-auto',
+      'transition-opacity'
+    );
     const breakpoint = getBreakpoint(vw);
     const layoutConfig = breakpoint === 'mobile' ? RESPONSIVE_CONFIG.layout.hud.mobile : 
                         breakpoint === 'tablet' ? RESPONSIVE_CONFIG.layout.hud.tablet :
@@ -107,12 +127,26 @@ export class MobileControls {
     moveJoystick.style.height = `${this.joystickRadius * 2}px`;
 
     const joystickKnob = document.createElement('div');
-    joystickKnob.className = 'mobile-joystick-knob';
+    joystickKnob.className = cn(
+      'mobile-joystick-knob',
+      'absolute',
+      'top-1/2',
+      'left-1/2',
+      'transform',
+      '-translate-x-1/2',
+      '-translate-y-1/2',
+      'bg-primary',
+      'rounded-full',
+      'flex',
+      'items-center',
+      'justify-center',
+      'shadow-md'
+    );
     joystickKnob.style.width = `${this.knobRadius * 2}px`;
     joystickKnob.style.height = `${this.knobRadius * 2}px`;
 
     const moveIcon = document.createElement('div');
-    moveIcon.className = 'mobile-joystick-icon';
+    moveIcon.className = cn('mobile-joystick-icon', 'text-on-primary');
     moveIcon.innerHTML = createSvgIcon(IconType.ARROW_UP, { size: 24 });
 
     joystickKnob.appendChild(moveIcon);
@@ -120,7 +154,18 @@ export class MobileControls {
 
     // Aim joystick (right side)
     const aimJoystick = document.createElement('div');
-    aimJoystick.className = 'mobile-joystick aim-joystick';
+    aimJoystick.className = cn(
+      'mobile-joystick',
+      'aim-joystick',
+      'absolute',
+      'bg-surface-secondary',
+      'border-2',
+      'border-danger',
+      'rounded-full',
+      'opacity-80',
+      'pointer-events-auto',
+      'transition-opacity'
+    );
     const aimJoystickMargin = Math.max(20, vw * 0.05); // 5% of viewport width
     aimJoystick.style.bottom = `${this.safeAreaBottom + bottomOffset}px`;
     aimJoystick.style.right = `${aimJoystickMargin}px`;
@@ -128,12 +173,27 @@ export class MobileControls {
     aimJoystick.style.height = `${this.joystickRadius * 2}px`;
 
     const aimJoystickKnob = document.createElement('div');
-    aimJoystickKnob.className = 'mobile-joystick-knob aim-joystick-knob';
+    aimJoystickKnob.className = cn(
+      'mobile-joystick-knob',
+      'aim-joystick-knob',
+      'absolute',
+      'top-1/2',
+      'left-1/2',
+      'transform',
+      '-translate-x-1/2',
+      '-translate-y-1/2',
+      'bg-danger',
+      'rounded-full',
+      'flex',
+      'items-center',
+      'justify-center',
+      'shadow-md'
+    );
     aimJoystickKnob.style.width = `${this.knobRadius * 2}px`;
     aimJoystickKnob.style.height = `${this.knobRadius * 2}px`;
 
     const aimIcon = document.createElement('div');
-    aimIcon.className = 'mobile-joystick-icon';
+    aimIcon.className = cn('mobile-joystick-icon', 'text-on-danger');
     aimIcon.innerHTML = createSvgIcon(IconType.CROSSHAIR, { size: 24 });
 
     aimJoystickKnob.appendChild(aimIcon);
@@ -227,7 +287,8 @@ export class MobileControls {
     }
     
     this.isAimActive = true;
-    this.aimJoystick.classList.add('active');
+    this.aimJoystick.classList.add('active', 'opacity-100');
+    this.aimJoystick.classList.remove('opacity-80');
     
     const rect = this.aimJoystick.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -297,7 +358,8 @@ export class MobileControls {
     
     this.isAimActive = false;
     this.aimTouchId = null;
-    this.aimJoystick.classList.remove('active');
+    this.aimJoystick.classList.remove('active', 'opacity-100');
+    this.aimJoystick.classList.add('opacity-80');
     
     // Reset joystick position with smooth transition
     this.aimJoystickKnob.style.transition = `transform ${ANIMATION_CONFIG.durations.uiTransition}ms ease-out`;
@@ -357,7 +419,8 @@ export class MobileControls {
     }
     
     this.isMoveActive = true;
-    this.moveJoystick.classList.add('active');
+    this.moveJoystick.classList.add('active', 'opacity-100');
+    this.moveJoystick.classList.remove('opacity-80');
     
     const rect = this.moveJoystick.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -412,7 +475,8 @@ export class MobileControls {
     
     this.isMoveActive = false;
     this.moveTouchId = null;
-    this.moveJoystick.classList.remove('active');
+    this.moveJoystick.classList.remove('active', 'opacity-100');
+    this.moveJoystick.classList.add('opacity-80');
     
     // Reset joystick position with smooth transition
     this.joystickKnob.style.transition = `transform ${ANIMATION_CONFIG.durations.uiTransition}ms ease-out`;
@@ -494,11 +558,13 @@ export class MobileControls {
   }
 
   public show(): void {
-    this.controlsElement.style.display = 'block';
+    this.controlsElement.classList.remove('hidden');
+    this.controlsElement.classList.add('block');
   }
 
   public hide(): void {
-    this.controlsElement.style.display = 'none';
+    this.controlsElement.classList.remove('block');
+    this.controlsElement.classList.add('hidden');
   }
 
   private handleResize(): void {

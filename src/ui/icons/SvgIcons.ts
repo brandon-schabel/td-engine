@@ -98,6 +98,13 @@ export enum IconType {
   DIFFICULTY = "DIFFICULTY",
   MAP = "MAP",
   RESET = "RESET",
+  
+  // Form/Input Icons
+  SEARCH = "SEARCH",
+  LOCK = "LOCK",
+  EYE = "EYE",
+  EYE_OFF = "EYE_OFF",
+  CHEVRON_DOWN = "CHEVRON_DOWN",
 }
 
 interface SvgIconOptions {
@@ -578,6 +585,33 @@ const ICON_PATHS: Record<IconType, string> = {
   [IconType.RESET]: `
     <path d="M20 11 A8 8 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     <path d="M20 3 L20 11 L12 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  // Form/Input Icons
+  [IconType.SEARCH]: `
+    <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M21 21 L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.LOCK]: `
+    <rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M7 11 V7 A5 5 0 0 1 17 7 V11" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="16" r="1" fill="currentColor"/>
+  `,
+  
+  [IconType.EYE]: `
+    <path d="M1 12 S5 5 12 5 S23 12 23 12 S19 19 12 19 S1 12 1 12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+  `,
+  
+  [IconType.EYE_OFF]: `
+    <path d="M17.94 17.94 A10.07 10.07 0 0 1 12 20 C5 20 1 12 1 12 A13.11 13.11 0 0 1 5.06 6.06" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M9.9 4.24 A9.12 9.12 0 0 1 12 4 C19 4 23 12 23 12 A11.82 11.82 0 0 1 20.17 16.62" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  `,
+  
+  [IconType.CHEVRON_DOWN]: `
+    <polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   `,
 };
 

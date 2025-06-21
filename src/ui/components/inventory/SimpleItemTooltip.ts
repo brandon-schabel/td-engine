@@ -3,6 +3,7 @@
  */
 
 import type { InventoryItem } from '@/systems/Inventory';
+import { cn } from '@/ui/styles/UtilityStyles';
 
 export class ItemTooltip {
   private tooltip: HTMLElement | null = null;
@@ -14,7 +15,20 @@ export class ItemTooltip {
 
   private createTooltip(): void {
     this.tooltip = document.createElement('div');
-    this.tooltip.className = 'item-tooltip';
+    this.tooltip.className = cn(
+      'absolute',
+      'bg-black/95',
+      'border-2',
+      'border-yellow-400',
+      'rounded-md',
+      'p-3',
+      'z-[10000]',
+      'pointer-events-none',
+      'opacity-0',
+      'transition-opacity',
+      'duration-200',
+      'max-w-[300px]'
+    );
     document.body.appendChild(this.tooltip);
   }
 
@@ -23,19 +37,30 @@ export class ItemTooltip {
     
     // Rarity colors are now handled by CSS data attributes
     
+    // Rarity colors
+    const rarityColors = {
+      common: 'text-gray-400',
+      uncommon: 'text-green-400',
+      rare: 'text-blue-400',
+      epic: 'text-purple-400',
+      legendary: 'text-yellow-400'
+    };
+    
+    const rarityColor = rarityColors[item.rarity.toLowerCase() as keyof typeof rarityColors] || 'text-gray-400';
+    
     this.tooltip.innerHTML = `
-      <div class="item-tooltip-name" data-rarity="${item.rarity.toLowerCase()}">
+      <div class="${cn('text-lg', 'font-bold', 'mb-1', rarityColor)}">
         ${item.name}
       </div>
-      <div class="item-tooltip-type" data-rarity="${item.rarity.toLowerCase()}">
+      <div class="${cn('text-sm', 'mb-2', rarityColor)}">
         ${item.rarity} ${item.type}
       </div>
-      <div class="item-tooltip-description">
+      <div class="${cn('text-sm', 'text-gray-300', 'mb-2')}">
         ${item.description}
       </div>
-      ${item.quantity > 1 ? `<div class="item-tooltip-quantity">Quantity: ${item.quantity}</div>` : ''}
-      ${item.type === 'CONSUMABLE' ? '<div class="item-tooltip-action">Click to use</div>' : ''}
-      ${item.type === 'EQUIPMENT' ? '<div class="item-tooltip-action">Click to equip</div>' : ''}
+      ${item.quantity > 1 ? `<div class="${cn('text-sm', 'text-gray-400')}">Quantity: ${item.quantity}</div>` : ''}
+      ${item.type === 'CONSUMABLE' ? `<div class="${cn('text-sm', 'text-green-400', 'mt-2')}">Click to use</div>` : ''}
+      ${item.type === 'EQUIPMENT' ? `<div class="${cn('text-sm', 'text-blue-400', 'mt-2')}">Click to equip</div>` : ''}
     `;
     
     // Position tooltip
@@ -53,13 +78,15 @@ export class ItemTooltip {
     
     this.tooltip.style.left = `${tooltipX}px`;
     this.tooltip.style.top = `${tooltipY}px`;
-    this.tooltip.classList.add('visible');
+    this.tooltip.classList.remove('opacity-0');
+    this.tooltip.classList.add('opacity-100');
     this.visible = true;
   }
 
   hide(): void {
     if (this.tooltip) {
-      this.tooltip.classList.remove('visible');
+      this.tooltip.classList.remove('opacity-100');
+      this.tooltip.classList.add('opacity-0');
       this.visible = false;
     }
   }

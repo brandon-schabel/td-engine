@@ -13,6 +13,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { AudioManager } from '@/audio/AudioManager';
 import { createButton } from '@/ui/elements';
+import { cn } from '@/ui/styles/UtilityStyles';
 
 export class MainMenuUI {
   private floatingUI: FloatingUIManager;
@@ -58,11 +59,11 @@ export class MainMenuUI {
   
   private createContent(): HTMLElement {
     const content = document.createElement('div');
-    content.className = 'main-menu-content';
+    content.className = cn('p-8', 'text-center');
     
     // Game logo/title
     const logo = document.createElement('div');
-    logo.className = 'main-menu-logo';
+    logo.className = 'main-menu-logo'; // Keep custom class for gradient text
     logo.innerHTML = `
       <div class="logo-icon">${createSvgIcon(IconType.TOWER, { size: 64 })}</div>
       <h1 class="logo-text">Tower Defense</h1>
@@ -72,7 +73,8 @@ export class MainMenuUI {
     
     // Menu buttons
     const buttonsContainer = document.createElement('div');
-    buttonsContainer.className = 'main-menu-buttons';
+    buttonsContainer.className = cn('flex', 'flex-col', 'gap-4', 'mx-auto');
+    buttonsContainer.style.maxWidth = '300px';
     
     // Start Game button
     const startButton = createButton({

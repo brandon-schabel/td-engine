@@ -13,6 +13,7 @@ import { IconType, createSvgIcon } from "@/ui/icons/SvgIcons";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { UI_CONSTANTS } from "@/config/UIConstants";
 import type { FloatingUIManager } from "@/ui/floating/FloatingUIManager";
+import { cn } from "@/ui/elements";
 
 export class PowerUpDisplay {
   private game: Game;
@@ -31,12 +32,30 @@ export class PowerUpDisplay {
       persistent: true,
       autoHide: false,
       smoothing: 0,
-      className: 'powerup-display-container'
+      className: cn(
+        'fixed',
+        'top-[80px]',
+        'right-[20px]',
+        'flex',
+        'flex-col',
+        'gap-2',
+        'z-[800]',
+        'pointer-events-none'
+      )
     });
 
     // Position the container at top-right
     const element = powerUpContainer.getElement();
-    element.className = 'powerup-display-container';
+    element.className = cn(
+      'fixed',
+      'top-[80px]',
+      'right-[20px]',
+      'flex',
+      'flex-col',
+      'gap-2',
+      'z-[800]',
+      'pointer-events-none'
+    );
 
     powerUpContainer.setContent('<div id="powerup-items"></div>').enable();
 
@@ -85,14 +104,35 @@ export class PowerUpDisplay {
       persistent: true,
       autoHide: false,
       smoothing: 0,
-      className: 'powerup-item'
+      className: cn(
+        'bg-surface-secondary',
+        'border',
+        'border-surface-border',
+        'rounded-lg',
+        'px-3',
+        'py-2',
+        'shadow-md',
+        'transition-all',
+        'duration-300'
+      )
     });
 
     // Position relative to the main container
     const topOffset = UI_CONSTANTS.powerUpDisplay.position.top + (index * 40);
 
     const element = powerUpElement.getElement();
-    element.className = 'powerup-item';
+    element.className = cn(
+      'powerup-item',
+      'bg-surface-secondary',
+      'border',
+      'border-surface-border',
+      'rounded-lg',
+      'px-3',
+      'py-2',
+      'shadow-md',
+      'transition-all',
+      'duration-300'
+    );
     element.style.top = `${topOffset}px`;
 
     powerUpElement.enable();
@@ -108,21 +148,22 @@ export class PowerUpDisplay {
 
     // Color state is handled by CSS classes
 
-    element.setContent(`
-      <div class="powerup-item-content">
-        ${icon}
-        <span class="powerup-item-name">${name}</span>
-        <span class="powerup-item-timer">${remainingTime}s</span>
-      </div>
-    `);
+    const content = document.createElement('div');
+    content.className = cn('flex', 'items-center', 'gap-2');
+    content.innerHTML = `
+      ${icon}
+      <span class="${cn('text-sm', 'font-medium', 'text-primary')}">${name}</span>
+      <span class="${cn('text-sm', 'font-bold', 'ml-auto')}">${remainingTime}s</span>
+    `;
+    element.setContent(content);
 
     // Update state classes
     const elementNode = element.getElement();
-    elementNode.classList.remove('warning', 'critical');
+    elementNode.classList.remove('border-warning', 'border-danger', 'animate-pulse');
     if (remainingTime <= 3) {
-      elementNode.classList.add('critical');
+      elementNode.classList.add('border-danger', 'animate-pulse');
     } else if (remainingTime <= 10) {
-      elementNode.classList.add('warning');
+      elementNode.classList.add('border-warning');
     }
   }
 
@@ -161,26 +202,60 @@ export class PowerUpDisplay {
       persistent: false,
       autoHide: false,
       smoothing: 0.1,
-      className: 'powerup-notification'
+      className: cn(
+        'fixed',
+        'top-1/2',
+        'left-1/2',
+        'transform',
+        '-translate-x-1/2',
+        '-translate-y-1/2',
+        'bg-surface-primary',
+        'border-2',
+        'border-primary',
+        'rounded-lg',
+        'px-6',
+        'py-4',
+        'shadow-xl',
+        'z-[900]',
+        'animate-bounce-in'
+      )
     });
 
     const icon = createSvgIcon(this.getPowerUpIcon(type), { size: 24 });
     const name = this.getPowerUpName(type);
 
     const element = notification.getElement();
-    element.className = 'powerup-notification';
+    element.className = cn(
+      'powerup-notification',
+      'fixed',
+      'top-1/2',
+      'left-1/2',
+      'transform',
+      '-translate-x-1/2',
+      '-translate-y-1/2',
+      'bg-surface-primary',
+      'border-2',
+      'border-primary',
+      'rounded-lg',
+      'px-6',
+      'py-4',
+      'shadow-xl',
+      'z-[900]',
+      'animate-bounce-in'
+    );
 
     // Animation is now handled in CSS
 
-    notification.setContent(`
-      <div class="powerup-notification-content">
-        ${icon}
-        <div class="powerup-notification-info">
-          <div class="powerup-notification-name">${name}</div>
-          <div class="powerup-notification-duration">${Math.ceil(duration / 1000)}s duration</div>
-        </div>
+    const content = document.createElement('div');
+    content.className = cn('flex', 'items-center', 'gap-4');
+    content.innerHTML = `
+      ${icon}
+      <div class="${cn('flex', 'flex-col')}">
+        <div class="${cn('text-lg', 'font-bold', 'text-primary')}">${name}</div>
+        <div class="${cn('text-sm', 'text-secondary')}">${Math.ceil(duration / 1000)}s duration</div>
       </div>
-    `);
+    `;
+    notification.setContent(content);
 
     notification.enable();
 
@@ -199,7 +274,22 @@ export class PowerUpDisplay {
       persistent: false,
       autoHide: false,
       smoothing: 0,
-      className: 'item-pickup-notification'
+      className: cn(
+        'fixed',
+        'bottom-[120px]',
+        'left-1/2',
+        'transform',
+        '-translate-x-1/2',
+        'bg-surface-secondary',
+        'border',
+        'border-surface-border',
+        'rounded-full',
+        'px-4',
+        'py-2',
+        'shadow-lg',
+        'z-[850]',
+        'animate-slide-up'
+      )
     });
 
     // Get icon based on item type
@@ -217,15 +307,34 @@ export class PowerUpDisplay {
     };
 
     const element = notification.getElement();
-    element.className = 'item-pickup-notification';
+    element.className = cn(
+      'item-pickup-notification',
+      'fixed',
+      'bottom-[120px]',
+      'left-1/2',
+      'transform',
+      '-translate-x-1/2',
+      'bg-surface-secondary',
+      'border',
+      'border-surface-border',
+      'rounded-full',
+      'px-4',
+      'py-2',
+      'shadow-lg',
+      'z-[850]',
+      'animate-slide-up'
+    );
 
     // Animation is now handled in CSS
 
     const icon = getItemIcon(itemType);
-    notification.setContent(`
+    const content = document.createElement('div');
+    content.className = cn('flex', 'items-center', 'gap-2');
+    content.innerHTML = `
       ${icon}
-      <span>${itemName} added to inventory</span>
-    `);
+      <span class="${cn('text-sm', 'font-medium', 'text-primary')}">${itemName} added to inventory</span>
+    `;
+    notification.setContent(content);
 
     notification.enable();
 
@@ -244,17 +353,53 @@ export class PowerUpDisplay {
       persistent: false,
       autoHide: false,
       smoothing: 0,
-      className: 'inventory-full-notification'
+      className: cn(
+        'fixed',
+        'bottom-[180px]',
+        'left-1/2',
+        'transform',
+        '-translate-x-1/2',
+        'bg-warning',
+        'text-on-warning',
+        'border',
+        'border-warning-dark',
+        'rounded-lg',
+        'px-4',
+        'py-3',
+        'shadow-xl',
+        'z-[860]',
+        'animate-shake'
+      )
     });
 
     const element = notification.getElement();
-    element.className = 'inventory-full-notification';
+    element.className = cn(
+      'inventory-full-notification',
+      'fixed',
+      'bottom-[180px]',
+      'left-1/2',
+      'transform',
+      '-translate-x-1/2',
+      'bg-warning',
+      'text-on-warning',
+      'border',
+      'border-warning-dark',
+      'rounded-lg',
+      'px-4',
+      'py-3',
+      'shadow-xl',
+      'z-[860]',
+      'animate-shake'
+    );
 
     const warningIcon = createSvgIcon(IconType.WARNING, { size: 24 });
-    notification.setContent(`
+    const content = document.createElement('div');
+    content.className = cn('flex', 'items-center', 'gap-2');
+    content.innerHTML = `
       ${warningIcon}
-      <span>Inventory full! ${itemName} used immediately</span>
-    `);
+      <span class="${cn('text-sm', 'font-medium')}">Inventory full! ${itemName} used immediately</span>
+    `;
+    notification.setContent(content);
 
     notification.enable();
 

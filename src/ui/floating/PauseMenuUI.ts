@@ -4,6 +4,7 @@ import { FloatingUIManager } from './index';
 import { IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { createButton } from '@/ui/elements';
+import { cn } from '@/ui/styles/UtilityStyles';
 
 export class PauseMenuUI {
   private floatingUI: FloatingUIManager;
@@ -56,7 +57,7 @@ export class PauseMenuUI {
 
     // Buttons container
     const buttonsDiv = document.createElement('div');
-    buttonsDiv.className = 'pause-menu-buttons';
+    buttonsDiv.className = cn('flex', 'flex-col', 'gap-4', 'py-5');
 
     // Resume button - primary variant for main action
     const resumeButton = createButton({
@@ -65,7 +66,6 @@ export class PauseMenuUI {
       variant: 'primary',
       size: 'lg',
       fullWidth: true,
-      customClasses: ['pause-menu-button', 'resume'],
       onClick: () => {
         this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
         if (this.onResume) {
@@ -83,7 +83,6 @@ export class PauseMenuUI {
       variant: 'secondary',
       size: 'lg',
       fullWidth: true,
-      customClasses: ['pause-menu-button', 'settings'],
       onClick: () => {
         this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
         if (this.onSettings) {
@@ -100,7 +99,6 @@ export class PauseMenuUI {
       variant: 'danger',
       size: 'lg',
       fullWidth: true,
-      customClasses: ['pause-menu-button', 'restart'],
       onClick: () => {
         this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
         if (confirm('Are you sure you want to restart? All progress will be lost.')) {
@@ -120,7 +118,6 @@ export class PauseMenuUI {
       variant: 'secondary',
       size: 'lg',
       fullWidth: true,
-      customClasses: ['pause-menu-button', 'main-menu'],
       onClick: () => {
         this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
         if (this.onMainMenu) {
@@ -135,7 +132,8 @@ export class PauseMenuUI {
 
     // Game info
     const infoDiv = document.createElement('div');
-    infoDiv.className = 'pause-info';
+    infoDiv.className = cn('mt-5', 'p-4', 'rounded-md', 'text-sm', 'text-secondary');
+    infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
 
     const stats = this.game.getGameStats();
     const currentWave = this.game.getCurrentWave();
@@ -153,15 +151,15 @@ export class PauseMenuUI {
 
     infoItems.forEach(item => {
       const itemDiv = document.createElement('div');
-      itemDiv.className = 'pause-info-item';
+      itemDiv.className = cn('flex', 'justify-between', 'my-2');
 
       const label = document.createElement('span');
-      label.className = 'pause-info-label';
+      label.className = cn('text-primary');
       label.textContent = item.label + ':';
       itemDiv.appendChild(label);
 
       const value = document.createElement('span');
-      value.className = 'pause-info-value';
+      value.className = cn('font-bold', 'text-success');
       value.textContent = String(item.value);
       itemDiv.appendChild(value);
 

@@ -1,13 +1,13 @@
 import { Game } from "../core/Game";
 import { TowerType } from "@/entities/Tower";
-import { createSvgIcon, IconType } from "./icons/SvgIcons";
+import { IconType } from "./icons/SvgIcons";
 import { AudioManager, SoundType } from "../audio/AudioManager";
 
 import { PowerUpDisplay } from "./components/game/SimplePowerUpDisplay";
 import { MobileControls } from "./components/game/MobileControls";
-import { IconButton } from "./components/game/IconButton";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { isMobile as checkIsMobile } from "@/config/ResponsiveConfig";
+import { createIconButton, createResourceDisplay, cn } from "@/ui/elements";
 
 
 
@@ -34,20 +34,19 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     controlBar.className = "ui-control-bar";
   }
 
-  // Create control buttons
+  // Create control buttons using the new abstraction
   const createControlButton = (
     iconType: IconType,
     title: string,
     onClick: () => void
   ) => {
-    const button = document.createElement("button");
-    button.className = "ui-button ui-button-icon-only ui-button-control";
-    const iconSize = Math.max(20, Math.min(24, window.innerWidth * 0.05));
-    const icon = createSvgIcon(iconType, { size: iconSize });
-    button.innerHTML = icon;
-    button.title = title;
-    button.addEventListener("click", onClick);
-    return button;
+    return createIconButton(iconType, {
+      ariaLabel: title,
+      onClick,
+      variant: 'ghost',
+      size: 'md',
+      customClasses: ['ui-button-control']
+    });
   };
 
   // Control bar buttons
@@ -160,7 +159,24 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Create mobile tower placement indicator
   const towerPlacementIndicator = document.createElement("div");
   towerPlacementIndicator.id = "tower-placement-indicator";
-  towerPlacementIndicator.className = "ui-placement-indicator";
+  towerPlacementIndicator.className = cn(
+    'fixed',
+    'top-1/2',
+    'left-1/2',
+    'transform',
+    '-translate-x-1/2',
+    '-translate-y-1/2',
+    'bg-surface-secondary',
+    'text-primary',
+    'px-4',
+    'py-2',
+    'rounded-lg',
+    'shadow-lg',
+    'pointer-events-none',
+    'opacity-0',
+    'transition-opacity',
+    'z-20'
+  );
   gameContainer.appendChild(towerPlacementIndicator);
 
   // Update tower placement indicator when tower type changes
@@ -178,9 +194,11 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       };
       const towerName = towerNames[selectedType] || selectedType;
       towerPlacementIndicator.innerHTML = `📍 Tap to place ${towerName}`;
-      towerPlacementIndicator.classList.add('visible');
+      towerPlacementIndicator.classList.remove('opacity-0');
+      towerPlacementIndicator.classList.add('opacity-100');
     } else {
-      towerPlacementIndicator.classList.remove('visible');
+      towerPlacementIndicator.classList.remove('opacity-100');
+      towerPlacementIndicator.classList.add('opacity-0');
     }
   };
 
@@ -393,20 +411,22 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud resource-item',
+    className: 'static-hud',
     screenSpace: true,
     anchor: 'top',
     offset: { x: 0, y: 0 }
   });
 
-  // Set currency HUD content and position
-  const currencyElement = document.createElement('div');
-  currencyElement.className = 'resource-item';
-  currencyElement.innerHTML = `
-    <span class="resource-icon">💰</span>
-    <span id="currency-value" class="resource-value">$${game.getCurrency()}</span>
-  `;
-  currencyHUD.setContent(currencyElement);
+  // Set currency HUD content using createResourceDisplay
+  const currencyDisplay = createResourceDisplay({
+    value: game.getCurrency(),
+    icon: IconType.COINS,
+    format: 'currency',
+    prefix: '$',
+    id: 'currency-value',
+    customClasses: ['resource-item']
+  });
+  currencyHUD.setContent(currencyDisplay);
 
   // Position at top-left of screen
   const currencyPosition = {
@@ -418,9 +438,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Update currency value every 100ms
   const currencyUpdateInterval = setInterval(() => {
-    const valueElement = document.getElementById('currency-value');
-    if (valueElement) {
-      valueElement.textContent = `$${game.getCurrency()}`;
+    if ((currencyDisplay as any).updateValue) {
+      (currencyDisplay as any).updateValue(game.getCurrency());
     }
   }, 100);
 
@@ -429,20 +448,21 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud resource-item',
+    className: 'static-hud',
     screenSpace: true,
     anchor: 'top',
     offset: { x: 0, y: 0 }
   });
 
-  // Set wave HUD content and position
-  const waveElement = document.createElement('div');
-  waveElement.className = 'resource-item wave-info';
-  waveElement.innerHTML = `
-    <span class="resource-icon">🌊</span>
-    <span id="wave-value" class="resource-value">Wave 1</span>
-  `;
-  waveHUD.setContent(waveElement);
+  // Set wave HUD content using createResourceDisplay
+  const waveDisplay = createResourceDisplay({
+    value: 'Wave 1',
+    iconHtml: '🌊',
+    format: 'custom',
+    id: 'wave-value',
+    customClasses: ['resource-item', 'wave-info']
+  });
+  waveHUD.setContent(waveDisplay);
 
   // Position at top-right of screen
   const wavePosition = {
@@ -454,17 +474,17 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Update wave value every 100ms
   const waveUpdateInterval = setInterval(() => {
-    const valueElement = document.getElementById('wave-value');
-    if (valueElement) {
-      const currentWave = game.getCurrentWave();
-      const enemiesRemaining = game.getEnemiesRemaining();
-      const isWaveActive = game.isWaveActive();
+    const currentWave = game.getCurrentWave();
+    const enemiesRemaining = game.getEnemiesRemaining();
+    const isWaveActive = game.isWaveActive();
 
-      if (isWaveActive && enemiesRemaining > 0) {
-        valueElement.textContent = `Wave ${currentWave} - ${enemiesRemaining} enemies`;
-      } else {
-        valueElement.textContent = `Wave ${currentWave}`;
-      }
+    let waveText = `Wave ${currentWave}`;
+    if (isWaveActive && enemiesRemaining > 0) {
+      waveText = `Wave ${currentWave} - ${enemiesRemaining} enemies`;
+    }
+    
+    if ((waveDisplay as any).updateValue) {
+      (waveDisplay as any).updateValue(waveText);
     }
   }, 100);
 
@@ -483,50 +503,50 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Create zoom display
   const zoomDisplay = document.createElement('div');
-  zoomDisplay.className = 'camera-zoom-display';
+  zoomDisplay.className = cn('text-sm', 'font-medium', 'text-secondary', 'mb-2', 'text-center');
 
-  // Create control buttons using IconButton
-  const zoomInButton = new IconButton({
-    iconType: IconType.ZOOM_IN,
-    iconSize: 22,
-    title: 'Zoom In',
-    className: 'camera-control-button zoom-in',
+  // Create control buttons using createIconButton
+  const zoomInButton = createIconButton(IconType.ZOOM_IN, {
+    ariaLabel: 'Zoom In',
     onClick: () => {
       game.getCamera().zoomIn();
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-    }
+    },
+    variant: 'ghost',
+    size: 'sm',
+    customClasses: ['camera-control-button', 'zoom-in']
   });
 
-  const zoomOutButton = new IconButton({
-    iconType: IconType.ZOOM_OUT,
-    iconSize: 22,
-    title: 'Zoom Out',
-    className: 'camera-control-button zoom-out',
+  const zoomOutButton = createIconButton(IconType.ZOOM_OUT, {
+    ariaLabel: 'Zoom Out',
     onClick: () => {
       game.getCamera().zoomOut();
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-    }
+    },
+    variant: 'ghost',
+    size: 'sm',
+    customClasses: ['camera-control-button', 'zoom-out']
   });
 
-  const resetButton = new IconButton({
-    iconType: IconType.RESET_ZOOM,
-    iconSize: 20,
-    title: 'Reset Zoom',
-    className: 'camera-control-button reset-zoom',
+  const resetButton = createIconButton(IconType.RESET_ZOOM, {
+    ariaLabel: 'Reset Zoom',
     onClick: () => {
       game.getCamera().reset();
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-    }
+    },
+    variant: 'ghost',
+    size: 'sm',
+    customClasses: ['camera-control-button', 'reset-zoom']
   });
 
   // Add controls to container
   const controlsContainer = document.createElement('div');
   controlsContainer.appendChild(zoomDisplay);
   const buttonRow = document.createElement('div');
-  buttonRow.className = 'camera-controls-buttons';
-  buttonRow.appendChild(zoomInButton.getElement());
-  buttonRow.appendChild(zoomOutButton.getElement());
-  buttonRow.appendChild(resetButton.getElement());
+  buttonRow.className = cn('flex', 'gap-1', 'justify-center');
+  buttonRow.appendChild(zoomInButton);
+  buttonRow.appendChild(zoomOutButton);
+  buttonRow.appendChild(resetButton);
   controlsContainer.appendChild(buttonRow);
 
   cameraControls.setContent(controlsContainer).enable();
@@ -609,8 +629,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       setTimeout(() => {
         const controlsEl = document.querySelector(".mobile-controls");
         if (controlsEl) {
-          (controlsEl as HTMLElement).classList.add('visible');
           (controlsEl as HTMLElement).classList.remove('hidden');
+          (controlsEl as HTMLElement).classList.add('block');
           console.log("[SimpleGameUI] Forced mobile controls visibility");
         } else {
           console.log(
@@ -709,13 +729,13 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       ".mobile-controls"
     ) as HTMLElement;
     if (controlsEl) {
-      const isVisible = controlsEl.classList.contains('visible');
+      const isVisible = !controlsEl.classList.contains('hidden');
       if (isVisible) {
-        controlsEl.classList.remove('visible');
         controlsEl.classList.add('hidden');
+        controlsEl.classList.remove('block');
       } else {
-        controlsEl.classList.add('visible');
         controlsEl.classList.remove('hidden');
+        controlsEl.classList.add('block');
       }
       console.log("[Debug] Mobile controls visible:", !isVisible);
 

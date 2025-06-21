@@ -1,0 +1,406 @@
+/**
+ * Toggle Element Abstraction
+ * Provides a declarative API for creating toggle switches and checkboxes with consistent styling
+ */
+
+import { cn } from '@/ui/styles/UtilityStyles';
+
+export interface CreateToggleOptions {
+  variant?: 'switch' | 'checkbox';
+  size?: 'sm' | 'md' | 'lg';
+  checked?: boolean;
+  disabled?: boolean;
+  label?: string;
+  labelPosition?: 'left' | 'right';
+  name?: string;
+  id?: string;
+  value?: string;
+  onChange?: (checked: boolean) => void;
+  customClasses?: string[];
+  containerClasses?: string[];
+}
+
+/**
+ * Creates a toggle element (switch or checkbox) with consistent styling
+ */
+export function createToggle(options: CreateToggleOptions): HTMLLabelElement {
+  const {
+    variant = 'switch',
+    size = 'md',
+    checked = false,
+    disabled = false,
+    label,
+    labelPosition = 'right',
+    name,
+    id,
+    value,
+    onChange,
+    customClasses = [],
+    containerClasses = []
+  } = options;
+
+  // Create container label
+  const container = document.createElement('label');
+  container.className = cn(
+    'inline-flex',
+    'items-center',
+    'cursor-pointer',
+    'select-none',
+    disabled && 'opacity-50 cursor-not-allowed',
+    ...containerClasses
+  );
+
+  // Create hidden input
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.className = 'sr-only'; // Screen reader only
+  input.checked = checked;
+  input.disabled = disabled;
+  
+  if (id) input.id = id;
+  if (name) input.name = name;
+  if (value) input.value = value;
+
+  // Create visual element based on variant
+  const visualElement = variant === 'switch' 
+    ? createSwitchVisual(size, checked, disabled, customClasses)
+    : createCheckboxVisual(size, checked, disabled, customClasses);
+
+  // Create label text if provided
+  const labelElement = label ? createLabel(label, size) : null;
+
+  // Assemble elements based on label position
+  if (labelElement && labelPosition === 'left') {
+    container.appendChild(labelElement);
+    container.appendChild(createSpacer(size));
+  }
+  
+  container.appendChild(input);
+  container.appendChild(visualElement);
+  
+  if (labelElement && labelPosition === 'right') {
+    container.appendChild(createSpacer(size));
+    container.appendChild(labelElement);
+  }
+
+  // Event handler
+  if (onChange && !disabled) {
+    input.addEventListener('change', (e) => {
+      const isChecked = (e.target as HTMLInputElement).checked;
+      
+      // Update visual state
+      if (variant === 'switch') {
+        updateSwitchState(visualElement, isChecked);
+      } else {
+        updateCheckboxState(visualElement, isChecked);
+      }
+      
+      onChange(isChecked);
+    });
+  }
+
+  // Click handler for visual element
+  visualElement.addEventListener('click', (e) => {
+    if (!disabled) {
+      e.preventDefault();
+      input.checked = !input.checked;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+
+  return container;
+}
+
+/**
+ * Create switch visual element
+ */
+function createSwitchVisual(size: string, checked: boolean, disabled: boolean, customClasses: string[]): HTMLDivElement {
+  const switchEl = document.createElement('div');
+  
+  const switchClasses = [
+    'relative',
+    'inline-block',
+    'transition-colors',
+    'duration-200',
+    'ease-in-out',
+    'rounded-full',
+    checked ? 'bg-primary' : 'bg-surface-secondary',
+    disabled ? '' : 'hover:shadow-md',
+    ...getSwitchSizeClasses(size),
+    ...customClasses
+  ];
+
+  switchEl.className = cn(...switchClasses);
+
+  // Create thumb
+  const thumb = document.createElement('div');
+  const thumbClasses = [
+    'absolute',
+    'bg-white',
+    'rounded-full',
+    'shadow-sm',
+    'transition-transform',
+    'duration-200',
+    'ease-in-out',
+    'top-1/2',
+    '-translate-y-1/2',
+    ...getThumbSizeClasses(size),
+    checked ? getThumbCheckedPosition(size) : 'left-0.5'
+  ];
+
+  thumb.className = cn(...thumbClasses);
+  switchEl.appendChild(thumb);
+
+  return switchEl;
+}
+
+/**
+ * Create checkbox visual element
+ */
+function createCheckboxVisual(size: string, checked: boolean, disabled: boolean, customClasses: string[]): HTMLDivElement {
+  const checkboxEl = document.createElement('div');
+  
+  const checkboxClasses = [
+    'relative',
+    'inline-block',
+    'border-2',
+    'transition-all',
+    'duration-200',
+    checked ? 'bg-primary border-primary' : 'bg-surface-primary border-subtle',
+    disabled ? '' : 'hover:border-primary',
+    ...getCheckboxSizeClasses(size),
+    ...customClasses
+  ];
+
+  checkboxEl.className = cn(...checkboxClasses);
+
+  // Create checkmark
+  if (checked) {
+    const checkmark = document.createElement('div');
+    checkmark.className = cn(
+      'absolute',
+      'inset-0',
+      'flex',
+      'items-center',
+      'justify-center'
+    );
+
+    // Create SVG checkmark
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 20 20');
+    svg.setAttribute('fill', 'currentColor');
+    const checkmarkClasses = getCheckmarkSizeClasses(size);
+    svg.setAttribute('class', cn('text-white', ...checkmarkClasses));
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('fill-rule', 'evenodd');
+    path.setAttribute('d', 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z');
+    path.setAttribute('clip-rule', 'evenodd');
+
+    svg.appendChild(path);
+    checkmark.appendChild(svg);
+    checkboxEl.appendChild(checkmark);
+  }
+
+  return checkboxEl;
+}
+
+/**
+ * Create label element
+ */
+function createLabel(text: string, size: string): HTMLSpanElement {
+  const label = document.createElement('span');
+  label.textContent = text;
+  label.className = cn(
+    'text-primary',
+    getLabelSizeClass(size)
+  );
+  return label;
+}
+
+/**
+ * Create spacer between toggle and label
+ */
+function createSpacer(size: string): HTMLDivElement {
+  const spacer = document.createElement('div');
+  spacer.className = size === 'sm' ? 'w-2' : size === 'lg' ? 'w-4' : 'w-3';
+  return spacer;
+}
+
+/**
+ * Update switch visual state
+ */
+function updateSwitchState(switchEl: HTMLElement, checked: boolean): void {
+  const thumb = switchEl.querySelector('div') as HTMLDivElement;
+  
+  if (checked) {
+    switchEl.classList.remove('bg-surface-secondary');
+    switchEl.classList.add('bg-primary');
+    thumb.classList.remove('left-0.5');
+    thumb.classList.add(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
+  } else {
+    switchEl.classList.remove('bg-primary');
+    switchEl.classList.add('bg-surface-secondary');
+    thumb.classList.remove(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
+    thumb.classList.add('left-0.5');
+  }
+}
+
+/**
+ * Update checkbox visual state
+ */
+function updateCheckboxState(checkboxEl: HTMLElement, checked: boolean): void {
+  if (checked) {
+    checkboxEl.classList.remove('bg-surface-primary', 'border-subtle');
+    checkboxEl.classList.add('bg-primary', 'border-primary');
+    
+    // Add checkmark if not present
+    if (!checkboxEl.querySelector('svg')) {
+      const checkmark = document.createElement('div');
+      checkmark.className = cn(
+        'absolute',
+        'inset-0',
+        'flex',
+        'items-center',
+        'justify-center'
+      );
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 20 20');
+      svg.setAttribute('fill', 'currentColor');
+      const checkmarkClasses = getCheckmarkSizeClasses(getSizeFromElement(checkboxEl));
+      svg.setAttribute('class', cn('text-white', ...checkmarkClasses));
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('fill-rule', 'evenodd');
+      path.setAttribute('d', 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z');
+      path.setAttribute('clip-rule', 'evenodd');
+
+      svg.appendChild(path);
+      checkmark.appendChild(svg);
+      checkboxEl.appendChild(checkmark);
+    }
+  } else {
+    checkboxEl.classList.remove('bg-primary', 'border-primary');
+    checkboxEl.classList.add('bg-surface-primary', 'border-subtle');
+    
+    // Remove checkmark
+    const checkmark = checkboxEl.querySelector('div');
+    if (checkmark) {
+      checkmark.remove();
+    }
+  }
+}
+
+/**
+ * Get size from element classes (helper for event handlers)
+ */
+function getSizeFromElement(element: HTMLElement): string {
+  if (element.classList.contains('w-10')) return 'sm';
+  if (element.classList.contains('w-16')) return 'lg';
+  return 'md';
+}
+
+/**
+ * Size classes for switch
+ */
+function getSwitchSizeClasses(size: string): string[] {
+  switch (size) {
+    case 'sm':
+      return ['w-10', 'h-5'];
+    case 'lg':
+      return ['w-16', 'h-8'];
+    default: // md
+      return ['w-12', 'h-6'];
+  }
+}
+
+/**
+ * Size classes for checkbox
+ */
+function getCheckboxSizeClasses(size: string): string[] {
+  switch (size) {
+    case 'sm':
+      return ['w-4', 'h-4', 'rounded'];
+    case 'lg':
+      return ['w-6', 'h-6', 'rounded-md'];
+    default: // md
+      return ['w-5', 'h-5', 'rounded'];
+  }
+}
+
+/**
+ * Size classes for switch thumb
+ */
+function getThumbSizeClasses(size: string): string[] {
+  switch (size) {
+    case 'sm':
+      return ['w-4', 'h-4'];
+    case 'lg':
+      return ['w-7', 'h-7'];
+    default: // md
+      return ['w-5', 'h-5'];
+  }
+}
+
+/**
+ * Get thumb checked position
+ */
+function getThumbCheckedPosition(size: string): string {
+  switch (size) {
+    case 'sm':
+      return 'left-5';
+    case 'lg':
+      return 'left-8';
+    default: // md
+      return 'left-6';
+  }
+}
+
+/**
+ * Size classes for checkmark SVG
+ */
+function getCheckmarkSizeClasses(size: string): string[] {
+  switch (size) {
+    case 'sm':
+      return ['w-3', 'h-3'];
+    case 'lg':
+      return ['w-4', 'h-4'];
+    default: // md
+      return ['w-3.5', 'h-3.5'];
+  }
+}
+
+/**
+ * Size class for label text
+ */
+function getLabelSizeClass(size: string): string {
+  switch (size) {
+    case 'sm':
+      return 'text-sm';
+    case 'lg':
+      return 'text-lg';
+    default:
+      return 'text-base';
+  }
+}
+
+/**
+ * Utility function to create a switch toggle
+ */
+export function createSwitchToggle(options: Partial<CreateToggleOptions> = {}): HTMLLabelElement {
+  return createToggle({
+    variant: 'switch',
+    ...options
+  });
+}
+
+/**
+ * Utility function to create a checkbox toggle
+ */
+export function createCheckboxToggle(options: Partial<CreateToggleOptions> = {}): HTMLLabelElement {
+  return createToggle({
+    variant: 'checkbox',
+    ...options
+  });
+}

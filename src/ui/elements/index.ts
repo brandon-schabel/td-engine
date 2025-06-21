@@ -3,6 +3,9 @@
  * Export all element creation functions and types
  */
 
+// Utility exports
+export { cn } from '@/ui/styles/UtilityStyles';
+
 // Button exports
 export { createButton, createCloseButton, createIconButton } from './Button';
 export type { CreateButtonOptions } from './Button';
@@ -30,3 +33,23 @@ export type { CreateResourceDisplayOptions } from './ResourceDisplay';
 // IconContainer exports
 export { createIconContainer, createIconButton as createIconContainerButton, createIconWithBadge } from './IconContainer';
 export type { CreateIconContainerOptions } from './IconContainer';
+
+// Input exports
+export { createInput, createSearchInput, createPasswordInput } from './Input';
+export type { CreateInputOptions } from './Input';
+
+// Select exports
+export { createSelect, createGroupedSelect } from './Select';
+export type { CreateSelectOptions, SelectOption } from './Select';
+
+// Toggle exports
+export { createToggle, createSwitchToggle, createCheckboxToggle } from './Toggle';
+export type { CreateToggleOptions } from './Toggle';
+
+// Slider exports
+export { createSlider, createVolumeSlider, createPercentageSlider } from './Slider';
+export type { CreateSliderOptions } from './Slider';
+
+// Tooltip exports
+export { createTooltip, addTooltip, createHelpTooltip, createRichTooltip } from './Tooltip';
+export type { CreateTooltipOptions, TooltipInstance } from './Tooltip';

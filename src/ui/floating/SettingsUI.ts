@@ -4,8 +4,7 @@ import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { GameSettings, Difficulty, SettingsManager } from '@/config/GameSettings';
-import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
-import { createButton, createHeader } from '@/ui/elements';
+import { createButton, createHeader, createSlider, createToggle, cn } from '@/ui/elements';
 
 export class SettingsUI {
   private floatingUI: FloatingUIManager;
@@ -64,11 +63,11 @@ export class SettingsUI {
 
   private createContent(): HTMLElement {
     const content = document.createElement('div');
-    content.className = 'settings-content';
+    content.className = cn('pr-2', 'max-h-[60vh]', 'overflow-y-auto');
 
     // Audio Settings
     const audioSection = document.createElement('div');
-    audioSection.className = 'settings-section';
+    audioSection.className = cn('mb-8', 'rounded-md', 'p-4', 'border', 'border-white/5', 'transition-all');
     
     const audioHeader = createHeader({
       title: 'Audio Settings',
@@ -76,7 +75,7 @@ export class SettingsUI {
       variant: 'compact',
       showCloseButton: false,
       icon: createSvgIcon(IconType.SOUND, { size: 20 }),
-      customClasses: ['settings-section-title']
+      customClasses: ['mb-4', 'text-lg', 'font-semibold']
     });
     audioSection.appendChild(audioHeader);
 
@@ -121,7 +120,7 @@ export class SettingsUI {
 
     // Gameplay Settings
     const gameplaySection = document.createElement('div');
-    gameplaySection.className = 'settings-section';
+    gameplaySection.className = cn('mb-8', 'rounded-md', 'p-4', 'border', 'border-white/5', 'transition-all');
     
     const gameplayHeader = createHeader({
       title: 'Gameplay Settings',
@@ -129,21 +128,21 @@ export class SettingsUI {
       variant: 'compact',
       showCloseButton: false,
       icon: createSvgIcon(IconType.UPGRADE, { size: 20 }),
-      customClasses: ['settings-section-title']
+      customClasses: ['mb-4', 'text-lg', 'font-semibold']
     });
     gameplaySection.appendChild(gameplayHeader);
 
     // Difficulty
     const difficultyItem = document.createElement('div');
-    difficultyItem.className = 'settings-item';
+    difficultyItem.className = cn('mb-6');
     
     const difficultyLabel = document.createElement('span');
-    difficultyLabel.className = 'settings-label';
+    difficultyLabel.className = cn('block', 'text-primary', 'mb-2', 'text-base');
     difficultyLabel.textContent = 'Difficulty';
     difficultyItem.appendChild(difficultyLabel);
 
     const difficultyButtons = document.createElement('div');
-    difficultyButtons.className = 'difficulty-buttons';
+    difficultyButtons.className = cn('flex', 'gap-2', 'flex-wrap');
 
     const difficulties = [
       { value: Difficulty.EASY, label: 'Easy', class: 'easy' },
@@ -212,7 +211,7 @@ export class SettingsUI {
 
     // Footer buttons
     const footer = document.createElement('div');
-    footer.className = 'settings-footer';
+    footer.className = cn('flex', 'justify-between', 'gap-4', 'mt-8');
 
     const resetButton = createButton({
       text: 'Reset to Defaults',
@@ -253,40 +252,23 @@ export class SettingsUI {
     onChange: (value: number) => void;
   }): void {
     const item = document.createElement('div');
-    item.className = 'settings-item';
+    item.className = cn('mb-6');
 
-    const label = document.createElement('span');
-    label.className = 'settings-label';
-    label.textContent = options.label;
-    item.appendChild(label);
-
-    const control = document.createElement('div');
-    control.className = 'settings-control';
-
-    const sliderContainer = document.createElement('div');
-    sliderContainer.className = 'slider-container';
-
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.className = 'slider';
-    slider.min = options.min.toString();
-    slider.max = options.max.toString();
-    slider.value = options.value.toString();
-
-    const valueDisplay = document.createElement('span');
-    valueDisplay.className = 'slider-value';
-    valueDisplay.textContent = `${options.value}%`;
-
-    slider.addEventListener('input', () => {
-      const value = parseInt(slider.value);
-      valueDisplay.textContent = `${value}%`;
-      options.onChange(value);
+    const slider = createSlider({
+      label: options.label,
+      min: options.min,
+      max: options.max,
+      value: options.value,
+      showValue: true,
+      valueFormatter: (v) => `${v}%`,
+      onChange: options.onChange,
+      onInput: options.onChange,
+      size: 'md',
+      fullWidth: true,
+      containerClasses: ['settings-slider-wrapper']
     });
 
-    sliderContainer.appendChild(slider);
-    sliderContainer.appendChild(valueDisplay);
-    control.appendChild(sliderContainer);
-    item.appendChild(control);
+    item.appendChild(slider);
     parent.appendChild(item);
   }
 
@@ -296,31 +278,21 @@ export class SettingsUI {
     onChange: (value: boolean) => void;
   }): void {
     const item = document.createElement('div');
-    item.className = 'settings-item';
+    item.className = cn('mb-4', 'flex', 'items-center', 'justify-between');
 
-    const label = document.createElement('span');
-    label.className = 'settings-label';
-    label.textContent = options.label;
-    item.appendChild(label);
-
-    const control = document.createElement('div');
-    control.className = 'settings-control';
-
-    const toggle = document.createElement('div');
-    toggle.className = `toggle-switch ${options.value ? 'active' : ''}`;
-    const handle = document.createElement('div');
-    handle.className = 'toggle-switch-handle';
-    toggle.appendChild(handle);
-
-    addClickAndTouchSupport(toggle, () => {
-      const newValue = !toggle.classList.contains('active');
-      toggle.classList.toggle('active', newValue);
-      options.onChange(newValue);
-      this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+    const toggle = createToggle({
+      label: options.label,
+      checked: options.value,
+      onChange: (checked) => {
+        options.onChange(checked);
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+      },
+      size: 'md',
+      labelPosition: 'left',
+      containerClasses: ['w-full', 'justify-between']
     });
 
-    control.appendChild(toggle);
-    item.appendChild(control);
+    item.appendChild(toggle);
     parent.appendChild(item);
   }
 
