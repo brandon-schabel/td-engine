@@ -20,27 +20,17 @@ import { formatNumber } from "@/utils/formatters";
 // Helper function to create build menu content
 function createBuildMenuContent(game: Game, audioManager: AudioManager, onTowerSelect: (type: TowerType) => void): HTMLElement {
   const container = document.createElement('div');
-  container.style.cssText = 'width: 100%;';
+  container.className = 'build-menu-simple';
 
   // Title
   const title = document.createElement('h2');
   title.textContent = 'Build Tower';
-  title.style.cssText = `
-    margin: 0 0 20px 0;
-    color: ${COLOR_THEME.ui.text.primary};
-    text-align: center;
-    font-size: 24px;
-  `;
+  title.className = 'build-menu-simple-title';
   container.appendChild(title);
 
   // Tower options grid
   const grid = document.createElement('div');
-  grid.style.cssText = `
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-  `;
+  grid.className = 'build-menu-simple-grid';
 
   const towers = [
     { type: TowerType.BASIC, name: 'Basic Tower', cost: TOWER_COSTS.BASIC, icon: IconType.BASIC_TOWER, color: COLOR_THEME.towers.basic },
@@ -55,29 +45,10 @@ function createBuildMenuContent(game: Game, audioManager: AudioManager, onTowerS
     const button = document.createElement('button');
     const canAfford = currency >= tower.cost;
     button.disabled = !canAfford;
-    button.style.cssText = `
-      padding: 16px;
-      background: ${canAfford ? COLOR_THEME.ui.background.primary : 'rgba(100, 100, 100, 0.3)'};
-      border: 2px solid ${canAfford ? tower.color : 'rgba(100, 100, 100, 0.5)'};
-      border-radius: 8px;
-      cursor: ${canAfford ? 'pointer' : 'not-allowed'};
-      opacity: ${canAfford ? '1' : '0.5'};
-      transition: all 0.2s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    `;
+    button.className = `tower-card ${!canAfford ? 'disabled' : ''}`;
+    button.dataset.towerType = tower.type.toLowerCase();
 
     if (canAfford) {
-      button.addEventListener('mouseenter', () => {
-        button.style.transform = 'scale(1.05)';
-        button.style.borderColor = COLOR_THEME.ui.text.success;
-      });
-      button.addEventListener('mouseleave', () => {
-        button.style.transform = 'scale(1)';
-        button.style.borderColor = tower.color;
-      });
       button.addEventListener('click', () => {
         audioManager.playUISound(SoundType.BUTTON_CLICK);
         onTowerSelect(tower.type);
@@ -86,29 +57,20 @@ function createBuildMenuContent(game: Game, audioManager: AudioManager, onTowerS
 
     // Icon
     const iconDiv = document.createElement('div');
-    iconDiv.style.cssText = `color: ${tower.color}; width: 48px; height: 48px;`;
+    iconDiv.className = 'tower-card-icon';
+    iconDiv.dataset.towerType = tower.type.toLowerCase();
     iconDiv.innerHTML = createSvgIcon(tower.icon, { size: 48 });
     button.appendChild(iconDiv);
 
     // Name
     const nameDiv = document.createElement('div');
     nameDiv.textContent = tower.name;
-    nameDiv.style.cssText = `
-      color: ${COLOR_THEME.ui.text.primary};
-      font-weight: bold;
-      font-size: 14px;
-    `;
+    nameDiv.className = 'tower-card-name';
     button.appendChild(nameDiv);
 
     // Cost
     const costDiv = document.createElement('div');
-    costDiv.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      color: ${canAfford ? COLOR_THEME.ui.currency : COLOR_THEME.ui.text.danger};
-      font-size: 12px;
-    `;
+    costDiv.className = 'tower-card-cost';
     costDiv.innerHTML = `${createSvgIcon(IconType.COINS, { size: 16 })} ${formatNumber(tower.cost)}`;
     button.appendChild(costDiv);
 
@@ -119,19 +81,11 @@ function createBuildMenuContent(game: Game, audioManager: AudioManager, onTowerS
 
   // Currency display
   const currencyDiv = document.createElement('div');
-  currencyDiv.style.cssText = `
-    text-align: center;
-    padding: 12px;
-    background: rgba(255, 215, 0, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 215, 0, 0.3);
-  `;
+  currencyDiv.className = 'build-menu-simple-footer';
   currencyDiv.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-      ${createSvgIcon(IconType.COINS, { size: 20 })}
-      <span style="font-size: 18px; font-weight: bold; color: #FFD700;">${formatNumber(currency)}</span>
-      <span style="color: #ccc; font-size: 14px;">Available</span>
-    </div>
+    ${createSvgIcon(IconType.COINS, { size: 20 })}
+    <span class="resource-value">${formatNumber(currency)}</span>
+    <span>Available</span>
   `;
   container.appendChild(currencyDiv);
 
@@ -238,32 +192,14 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   let controlBar = document.getElementById("bottom-ui-container");
   if (!controlBar) {
     controlBar = document.createElement("div");
-    controlBar.className = "control-bar";
-    controlBar.style.cssText = `
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: clamp(50px, 10vh, 60px);
-      background: linear-gradient(to top, ${COLOR_THEME.ui.background.overlay}e6, ${COLOR_THEME.ui.background.overlay}b3);
-      border-top: 2px solid ${COLOR_THEME.ui.text.primary}1a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: clamp(8px, 2vw, 12px);
-      padding: 0 clamp(10px, 2vw, 20px);
-      z-index: 1000;
-    `;
+    controlBar.className = "ui-control-bar";
     gameContainer.appendChild(controlBar);
   } else {
     console.log("[SimpleGameUI] Using existing bottom-ui-container");
     // Clear existing content
     controlBar.innerHTML = "";
-    // Ensure it has the right styles
-    controlBar.style.display = "flex";
-    controlBar.style.alignItems = "center";
-    controlBar.style.justifyContent = "center";
-    controlBar.style.gap = "clamp(8px, 2vw, 12px)";
+    // Add the appropriate class
+    controlBar.className = "ui-control-bar";
   }
 
   // Create control buttons
@@ -273,20 +209,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     onClick: () => void
   ) => {
     const button = document.createElement("button");
-    button.className = "ui-button control-button icon-only";
-    button.style.cssText = `
-      width: clamp(40px, 8vw, 48px);
-      height: clamp(40px, 8vw, 48px);
-      border-radius: 50%;
-      background: ${COLOR_THEME.ui.background.overlay};
-      border: 2px solid ${COLOR_THEME.ui.currency};
-      color: ${COLOR_THEME.ui.currency};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    `;
+    button.className = "ui-button ui-button-icon-only ui-button-control";
     const iconSize = Math.max(20, Math.min(24, window.innerWidth * 0.05));
     const icon = createSvgIcon(iconType, { size: iconSize });
     button.innerHTML = icon;
@@ -386,23 +309,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Create mobile tower placement indicator
   const towerPlacementIndicator = document.createElement("div");
   towerPlacementIndicator.id = "tower-placement-indicator";
-  towerPlacementIndicator.style.cssText = `
-    position: fixed;
-    top: ${UI_CONSTANTS.towerPlacementIndicator.top}px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${UI_CONSTANTS.towerPlacementIndicator.background};
-    color: white;
-    padding: ${UI_CONSTANTS.towerPlacementIndicator.padding.vertical}px ${UI_CONSTANTS.towerPlacementIndicator.padding.horizontal}px;
-    border-radius: ${UI_CONSTANTS.towerPlacementIndicator.borderRadius}px;
-    font-size: ${UI_CONSTANTS.towerPlacementIndicator.fontSize}px;
-    font-weight: bold;
-    display: none;
-    pointer-events: none;
-    z-index: ${UI_CONSTANTS.zIndex.ui};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    transition: opacity 0.3s ease;
-  `;
+  towerPlacementIndicator.className = "ui-placement-indicator";
   gameContainer.appendChild(towerPlacementIndicator);
 
   // Update tower placement indicator when tower type changes
@@ -481,7 +388,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     const buildMenuDialog = floatingUI.create('build-menu', 'dialog', {
       persistent: true,
       autoHide: false,
-      className: 'build-menu-dialog',
+      className: 'ui-dialog ui-dialog-build-menu',
       zIndex: 500
     });
 
@@ -492,35 +399,10 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       floatingUI.remove('build-menu');
     });
 
-    // Style the dialog
-    buildMenuDialog.getElement().style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: ${COLOR_THEME.ui.background.secondary}f0;
-      border: 2px solid ${COLOR_THEME.ui.border.default};
-      border-radius: 12px;
-      padding: 24px;
-      min-width: 400px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(10px);
-    `;
-
     // Add close button
     const closeButton = document.createElement('button');
-    closeButton.textContent = '×';
-    closeButton.style.cssText = `
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: none;
-      border: none;
-      color: ${COLOR_THEME.ui.text.secondary};
-      font-size: 24px;
-      cursor: pointer;
-      padding: 4px 8px;
-    `;
+    closeButton.className = 'ui-dialog-close';
+    closeButton.innerHTML = createSvgIcon(IconType.CLOSE, { size: 20 });
     closeButton.addEventListener('click', () => {
       game.setSelectedTowerType(null);
       floatingUI.remove('build-menu');
@@ -664,19 +546,18 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud currency-hud'
+    className: 'static-hud resource-item'
   });
 
   // Set currency HUD content and position
-  currencyHUD.setContent(`
-    <div style="position: fixed; top: 60px; left: 10px; background: ${COLOR_THEME.ui.background.overlay}; 
-         border: 2px solid ${COLOR_THEME.ui.currency}; border-radius: ${UI_CONSTANTS.floatingUI.borderRadius}px;
-         padding: ${UI_CONSTANTS.floatingUI.padding}px; color: ${COLOR_THEME.ui.currency};
-         font-weight: bold; font-size: clamp(14px, 3vw, 18px); display: flex; align-items: center; gap: ${UI_CONSTANTS.spacing.sm}px;">
-      <span>💰</span>
-      <span id="currency-value">$${game.getCurrency()}</span>
-    </div>
-  `);
+  const currencyElement = document.createElement('div');
+  currencyElement.className = 'resource-item';
+  currencyElement.style.cssText = 'position: fixed; top: 60px; left: 10px;';
+  currencyElement.innerHTML = `
+    <span class="resource-icon">💰</span>
+    <span id="currency-value" class="resource-value">$${game.getCurrency()}</span>
+  `;
+  currencyHUD.setContent(currencyElement);
   currencyHUD.enable();
 
   // Update currency value every 100ms
@@ -692,19 +573,18 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud wave-hud'
+    className: 'static-hud resource-item'
   });
 
   // Set wave HUD content and position
-  waveHUD.setContent(`
-    <div style="position: fixed; top: 60px; right: 10px; background: ${COLOR_THEME.ui.background.overlay};
-         border: 2px solid ${COLOR_THEME.ui.wave}; border-radius: ${UI_CONSTANTS.floatingUI.borderRadius}px;
-         padding: ${UI_CONSTANTS.floatingUI.padding}px; color: ${COLOR_THEME.ui.wave};
-         font-weight: bold; font-size: clamp(14px, 3vw, 18px); display: flex; align-items: center; gap: ${UI_CONSTANTS.spacing.sm}px;">
-      <span>🌊</span>
-      <span id="wave-value">Wave 1</span>
-    </div>
-  `);
+  const waveElement = document.createElement('div');
+  waveElement.className = 'resource-item wave-info';
+  waveElement.style.cssText = 'position: fixed; top: 60px; right: 10px;';
+  waveElement.innerHTML = `
+    <span class="resource-icon">🌊</span>
+    <span id="wave-value" class="resource-value">Wave 1</span>
+  `;
+  waveHUD.setContent(waveElement);
   waveHUD.enable();
 
   // Update wave value every 100ms
@@ -728,19 +608,19 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     persistent: true,
     autoHide: false,
     smoothing: 0,
-    className: 'static-hud health-hud'
+    className: 'static-hud resource-item'
   });
 
   // Set player health HUD content and position
-  playerHealthHUD.setContent(`
-    <div style="position: fixed; top: 120px; left: 10px; background: ${COLOR_THEME.ui.background.overlay};
-         border: 2px solid ${COLOR_THEME.ui.health.high}; border-radius: ${UI_CONSTANTS.floatingUI.borderRadius}px;
-         padding: ${UI_CONSTANTS.floatingUI.padding}px; font-weight: bold; font-size: clamp(14px, 3vw, 18px);
-         display: flex; align-items: center; gap: ${UI_CONSTANTS.spacing.sm}px;" id="player-health-container">
-      <span>❤️</span>
-      <span id="player-health-value" style="color: ${COLOR_THEME.ui.health.high}">${player.health}/${player.getMaxHealth()}</span>
-    </div>
-  `);
+  const healthElement = document.createElement('div');
+  healthElement.className = 'resource-item';
+  healthElement.id = 'player-health-container';
+  healthElement.style.cssText = 'position: fixed; top: 120px; left: 10px;';
+  healthElement.innerHTML = `
+    <span class="resource-icon">❤️</span>
+    <span id="player-health-value" class="resource-value">${player.health}/${player.getMaxHealth()}</span>
+  `;
+  playerHealthHUD.setContent(healthElement);
   playerHealthHUD.enable();
 
   // Update player health value every 100ms
@@ -753,18 +633,17 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       const healthPercent = currentHealth / maxHealth;
 
       // Determine color based on health percentage
-      let color = COLOR_THEME.ui.health.high;
+      let colorClass = '';
       if (healthPercent <= 0.25) {
-        color = '#ff0000' as any; // Critical - red
+        colorClass = 'critical';
       } else if (healthPercent <= 0.5) {
-        color = '#F44336' as any; // Low - red
+        colorClass = 'low';
       } else if (healthPercent <= 0.75) {
-        color = '#FF9800' as any; // Medium - orange
+        colorClass = 'medium';
       }
 
       valueElement.textContent = `${currentHealth}/${maxHealth}`;
-      valueElement.style.color = color;
-      containerElement.style.borderColor = color;
+      containerElement.className = `resource-item ${colorClass}`;
     }
   }, 100);
 
@@ -772,57 +651,27 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   const cameraControls = floatingUI.create('camera-controls', 'custom', {
     persistent: true,
     autoHide: false,
-    className: 'camera-controls-container'
+    className: 'ui-card camera-controls-container'
   });
 
   // Position camera controls fixed at top right
-  cameraControls.getElement().style.cssText = `
-    position: fixed;
-    top: 120px;
-    right: 10px;
-    background: ${COLOR_THEME.ui.background.secondary}f0;
-    border: 2px solid #00BCD4;
-    border-radius: 8px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 1000;
-  `;
+  const cameraControlsElement = cameraControls.getElement();
+  cameraControlsElement.style.cssText = 'position: fixed; top: 120px; right: 10px;';
+  cameraControlsElement.classList.add('ui-card');
 
   // Create camera control buttons
   const createCameraButton = (text: string, onClick: () => void) => {
     const button = document.createElement('button');
     button.textContent = text;
-    button.style.cssText = `
-      padding: 8px 12px;
-      background: ${COLOR_THEME.ui.background.primary};
-      border: 1px solid ${COLOR_THEME.ui.border.default};
-      border-radius: 4px;
-      color: ${COLOR_THEME.ui.text.primary};
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      transition: all 0.2s;
-    `;
-    button.addEventListener('mouseenter', () => {
-      button.style.background = COLOR_THEME.ui.button.primary;
-    });
-    button.addEventListener('mouseleave', () => {
-      button.style.background = COLOR_THEME.ui.background.primary;
-    });
+    button.className = 'ui-button small';
     button.addEventListener('click', onClick);
     return button;
   };
 
   // Create zoom display
   const zoomDisplay = document.createElement('div');
-  zoomDisplay.style.cssText = `
-    text-align: center;
-    color: ${COLOR_THEME.ui.text.primary};
-    font-size: 12px;
-    margin-bottom: 8px;
-  `;
+  zoomDisplay.className = 'ui-text-center ui-text-secondary ui-mb-sm';
+  zoomDisplay.style.fontSize = 'var(--font-xs)';
 
   // Create control buttons
   const zoomInButton = createCameraButton('+', () => {
@@ -844,7 +693,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   const controlsContainer = document.createElement('div');
   controlsContainer.appendChild(zoomDisplay);
   const buttonRow = document.createElement('div');
-  buttonRow.style.cssText = 'display: flex; gap: 4px;';
+  buttonRow.className = 'ui-flex ui-gap-xs';
   buttonRow.appendChild(zoomInButton);
   buttonRow.appendChild(zoomOutButton);
   buttonRow.appendChild(resetButton);

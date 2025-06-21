@@ -12,56 +12,7 @@ export class TouchIndicator {
   }
   
   private setupStyles(): void {
-    const style = document.createElement('style');
-    style.textContent = `
-      .touch-indicator {
-        position: fixed;
-        width: ${UI_CONSTANTS.mobileControls.button.size}px;
-        height: ${UI_CONSTANTS.mobileControls.button.size}px;
-        border-radius: 50%;
-        background: radial-gradient(circle, ${COLOR_THEME.ui.text.primary}4d, transparent);
-        border: 2px solid ${COLOR_THEME.ui.text.primary}99;
-        pointer-events: none;
-        transform: translate(-50%, -50%);
-        animation: touchPulse ${ANIMATION_CONFIG.durations.powerUpCollect}ms ease-out;
-        z-index: 10000;
-      }
-      
-      @keyframes touchPulse {
-        0% {
-          transform: translate(-50%, -50%) scale(0.5);
-          opacity: 1;
-        }
-        100% {
-          transform: translate(-50%, -50%) scale(1.2);
-          opacity: 0;
-        }
-      }
-      
-      .touch-ripple {
-        position: fixed;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        background: ${COLOR_THEME.ui.text.primary}66;
-        pointer-events: none;
-        transform: translate(-50%, -50%);
-        animation: rippleEffect ${ANIMATION_CONFIG.particles.explosionDuration * 0.6}ms ease-out forwards;
-        z-index: 10000;
-      }
-      
-      @keyframes rippleEffect {
-        0% {
-          transform: translate(-50%, -50%) scale(1);
-          opacity: 0.6;
-        }
-        100% {
-          transform: translate(-50%, -50%) scale(3);
-          opacity: 0;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+    // Styles moved to ComponentStyles.ts
   }
   
   showTouch(touchId: number, x: number, y: number): void {

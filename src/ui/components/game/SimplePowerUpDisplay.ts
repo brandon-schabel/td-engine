@@ -12,7 +12,6 @@ import { Game } from "@/core/Game";
 import { IconType, createSvgIcon } from "@/ui/icons/SvgIcons";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { UI_CONSTANTS } from "@/config/UIConstants";
-import { COLOR_THEME } from "@/config/ColorTheme";
 import type { FloatingUIManager } from "@/ui/floating/FloatingUIManager";
 
 export class PowerUpDisplay {
@@ -36,16 +35,8 @@ export class PowerUpDisplay {
     });
 
     // Position the container at top-right
-    powerUpContainer.getElement().style.cssText = `
-      position: fixed;
-      top: ${UI_CONSTANTS.powerUpDisplay.position.top}px;
-      right: ${UI_CONSTANTS.powerUpDisplay.position.right}px;
-      display: flex;
-      flex-direction: column;
-      gap: ${UI_CONSTANTS.spacing.sm}px;
-      pointer-events: none;
-      z-index: 800;
-    `;
+    const element = powerUpContainer.getElement();
+    element.className = 'powerup-display-container';
 
     powerUpContainer.setContent('<div id="powerup-items"></div>').enable();
 
@@ -100,25 +91,9 @@ export class PowerUpDisplay {
     // Position relative to the main container
     const topOffset = UI_CONSTANTS.powerUpDisplay.position.top + (index * 40);
 
-    powerUpElement.getElement().style.cssText = `
-      position: fixed;
-      top: ${topOffset}px;
-      right: ${UI_CONSTANTS.powerUpDisplay.position.right}px;
-      background: ${COLOR_THEME.ui.background.overlay}e6;
-      border: 2px solid #4CAF50;
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: white;
-      font-size: 14px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 120px;
-      pointer-events: none;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    `;
+    const element = powerUpElement.getElement();
+    element.className = 'powerup-item';
+    element.style.top = `${topOffset}px`;
 
     powerUpElement.enable();
   }
@@ -131,28 +106,24 @@ export class PowerUpDisplay {
     const icon = createSvgIcon(this.getPowerUpIcon(type), { size: 20 });
     const name = this.getPowerUpName(type);
 
-    // Update color based on remaining time
-    let borderColor = '#4CAF50';
-    let textColor = '#4CAF50';
-
-    if (remainingTime <= 3) {
-      borderColor = '#F44336';
-      textColor = '#F44336';
-    } else if (remainingTime <= 10) {
-      borderColor = '#FF9800';
-      textColor = '#FF9800';
-    }
+    // Color state is handled by CSS classes
 
     element.setContent(`
-      <div style="color: ${textColor}; display: flex; align-items: center; gap: 8px;">
+      <div class="powerup-item-content">
         ${icon}
-        <span>${name}</span>
-        <span style="color: #FFD700; margin-left: auto; font-weight: bold;">${remainingTime}s</span>
+        <span class="powerup-item-name">${name}</span>
+        <span class="powerup-item-timer">${remainingTime}s</span>
       </div>
     `);
 
-    // Update border color
-    element.getElement().style.borderColor = borderColor;
+    // Update state classes
+    const elementNode = element.getElement();
+    elementNode.classList.remove('warning', 'critical');
+    if (remainingTime <= 3) {
+      elementNode.classList.add('critical');
+    } else if (remainingTime <= 10) {
+      elementNode.classList.add('warning');
+    }
   }
 
   private getPowerUpIcon(type: string): IconType {
@@ -196,59 +167,17 @@ export class PowerUpDisplay {
     const icon = createSvgIcon(this.getPowerUpIcon(type), { size: 24 });
     const name = this.getPowerUpName(type);
 
-    notification.getElement().style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-      border: 3px solid #fff;
-      border-radius: 12px;
-      padding: 16px 20px;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
-      animation: powerupNotification 2s ease-out forwards;
-      z-index: 1500;
-      pointer-events: none;
-    `;
+    const element = notification.getElement();
+    element.className = 'powerup-notification';
 
-    // Add animation keyframes if not already present
-    if (!document.querySelector('#powerup-notification-styles')) {
-      const style = document.createElement('style');
-      style.id = 'powerup-notification-styles';
-      style.textContent = `
-        @keyframes powerupNotification {
-          0% {
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.5);
-          }
-          20% {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1.1);
-          }
-          40% {
-            transform: translate(-50%, -50%) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -70%) scale(0.8);
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    // Animation is now handled in CSS
 
     notification.setContent(`
-      <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="powerup-notification-content">
         ${icon}
-        <div>
-          <div style="font-size: 18px;">${name}</div>
-          <div style="font-size: 14px; opacity: 0.9;">${Math.ceil(duration / 1000)}s duration</div>
+        <div class="powerup-notification-info">
+          <div class="powerup-notification-name">${name}</div>
+          <div class="powerup-notification-duration">${Math.ceil(duration / 1000)}s duration</div>
         </div>
       </div>
     `);
@@ -287,49 +216,10 @@ export class PowerUpDisplay {
       return createSvgIcon(IconType.STAR, { size: 24 });
     };
 
-    notification.getElement().style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #76C7C0, #4CAF50);
-      border: 2px solid #fff;
-      border-radius: 8px;
-      padding: 12px 16px;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
-      animation: slideDownAndUp 3s ease-out forwards;
-      z-index: 1500;
-      pointer-events: none;
-    `;
+    const element = notification.getElement();
+    element.className = 'item-pickup-notification';
 
-    // Add slide animation if not present
-    if (!document.querySelector('#item-pickup-styles')) {
-      const style = document.createElement('style');
-      style.id = 'item-pickup-styles';
-      style.textContent = `
-        @keyframes slideDownAndUp {
-          0% {
-            opacity: 0;
-            transform: translate(-50%, -20px);
-          }
-          15%, 85% {
-            opacity: 1;
-            transform: translate(-50%, 0);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -20px);
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    // Animation is now handled in CSS
 
     const icon = getItemIcon(itemType);
     notification.setContent(`
@@ -357,26 +247,8 @@ export class PowerUpDisplay {
       className: 'inventory-full-notification'
     });
 
-    notification.getElement().style.cssText = `
-      position: fixed;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #FF9800, #F57C00);
-      border: 2px solid #fff;
-      border-radius: 8px;
-      padding: 12px 16px;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 16px rgba(255, 152, 0, 0.3);
-      animation: slideDownAndUp 4s ease-out forwards;
-      z-index: 1500;
-      pointer-events: none;
-    `;
+    const element = notification.getElement();
+    element.className = 'inventory-full-notification';
 
     const warningIcon = createSvgIcon(IconType.WARNING, { size: 24 });
     notification.setContent(`

@@ -13,7 +13,6 @@ import { UpgradeType, TowerType } from '@/entities/Tower';
 import type { Game } from '@/core/Game';
 import type { FloatingUIManager } from './FloatingUIManager';
 import type { FloatingUIElement } from './FloatingUIElement';
-import { COLOR_THEME } from '@/config/ColorTheme';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { formatNumber } from '@/utils/formatters';
 
@@ -178,17 +177,7 @@ export class TowerUpgradeUI {
     if (!this.element || this.isDestroyed) return;
 
     const content = document.createElement('div');
-    content.style.cssText = `
-      background: ${COLOR_THEME.ui.background.secondary}f0;
-      border: 2px solid ${COLOR_THEME.ui.border.default};
-      border-radius: 8px;
-      padding: 16px;
-      min-width: 300px;
-      max-width: 400px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-      pointer-events: auto;
-    `;
+    content.className = 'tower-upgrade-panel';
 
     // Add header
     content.appendChild(this.createHeader());
@@ -219,42 +208,24 @@ export class TowerUpgradeUI {
 
   private createHeader(): HTMLElement {
     const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid ${COLOR_THEME.ui.border.default}44;
-    `;
+    header.className = 'tower-upgrade-header';
 
     const iconContainer = document.createElement('div');
-    iconContainer.style.cssText = `
-      width: 32px;
-      height: 32px;
-      color: ${this.getTowerColor()};
-    `;
+    iconContainer.className = 'tower-upgrade-icon';
+    iconContainer.dataset.towerType = this.tower.towerType.toLowerCase();
     iconContainer.innerHTML = createSvgIcon(this.getTowerIcon(), { size: 32 });
     header.appendChild(iconContainer);
 
     const titleContainer = document.createElement('div');
-    titleContainer.style.cssText = 'flex: 1;';
+    titleContainer.className = 'tower-upgrade-title';
     titleContainer.innerHTML = `
-      <div style="font-weight: bold; font-size: 16px; color: ${COLOR_THEME.ui.text.primary};">
-        ${this.getTowerName()}
-      </div>
-      <div style="font-size: 12px; color: ${COLOR_THEME.ui.text.secondary};">
-        Level ${this.tower.getLevel()}
-      </div>
+      <div class="tower-upgrade-name">${this.getTowerName()}</div>
+      <div class="tower-upgrade-level">Level ${this.tower.getLevel()}</div>
     `;
     header.appendChild(titleContainer);
 
     const sellValue = document.createElement('div');
-    sellValue.style.cssText = `
-      font-size: 12px;
-      color: ${COLOR_THEME.ui.currency};
-      text-align: right;
-    `;
+    sellValue.className = 'tower-upgrade-sell-value';
     sellValue.innerHTML = `${createSvgIcon(IconType.COINS, { size: 12 })} ${formatNumber(this.tower.getSellValue())}`;
     header.appendChild(sellValue);
 
@@ -263,22 +234,13 @@ export class TowerUpgradeUI {
 
   private createCurrencyDisplay(): HTMLElement {
     const display = document.createElement('div');
-    display.style.cssText = `
-      text-align: center;
-      margin-bottom: 16px;
-      padding: 10px;
-      background: rgba(255, 215, 0, 0.1);
-      border-radius: 6px;
-      border: 1px solid rgba(255, 215, 0, 0.3);
-    `;
+    display.className = 'tower-upgrade-currency';
 
     display.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+      <div class="tower-upgrade-currency-inner">
         ${createSvgIcon(IconType.COINS, { size: 20 })}
-        <span style="font-size: 18px; font-weight: bold; color: #FFD700;">
-          ${formatNumber(this.game.getCurrency())}
-        </span>
-        <span style="color: #ccc; font-size: 14px;">Available</span>
+        <span class="currency-value">${formatNumber(this.game.getCurrency())}</span>
+        <span class="currency-label">Available</span>
       </div>
     `;
 
@@ -287,12 +249,7 @@ export class TowerUpgradeUI {
 
   private createCurrentStats(): HTMLElement {
     const container = document.createElement('div');
-    container.style.cssText = `
-      margin-bottom: 16px;
-      padding: 10px;
-      background: ${COLOR_THEME.ui.background.primary}66;
-      border-radius: 6px;
-    `;
+    container.className = 'tower-upgrade-stats';
 
     const stats = [
       { label: 'Damage', value: this.tower.damage, icon: IconType.DAMAGE },
@@ -300,25 +257,16 @@ export class TowerUpgradeUI {
       { label: 'Fire Rate', value: `${(1000 / this.tower.fireRate).toFixed(1)}/s`, icon: IconType.SPEED }
     ];
 
-    stats.forEach((stat, index) => {
+    stats.forEach((stat) => {
       const row = document.createElement('div');
-      row.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        ${index < stats.length - 1 ? 'margin-bottom: 6px;' : ''}
-      `;
+      row.className = 'tower-stat-row';
 
       row.innerHTML = `
-        <span style="width: 16px; height: 16px; color: ${COLOR_THEME.ui.text.secondary};">
+        <span class="tower-stat-icon">
           ${createSvgIcon(stat.icon, { size: 16 })}
         </span>
-        <span style="font-size: 12px; color: ${COLOR_THEME.ui.text.secondary}; flex: 1;">
-          ${stat.label}
-        </span>
-        <span style="font-size: 13px; font-weight: bold; color: ${COLOR_THEME.ui.text.primary};">
-          ${stat.value}
-        </span>
+        <span class="tower-stat-label">${stat.label}</span>
+        <span class="tower-stat-value">${stat.value}</span>
       `;
 
       container.appendChild(row);
@@ -329,40 +277,17 @@ export class TowerUpgradeUI {
 
   private createBulkSelector(): HTMLElement {
     const container = document.createElement('div');
-    container.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-bottom: 16px;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 6px;
-    `;
+    container.className = 'tower-bulk-selector';
 
     const label = document.createElement('span');
-    label.style.cssText = `
-      color: #ccc;
-      font-size: 12px;
-      font-weight: bold;
-    `;
+    label.className = 'bulk-selector-label';
     label.textContent = 'Upgrade:';
     container.appendChild(label);
 
     const increments = [1, 5, 10, 25, 'MAX'] as const;
     increments.forEach(increment => {
       const button = document.createElement('button');
-      button.style.cssText = `
-        padding: 4px 8px;
-        background: ${this.bulkAmount === increment ? COLOR_THEME.ui.button.primary : 'rgba(255, 255, 255, 0.1)'};
-        border: 1px solid ${this.bulkAmount === increment ? COLOR_THEME.ui.text.success : 'rgba(255, 255, 255, 0.2)'};
-        border-radius: 4px;
-        color: white;
-        font-size: 11px;
-        font-weight: ${this.bulkAmount === increment ? 'bold' : 'normal'};
-        cursor: pointer;
-        transition: all 0.2s ease;
-      `;
+      button.className = `ui-button bulk-selector-button ${this.bulkAmount === increment ? 'active' : ''}`;
       button.textContent = increment === 'MAX' ? 'MAX' : `x${increment}`;
       
       button.onclick = () => {
@@ -383,14 +308,7 @@ export class TowerUpgradeUI {
 
   private createUpgradeCards(): HTMLElement {
     const container = document.createElement('div');
-    container.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
-      max-height: 240px;
-      overflow-y: auto;
-    `;
+    container.className = 'tower-upgrade-cards';
 
     this.upgradeOptions.forEach(option => {
       container.appendChild(this.createUpgradeCard(option));
@@ -406,74 +324,35 @@ export class TowerUpgradeUI {
     const isMaxed = option.currentLevel >= option.maxLevel;
 
     const card = document.createElement('div');
-    card.style.cssText = `
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid ${isMaxed ? 'rgba(255, 215, 0, 0.5)' : 'rgba(76, 175, 80, 0.5)'};
-      border-radius: 6px;
-      padding: 12px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: ${canAfford && !isMaxed ? 'pointer' : 'not-allowed'};
-      opacity: ${!isMaxed ? '1' : '0.7'};
-      transition: all 0.2s ease;
-    `;
+    card.className = `tower-upgrade-card ${canAfford && !isMaxed ? 'can-afford' : ''} ${isMaxed ? 'maxed' : ''}`;
 
     const iconContainer = document.createElement('div');
-    iconContainer.style.cssText = `
-      flex-shrink: 0;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(76, 175, 80, 0.1);
-      border-radius: 6px;
-    `;
+    iconContainer.className = 'upgrade-card-icon';
     iconContainer.innerHTML = createSvgIcon(option.icon, { size: 24 });
     card.appendChild(iconContainer);
 
     const infoContainer = document.createElement('div');
-    infoContainer.style.cssText = 'flex: 1;';
+    infoContainer.className = 'upgrade-card-info';
 
     const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-    `;
+    header.className = 'upgrade-card-header';
     header.innerHTML = `
-      <span style="font-weight: bold; color: ${isMaxed ? '#FFD700' : '#4CAF50'}; font-size: 14px;">
-        ${option.name}
-      </span>
-      <span style="color: #ccc; font-size: 11px;">
-        ${isMaxed ? 'MAX' : `Lvl ${option.currentLevel}/${option.maxLevel}`}
-      </span>
+      <span class="upgrade-card-name ${isMaxed ? 'maxed' : ''}">${option.name}</span>
+      <span class="upgrade-card-level">${isMaxed ? 'MAX' : `Lvl ${option.currentLevel}/${option.maxLevel}`}</span>
     `;
     infoContainer.appendChild(header);
 
     const description = document.createElement('div');
-    description.style.cssText = `
-      color: #999;
-      font-size: 11px;
-      margin-bottom: 6px;
-    `;
+    description.className = 'upgrade-card-description';
     description.textContent = option.description;
     infoContainer.appendChild(description);
 
     const footer = document.createElement('div');
-    footer.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    `;
+    footer.className = 'upgrade-card-footer';
     footer.innerHTML = `
-      <span style="color: #4CAF50; font-size: 11px; font-weight: bold;">
-        ${option.effect}
-      </span>
+      <span class="upgrade-card-effect">${option.effect}</span>
       ${!isMaxed ? `
-        <span style="display: flex; align-items: center; gap: 4px; color: ${canAfford ? '#FFD700' : '#999'}; font-size: 11px;">
+        <span class="upgrade-card-cost ${canAfford ? 'affordable' : ''}">
           ${createSvgIcon(IconType.COINS, { size: 12 })}
           <span>${formatNumber(bulkCost)}${bulkLevels > 1 ? ` (x${bulkLevels})` : ''}</span>
         </span>
@@ -483,14 +362,6 @@ export class TowerUpgradeUI {
     card.appendChild(infoContainer);
 
     if (canAfford && !isMaxed) {
-      card.onmouseenter = () => {
-        card.style.background = 'rgba(255, 255, 255, 0.08)';
-        card.style.transform = 'translateX(2px)';
-      };
-      card.onmouseleave = () => {
-        card.style.background = 'rgba(255, 255, 255, 0.05)';
-        card.style.transform = 'translateX(0)';
-      };
       card.onclick = () => this.handleBulkUpgrade(option);
     }
 
@@ -545,36 +416,15 @@ export class TowerUpgradeUI {
 
   private createActionButtons(): HTMLElement {
     const container = document.createElement('div');
-    container.style.cssText = `
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    `;
+    container.className = 'tower-upgrade-actions';
 
     const sellButton = document.createElement('button');
     sellButton.id = 'sell-button';
-    sellButton.style.cssText = `
-      flex: 1;
-      padding: 10px;
-      background: ${COLOR_THEME.ui.background.secondary}88;
-      border: 1px solid ${COLOR_THEME.ui.text.danger}66;
-      border-radius: 6px;
-      color: ${COLOR_THEME.ui.text.danger};
-      font-weight: bold;
-      cursor: ${this.sellButtonEnabled ? 'pointer' : 'not-allowed'};
-      opacity: ${this.sellButtonEnabled ? '1' : '0.6'};
-      transition: all 0.2s;
-    `;
+    sellButton.className = `ui-button tower-sell-button ${!this.sellButtonEnabled ? 'disabled' : ''}`;
     
     sellButton.innerHTML = `Sell for ${createSvgIcon(IconType.COINS, { size: 16 })} ${formatNumber(this.tower.getSellValue())}`;
     
     if (this.sellButtonEnabled) {
-      sellButton.onmouseenter = () => {
-        sellButton.style.background = `${COLOR_THEME.ui.text.danger}22`;
-      };
-      sellButton.onmouseleave = () => {
-        sellButton.style.background = `${COLOR_THEME.ui.background.secondary}88`;
-      };
       sellButton.onclick = () => this.handleSell();
     }
 
@@ -618,15 +468,6 @@ export class TowerUpgradeUI {
     }
   }
 
-  private getTowerColor(): string {
-    switch (this.tower.towerType) {
-      case TowerType.BASIC: return COLOR_THEME.towers.basic;
-      case TowerType.SNIPER: return COLOR_THEME.towers.frost;
-      case TowerType.RAPID: return COLOR_THEME.towers.artillery;
-      case TowerType.WALL: return COLOR_THEME.towers.wall;
-      default: return COLOR_THEME.ui.text.primary;
-    }
-  }
 
   public updateState(): void {
     if (this.isDestroyed) return;

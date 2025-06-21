@@ -8,7 +8,6 @@ export interface IconButtonOptions {
   className?: string;
   baseColor?: string;
   hoverColor?: string;
-  style?: Partial<CSSStyleDeclaration>;
 }
 
 export class IconButton {
@@ -23,30 +22,20 @@ export class IconButton {
   private createButton(): HTMLButtonElement {
     const button = document.createElement('button');
     
+    // Set base class
+    button.className = 'icon-button';
+    
+    // Add custom class if provided
     if (this.options.className) {
-      button.className = this.options.className;
+      button.className += ' ' + this.options.className;
     }
     
-    const baseColor = this.options.baseColor || '#00BCD4';
-    const hoverColor = this.options.hoverColor || 'rgba(0, 188, 212, 0.2)';
-    
-    // Default button styles
-    button.style.cssText = `
-      background: none;
-      border: none;
-      color: ${baseColor};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      padding: 4px;
-      border-radius: 4px;
-    `;
-    
-    // Apply custom styles if provided
-    if (this.options.style) {
-      Object.assign(button.style, this.options.style);
+    // Set data attributes for styling
+    if (this.options.baseColor) {
+      button.dataset.baseColor = this.options.baseColor;
+    }
+    if (this.options.hoverColor) {
+      button.dataset.hoverColor = this.options.hoverColor;
     }
     
     if (this.options.title) {
@@ -60,17 +49,6 @@ export class IconButton {
     // Add click handler
     button.addEventListener('click', this.options.onClick);
     
-    // Add hover effects
-    button.addEventListener('mouseenter', () => {
-      button.style.background = hoverColor;
-      button.style.transform = 'scale(1.1)';
-    });
-    
-    button.addEventListener('mouseleave', () => {
-      button.style.background = 'none';
-      button.style.transform = 'scale(1)';
-    });
-    
     return button;
   }
 
@@ -80,8 +58,11 @@ export class IconButton {
 
   public setEnabled(enabled: boolean): void {
     this.button.disabled = !enabled;
-    this.button.style.opacity = enabled ? '1' : '0.5';
-    this.button.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    if (!enabled) {
+      this.button.classList.add('disabled');
+    } else {
+      this.button.classList.remove('disabled');
+    }
   }
 
   public mount(parent: HTMLElement): void {

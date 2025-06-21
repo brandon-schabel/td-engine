@@ -1,3 +1,12 @@
+/**
+ * Recent changes:
+ * - Fully integrated with centralized StyleManager and design token system
+ * - Removed all inline styles including icon colors
+ * - Now uses semantic CSS classes exclusively
+ * - Tower types now use data attributes for styling
+ * - Improved accessibility with ARIA labels
+ */
+
 import type { Game } from '@/core/Game';
 import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
@@ -5,11 +14,9 @@ import { FloatingUIManager } from './index';
 import { TowerType } from '@/entities/Tower';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
-import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { TOWER_COSTS } from '@/config/GameConfig';
 import { formatNumber } from '@/utils/formatters';
-import { isMobile } from '@/config/ResponsiveConfig';
 
 export class BuildMenuUI {
   private floatingUI: FloatingUIManager;
@@ -84,135 +91,20 @@ export class BuildMenuUI {
     if (!this.element || !this.onTowerSelect) return;
 
     const content = document.createElement('div');
-    content.className = 'build-menu-content';
+    content.className = 'ui-card';
     
-    // Add styles
     content.innerHTML = `
-      <style>
-        .build-menu-content {
-          padding: ${UI_CONSTANTS.spacing.lg}px;
-          background: ${COLOR_THEME.ui.background.secondary}f0;
-          border: 2px solid ${COLOR_THEME.ui.border.default};
-          border-radius: 8px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-          min-width: ${isMobile(window.innerWidth) ? '280px' : '320px'};
-        }
-        
-        .build-menu-title {
-          margin: 0 0 ${UI_CONSTANTS.spacing.lg}px 0;
-          color: ${COLOR_THEME.ui.text.primary};
-          text-align: center;
-          font-size: ${isMobile(window.innerWidth) ? '20px' : '24px'};
-          font-weight: bold;
-        }
-        
-        .build-menu-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: ${UI_CONSTANTS.spacing.md}px;
-          margin-bottom: ${UI_CONSTANTS.spacing.lg}px;
-        }
-        
-        .tower-option {
-          padding: ${UI_CONSTANTS.spacing.md}px;
-          background: ${COLOR_THEME.ui.background.primary};
-          border: 2px solid ${COLOR_THEME.ui.border.default};
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: ${UI_CONSTANTS.spacing.sm}px;
-        }
-        
-        .tower-option:hover:not(:disabled) {
-          transform: scale(1.05);
-          border-color: ${COLOR_THEME.ui.text.success};
-          box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-        }
-        
-        .tower-option:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          background: rgba(100, 100, 100, 0.3);
-        }
-        
-        .tower-icon {
-          width: ${isMobile(window.innerWidth) ? '40px' : '48px'};
-          height: ${isMobile(window.innerWidth) ? '40px' : '48px'};
-        }
-        
-        .tower-name {
-          color: ${COLOR_THEME.ui.text.primary};
-          font-weight: bold;
-          font-size: ${isMobile(window.innerWidth) ? '12px' : '14px'};
-          text-align: center;
-        }
-        
-        .tower-cost {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: ${isMobile(window.innerWidth) ? '11px' : '12px'};
-        }
-        
-        .tower-cost.affordable {
-          color: ${COLOR_THEME.ui.currency};
-        }
-        
-        .tower-cost.unaffordable {
-          color: ${COLOR_THEME.ui.text.danger};
-        }
-        
-        .currency-display {
-          text-align: center;
-          padding: ${UI_CONSTANTS.spacing.md}px;
-          background: rgba(255, 215, 0, 0.1);
-          border-radius: 6px;
-          border: 1px solid rgba(255, 215, 0, 0.3);
-        }
-        
-        .currency-content {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: ${UI_CONSTANTS.spacing.sm}px;
-        }
-        
-        .currency-amount {
-          font-size: ${isMobile(window.innerWidth) ? '16px' : '18px'};
-          font-weight: bold;
-          color: #FFD700;
-        }
-        
-        .currency-label {
-          color: #ccc;
-          font-size: ${isMobile(window.innerWidth) ? '12px' : '14px'};
-        }
-        
-        .close-hint {
-          text-align: center;
-          margin-top: ${UI_CONSTANTS.spacing.md}px;
-          font-size: 11px;
-          color: ${COLOR_THEME.ui.text.secondary};
-          font-style: italic;
-        }
-      </style>
-      
-      <h2 class="build-menu-title">Build Tower</h2>
-      <div class="build-menu-grid"></div>
-      <div class="currency-display">
-        <div class="currency-content">
-          ${createSvgIcon(IconType.COINS, { size: 20 })}
-          <span class="currency-amount">${formatNumber(this.game.getCurrency())}</span>
-          <span class="currency-label">Available</span>
-        </div>
+      <h2 class="ui-dialog-title ui-text-center">Build Tower</h2>
+      <div class="ui-grid cols-2 ui-gap-sm ui-mb-md"></div>
+      <div class="resource-item ui-flex-center">
+        ${createSvgIcon(IconType.COINS, { size: 20 })}
+        <span class="resource-value">${formatNumber(this.game.getCurrency())}</span>
+        <span class="ui-text-secondary">Available</span>
       </div>
-      <div class="close-hint">Click outside to close</div>
+      <div class="ui-text-center ui-text-secondary ui-mt-sm">Click outside to close</div>
     `;
 
-    const grid = content.querySelector('.build-menu-grid');
+    const grid = content.querySelector('.ui-grid');
     if (!grid) return;
 
     const towers = [
@@ -249,26 +141,23 @@ export class BuildMenuUI {
     const currency = this.game.getCurrency();
 
     towers.forEach(tower => {
-      const button = document.createElement('button');
-      button.className = 'tower-option';
       const canAfford = currency >= tower.cost;
+      const button = document.createElement('button');
+      button.className = `tower-card ${!canAfford ? 'disabled' : ''}`;
       button.disabled = !canAfford;
+      button.setAttribute('data-tower-type', tower.type);
+      button.setAttribute('aria-label', `Build ${tower.name} for ${tower.cost} coins`);
 
-      const iconDiv = document.createElement('div');
-      iconDiv.className = 'tower-icon';
-      iconDiv.style.color = tower.color;
-      iconDiv.innerHTML = createSvgIcon(tower.icon, { size: isMobile(window.innerWidth) ? 40 : 48 });
-      button.appendChild(iconDiv);
-
-      const nameDiv = document.createElement('div');
-      nameDiv.className = 'tower-name';
-      nameDiv.textContent = tower.name;
-      button.appendChild(nameDiv);
-
-      const costDiv = document.createElement('div');
-      costDiv.className = `tower-cost ${canAfford ? 'affordable' : 'unaffordable'}`;
-      costDiv.innerHTML = `${createSvgIcon(IconType.COINS, { size: 16 })} ${formatNumber(tower.cost)}`;
-      button.appendChild(costDiv);
+      button.innerHTML = `
+        <div class="tower-card-icon" data-tower-type="${tower.type}">
+          ${createSvgIcon(tower.icon, { size: 48 })}
+        </div>
+        <div class="tower-card-name">${tower.name}</div>
+        <div class="tower-card-cost">
+          ${createSvgIcon(IconType.COINS, { size: 16 })}
+          <span>${formatNumber(tower.cost)}</span>
+        </div>
+      `;
 
       if (canAfford) {
         button.addEventListener('click', () => {

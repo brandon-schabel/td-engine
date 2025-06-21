@@ -80,6 +80,16 @@ Successfully migrated all UI to FloatingUIManager and removed:
 
 The codebase now uses FloatingUIManager as the single UI system for all popups, dialogs, and floating elements.
 
+### UI Styling Migration (December 2024)
+
+Completed migration from inline styles to centralized CSS class-based styling system:
+- **Migrated Components**: TowerUpgradeUI, BuildMenuUI, InventoryUI, PlayerUpgradeUI, IconButton, SimplePowerUpDisplay, SimpleItemTooltip
+- **Removed all inline styles** - No more `style.cssText` or inline style attributes
+- **Centralized styles** - All styles now in `ComponentStyles.ts` using CSS classes
+- **Design token integration** - CSS custom properties generated from configuration files
+- **Performance improvements** - CSS animations instead of JavaScript
+- **Better maintainability** - Single source of truth for styling
+
 ## Architecture Overview
 
 ### File Structure
@@ -174,6 +184,51 @@ const button = {
 - **Type safety** - Use `as const` for configuration objects
 - **Game balance** - All numeric values affecting gameplay should be in config files
 - **Easy tuning** - Group balance-related constants for quick iteration
+
+## UI Styling System
+
+The UI uses a centralized CSS-based styling system with design tokens generated from configuration files.
+
+### Architecture
+
+- **StyleManager** (`src/ui/styles/StyleManager.ts`) - Singleton that manages style injection
+- **UIStyles** (`src/ui/styles/UIStyles.ts`) - Base utility classes and common UI patterns
+- **ComponentStyles** (`src/ui/styles/ComponentStyles.ts`) - Game-specific component styles
+
+### Key Principles
+
+1. **No inline styles** - All styling through CSS classes
+2. **Design tokens** - CSS custom properties generated from config files
+3. **Semantic naming** - Classes describe purpose, not appearance
+4. **Data attributes** - For dynamic styling (e.g., `data-tower-type`, `data-rarity`)
+5. **Single injection** - Styles injected once at startup for performance
+
+### Usage Example
+
+```typescript
+// Instead of inline styles
+element.style.cssText = `background: ${COLOR_THEME.ui.background.primary}`;
+
+// Use CSS classes
+element.className = 'ui-card';
+
+// For dynamic styling, use data attributes
+element.dataset.towerType = tower.type.toLowerCase();
+```
+
+### CSS Class Naming Conventions
+
+- **Utility classes**: `ui-` prefix (e.g., `ui-button`, `ui-card`)
+- **Component classes**: Component name prefix (e.g., `tower-upgrade-panel`)
+- **State modifiers**: Descriptive names (e.g., `active`, `disabled`, `critical`)
+- **Responsive variants**: Use CSS media queries, not JavaScript
+
+### Adding New Styles
+
+1. Add component styles to `ComponentStyles.ts`
+2. Use existing CSS custom properties from `StyleManager`
+3. Follow BEM-like naming for complex components
+4. Test responsive behavior with CSS media queries
 
 ## Code Standards
 

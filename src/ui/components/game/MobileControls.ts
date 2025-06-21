@@ -84,120 +84,52 @@ export class MobileControls {
     
     const controls = document.createElement('div');
     controls.className = 'mobile-controls';
-    controls.style.cssText = `
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: ${this.controlsHeight + this.safeAreaBottom}px;
-      padding-bottom: ${this.safeAreaBottom}px;
-      pointer-events: none;
-      z-index: 9999;
-      display: block !important;
-    `;
+    controls.style.height = `${this.controlsHeight + this.safeAreaBottom}px`;
+    controls.style.paddingBottom = `${this.safeAreaBottom}px`;
 
     // Movement joystick (left side)
     const moveJoystick = document.createElement('div');
-    moveJoystick.className = 'move-joystick';
+    moveJoystick.className = 'mobile-joystick';
     const breakpoint = getBreakpoint(vw);
     const layoutConfig = breakpoint === 'mobile' ? RESPONSIVE_CONFIG.layout.hud.mobile : 
                         breakpoint === 'tablet' ? RESPONSIVE_CONFIG.layout.hud.tablet :
                         RESPONSIVE_CONFIG.layout.hud.desktop;
     const joystickMargin = layoutConfig.sideMargin;
     const bottomOffset = layoutConfig.bottomOffset;
-    moveJoystick.style.cssText = `
-      position: absolute;
-      bottom: ${this.safeAreaBottom + bottomOffset}px;
-      left: ${joystickMargin}px;
-      width: ${this.joystickRadius * 2}px;
-      height: ${this.joystickRadius * 2}px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
-      border: 3px solid rgba(255, 255, 255, 0.5);
-      pointer-events: auto;
-      touch-action: none;
-      display: block;
-      visibility: visible;
-      opacity: ${UI_CONSTANTS.mobileControls.button.activeOpacity};
-      z-index: 10000;
-    `;
+    moveJoystick.style.bottom = `${this.safeAreaBottom + bottomOffset}px`;
+    moveJoystick.style.left = `${joystickMargin}px`;
+    moveJoystick.style.width = `${this.joystickRadius * 2}px`;
+    moveJoystick.style.height = `${this.joystickRadius * 2}px`;
 
     const joystickKnob = document.createElement('div');
-    joystickKnob.className = 'joystick-knob';
-    joystickKnob.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: ${this.knobRadius * 2}px;
-      height: ${this.knobRadius * 2}px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.5);
-      transform: translate(-50%, -50%);
-      transition: none;
-      pointer-events: none;
-    `;
+    joystickKnob.className = 'mobile-joystick-knob';
+    joystickKnob.style.width = `${this.knobRadius * 2}px`;
+    joystickKnob.style.height = `${this.knobRadius * 2}px`;
 
     const moveIcon = document.createElement('div');
+    moveIcon.className = 'mobile-joystick-icon';
     moveIcon.innerHTML = createSvgIcon(IconType.ARROW_UP, { size: 24 });
-    moveIcon.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.7;
-      pointer-events: none;
-    `;
 
     joystickKnob.appendChild(moveIcon);
     moveJoystick.appendChild(joystickKnob);
 
     // Aim joystick (right side)
     const aimJoystick = document.createElement('div');
-    aimJoystick.className = 'aim-joystick';
+    aimJoystick.className = 'mobile-joystick aim-joystick';
     const aimJoystickMargin = Math.max(20, vw * 0.05); // 5% of viewport width
-    aimJoystick.style.cssText = `
-      position: absolute;
-      bottom: ${this.safeAreaBottom + bottomOffset}px;
-      right: ${aimJoystickMargin}px;
-      width: ${this.joystickRadius * 2}px;
-      height: ${this.joystickRadius * 2}px;
-      border-radius: 50%;
-      background: ${COLOR_THEME.ui.button.danger}33;
-      border: 3px solid ${COLOR_THEME.ui.button.danger}80;
-      pointer-events: auto;
-      touch-action: none;
-      display: block;
-      visibility: visible;
-      opacity: ${UI_CONSTANTS.mobileControls.button.activeOpacity};
-      z-index: 10000;
-    `;
+    aimJoystick.style.bottom = `${this.safeAreaBottom + bottomOffset}px`;
+    aimJoystick.style.right = `${aimJoystickMargin}px`;
+    aimJoystick.style.width = `${this.joystickRadius * 2}px`;
+    aimJoystick.style.height = `${this.joystickRadius * 2}px`;
 
     const aimJoystickKnob = document.createElement('div');
-    aimJoystickKnob.className = 'aim-joystick-knob';
-    aimJoystickKnob.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: ${this.knobRadius * 2}px;
-      height: ${this.knobRadius * 2}px;
-      border-radius: 50%;
-      background: ${COLOR_THEME.ui.button.danger}80;
-      transform: translate(-50%, -50%);
-      transition: none;
-      pointer-events: none;
-    `;
+    aimJoystickKnob.className = 'mobile-joystick-knob aim-joystick-knob';
+    aimJoystickKnob.style.width = `${this.knobRadius * 2}px`;
+    aimJoystickKnob.style.height = `${this.knobRadius * 2}px`;
 
     const aimIcon = document.createElement('div');
+    aimIcon.className = 'mobile-joystick-icon';
     aimIcon.innerHTML = createSvgIcon(IconType.CROSSHAIR, { size: 24 });
-    aimIcon.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.9;
-      color: rgba(255, 255, 255, 0.9);
-      pointer-events: none;
-    `;
 
     aimJoystickKnob.appendChild(aimIcon);
     aimJoystick.appendChild(aimJoystickKnob);
@@ -208,67 +140,7 @@ export class MobileControls {
     this.container.appendChild(controls);
     
 
-    // Add styles for active states and safe areas
-    const style = document.createElement('style');
-    style.textContent = `
-      :root {
-        --safe-area-top: env(safe-area-inset-top, 0px);
-        --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-        --safe-area-left: env(safe-area-inset-left, 0px);
-        --safe-area-right: env(safe-area-inset-right, 0px);
-      }
-      
-      .aim-joystick.active {
-        background: ${COLOR_THEME.ui.button.danger}33 !important;
-        border-color: ${COLOR_THEME.ui.button.danger}80 !important;
-      }
-      
-      .move-joystick.active {
-        background: rgba(255, 255, 255, 0.2) !important;
-        border-color: rgba(255, 255, 255, 0.5) !important;
-      }
-      
-      /* Ensure mobile controls don't overlap with game UI */
-      .mobile-controls {
-        /* Account for bottom control bar (60px) */
-        margin-bottom: 60px;
-      }
-      
-      /* Always show on touch devices */
-      @media (max-width: 768px) {
-        .mobile-controls {
-          display: block !important;
-        }
-      }
-      
-      @media (hover: none) and (pointer: coarse) {
-        .mobile-controls {
-          display: block !important;
-        }
-      }
-      
-      /* Force display on any touch-capable device */
-      @supports (-webkit-touch-callout: none) {
-        .mobile-controls {
-          display: block !important;
-        }
-      }
-      
-      /* Landscape adjustments */
-      @media (orientation: landscape) and (max-height: 600px) {
-        .mobile-controls {
-          height: 120px !important;
-        }
-      }
-      
-      /* Small screen adjustments */
-      @media (max-height: 500px) {
-        .mobile-controls {
-          height: 100px !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+    // Remove style injection - styles are now in ComponentStyles.ts
 
     return controls;
   }

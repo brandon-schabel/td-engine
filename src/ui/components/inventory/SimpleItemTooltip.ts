@@ -14,49 +14,28 @@ export class ItemTooltip {
 
   private createTooltip(): void {
     this.tooltip = document.createElement('div');
-    this.tooltip.style.cssText = `
-      position: absolute;
-      background: rgba(0, 0, 0, 0.95);
-      border: 2px solid #FFD700;
-      border-radius: 8px;
-      padding: 12px;
-      font-family: Arial, sans-serif;
-      font-size: 12px;
-      color: white;
-      z-index: 10000;
-      pointer-events: none;
-      display: none;
-      min-width: 200px;
-      max-width: 300px;
-    `;
+    this.tooltip.className = 'item-tooltip';
     document.body.appendChild(this.tooltip);
   }
 
   show(item: InventoryItem, x: number, y: number): void {
     if (!this.tooltip) return;
     
-    const rarityColors = {
-      COMMON: '#CCCCCC',
-      RARE: '#4169E1',
-      EPIC: '#9370DB',
-      LEGENDARY: '#FFD700'
-    };
-    
-    const color = rarityColors[item.rarity] || '#CCCCCC';
+    // Rarity colors are now handled by CSS data attributes
     
     this.tooltip.innerHTML = `
-      <div style="font-weight: bold; color: ${color}; margin-bottom: 8px;">
+      <div class="item-tooltip-name" data-rarity="${item.rarity.toLowerCase()}">
         ${item.name}
       </div>
-      <div style="color: ${color}; font-size: 10px; margin-bottom: 8px;">
+      <div class="item-tooltip-type" data-rarity="${item.rarity.toLowerCase()}">
         ${item.rarity} ${item.type}
       </div>
-      <div style="margin-bottom: 8px;">
+      <div class="item-tooltip-description">
         ${item.description}
       </div>
-      ${item.quantity > 1 ? `<div style="color: #FFD700;">Quantity: ${item.quantity}</div>` : ''}
-      ${item.type === 'CONSUMABLE' ? '<div style="color: #87CEEB; margin-top: 8px;">Click to use</div>' : ''}
-      ${item.type === 'EQUIPMENT' ? '<div style="color: #87CEEB; margin-top: 8px;">Click to equip</div>' : ''}
+      ${item.quantity > 1 ? `<div class="item-tooltip-quantity">Quantity: ${item.quantity}</div>` : ''}
+      ${item.type === 'CONSUMABLE' ? '<div class="item-tooltip-action">Click to use</div>' : ''}
+      ${item.type === 'EQUIPMENT' ? '<div class="item-tooltip-action">Click to equip</div>' : ''}
     `;
     
     // Position tooltip
@@ -74,13 +53,13 @@ export class ItemTooltip {
     
     this.tooltip.style.left = `${tooltipX}px`;
     this.tooltip.style.top = `${tooltipY}px`;
-    this.tooltip.style.display = 'block';
+    this.tooltip.classList.add('visible');
     this.visible = true;
   }
 
   hide(): void {
     if (this.tooltip) {
-      this.tooltip.style.display = 'none';
+      this.tooltip.classList.remove('visible');
       this.visible = false;
     }
   }

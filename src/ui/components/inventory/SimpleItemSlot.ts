@@ -29,33 +29,12 @@ export class ItemSlot {
   private createElement(): HTMLElement {
     const slot = document.createElement('div');
     slot.className = 'inventory-slot';
-    slot.style.cssText = `
-      width: 60px;
-      height: 60px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s ease;
-    `;
     
     // Add hover effect
     slot.addEventListener('mouseenter', () => {
-      slot.style.borderColor = '#FFD700';
-      slot.style.transform = 'scale(1.05)';
       if (this.options.onHover) {
         this.options.onHover(this.index);
       }
-    });
-    
-    slot.addEventListener('mouseleave', () => {
-      slot.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-      slot.style.transform = 'scale(1)';
     });
     
     // Add click handler
@@ -86,11 +65,11 @@ export class ItemSlot {
     slot.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer!.dropEffect = 'move';
-      slot.style.borderColor = '#4CAF50';
+      slot.classList.add('drag-over');
     });
     
     slot.addEventListener('dragleave', () => {
-      slot.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+      slot.classList.remove('drag-over');
     });
     
     slot.addEventListener('drop', (e) => {
@@ -99,7 +78,7 @@ export class ItemSlot {
       if (this.options.onDrop && fromIndex !== this.index) {
         this.options.onDrop(fromIndex, this.index);
       }
-      slot.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+      slot.classList.remove('drag-over');
     });
     
     return slot;
@@ -109,43 +88,18 @@ export class ItemSlot {
     this.element.innerHTML = '';
     
     if (this.item) {
-      const rarityColors = {
-        COMMON: '#CCCCCC',
-        RARE: '#4169E1',
-        EPIC: '#9370DB',
-        LEGENDARY: '#FFD700'
-      };
-      
-      this.element.style.borderColor = rarityColors[this.item.rarity] || '#CCCCCC';
+      // Add rarity class
+      this.element.className = `inventory-slot rarity-${this.item.rarity.toLowerCase()}`;
       
       // Item icon (simplified)
       const icon = document.createElement('div');
-      icon.style.cssText = `
-        width: 32px;
-        height: 32px;
-        background: ${rarityColors[this.item.rarity] || '#CCCCCC'};
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-      `;
+      icon.className = 'inventory-item-icon';
       icon.textContent = this.getItemEmoji(this.item.type);
       
       // Quantity badge
       if (this.item.quantity > 1) {
         const quantity = document.createElement('div');
-        quantity.style.cssText = `
-          position: absolute;
-          bottom: 2px;
-          right: 2px;
-          background: rgba(0, 0, 0, 0.8);
-          color: #FFD700;
-          font-size: 10px;
-          padding: 2px 4px;
-          border-radius: 2px;
-          font-weight: bold;
-        `;
+        quantity.className = 'inventory-count';
         quantity.textContent = this.item.quantity.toString();
         this.element.appendChild(quantity);
       }

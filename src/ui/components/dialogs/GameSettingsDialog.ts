@@ -39,25 +39,16 @@ export class GameSettingsDialog extends BaseDialog {
     const scrollContainer = document.createElement('div');
     const isMobileDevice = isMobile(window.innerWidth);
     
-    scrollContainer.style.cssText = `
-      max-height: ${isMobileDevice ? 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 180px)' : 'clamp(400px, 70vh, 600px)'};
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-      padding-right: ${isMobileDevice ? '0' : '8px'};
-      padding-bottom: ${isMobileDevice ? '20px' : '0'};
-    `;
+    scrollContainer.className = 'ui-scrollable settings-content';
+    scrollContainer.style.maxHeight = isMobileDevice ? 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 180px)' : 'clamp(400px, 70vh, 600px)';
+    if (isMobileDevice) {
+      scrollContainer.style.paddingBottom = '20px';
+    }
     
     // Add title for mobile to make it clear this is the main menu
     if (isMobileDevice) {
       const title = document.createElement('h1');
-      title.style.cssText = `
-        text-align: center;
-        color: ${COLOR_THEME.ui.text.success};
-        font-size: clamp(24px, 6vw, 32px);
-        margin: 0 0 20px 0;
-        font-weight: bold;
-      `;
+      title.className = 'settings-mobile-title';
       title.textContent = 'Tower Defense';
       scrollContainer.appendChild(title);
     }
@@ -144,12 +135,7 @@ export class GameSettingsDialog extends BaseDialog {
     
     // Preset buttons
     const presetContainer = document.createElement('div');
-    presetContainer.style.cssText = `
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    `;
+    presetContainer.className = 'settings-preset-container';
     
     const difficulties: Array<{ value: GameSettings['difficulty'], label: string, icon: string }> = [
       { value: 'CASUAL', label: 'Casual', icon: '🟢' },
@@ -160,26 +146,13 @@ export class GameSettingsDialog extends BaseDialog {
     difficulties.forEach(diff => {
       const button = document.createElement('button');
       button.className = 'preset-button';
-      button.style.cssText = `
-        flex: 1;
-        min-width: clamp(80px, 20vw, 120px);
-        padding: 12px;
-        border: 2px solid #444;
-        background: #333;
-        color: white;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: clamp(12px, 2.5vw, 14px);
-        transition: all 0.2s;
-        min-height: 44px;
-      `;
+      button.className = 'ui-button difficulty-preset-button';
       
       button.innerHTML = `${diff.icon} ${diff.label}`;
       button.dataset.difficulty = diff.value;
       
       if (this.settings.difficulty === diff.value) {
-        button.style.borderColor = '#4CAF50';
-        button.style.background = 'rgba(76, 175, 80, 0.2)';
+        button.classList.add('active');
       }
       
       button.addEventListener('click', () => {
@@ -197,12 +170,7 @@ export class GameSettingsDialog extends BaseDialog {
     // Difficulty description
     const description = document.createElement('p');
     description.className = 'difficulty-description';
-    description.style.cssText = `
-      font-size: clamp(11px, 2.5vw, 12px);
-      color: #aaa;
-      margin: 0;
-      line-height: 1.4;
-    `;
+    description.className = 'settings-description';
     section.appendChild(description);
     
     this.updateDifficultyDescription();
@@ -365,23 +333,9 @@ export class GameSettingsDialog extends BaseDialog {
   private createSection(title: string, icon: IconType): HTMLElement {
     const section = document.createElement('div');
     section.className = 'settings-section';
-    section.style.cssText = `
-      margin-bottom: 20px;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-    `;
     
     const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      color: #4CAF50;
-      font-size: clamp(16px, 4vw, 18px);
-      font-weight: bold;
-    `;
+    header.className = 'settings-section-title';
     
     const iconElement = createSvgIcon(icon, { size: 24 });
     header.innerHTML = `${iconElement}<span>${title}</span>`;
@@ -392,21 +346,10 @@ export class GameSettingsDialog extends BaseDialog {
   
   private createToggleItem(label: string, value: boolean, onChange: (value: boolean) => void): HTMLElement {
     const item = document.createElement('div');
-    item.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      min-height: ${DIALOG_CONFIG.mobile.minTouchTarget}px;
-    `;
+    item.className = 'settings-row';
     
     const labelElement = document.createElement('label');
-    labelElement.style.cssText = `
-      flex: 1;
-      color: #CCCCCC;
-      font-size: clamp(14px, 3.5vw, 16px);
-      user-select: none;
-    `;
+    labelElement.className = 'settings-label';
     labelElement.textContent = label;
     item.appendChild(labelElement);
     
@@ -428,20 +371,10 @@ export class GameSettingsDialog extends BaseDialog {
   
   private createSliderItem(label: string, value: number, min: number, max: number, step: number, onChange: (value: number) => void): HTMLElement {
     const item = document.createElement('div');
-    item.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      min-height: ${DIALOG_CONFIG.mobile.minTouchTarget}px;
-      gap: 16px;
-    `;
+    item.className = 'settings-row';
     
     const labelElement = document.createElement('label');
-    labelElement.style.cssText = `
-      color: #CCCCCC;
-      font-size: clamp(14px, 3.5vw, 16px);
-    `;
+    labelElement.className = 'settings-label';
     labelElement.textContent = label;
     item.appendChild(labelElement);
     
@@ -453,33 +386,15 @@ export class GameSettingsDialog extends BaseDialog {
   
   private createSelectItem(label: string, options: Array<{value: string, label: string}>, value: string, onChange: (value: string) => void): HTMLElement {
     const item = document.createElement('div');
-    item.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      min-height: ${DIALOG_CONFIG.mobile.minTouchTarget}px;
-      gap: 16px;
-    `;
+    item.className = 'settings-row';
     
     const labelElement = document.createElement('label');
-    labelElement.style.cssText = `
-      color: #CCCCCC;
-      font-size: clamp(14px, 3.5vw, 16px);
-    `;
+    labelElement.className = 'settings-label';
     labelElement.textContent = label;
     item.appendChild(labelElement);
     
     const select = document.createElement('select');
-    select.style.cssText = `
-      background: #333;
-      color: white;
-      border: 1px solid #555;
-      padding: 8px 12px;
-      border-radius: 4px;
-      min-width: clamp(100px, 25vw, 150px);
-      font-size: clamp(12px, 3vw, 14px);
-    `;
+    select.className = 'ui-select settings-select';
     
     options.forEach(option => {
       const optionElement = document.createElement('option');
@@ -503,11 +418,7 @@ export class GameSettingsDialog extends BaseDialog {
   
   private createDivider(): HTMLElement {
     const divider = document.createElement('hr');
-    divider.style.cssText = `
-      margin: 24px 0;
-      border: none;
-      border-top: 1px solid rgba(76, 175, 80, 0.2);
-    `;
+    divider.className = 'settings-divider';
     return divider;
   }
   
@@ -515,11 +426,9 @@ export class GameSettingsDialog extends BaseDialog {
     container.querySelectorAll('.preset-button').forEach(btn => {
       const button = btn as HTMLButtonElement;
       if (button.dataset.difficulty === this.settings.difficulty) {
-        button.style.borderColor = '#4CAF50';
-        button.style.background = 'rgba(76, 175, 80, 0.2)';
+        button.classList.add('active');
       } else {
-        button.style.borderColor = '#444';
-        button.style.background = '#333';
+        button.classList.remove('active');
       }
     });
   }

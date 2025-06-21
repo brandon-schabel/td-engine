@@ -46,137 +46,7 @@ export class GameOverUI {
       className: 'game-over-dialog'
     });
 
-    // Add custom styles for game over
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .game-over-dialog {
-        min-width: ${isMobile(window.innerWidth) ? '320px' : '500px'};
-        text-align: center;
-      }
-      
-      .game-over-dialog .dialog-title {
-        font-size: ${isMobile(window.innerWidth) ? '28px' : '36px'};
-        color: ${COLOR_THEME.ui.text.danger};
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-      }
-      
-      .game-over-content {
-        padding: ${UI_CONSTANTS.spacing.lg}px 0;
-      }
-      
-      .game-over-stats {
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 12px;
-        padding: ${UI_CONSTANTS.spacing.xl}px;
-        margin-bottom: ${UI_CONSTANTS.spacing.xl}px;
-      }
-      
-      .game-over-score {
-        font-size: ${isMobile(window.innerWidth) ? '32px' : '48px'};
-        font-weight: bold;
-        color: ${COLOR_THEME.ui.text.success};
-        margin-bottom: ${UI_CONSTANTS.spacing.lg}px;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-      }
-      
-      .game-over-score-label {
-        font-size: ${isMobile(window.innerWidth) ? '16px' : '20px'};
-        color: ${COLOR_THEME.ui.text.secondary};
-        display: block;
-        margin-bottom: ${UI_CONSTANTS.spacing.sm}px;
-      }
-      
-      .game-over-stat-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: ${UI_CONSTANTS.spacing.md}px;
-        margin-top: ${UI_CONSTANTS.spacing.lg}px;
-      }
-      
-      .game-over-stat {
-        background: rgba(255, 255, 255, 0.05);
-        padding: ${UI_CONSTANTS.spacing.md}px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      
-      .game-over-stat-icon {
-        color: ${COLOR_THEME.ui.text.primary};
-        margin-bottom: ${UI_CONSTANTS.spacing.sm}px;
-      }
-      
-      .game-over-stat-value {
-        font-size: ${isMobile(window.innerWidth) ? '20px' : '24px'};
-        font-weight: bold;
-        color: ${COLOR_THEME.ui.text.primary};
-        margin-bottom: 4px;
-      }
-      
-      .game-over-stat-label {
-        font-size: ${isMobile(window.innerWidth) ? '12px' : '14px'};
-        color: ${COLOR_THEME.ui.text.secondary};
-      }
-      
-      .game-over-buttons {
-        display: flex;
-        gap: ${UI_CONSTANTS.spacing.md}px;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      
-      .game-over-button {
-        padding: ${UI_CONSTANTS.spacing.md}px ${UI_CONSTANTS.spacing.xl}px;
-        background: ${COLOR_THEME.ui.button.primary};
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: ${isMobile(window.innerWidth) ? '16px' : '18px'};
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: ${UI_CONSTANTS.spacing.sm}px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        min-width: ${isMobile(window.innerWidth) ? '140px' : '180px'};
-      }
-      
-      .game-over-button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
-      
-      .game-over-button.restart {
-        background: ${COLOR_THEME.ui.button.success};
-      }
-      
-      .game-over-button.menu {
-        background: ${COLOR_THEME.ui.button.secondary};
-      }
-      
-      .game-over-message {
-        font-size: ${isMobile(window.innerWidth) ? '14px' : '16px'};
-        color: ${COLOR_THEME.ui.text.secondary};
-        margin-top: ${UI_CONSTANTS.spacing.lg}px;
-        font-style: italic;
-      }
-      
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-      }
-      
-      .game-over-score {
-        animation: pulse 2s ease-in-out infinite;
-      }
-    `;
-    document.head.appendChild(styleElement);
-
-    // Store style element reference for cleanup
-    (this.element as any)._gameOverStyleElement = styleElement;
+    // Remove style injection - styles are now in ComponentStyles.ts
   }
 
   private createContent(): HTMLElement {
@@ -195,7 +65,7 @@ export class GameOverUI {
     scoreDiv.className = 'game-over-score';
     scoreDiv.innerHTML = `
       <span class="game-over-score-label">Final Score</span>
-      ${formatNumber(score)}
+      <span class="game-over-score-value">${formatNumber(score)}</span>
     `;
     statsDiv.appendChild(scoreDiv);
 
@@ -246,7 +116,7 @@ export class GameOverUI {
 
     // Restart button
     const restartButton = document.createElement('button');
-    restartButton.className = 'game-over-button restart';
+    restartButton.className = 'ui-button game-over-button-restart';
     restartButton.innerHTML = `
       ${createSvgIcon(IconType.RESTART, { size: 24 })}
       <span>Try Again</span>
@@ -262,7 +132,7 @@ export class GameOverUI {
 
     // Main menu button
     const menuButton = document.createElement('button');
-    menuButton.className = 'game-over-button menu';
+    menuButton.className = 'ui-button secondary game-over-button-menu';
     menuButton.innerHTML = `
       ${createSvgIcon(IconType.HOME, { size: 24 })}
       <span>Main Menu</span>
@@ -316,12 +186,6 @@ export class GameOverUI {
   }
 
   public destroy(): void {
-    // Clean up custom styles
-    const styleElement = this.element && (this.element as any)._gameOverStyleElement;
-    if (styleElement) {
-      styleElement.remove();
-    }
-
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;

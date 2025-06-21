@@ -2,6 +2,7 @@ import { FloatingUIElement } from './FloatingUIElement';
 import type { FloatingUIOptions, UIType, UITypeConfig } from './types';
 import type { Camera } from '@/systems/Camera';
 import type { Entity } from '@/entities/Entity';
+import { initializeAllStyles } from '@/ui/styles';
 
 export class FloatingUIManager {
   private canvas: HTMLCanvasElement;
@@ -11,7 +12,6 @@ export class FloatingUIManager {
   private activeElements = new Set<FloatingUIElement>();
   private animationFrame: number | null = null;
   private lastUpdateTime = 0;
-  private styleElement: HTMLStyleElement | null = null;
 
   private readonly uiTypes: Record<UIType, UITypeConfig> = {
     healthbar: { zIndex: 100, class: 'floating-healthbar' },
@@ -25,22 +25,21 @@ export class FloatingUIManager {
     this.canvas = canvas;
     this.camera = camera;
     this.container = this.createContainer();
-    this.setupStyles();
+    this.initializeStyles();
     this.setupEventListeners();
   }
 
   private createContainer(): HTMLDivElement {
     const container = document.createElement('div');
     container.className = 'floating-ui-container';
-    container.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      overflow: hidden;
-    `;
+    // Remove inline styles - use CSS classes instead
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.pointerEvents = 'none';
+    container.style.overflow = 'hidden';
 
     // Position container relative to canvas
     const canvasParent = this.canvas.parentElement;
@@ -54,244 +53,9 @@ export class FloatingUIManager {
     return container;
   }
 
-  private setupStyles(): void {
-    this.styleElement = document.createElement('style');
-    this.styleElement.textContent = `
-      .floating-ui-element {
-        position: absolute;
-        transform-origin: center;
-        transition: opacity 0.2s ease;
-        pointer-events: auto;
-      }
-
-      .floating-ui-element.hidden {
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .floating-ui-element.off-screen {
-        display: none;
-      }
-
-      /* Mobile responsive styles */
-      @media (max-width: 768px) {
-        .floating-popup {
-          max-width: 80vw !important;
-          font-size: 14px;
-        }
-
-        .floating-dialog {
-          width: 90vw !important;
-          max-height: 80vh !important;
-          overflow-y: auto;
-        }
-      }
-
-      /* Default styles for different UI types */
-      .floating-healthbar {
-        background: #333;
-        border: 2px solid #000;
-        border-radius: 4px;
-        padding: 2px;
-        min-width: 60px;
-        height: 12px;
-      }
-
-      .floating-healthbar .health-fill {
-        height: 100%;
-        background: linear-gradient(to bottom, #4CAF50, #388E3C);
-        transition: width 0.3s ease;
-        border-radius: 2px;
-      }
-
-      .floating-healthbar .health-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 10px;
-        font-weight: bold;
-        color: white;
-        text-shadow: 0 0 2px rgba(0,0,0,0.8);
-        pointer-events: none;
-      }
-
-      .floating-healthbar.damaged {
-        animation: healthbar-flash 0.3s ease;
-      }
-
-      @keyframes healthbar-flash {
-        0%, 100% { border-color: #000; }
-        50% { border-color: #ff0000; box-shadow: 0 0 8px rgba(255,0,0,0.6); }
-      }
-
-      .floating-tooltip {
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 4px;
-        font-size: 14px;
-        white-space: nowrap;
-      }
-
-      .floating-popup {
-        background: white;
-        border: 2px solid #333;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        max-width: 300px;
-      }
-
-      .floating-dialog {
-        background: white;
-        border: 2px solid #333;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        min-width: 400px;
-      }
-
-      /* Animation for floating damage numbers */
-      @keyframes floatUp {
-        0% {
-          transform: translateY(0);
-          opacity: 1;
-        }
-        100% {
-          transform: translateY(-50px);
-          opacity: 0;
-        }
-      }
-
-      /* Pulse animation for emphasis */
-      @keyframes pulse {
-        0%, 100% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.1);
-        }
-      }
-
-      /* Damage number styles */
-      .damage-number {
-        font-weight: bold;
-        font-size: 18px;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-        pointer-events: none;
-        animation: floatUp 1s ease-out forwards;
-      }
-
-      .damage-number.critical {
-        color: #ff0000;
-        font-size: 24px;
-      }
-
-      .damage-number.heal {
-        color: #00ff00;
-      }
-
-      .damage-number.normal {
-        color: #ffcc00;
-      }
-
-      /* Static HUD styles */
-      .static-hud {
-        background: rgba(0, 0, 0, 0.8);
-        border: 2px solid #FFD700;
-        border-radius: 8px;
-        padding: 8px 12px;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        pointer-events: none;
-      }
-
-      .static-hud .hud-icon {
-        width: 24px;
-        height: 24px;
-      }
-
-      .static-hud .hud-value {
-        min-width: 60px;
-        text-align: right;
-      }
-
-      /* Dialog styles with dark theme */
-      .game-dialog {
-        background: #1a1a1a;
-        border: 3px solid #00ff00;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 8px 32px rgba(0, 255, 0, 0.2);
-        max-width: 600px;
-        max-height: 80vh;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .game-dialog .dialog-header {
-        padding: 16px 20px;
-        border-bottom: 2px solid #00ff00;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .game-dialog .dialog-title {
-        font-size: 20px;
-        font-weight: bold;
-        color: #00ff00;
-        margin: 0;
-      }
-
-      .game-dialog .dialog-close {
-        background: transparent;
-        border: 2px solid #ff0000;
-        color: #ff0000;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-      }
-
-      .game-dialog .dialog-close:hover {
-        background: #ff0000;
-        color: white;
-        transform: scale(1.1);
-      }
-
-      .game-dialog .dialog-content {
-        padding: 20px;
-        overflow-y: auto;
-        flex: 1;
-      }
-
-      .game-dialog-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 999;
-        pointer-events: auto;
-      }
-    `;
-    document.head.appendChild(this.styleElement);
+  private initializeStyles(): void {
+    // Initialize all styles through the centralized style system
+    initializeAllStyles();
   }
 
   private setupEventListeners(): void {
@@ -408,9 +172,8 @@ export class FloatingUIManager {
     this.elements.clear();
     this.activeElements.clear();
 
-    // Remove container and styles
+    // Remove container
     this.container.remove();
-    this.styleElement?.remove();
   }
 
   public pause(): void {
@@ -549,7 +312,7 @@ export class FloatingUIManager {
     let overlayElement: HTMLDivElement | null = null;
     if (options.modal) {
       overlayElement = document.createElement('div');
-      overlayElement.className = 'game-dialog-overlay';
+      overlayElement.className = 'ui-dialog-overlay ui-fade-in';
       overlayElement.id = `${id}_overlay`;
       this.container.appendChild(overlayElement);
     }
@@ -560,34 +323,33 @@ export class FloatingUIManager {
       anchor: 'center',
       smoothing: 0,
       autoHide: false,
-      className: `game-dialog ${options.className || ''}`,
+      className: `ui-dialog ui-scale-in ${options.className || ''}`,
       persistent: true,
       zIndex: 1000
     });
 
     // Build dialog content
-    let dialogHTML = '<div class="dialog-wrapper">';
+    let dialogHTML = '';
     
     // Add header if title or closeable
     if (options.title || options.closeable) {
-      dialogHTML += '<div class="dialog-header">';
+      dialogHTML += '<div class="ui-dialog-header">';
       if (options.title) {
-        dialogHTML += `<h2 class="dialog-title">${options.title}</h2>`;
+        dialogHTML += `<h2 class="ui-dialog-title">${options.title}</h2>`;
       }
       if (options.closeable) {
-        dialogHTML += '<button class="dialog-close">×</button>';
+        dialogHTML += '<button class="ui-button small" data-dialog-close>×</button>';
       }
       dialogHTML += '</div>';
     }
 
     // Add content
-    dialogHTML += '<div class="dialog-content"></div>';
-    dialogHTML += '</div>';
+    dialogHTML += '<div class="ui-dialog-content ui-scrollable"></div>';
 
     element.setContent(dialogHTML);
 
     // Set the actual content
-    const contentElement = element.getElement().querySelector('.dialog-content');
+    const contentElement = element.getElement().querySelector('.ui-dialog-content');
     if (contentElement) {
       if (typeof content === 'string') {
         contentElement.innerHTML = content;
@@ -598,7 +360,7 @@ export class FloatingUIManager {
 
     // Add close functionality
     if (options.closeable) {
-      const closeButton = element.getElement().querySelector('.dialog-close');
+      const closeButton = element.getElement().querySelector('[data-dialog-close]');
       if (closeButton) {
         closeButton.addEventListener('click', () => {
           if (options.onClose) {

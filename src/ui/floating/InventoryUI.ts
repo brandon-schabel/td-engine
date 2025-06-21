@@ -8,9 +8,6 @@ import { ItemSlot } from '../components/inventory/SimpleItemSlot';
 import { ItemTooltip } from '../components/inventory/SimpleItemTooltip';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
-import { UI_CONSTANTS } from '@/config/UIConstants';
-import { COLOR_THEME } from '@/config/ColorTheme';
-import { DIALOG_CONFIG } from '@/config/UIConfig';
 import { isMobile, isTablet } from '@/config/ResponsiveConfig';
 
 export class InventoryUI {
@@ -76,173 +73,29 @@ export class InventoryUI {
     if (!this.element) return;
 
     const content = document.createElement('div');
-    content.className = 'inventory-content';
+    content.className = 'inventory-dialog';
     
-    // Add styles
     content.innerHTML = `
-      <style>
-        .inventory-content {
-          padding: ${UI_CONSTANTS.spacing.lg}px;
-          background: ${COLOR_THEME.ui.background.secondary};
-          border: 2px solid ${COLOR_THEME.ui.border.default};
-          border-radius: 8px;
-          width: ${DIALOG_CONFIG.sizes.large}px;
-          max-width: 90vw;
-          max-height: 90vh;
-          display: flex;
-          flex-direction: column;
-        }
-        
-        .inventory-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: ${UI_CONSTANTS.spacing.lg}px;
-        }
-        
-        .inventory-title {
-          font-size: 20px;
-          font-weight: bold;
-          color: ${COLOR_THEME.ui.text.primary};
-        }
-        
-        .inventory-close {
-          background: ${COLOR_THEME.ui.button.danger};
-          color: white;
-          border: none;
-          padding: ${UI_CONSTANTS.spacing.sm}px ${UI_CONSTANTS.spacing.md}px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-        
-        .inventory-close:hover {
-          opacity: 0.8;
-        }
-        
-        .inventory-tabs {
-          display: flex;
-          background: rgba(40, 40, 40, 0.8);
-          border-radius: 8px;
-          margin-bottom: 16px;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        
-        .inventory-tabs::-webkit-scrollbar {
-          display: none;
-        }
-        
-        .inventory-tab {
-          flex: 1;
-          min-width: clamp(60px, 15vw, 100px);
-          padding: 12px 8px;
-          background: transparent;
-          border: none;
-          color: #CCCCCC;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          font-size: clamp(10px, 2.5vw, 12px);
-        }
-        
-        .inventory-tab.active {
-          background: rgba(76, 175, 80, 0.2);
-          color: #4CAF50;
-        }
-        
-        .inventory-grid {
-          display: grid;
-          grid-template-columns: repeat(${isMobile(window.innerWidth) ? 4 : isTablet(window.innerWidth) ? 6 : 8}, 1fr);
-          gap: ${DIALOG_CONFIG.spacing.itemGap}px;
-          padding: 8px;
-          background: rgba(0, 0, 0, 0.3);
-          border-radius: 8px;
-          max-height: ${isMobile(window.innerWidth) ? 'calc(100vh - 300px)' : 'clamp(200px, 50vh, 400px)'};
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
-          flex: 1;
-        }
-        
-        .inventory-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: ${UI_CONSTANTS.spacing.lg}px;
-          padding-top: ${UI_CONSTANTS.spacing.md}px;
-          border-top: 1px solid ${COLOR_THEME.ui.border.default};
-        }
-        
-        .inventory-stats {
-          color: #CCCCCC;
-          font-size: clamp(12px, 3vw, 14px);
-        }
-        
-        .inventory-actions {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-        
-        .action-button {
-          padding: ${UI_CONSTANTS.spacing.sm}px ${UI_CONSTANTS.spacing.md}px;
-          background: ${COLOR_THEME.ui.button.primary};
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          transition: all 0.2s;
-        }
-        
-        .action-button:hover:not(:disabled) {
-          opacity: 0.8;
-        }
-        
-        .action-button:disabled {
-          background: ${COLOR_THEME.ui.button.secondary};
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        
-        .action-button.use-button {
-          background: #2196F3;
-        }
-        
-        .action-button.upgrade-button {
-          background: #FFC107;
-        }
-      </style>
-      
       <div class="inventory-header">
         <h2 class="inventory-title">Inventory</h2>
-        <button class="inventory-close">✕</button>
+        <button class="ui-button inventory-close" aria-label="Close inventory">✕</button>
       </div>
       
       <div class="inventory-tabs" id="inventory-tabs"></div>
-      <div class="inventory-grid" id="inventory-grid"></div>
+      <div class="inventory-grid" id="inventory-grid" data-columns="${isMobile(window.innerWidth) ? 4 : isTablet(window.innerWidth) ? 6 : 8}"></div>
       
       <div class="inventory-footer">
         <div class="inventory-stats" id="inventory-stats">0/0 slots</div>
         <div class="inventory-actions">
-          <button class="action-button" id="sort-button">
+          <button class="ui-button action-button" id="sort-button">
             ${createSvgIcon(IconType.UPGRADE, { size: 16 })}
             Sort
           </button>
-          <button class="action-button use-button" id="use-button" disabled>
+          <button class="ui-button action-button use-button" id="use-button" disabled>
             ${createSvgIcon(IconType.CHECKMARK, { size: 16 })}
             Use
           </button>
-          <button class="action-button upgrade-button" id="upgrade-button">
+          <button class="ui-button action-button upgrade-button" id="upgrade-button">
             ${createSvgIcon(IconType.UPGRADE, { size: 16 })}
             <span id="upgrade-button-text">Upgrade</span>
           </button>
@@ -369,12 +222,13 @@ export class InventoryUI {
     this.currentTabIndex = this.tabOrder.indexOf(tab);
     
     // Update tab styles
-    const tabs = document.querySelectorAll('.inventory-tab');
-    tabs.forEach((tabElement, index) => {
-      if (this.tabOrder[index] === tab) {
-        tabElement.classList.add('active');
+    const tabs = document.querySelectorAll('[data-tab-id]');
+    tabs.forEach((tabElement) => {
+      const isActive = tabElement.getAttribute('data-tab-id') === tab;
+      if (isActive) {
+        tabElement.classList.remove('outline');
       } else {
-        tabElement.classList.remove('active');
+        tabElement.classList.add('outline');
       }
     });
     
@@ -398,11 +252,9 @@ export class InventoryUI {
         
         // Update selection state
         if (index === this.selectedSlot) {
-          slot.getElement().style.borderColor = '#4CAF50';
-          slot.getElement().style.boxShadow = '0 0 10px rgba(76, 175, 80, 0.5)';
+          slot.getElement().classList.add('selected');
         } else {
-          slot.getElement().style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          slot.getElement().style.boxShadow = 'none';
+          slot.getElement().classList.remove('selected');
         }
       } else {
         slot.setItem(null);

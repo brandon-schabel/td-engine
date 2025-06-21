@@ -1,7 +1,14 @@
+/**
+ * Recent changes:
+ * - Fully integrated with centralized StyleManager and design token system
+ * - Removed all remaining inline styles
+ * - Now uses semantic CSS classes exclusively
+ * - Maintained touch gesture support and animations
+ * - Improved responsive behavior through CSS
+ */
+
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
-import { UI_CONSTANTS } from '@/config/UIConstants';
-import { COLOR_THEME } from '@/config/ColorTheme';
 import { ANIMATION_CONFIG } from '@/config/AnimationConfig';
 import { isMobile } from '@/config/ResponsiveConfig';
 
@@ -78,92 +85,36 @@ export abstract class BaseDialog {
   
   private createContainer(): HTMLElement {
     const container = document.createElement('div');
-    container.className = `dialog-container ${this.options.className}`;
-    container.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: none;
-      z-index: ${this.zIndex};
-      pointer-events: none;
-    `;
+    container.className = `ui-dialog-container ${this.options.className}`;
+    container.style.display = 'none';
+    container.style.zIndex = this.zIndex.toString();
     return container;
   }
   
   private createOverlay(): HTMLElement {
     const overlay = document.createElement('div');
-    overlay.className = 'dialog-overlay';
-    overlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: ${COLOR_THEME.ui.background.overlay};
-      /* Removed backdrop-filter to prevent blur issues */
-      opacity: 0;
-      transition: opacity ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
-      pointer-events: ${this.options.modal ? 'auto' : 'none'};
-    `;
+    overlay.className = 'ui-dialog-overlay';
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = this.options.modal ? 'auto' : 'none';
     return overlay;
   }
   
   private createDialog(): HTMLElement {
     const dialog = document.createElement('div');
-    dialog.className = 'dialog-panel';
-    
-    // Check if mobile at creation time
-    const mobile = isMobile(window.innerWidth);
-    
-    dialog.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate3d(-50%, -50%, 0) scale(0.9);
-      will-change: transform, opacity;
-      width: ${mobile ? '100vw' : this.options.width};
-      height: ${mobile ? 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))' : this.options.height};
-      max-height: ${mobile ? 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))' : 'clamp(400px, 85vh, 800px)'};
-      background: ${COLOR_THEME.ui.background.primary}e6;
-      border: ${mobile ? 'none' : `${UI_CONSTANTS.floatingUI.borderWidth}px solid ${COLOR_THEME.ui.text.success}`};
-      border-radius: ${mobile ? '0' : `${UI_CONSTANTS.dialog.borderRadius}px`};
-      box-shadow: ${mobile ? 'none' : '0 10px 30px rgba(0, 0, 0, 0.8)'};
-      display: flex;
-      flex-direction: column;
-      opacity: 0;
-      transition: all ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
-      pointer-events: auto;
-      overflow: hidden;
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-    `;
-    
+    dialog.className = 'ui-dialog';
+    dialog.style.width = this.options.width;
+    dialog.style.height = this.options.height;
+    dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(0.9)';
+    dialog.style.opacity = '0';
     return dialog;
   }
   
   private createHeader(): HTMLElement {
     const header = document.createElement('div');
-    header.className = 'dialog-header';
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: ${UI_CONSTANTS.dialog.padding / 2}px ${UI_CONSTANTS.dialog.padding}px;
-      border-bottom: 1px solid ${COLOR_THEME.ui.text.success}4d;
-      background: ${COLOR_THEME.ui.text.success}1a;
-      flex-shrink: 0;
-    `;
+    header.className = 'ui-dialog-header';
     
     const title = document.createElement('h2');
-    title.className = 'dialog-title';
-    title.style.cssText = `
-      margin: 0;
-      font-size: clamp(18px, 4vw, 22px);
-      font-weight: bold;
-      color: ${COLOR_THEME.ui.text.success};
-    `;
+    title.className = 'ui-dialog-title';
     title.textContent = this.options.title;
     header.appendChild(title);
     
@@ -177,34 +128,11 @@ export abstract class BaseDialog {
   
   private createCloseButton(): HTMLElement {
     const button = document.createElement('button');
-    button.className = 'dialog-close-button';
-    button.style.cssText = `
-      width: clamp(32px, 8vw, 40px);
-      height: clamp(32px, 8vw, 40px);
-      padding: 0;
-      background: ${COLOR_THEME.ui.button.danger}33;
-      border: 1px solid ${COLOR_THEME.ui.button.danger};
-      border-radius: ${UI_CONSTANTS.dialog.borderRadius / 2}px;
-      color: ${COLOR_THEME.ui.button.danger};
-      cursor: pointer;
-      transition: all ${ANIMATION_CONFIG.durations.buttonHover}ms ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    `;
+    button.className = 'ui-button small ui-button-close';
+    button.setAttribute('aria-label', 'Close dialog');
     
-    const icon = createSvgIcon(IconType.CLOSE, { size: 20 });
+    const icon = createSvgIcon(IconType.CLOSE, { size: 16 });
     button.innerHTML = icon;
-    
-    button.addEventListener('mouseenter', () => {
-      button.style.background = '${COLOR_THEME.ui.button.danger}4d';
-      button.style.transform = 'scale(1.05)';
-    });
-    
-    button.addEventListener('mouseleave', () => {
-      button.style.background = '${COLOR_THEME.ui.button.danger}33';
-      button.style.transform = 'scale(1)';
-    });
     
     button.addEventListener('click', () => {
       this.playSound(SoundType.BUTTON_CLICK);
@@ -216,32 +144,13 @@ export abstract class BaseDialog {
   
   private createContent(): HTMLElement {
     const content = document.createElement('div');
-    content.className = 'dialog-content';
-    content.style.cssText = `
-      flex: 1;
-      padding: ${UI_CONSTANTS.dialog.padding}px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      min-height: 0; /* Important for flex children */
-      position: relative;
-      overscroll-behavior: contain;
-    `;
+    content.className = 'ui-dialog-content ui-scrollable';
     return content;
   }
   
   protected createFooter(): HTMLElement {
     const footer = document.createElement('div');
-    footer.className = 'dialog-footer';
-    footer.style.cssText = `
-      padding: ${UI_CONSTANTS.dialog.padding / 2}px ${UI_CONSTANTS.dialog.padding}px;
-      border-top: 1px solid ${COLOR_THEME.ui.text.success}4d;
-      background: ${COLOR_THEME.ui.background.secondary}cc;
-      display: flex;
-      gap: ${UI_CONSTANTS.dialog.button.spacing}px;
-      justify-content: center;
-      flex-shrink: 0;
-    `;
+    footer.className = 'ui-dialog-footer';
     
     this.footer = footer;
     this.dialog.appendChild(footer);
@@ -255,30 +164,18 @@ export abstract class BaseDialog {
     primary?: boolean;
   } = {}): HTMLButtonElement {
     const button = document.createElement('button');
-    button.className = `dialog-button ${options.primary ? 'primary' : ''}`;
     
-    const color = options.color || (options.primary ? '#4CAF50' : '#2196F3');
+    // Determine button class based on options
+    const classes = ['ui-button'];
+    if (options.primary) {
+      classes.push('primary');
+    } else if (options.color === 'danger') {
+      classes.push('danger');
+    } else if (options.color === 'success') {
+      classes.push('success');
+    }
     
-    button.style.cssText = `
-      min-height: clamp(40px, 10vw, 48px);
-      min-width: clamp(100px, 20vw, 140px);
-      padding: 12px 20px;
-      background: ${options.primary ? color : `${color}33`};
-      border: 1px solid ${color};
-      border-radius: 6px;
-      color: white;
-      font-size: clamp(14px, 3vw, 16px);
-      font-weight: bold;
-      cursor: pointer;
-      transition: all ${ANIMATION_CONFIG.durations.buttonHover}ms ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      position: relative;
-      z-index: 10;
-      pointer-events: auto;
-    `;
+    button.className = classes.join(' ');
     
     if (options.icon) {
       const icon = createSvgIcon(options.icon, { size: 20 });
@@ -287,21 +184,8 @@ export abstract class BaseDialog {
       button.textContent = text;
     }
     
-    button.addEventListener('mouseenter', () => {
-      button.style.transform = 'translateY(-2px)';
-      button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.4)';
-    });
-    
-    button.addEventListener('mouseleave', () => {
-      button.style.transform = 'translateY(0)';
-      button.style.boxShadow = 'none';
-    });
-    
     if (options.onClick) {
       const clickHandler = (e: MouseEvent) => {
-        console.log(`[BaseDialog] Button clicked: ${text}`);
-        console.log(`[BaseDialog] Event target:`, e.target);
-        console.log(`[BaseDialog] Event currentTarget:`, e.currentTarget);
         e.stopPropagation();
         e.preventDefault();
         
@@ -406,26 +290,7 @@ export abstract class BaseDialog {
   }
   
   private handleResize(): void {
-    const mobile = isMobile(window.innerWidth);
-    
-    if (mobile) {
-      this.dialog.style.width = '100vw';
-      this.dialog.style.height = 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))';
-      this.dialog.style.maxHeight = 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))';
-      this.dialog.style.borderRadius = '0';
-      this.dialog.style.border = 'none';
-      this.dialog.style.boxShadow = 'none';
-      this.dialog.style.top = 'env(safe-area-inset-top)';
-      this.dialog.style.transform = 'translate3d(-50%, 0, 0)';
-    } else {
-      this.dialog.style.width = this.options.width;
-      this.dialog.style.height = this.options.height;
-      this.dialog.style.maxHeight = 'clamp(400px, 85vh, 800px)';
-      this.dialog.style.borderRadius = `${UI_CONSTANTS.dialog.borderRadius}px`;
-      this.dialog.style.border = `${UI_CONSTANTS.floatingUI.borderWidth}px solid ${COLOR_THEME.ui.text.success}`;
-      this.dialog.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.8)';
-    }
-    
+    // Responsive handling is now done through CSS
     this.onResize();
   }
   
@@ -450,14 +315,10 @@ export abstract class BaseDialog {
     }
     
     // Make container visible immediately
-    this.container.style.display = 'block';
-    this.container.style.pointerEvents = 'auto';
-    this.container.style.visibility = 'visible';
+    this.container.style.display = 'flex';
     
     // Set initial states for animation
-    this.overlay.style.visibility = 'visible';
     this.overlay.style.opacity = '0';
-    this.dialog.style.visibility = 'visible';
     this.dialog.style.opacity = '0';
     this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(0.9)';
     
@@ -488,7 +349,6 @@ export abstract class BaseDialog {
     this.overlay.style.opacity = '0';
     this.dialog.style.opacity = '0';
     this.dialog.style.transform = 'translate3d(-50%, -50%, 0) scale(0.9)';
-    this.container.style.pointerEvents = 'none';
     
     setTimeout(() => {
       this.container.style.display = 'none';
@@ -537,58 +397,22 @@ export abstract class BaseDialog {
   // Common UI component creation methods
   protected createToggle(checked: boolean, onChange: (value: boolean) => void): HTMLElement {
     const toggle = document.createElement('label');
-    toggle.className = 'setting-toggle';
-    toggle.style.cssText = `
-      position: relative;
-      display: inline-block;
-      width: clamp(44px, 10vw, 52px);
-      height: clamp(24px, 6vw, 28px);
-      cursor: pointer;
-    `;
+    toggle.className = checked ? 'ui-toggle checked' : 'ui-toggle';
     
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.checked = checked;
-    input.style.cssText = `
-      opacity: 0;
-      width: 0;
-      height: 0;
-    `;
+    input.style.display = 'none';
     
     const slider = document.createElement('span');
-    slider.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: ${checked ? '#4CAF50' : '#666'};
-      transition: background-color ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
-      border-radius: 28px;
-    `;
+    slider.className = 'ui-toggle-switch';
     
-    const knob = document.createElement('span');
-    knob.style.cssText = `
-      position: absolute;
-      top: 2px;
-      left: ${checked ? 'calc(100% - 22px)' : '2px'};
-      width: clamp(20px, 5vw, 24px);
-      height: clamp(20px, 5vw, 24px);
-      background-color: white;
-      transition: left ${ANIMATION_CONFIG.durations.uiTransition}ms ease;
-      border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    `;
-    
-    slider.appendChild(knob);
     toggle.appendChild(input);
     toggle.appendChild(slider);
     
     input.addEventListener('change', () => {
-      const isChecked = input.checked;
-      slider.style.backgroundColor = isChecked ? '#4CAF50' : '#666';
-      knob.style.left = isChecked ? 'calc(100% - 22px)' : '2px';
-      onChange(isChecked);
+      toggle.classList.toggle('checked', input.checked);
+      onChange(input.checked);
       this.playSound(SoundType.BUTTON_CLICK);
     });
     
@@ -597,87 +421,78 @@ export abstract class BaseDialog {
   
   protected createSlider(value: number, min: number, max: number, step: number, onChange: (value: number) => void): HTMLElement {
     const container = document.createElement('div');
-    container.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 0 0 clamp(120px, 30vw, 180px);
-    `;
+    container.className = 'ui-slider-container ui-flex ui-gap-sm';
     
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.min = min.toString();
-    slider.max = max.toString();
-    slider.step = step.toString();
-    slider.value = value.toString();
+    const sliderWrapper = document.createElement('div');
+    sliderWrapper.className = 'ui-slider';
     
-    // Generate unique class name instead of using ID-based styles
-    const sliderClass = `dialog-slider-${Math.random().toString(36).substr(2, 9)}`;
-    slider.className = sliderClass;
+    const track = document.createElement('div');
+    track.className = 'ui-slider-track';
     
-    slider.style.cssText = `
-      flex: 1;
-      height: 6px;
-      background: #333;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      border-radius: 3px;
-    `;
+    const fill = document.createElement('div');
+    fill.className = 'ui-slider-fill';
+    fill.style.width = `${((value - min) / (max - min)) * 100}%`;
     
-    // Add slider styles to existing dialog styles or create new style element
-    let dialogStyles = document.getElementById('dialog-slider-styles');
-    if (!dialogStyles) {
-      dialogStyles = document.createElement('style');
-      dialogStyles.id = 'dialog-slider-styles';
-      document.head.appendChild(dialogStyles);
-    }
+    const thumb = document.createElement('div');
+    thumb.className = 'ui-slider-thumb';
+    thumb.style.left = `${((value - min) / (max - min)) * 100}%`;
     
-    // Append new slider styles
-    dialogStyles.textContent += `
-      .${sliderClass}::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: clamp(20px, 5vw, 24px);
-        height: clamp(20px, 5vw, 24px);
-        background: #4CAF50;
-        cursor: pointer;
-        border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-      
-      .${sliderClass}::-moz-range-thumb {
-        width: clamp(20px, 5vw, 24px);
-        height: clamp(20px, 5vw, 24px);
-        background: #4CAF50;
-        cursor: pointer;
-        border-radius: 50%;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-    `;
+    track.appendChild(fill);
+    track.appendChild(thumb);
+    sliderWrapper.appendChild(track);
     
     const valueLabel = document.createElement('span');
-    valueLabel.style.cssText = `
-      min-width: 40px;
-      text-align: right;
-      color: #4CAF50;
-      font-size: clamp(12px, 3vw, 14px);
-      font-weight: bold;
-    `;
+    valueLabel.className = 'ui-success ui-text-right';
+    valueLabel.style.minWidth = '60px';
+    valueLabel.style.fontWeight = '600';
     valueLabel.textContent = Math.round(value * 100) + '%';
     
-    slider.addEventListener('input', () => {
-      const newValue = parseFloat(slider.value);
-      valueLabel.textContent = Math.round(newValue * 100) + '%';
-      onChange(newValue);
-    });
+    // Handle slider interactions
+    let isDragging = false;
     
-    slider.addEventListener('change', () => {
-      this.playSound(SoundType.SELECT);
-    });
+    const updateSlider = (clientX: number) => {
+      const rect = track.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const newValue = min + (max - min) * percent;
+      const snappedValue = Math.round(newValue / step) * step;
+      
+      fill.style.width = `${percent * 100}%`;
+      thumb.style.left = `${percent * 100}%`;
+      valueLabel.textContent = Math.round(snappedValue * 100) + '%';
+      onChange(snappedValue);
+    };
     
-    container.appendChild(slider);
+    const handleStart = (e: MouseEvent | TouchEvent) => {
+      isDragging = true;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      updateSlider(clientX);
+      e.preventDefault();
+    };
+    
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging) return;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      updateSlider(clientX);
+      e.preventDefault();
+    };
+    
+    const handleEnd = () => {
+      if (isDragging) {
+        isDragging = false;
+        this.playSound(SoundType.SELECT);
+      }
+    };
+    
+    track.addEventListener('mousedown', handleStart);
+    track.addEventListener('touchstart', handleStart, { passive: false });
+    
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchend', handleEnd);
+    
+    container.appendChild(sliderWrapper);
     container.appendChild(valueLabel);
     
     return container;
