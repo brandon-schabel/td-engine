@@ -164,7 +164,14 @@ export function createPopupContent(options: {
     options.buttons.forEach(button => {
       const btn = document.createElement('button');
       btn.textContent = button.text;
-      btn.onclick = button.onClick;
+      
+      // Add both click and touch support
+      const handleClick = () => button.onClick();
+      btn.addEventListener('click', handleClick);
+      btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleClick();
+      });
 
       // Style based on button type
       const baseStyle = 'padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold;';

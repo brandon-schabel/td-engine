@@ -8,6 +8,7 @@ import { ItemSlot } from '../components/inventory/SimpleItemSlot';
 import { ItemTooltip } from '../components/inventory/SimpleItemTooltip';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
+import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
 import { isMobile, isTablet } from '@/config/ResponsiveConfig';
 
 export class InventoryUI {
@@ -112,22 +113,22 @@ export class InventoryUI {
     // Add event listeners
     const closeButton = content.querySelector('.inventory-close');
     if (closeButton) {
-      closeButton.addEventListener('click', () => this.close());
+      addClickAndTouchSupport(closeButton as HTMLElement, () => this.close());
     }
     
     const sortButton = content.querySelector('#sort-button');
     if (sortButton) {
-      sortButton.addEventListener('click', () => this.handleSort());
+      addClickAndTouchSupport(sortButton as HTMLElement, () => this.handleSort());
     }
     
     const useButton = content.querySelector('#use-button');
     if (useButton) {
-      useButton.addEventListener('click', () => this.handleUse());
+      addClickAndTouchSupport(useButton as HTMLElement, () => this.handleUse());
     }
     
     const upgradeButton = content.querySelector('#upgrade-button');
     if (upgradeButton) {
-      upgradeButton.addEventListener('click', () => this.handleUpgrade());
+      addClickAndTouchSupport(upgradeButton as HTMLElement, () => this.handleUpgrade());
     }
     
     // Add touch swipe support
@@ -160,7 +161,7 @@ export class InventoryUI {
       tabButton.className = `inventory-tab ${this.activeTab === tab.id ? 'active' : ''}`;
       tabButton.innerHTML = `${createSvgIcon(tab.icon, { size: 20 })}<span>${tab.name}</span>`;
       
-      tabButton.addEventListener('click', () => {
+      addClickAndTouchSupport(tabButton, () => {
         this.setActiveTab(tab.id as any);
       });
       

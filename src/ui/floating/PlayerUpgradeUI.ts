@@ -4,6 +4,7 @@ import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { SoundType } from '@/audio/AudioManager';
+import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
 
 export class PlayerUpgradeUI {
   private floatingUI: FloatingUIManager;
@@ -99,14 +100,14 @@ export class PlayerUpgradeUI {
     // Add event listeners
     const closeButton = content.querySelector('.ui-button-close');
     if (closeButton) {
-      closeButton.addEventListener('click', () => this.close());
+      addClickAndTouchSupport(closeButton as HTMLElement, () => this.close());
     }
 
     // Add upgrade button listeners
     const upgradeButtons = content.querySelectorAll('[data-ability]');
     upgradeButtons.forEach((button) => {
-      button.addEventListener('click', (e) => {
-        const target = e.target as HTMLButtonElement;
+      addClickAndTouchSupport(button as HTMLElement, () => {
+        const target = button as HTMLButtonElement;
         const abilityType = target.dataset.ability;
         if (abilityType) {
           this.handleUpgrade(abilityType);

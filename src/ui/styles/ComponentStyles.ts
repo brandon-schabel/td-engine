@@ -1752,6 +1752,72 @@ const componentStyles = `
       flex: 1 1 100%;
     }
   }
+
+  /* Floating UI Styles */
+  .floating-ui-container {
+    pointer-events: none;
+  }
+
+  .floating-ui-element {
+    pointer-events: auto;
+  }
+
+  /* Ensure specific floating UI types also receive pointer events */
+  .floating-healthbar,
+  .floating-tooltip,
+  .floating-popup,
+  .floating-dialog,
+  .floating-custom {
+    pointer-events: auto;
+  }
+
+  /* Ensure all content inside floating UI elements can receive events */
+  .floating-ui-element > * {
+    pointer-events: auto;
+  }
+
+  /* Specific UI components inside floating elements */
+  .build-menu-ui,
+  .tower-upgrade-ui,
+  .inventory-ui,
+  .player-upgrade-ui,
+  .settings-menu {
+    pointer-events: auto;
+  }
+
+  /* Ensure buttons and interactive elements are always clickable */
+  .floating-ui-element button,
+  .floating-ui-element .tower-card,
+  .floating-ui-element .ui-button,
+  .floating-ui-element input,
+  .floating-ui-element select,
+  .floating-ui-element textarea {
+    pointer-events: auto !important;
+    cursor: pointer;
+  }
+
+  .floating-ui-element button:disabled,
+  .floating-ui-element .tower-card.disabled {
+    cursor: not-allowed;
+  }
+
+  /* Build Menu UI */
+  .build-menu-ui {
+    pointer-events: auto;
+  }
+
+  /* Tower Upgrade UI */
+  .tower-upgrade-ui {
+    pointer-events: auto;
+  }
+
+  /* Other floating UI components */
+  .inventory-dialog,
+  .pause-menu-ui,
+  .settings-ui,
+  .game-over-ui {
+    pointer-events: auto;
+  }
 `;
 
 export function initializeComponentStyles(): void {

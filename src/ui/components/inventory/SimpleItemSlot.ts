@@ -3,6 +3,7 @@
  */
 
 import type { InventoryItem } from '@/systems/Inventory';
+import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
 
 export interface ItemSlotOptions {
   index: number;
@@ -37,12 +38,12 @@ export class ItemSlot {
       }
     });
     
-    // Add click handler
-    slot.addEventListener('click', () => {
-      if (this.options.onSelect) {
-        this.options.onSelect(this.index);
-      }
-    });
+    // Add click handler with touch support
+    if (this.options.onSelect) {
+      addClickAndTouchSupport(slot, () => {
+        this.options.onSelect!(this.index);
+      });
+    }
     
     // Add drag and drop
     slot.draggable = true;

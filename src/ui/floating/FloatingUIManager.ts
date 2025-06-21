@@ -38,7 +38,6 @@ export class FloatingUIManager {
     container.style.left = '0';
     container.style.width = '100%';
     container.style.height = '100%';
-    container.style.pointerEvents = 'none';
     container.style.overflow = 'hidden';
 
     // Position container relative to canvas

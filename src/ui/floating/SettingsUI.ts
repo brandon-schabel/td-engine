@@ -7,6 +7,7 @@ import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { isMobile } from '@/config/ResponsiveConfig';
 import { GameSettings, Difficulty, SettingsManager } from '@/config/GameSettings';
+import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
 
 export class SettingsUI {
   private floatingUI: FloatingUIManager;
@@ -326,7 +327,7 @@ export class SettingsUI {
         button.classList.add('active');
       }
       button.textContent = diff.label;
-      button.addEventListener('click', () => {
+      addClickAndTouchSupport(button, () => {
         this.settings.difficulty = diff.value;
         difficultyButtons.querySelectorAll('.difficulty-button').forEach(btn => {
           btn.classList.remove('active');
@@ -376,7 +377,7 @@ export class SettingsUI {
     const resetButton = document.createElement('button');
     resetButton.className = 'settings-button reset';
     resetButton.textContent = 'Reset to Defaults';
-    resetButton.addEventListener('click', () => {
+    addClickAndTouchSupport(resetButton, () => {
       if (confirm('Reset all settings to default values?')) {
         this.settings.reset();
         this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
@@ -388,7 +389,7 @@ export class SettingsUI {
     const saveButton = document.createElement('button');
     saveButton.className = 'settings-button save';
     saveButton.textContent = 'Save & Close';
-    saveButton.addEventListener('click', () => {
+    addClickAndTouchSupport(saveButton, () => {
       this.handleClose();
     });
     footer.appendChild(saveButton);
@@ -463,7 +464,7 @@ export class SettingsUI {
     toggle.className = `toggle-switch ${options.value ? 'active' : ''}`;
     toggle.innerHTML = '<div class="toggle-switch-handle"></div>';
 
-    toggle.addEventListener('click', () => {
+    addClickAndTouchSupport(toggle, () => {
       const newValue = !toggle.classList.contains('active');
       toggle.classList.toggle('active', newValue);
       options.onChange(newValue);

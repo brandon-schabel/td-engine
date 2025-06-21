@@ -160,12 +160,20 @@ export class BuildMenuUI {
       `;
 
       if (canAfford) {
-        button.addEventListener('click', () => {
+        const handleSelect = () => {
           this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
           if (this.onTowerSelect) {
             this.onTowerSelect(tower.type);
           }
           this.close();
+        };
+
+        button.addEventListener('click', handleSelect);
+        
+        // Add touch support for mobile devices
+        button.addEventListener('touchend', (e) => {
+          e.preventDefault(); // Prevent ghost click
+          handleSelect();
         });
       }
 

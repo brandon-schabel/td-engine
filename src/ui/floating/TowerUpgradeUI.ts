@@ -137,24 +137,34 @@ export class TowerUpgradeUI {
     
     const element = this.element.getElement();
     
-    // Prevent all mouse events from propagating to the canvas
-    const stopPropagation = (e: MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
+    // Only prevent events from bubbling up to the canvas when clicking on non-interactive areas
+    const handleMouseEvent = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      
+      // Allow events on interactive elements to process normally
+      if (target.matches('button, .ui-button, input, select, textarea, a')) {
+        return; // Let the event bubble normally for interactive elements
+      }
+      
+      // Only stop propagation for clicks on the background/card itself
+      if (target === element || target.matches('.ui-card, .tower-upgrade-panel')) {
+        e.stopPropagation();
+      }
     };
     
     // Remove existing handlers if any
-    element.removeEventListener('mousedown', stopPropagation, true);
-    element.removeEventListener('mouseup', stopPropagation, true);
-    element.removeEventListener('click', stopPropagation, true);
+    const oldHandler = (element as any).__handleMouseEvent;
+    if (oldHandler) {
+      element.removeEventListener('mousedown', oldHandler);
+      element.removeEventListener('click', oldHandler);
+    }
     
-    // Add handlers to stop propagation
-    element.addEventListener('mousedown', stopPropagation, true);
-    element.addEventListener('mouseup', stopPropagation, true);
-    element.addEventListener('click', stopPropagation, true);
+    // Add new handlers
+    element.addEventListener('mousedown', handleMouseEvent);
+    element.addEventListener('click', handleMouseEvent);
     
-    // Store handlers for cleanup
-    (element as any).__stopPropagation = stopPropagation;
+    // Store handler for cleanup
+    (element as any).__handleMouseEvent = handleMouseEvent;
     
     // Handle click outside to close
     if (!this.clickOutsideHandler) {
@@ -290,11 +300,17 @@ export class TowerUpgradeUI {
       button.className = `ui-button bulk-selector-button ${this.bulkAmount === increment ? 'active' : ''}`;
       button.textContent = increment === 'MAX' ? 'MAX' : `x${increment}`;
       
-      button.onclick = () => {
+      const handleBulkSelect = () => {
         this.bulkAmount = increment;
         this.setupUpgradeOptions();
         this.updateContent();
       };
+      
+      button.addEventListener('click', handleBulkSelect);
+      button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleBulkSelect();
+      });
 
       container.appendChild(button);
     });
@@ -362,7 +378,16 @@ export class TowerUpgradeUI {
     card.appendChild(infoContainer);
 
     if (canAfford && !isMaxed) {
-      card.onclick = () => this.handleBulkUpgrade(option);
+      const handleUpgrade = () => this.handleBulkUpgrade(option);
+      
+      card.addEventListener('click', handleUpgrade);
+      card.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleUpgrade();
+      });
+      
+      // Add cursor pointer for clickable cards
+      card.style.cursor = 'pointer';
     }
 
     return card;
@@ -425,7 +450,13 @@ export class TowerUpgradeUI {
     sellButton.innerHTML = `Sell for ${createSvgIcon(IconType.COINS, { size: 16 })} ${formatNumber(this.tower.getSellValue())}`;
     
     if (this.sellButtonEnabled) {
-      sellButton.onclick = () => this.handleSell();
+      const handleSellClick = () => this.handleSell();
+      
+      sellButton.addEventListener('click', handleSellClick);
+      sellButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleSellClick();
+      });
     }
 
     container.appendChild(sellButton);
@@ -494,15 +525,14 @@ export class TowerUpgradeUI {
       this.clickOutsideHandler = null;
     }
     
-    // Remove stop propagation handlers
+    // Remove mouse event handlers
     if (this.element) {
       const element = this.element.getElement();
-      const stopPropagation = (element as any).__stopPropagation;
-      if (stopPropagation) {
-        element.removeEventListener('mousedown', stopPropagation, true);
-        element.removeEventListener('mouseup', stopPropagation, true);
-        element.removeEventListener('click', stopPropagation, true);
-        delete (element as any).__stopPropagation;
+      const handleMouseEvent = (element as any).__handleMouseEvent;
+      if (handleMouseEvent) {
+        element.removeEventListener('mousedown', handleMouseEvent);
+        element.removeEventListener('click', handleMouseEvent);
+        delete (element as any).__handleMouseEvent;
       }
     }
 
