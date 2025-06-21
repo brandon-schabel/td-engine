@@ -1,12 +1,12 @@
 import { GameWithEvents } from "./core/GameWithEvents";
 import { TowerType } from "./entities/Tower";
 import { AudioManager, SoundType } from "./audio/AudioManager";
-import { GameSettingsDialog } from "./ui/components/dialogs/GameSettingsDialog";
-import { GameOverDialog } from "./ui/components/dialogs/GameOverDialog";
+// Dialog imports removed - using FloatingUIManager instead
 import { DialogManager } from "./ui/systems/DialogManager";
 import { ANIMATION_CONFIG } from "./config/AnimationConfig";
 import { RESPONSIVE_CONFIG, isMobile } from "./config/ResponsiveConfig";
 import { injectResponsiveStyles } from "./ui/styles/generateResponsiveStyles";
+import { injectDialogStyles } from "./ui/styles/injectDialogStyles";
 // Touch input is handled within SimpleGameUI now
 import { applySettingsToGame } from "./config/SettingsIntegration";
 import { type GameSettings } from "./config/GameSettings";
@@ -19,12 +19,8 @@ import {
 import { createSvgIcon, IconType } from "./ui/icons/SvgIcons";
 import { setupGameUI } from "./ui/setupGameUI";
 import { TouchIndicator } from "./ui/components/game/TouchIndicator";
-import { 
-  BuildMenuDialogAdapter,
-  SettingsDialog,
-  PauseDialog
-} from "./ui/components/dialogs";
-import { injectDialogStyles } from "./ui/styles/injectDialogStyles";
+// Dialog components removed - using FloatingUIManager instead
+// Dialog styles removed - using FloatingUIManager instead
 
 // Inject responsive styles
 injectResponsiveStyles();
@@ -96,67 +92,17 @@ window.addEventListener("resize", () => {
 const audioManager = new AudioManager();
 const dialogManager = DialogManager.getInstance();
 
-// Dialog instances that need to be accessible throughout the app
-let buildMenuDialog: BuildMenuDialogAdapter | null = null;
-let settingsDialogInstance: SettingsDialog | null = null;
-let pauseDialog: PauseDialog | null = null;
+// Dialog instances - being phased out in favor of FloatingUIManager
+// Keeping empty functions for backward compatibility temporarily
 
 // Early initialization of dialogs that don't require a game instance
 function initializeEarlyDialogs() {
-  
-  // Settings Dialog (doesn't need game instance)
-  settingsDialogInstance = new SettingsDialog({
-    audioManager
-  });
-  dialogManager.register('gameSettings', settingsDialogInstance);
-  
-  // Pause Dialog (doesn't need game instance initially)
-  pauseDialog = new PauseDialog({
-    audioManager,
-    onResume: () => {
-      if (game) game.resume();
-    },
-    onSettings: () => {
-      dialogManager.show('gameSettings');
-    },
-    onRestart: () => {
-      if (confirm('Are you sure you want to restart the game?')) {
-        window.location.reload();
-      }
-    },
-    onQuit: () => {
-      if (confirm('Are you sure you want to quit to main menu?')) {
-        window.location.reload();
-      }
-    }
-  });
-  dialogManager.register('pause', pauseDialog);
-  
+  // Dialogs now use FloatingUIManager in SimpleGameUI
 }
 
 // Initialize dialogs that require a game instance
 function initializeGameDialogs(gameInstance: GameWithEvents) {
-  try {
-    // Build Menu Dialog
-    if (buildMenuDialog) {
-      dialogManager.unregister('buildMenu');
-    }
-    buildMenuDialog = new BuildMenuDialogAdapter({
-      game: gameInstance,
-      audioManager,
-      onTowerSelected: (_type) => {
-        // Tower selection is handled by the adapter
-      },
-      onClosed: () => {
-        // Additional cleanup if needed
-      }
-    });
-    dialogManager.register('buildMenu', buildMenuDialog);
-  } catch (error) {
-    console.error('[Main] Failed to initialize build menu dialog:', error);
-  }
-
-  // Inventory now uses FloatingUIManager directly
+  // Dialogs now use FloatingUIManager in SimpleGameUI
 }
 
 // Initialize game with settings
@@ -219,20 +165,8 @@ function handleGameEnd(event: Event) {
   const customEvent = event as CustomEvent;
   const { stats, victory, scoreEntry } = customEvent.detail;
 
-  const gameOverDialog = new GameOverDialog({
-    victory,
-    stats,
-    scoreEntry,
-    audioManager,
-    onRestart: () => {
-      // Restart with same settings
-      initializeGame();
-    },
-    onMainMenu: showMainMenu,
-  });
-
-  dialogManager.register('gameOver', gameOverDialog);
-  dialogManager.show('gameOver');
+  // Game over UI is now handled by SimpleGameUI using FloatingUIManager
+  // The SimpleGameUI listens for the gameEnd event and shows the GameOverUI
 }
 
 function showMainMenu() {
@@ -247,30 +181,11 @@ function showMainMenu() {
   // Close any open dialogs
   dialogManager.hideAll();
 
-  // Show settings dialog
-  showSettingsDialog();
+  // Settings are now handled in-game
 }
 
-// Function to show settings dialog
-function showSettingsDialog() {
-  
-  const settingsDialog = new GameSettingsDialog({
-    audioManager,
-    onStartGame: (settings: GameSettings) => {
-      (window as any).gameSettings = settings;
-      initializeGame();
-    }
-  });
-  
-  dialogManager.register('settings', settingsDialog);
-  dialogManager.show('settings');
-}
-
-// Initialize early dialogs before showing settings
-initializeEarlyDialogs();
-
-// Show settings dialog on startup
-showSettingsDialog();
+// Initialize the game directly since settings are now handled in-game
+initializeGame();
 
 // Debug: Make initializeGame available globally for testing
 (window as any).initializeGame = initializeGame;

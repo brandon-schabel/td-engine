@@ -67,6 +67,19 @@ bun build        # Production build
 - **Helpers**: Located in `test/helpers/`
 - **Structure**: Mirror `src/` in `test/` directory
 
+## Recent Cleanup (June 2025)
+
+Successfully migrated all UI to FloatingUIManager and removed:
+- PopupManager system (replaced by FloatingUIManager)
+- UIManager (no longer needed)
+- Pathfinder system (unused A* implementation)
+- ResourceManager and UpgradeService (over-engineered for current needs)
+- VirtualJoystick component (unused)
+- Redundant CSS files (styles injected via TypeScript)
+- Dead code in SimpleGameUI (duplicate tower upgrade handlers)
+
+The codebase now uses FloatingUIManager as the single UI system for all popups, dialogs, and floating elements.
+
 ## Architecture Overview
 
 ### File Structure
@@ -212,24 +225,44 @@ upgrade(): { success: boolean; error?: string } {
 
 ## Project Management - Linear Integration
 
-- **Workspace**: BS Projects (Team ID: 2868a346-2a0d-4953-af4e-4b695aa5a981)
+### Linear Workspace Configuration
+
+- **Workspace**: BS Projects (Team ID: `2868a346-2a0d-4953-af4e-4b695aa5a981`)
 - **Projects**:
-  - TD Engine (Project ID: a02b7c60-372f-448d-8368-0e56e1ddae61)
-- **Issue Tracking**: Use Linear MCP integration to view and manage project issues
-- **Branch Naming**: Use Linear's automatic branch name format (e.g., `brandonschabel1995/td-123-feature-name`)
-- **Issue Workflow**:
-  1. Check Linear for available issues using MCP commands
-  2. Copy branch name from Linear issue (Cmd/Ctrl + Shift + .)
-  3. Create feature branch with Linear's naming convention
-  4. Link commits/PRs to Linear issues using issue ID (e.g., TD-123)
-  5. Linear will automatically update issue status based on PR activity
+  - **TD Engine** (Project ID: `a02b7c60-372f-448d-8368-0e56e1ddae61`)
+  - **OctoPrompt** (Project ID: `9e96fe84-c58e-47d3-8402-3552cdf0bf3b`)
 
-### Linear MCP Commands for Claude Code
+### Linear MCP Integration
 
-- List issues: `mcp__linear__list_issues` with teamId or projectId
-- Get issue details: `mcp__linear__get_issue` with issue ID
-- Create comments: `mcp__linear__create_comment` on issues
-- Check project: `mcp__linear__list_projects` to find TD Engine project
+The Linear MCP (Model Context Protocol) integration is built into Claude Code and provides direct access to Linear's API for project management. No additional setup or configuration is required - the MCP commands are available out of the box.
+
+### Available Linear MCP Commands
+
+- **List teams**: `mcp__linear__list_teams` - View all teams in the workspace
+- **List projects**: `mcp__linear__list_projects` - View all projects (use with teamId parameter)
+- **List issues**: `mcp__linear__list_issues` - View issues (use with teamId or projectId)
+- **Get issue details**: `mcp__linear__get_issue` - Get specific issue details (use with issue ID)
+- **Create comments**: `mcp__linear__create_comment` - Add comments to issues
+- **Create issue**: `mcp__linear__create_issue` - Create new issues
+- **Update issue**: `mcp__linear__update_issue` - Update existing issues
+- **List issue statuses**: `mcp__linear__list_issue_statuses` - View available statuses
+- **Get user**: `mcp__linear__get_user` - Get user information
+- **Search documentation**: `mcp__linear__search_documentation` - Search Linear docs
+
+### Issue Workflow
+
+1. **Check available issues** using MCP commands with the appropriate project ID
+2. **Copy branch name** from Linear issue (Cmd/Ctrl + Shift + .)
+3. **Create feature branch** with Linear's naming convention (e.g., `brandonschabel1995/td-123-feature-name`)
+4. **Link commits/PRs** to Linear issues using issue ID (e.g., TD-123, OP-456)
+5. **Linear automatically updates** issue status based on PR activity
+
+### Branch Naming Convention
+
+- Format: `username/project-issueNumber-description`
+- Examples:
+  - TD Engine: `brandonschabel1995/td-123-add-new-tower`
+  - OctoPrompt: `brandonschabel1995/op-456-implement-feature`
 
 ## Known Limitations
 

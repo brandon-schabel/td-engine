@@ -3,7 +3,6 @@ import type { Game } from '@/core/Game';
 import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
-// import { PLAYER_ABILITIES } from '@/config/PlayerConfig'; // Not used in simplified version
 import { UI_CONSTANTS } from '@/config/UIConstants';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { SoundType } from '@/audio/AudioManager';

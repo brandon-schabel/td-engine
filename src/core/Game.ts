@@ -43,8 +43,7 @@ import { GameAudioHandler } from "@/systems/GameAudioHandler";
 import { ScoreManager, type GameStats } from "@/systems/ScoreManager";
 import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
-import { UIManager } from "@/ui/systems/UIManager";
-import { PopupManager } from "@/ui/systems/PopupManager";
+// Removed unused UIManager and PopupManager imports
 import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager, FloatingUIElement, createHealthBar, updateHealthBar } from "@/ui/floating";
 
@@ -82,7 +81,7 @@ export class Game {
   private collectibles: Collectible[] = [];
   private inventory: Inventory;
   private equipment: EquipmentManager;
-  private uiManager: UIManager;
+  // Removed unused uiManager - all UI handled by floatingUIManager
   private floatingUIManager: FloatingUIManager;
   private powerUpDisplay: any = null; // Reference to PowerUpDisplay for notifications
 
@@ -241,15 +240,6 @@ export class Game {
 
     // Initialize floating UI manager with camera
     this.floatingUIManager = new FloatingUIManager(canvas, this.camera);
-
-    // Initialize UI manager
-    this.uiManager = UIManager.initialize({
-      camera: this.camera,
-      popupOptions: {
-        maxPopups: 50,
-        enablePooling: true
-      }
-    });
 
     // Note: Player health bar is created in SimpleGameUI
 
@@ -528,8 +518,7 @@ export class Game {
     // Update camera to follow player
     this.camera.update(this.player.position);
 
-    // Update UI manager for floating UI elements
-    this.uiManager.update();
+    // UI updates are handled by floatingUIManager.update() below
 
     // Player manual shooting (click and hold)
     const playerProjectile = this.player.updateShooting();
@@ -1670,13 +1659,7 @@ export class Game {
     return this.grid;
   }
 
-  getPopupManager(): PopupManager {
-    return this.uiManager.getPopupManager();
-  }
-
-  getUIManager(): UIManager {
-    return this.uiManager;
-  }
+  // Removed getPopupManager and getUIManager - use floatingUIManager directly
 
   getFloatingUIManager(): FloatingUIManager {
     return this.floatingUIManager;

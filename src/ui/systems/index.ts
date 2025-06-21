@@ -1,3 +1,2 @@
 export * from './DialogManager';
-export * from './PopupManager';
-export * from './UIManager';
+// Removed PopupManager and UIManager exports - using FloatingUIManager instead
