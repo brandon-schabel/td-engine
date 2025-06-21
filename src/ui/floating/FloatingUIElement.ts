@@ -8,7 +8,7 @@ export class FloatingUIElement {
   private target: Entity | null = null;
   private enabled = false;
   private element!: HTMLDivElement;
-  
+
   private options: Required<FloatingUIOptions>;
   private currentPos: Position = { x: 0, y: 0 };
   private targetPos: Position = { x: 0, y: 0 };
@@ -17,7 +17,7 @@ export class FloatingUIElement {
     this.id = id;
     this.type = type;
     this.manager = manager;
-    
+
     // Set default options
     this.options = {
       offset: { x: 0, y: -20 },
@@ -38,10 +38,18 @@ export class FloatingUIElement {
   private createElement(): void {
     this.element = document.createElement('div');
     const typeConfig = this.manager.getUITypeConfig(this.type);
-    
+
     this.element.className = `floating-ui-element ${typeConfig.class} ${this.options.className}`;
     this.element.style.zIndex = (this.options.zIndex || typeConfig.zIndex).toString();
     this.element.dataset.floatingId = this.id;
+
+    // Essential CSS for floating UI elements
+    this.element.style.position = 'absolute';
+    this.element.style.pointerEvents = 'auto'; // Allow interaction with UI elements
+    this.element.style.width = 'auto'; // Don't stretch to full width
+    this.element.style.height = 'auto'; // Don't stretch to full height
+    this.element.style.display = 'block';
+    this.element.style.whiteSpace = 'nowrap'; // Prevent text wrapping for compact elements
 
     // Apply mobile scaling if on mobile device
     if (this.isMobile()) {
@@ -106,8 +114,12 @@ export class FloatingUIElement {
     const canvas = this.manager.getCanvas();
     const canvasRect = canvas.getBoundingClientRect();
 
+    // Get container bounds for coordinate adjustment
+    const container = this.manager.getContainer();
+    const containerRect = container.getBoundingClientRect();
+
     let screenPos: Position;
-    
+
     if (this.options.screenSpace) {
       // For screen-space positioning, use the target position directly
       if ('x' in this.target && 'y' in this.target && typeof this.target.x === 'number' && typeof this.target.y === 'number') {
@@ -122,6 +134,14 @@ export class FloatingUIElement {
     } else {
       // Calculate world to screen position
       screenPos = this.worldToScreen(this.target);
+
+      // Account for canvas position within its parent
+      // The floating UI container is positioned relative to the canvas parent,
+      // but screen coordinates are relative to the canvas itself
+
+      // Adjust screen position to account for any offset between container and canvas
+      screenPos.x += canvasRect.left - containerRect.left;
+      screenPos.y += canvasRect.top - containerRect.top;
     }
 
     // Check if entity is off-screen (only for world-space entities)
@@ -132,6 +152,18 @@ export class FloatingUIElement {
       this.element.classList.remove('off-screen');
     }
 
+    // For immediate positioning or when element has no content yet, defer anchor calculation
+    if (immediate && this.element.innerHTML.length > 0) {
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        this.applyPositionWithAnchor(screenPos, immediate, canvasRect, containerRect);
+      });
+    } else {
+      this.applyPositionWithAnchor(screenPos, immediate, canvasRect, containerRect);
+    }
+  }
+
+  private applyPositionWithAnchor(screenPos: Position, immediate: boolean, canvasRect: DOMRect, containerRect: DOMRect): void {
     // Calculate anchor offset
     const anchorOffset = this.calculateAnchorOffset();
 
@@ -175,7 +207,9 @@ export class FloatingUIElement {
 
     // Transform world position to screen position using camera
     const camera = this.manager.getCamera();
-    return camera.worldToScreen(worldPos);
+    const screenPos = camera.worldToScreen(worldPos);
+
+    return screenPos;
   }
 
   private isOffScreen(screenPos: Position, canvasRect: DOMRect): boolean {
@@ -193,6 +227,11 @@ export class FloatingUIElement {
   private calculateAnchorOffset(): Position {
     const rect = this.element.getBoundingClientRect();
     const offset: Position = { x: 0, y: 0 };
+
+    // If element has no dimensions, don't apply anchor offset
+    if (rect.width === 0 || rect.height === 0) {
+      return offset;
+    }
 
     switch (this.options.anchor) {
       case 'top':

@@ -121,15 +121,7 @@ export class TowerUpgradeUI {
       }
     }, 1000);
 
-    // Handle escape key
-    this.handleEscapeKey = this.handleEscapeKey.bind(this);
-    document.addEventListener('keydown', this.handleEscapeKey);
-  }
-
-  private handleEscapeKey(e: KeyboardEvent): void {
-    if (e.key === 'Escape' && !this.isDestroyed) {
-      this.game.deselectTower();
-    }
+    // Note: Escape key is handled by UIController, not here
   }
 
   private setupClickHandling(): void {
@@ -516,9 +508,6 @@ export class TowerUpgradeUI {
       this.sellButtonTimeout = null;
     }
 
-    // Remove event listeners
-    document.removeEventListener('keydown', this.handleEscapeKey);
-    
     // Remove click outside handler
     if (this.clickOutsideHandler) {
       document.removeEventListener('click', this.clickOutsideHandler, true);

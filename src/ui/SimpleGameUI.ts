@@ -30,7 +30,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   let buildMenuDialog: BuildMenuDialogAdapter;
   let settingsDialog: SettingsDialog;
   let pauseDialog: PauseDialog;
-  
+
   // Floating UI instances
   let currentInventoryUI: any = null;
 
@@ -269,7 +269,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Show player upgrade dialog using FloatingUIManager
   const showPlayerUpgradeDialog = () => {
     console.log("[SimpleGameUI] showPlayerUpgradeDialog called - using FloatingUIManager");
-    
+
     // Import PlayerUpgradeUI dynamically to avoid circular dependencies
     import('@/ui/floating/PlayerUpgradeUI').then(({ PlayerUpgradeUI }) => {
       // Close existing UI if any
@@ -277,7 +277,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
         currentPlayerUpgradeUI.destroy();
         currentPlayerUpgradeUI = null;
       }
-      
+
       const player = game.getPlayer();
       if (player) {
         currentPlayerUpgradeUI = new PlayerUpgradeUI(player, game);
@@ -290,7 +290,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Show inventory UI using FloatingUIManager
   const showInventoryUI = () => {
     console.log("[SimpleGameUI] showInventoryUI called - using FloatingUIManager");
-    
+
     // Import InventoryUI dynamically to avoid circular dependencies
     import('@/ui/floating/InventoryUI').then(({ InventoryUI }) => {
       // Close existing UI if any
@@ -298,7 +298,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
         currentInventoryUI.destroy();
         currentInventoryUI = null;
       }
-      
+
       currentInventoryUI = new InventoryUI(game);
     }).catch(error => {
       console.error('[SimpleGameUI] Failed to load InventoryUI:', error);
@@ -310,7 +310,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     // Get the build button position
     const buildButton = document.querySelector('.ui-button-control[title*="Build"]') as HTMLElement;
     let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    
+
     if (buildButton) {
       const rect = buildButton.getBoundingClientRect();
       screenPos = {
@@ -318,7 +318,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
         y: rect.top - 10 // Position above the button
       };
     }
-    
+
     // Use UIController to show the build menu
     const uiController = game.getUIController();
     uiController.showBuildMenu(screenPos.x, screenPos.y, (towerType) => {
@@ -465,7 +465,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     <span id="currency-value" class="resource-value">$${game.getCurrency()}</span>
   `;
   currencyHUD.setContent(currencyElement);
-  
+
   // Position at top-left of screen
   const currencyPosition = {
     position: { x: 60, y: 60 },
@@ -501,7 +501,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     <span id="wave-value" class="resource-value">Wave 1</span>
   `;
   waveHUD.setContent(waveElement);
-  
+
   // Position at top-right of screen
   const wavePosition = {
     position: { x: window.innerWidth - 120, y: 60 },
@@ -526,58 +526,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     }
   }, 100);
 
-  // Create Player Health HUD using FloatingUIManager
-  const playerHealthHUD = floatingUI.create('player-health-hud', 'custom', {
-    persistent: true,
-    autoHide: false,
-    smoothing: 0,
-    className: 'static-hud resource-item',
-    screenSpace: true,
-    anchor: 'top',
-    offset: { x: 0, y: 0 }
-  });
-
-  // Set player health HUD content and position
-  const healthElement = document.createElement('div');
-  healthElement.className = 'resource-item';
-  healthElement.id = 'player-health-container';
-  healthElement.innerHTML = `
-    <span class="resource-icon">❤️</span>
-    <span id="player-health-value" class="resource-value">${player.health}/${player.getMaxHealth()}</span>
-  `;
-  playerHealthHUD.setContent(healthElement);
-  
-  // Position below currency
-  const healthPosition = {
-    position: { x: 60, y: 120 },
-    getPosition: () => ({ x: 60, y: 120 })
-  };
-  playerHealthHUD.setTarget(healthPosition as any);
-  playerHealthHUD.enable();
-
-  // Update player health value every 100ms
-  const healthUpdateInterval = setInterval(() => {
-    const valueElement = document.getElementById('player-health-value');
-    const containerElement = document.getElementById('player-health-container');
-    if (valueElement && containerElement) {
-      const currentHealth = player.health;
-      const maxHealth = player.getMaxHealth();
-      const healthPercent = currentHealth / maxHealth;
-
-      // Determine color based on health percentage
-      let colorClass = '';
-      if (healthPercent <= 0.25) {
-        colorClass = 'critical';
-      } else if (healthPercent <= 0.5) {
-        colorClass = 'low';
-      } else if (healthPercent <= 0.75) {
-        colorClass = 'medium';
-      }
-
-      valueElement.textContent = `${currentHealth}/${maxHealth}`;
-      containerElement.className = `resource-item ${colorClass}`;
-    }
-  }, 100);
+  // Player health bar is now created in Game.ts to follow the player in world space
 
   // Create camera controls using FloatingUIManager
   const cameraControls = floatingUI.create('camera-controls', 'custom', {
@@ -863,8 +812,8 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Setup game end event listener
   const handleGameEnd = (event: Event) => {
     const customEvent = event as CustomEvent;
-    const { stats, victory } = customEvent.detail;
-    
+    // Game end event received, show game over UI
+
     // Show game over UI
     import('@/ui/floating/GameOverUI').then(({ GameOverUI }) => {
       const gameOverUI = new GameOverUI(game);
@@ -882,7 +831,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       console.error('[SimpleGameUI] Failed to load GameOverUI:', error);
     });
   };
-  
+
   document.addEventListener('gameEnd', handleGameEnd);
 
   // Cleanup function
@@ -899,12 +848,9 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     // Clean up new floating UI system HUD elements
     clearInterval(currencyUpdateInterval);
     clearInterval(waveUpdateInterval);
-    clearInterval(healthUpdateInterval);
     clearInterval(zoomUpdateInterval);
     floatingUI.remove('currency');
     floatingUI.remove('wave');
-    floatingUI.remove('player-health-hud');
-    floatingUI.remove('player-health');
     floatingUI.remove('camera-controls');
 
     dialogManager.destroy();

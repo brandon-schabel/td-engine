@@ -242,7 +242,7 @@ export class Game {
     this.floatingUIManager = new FloatingUIManager(canvas, this.camera);
     this.uiController = new UIController(this);
 
-    // Create health bar for player
+    // Create health bar for player that follows them in world space
     this.uiController.createHealthBar(this.player, {
       width: 60,
       height: 8,
@@ -250,8 +250,6 @@ export class Game {
       showValue: true,
       color: '#4CAF50'
     });
-
-    // Note: Player health bar is also created in SimpleGameUI for HUD
 
     // Load wave configurations
     this.loadWaveConfigurations();
@@ -528,7 +526,8 @@ export class Game {
     // Update camera to follow player
     this.camera.update(this.player.position);
 
-    // UI updates are handled by floatingUIManager.update() below
+    // Update floating UI positions after camera update
+    this.floatingUIManager.updateAllPositions();
 
     // Player manual shooting (click and hold)
     const playerProjectile = this.player.updateShooting();
@@ -893,7 +892,7 @@ export class Game {
     if ('towerType' in entity && (entity as any).towerType === TowerType.WALL) {
       return;
     }
-    
+
     const options = {
       width: 50,
       height: 6,
@@ -901,7 +900,7 @@ export class Game {
       showValue: false,
       color: entity.entityType === EntityType.PLAYER ? '#4CAF50' : '#2196F3'
     };
-    
+
     this.uiController.createHealthBar(entity, options);
   }
 

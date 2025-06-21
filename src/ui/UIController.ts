@@ -89,6 +89,13 @@ export class UIController {
     const info = this.activeElements.get(id);
     if (!info) return;
     
+    // Special handling for tower-upgrade to deselect the tower
+    if (id === 'tower-upgrade') {
+      // Deselect the tower when closing the upgrade UI
+      this.game.deselectTower();
+      return; // deselectTower will call close again, so return to avoid recursion
+    }
+    
     // Call destroy on the element if it exists
     if (info.element && typeof info.element.destroy === 'function') {
       info.element.destroy();

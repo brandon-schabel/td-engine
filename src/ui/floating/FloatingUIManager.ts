@@ -39,6 +39,7 @@ export class FloatingUIManager {
     container.style.width = '100%';
     container.style.height = '100%';
     container.style.overflow = 'hidden';
+    container.style.pointerEvents = 'none'; // Allow click-through to canvas
 
     // Position container relative to canvas
     const canvasParent = this.canvas.parentElement;
@@ -48,6 +49,7 @@ export class FloatingUIManager {
     } else {
       document.body.appendChild(container);
     }
+    
 
     return container;
   }
@@ -448,6 +450,7 @@ export class FloatingUIManager {
     } = {}
   ): FloatingUIElement {
     const id = `healthbar_${entity.id || Math.random().toString(36).substr(2, 9)}`;
+    
     
     // Default options
     const config = {
