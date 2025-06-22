@@ -342,6 +342,83 @@ export class FloatingUIManager {
   }
 
   /**
+   * Add click-outside-to-close behavior to an element
+   * @param element The floating UI element
+   * @param onClose Callback when clicking outside
+   * @param excludeSelectors Optional CSS selectors to exclude from click detection
+   */
+  public addClickOutsideHandler(
+    element: FloatingUIElement, 
+    onClose: () => void,
+    excludeSelectors: string[] = []
+  ): () => void {
+    let isClosing = false;
+    
+    const clickHandler = (event: MouseEvent | TouchEvent) => {
+      // Prevent double-closing
+      if (isClosing) return;
+      
+      const target = event.target as HTMLElement;
+      const elementDom = element.getElement();
+      
+      if (!elementDom || !element.isEnabled()) return;
+      
+      // Check if click is inside the element
+      if (elementDom.contains(target)) return;
+      
+      // Check if click is on an excluded element
+      for (const selector of excludeSelectors) {
+        const excludedElement = target.closest(selector);
+        if (excludedElement) {
+          return;
+        }
+      }
+      
+      // Check if clicking on UI elements (not game canvas)
+      if (target.closest('.floating-ui-container') || 
+          target.closest('.ui-control-bar') ||
+          target.closest('.static-hud') ||
+          target.closest('.mobile-controls')) {
+        // If clicking another floating element, don't close
+        const clickedFloatingElement = target.closest('.floating-ui-element');
+        if (clickedFloatingElement && clickedFloatingElement !== elementDom) {
+          return;
+        }
+      }
+      
+      // Only close if clicking on the game canvas or empty space
+      const isGameCanvas = target.tagName === 'CANVAS' || target.closest('#game-canvas');
+      const isEmptySpace = target === document.body || target.closest('#app-container');
+      
+      if (!isGameCanvas && !isEmptySpace) {
+        return;
+      }
+      
+      // Mark as closing to prevent multiple calls
+      isClosing = true;
+      
+      // Close the element
+      setTimeout(() => {
+        onClose();
+      }, 0);
+    };
+    
+    // Add listener after a small delay to prevent immediate closure
+    const timeoutId = setTimeout(() => {
+      // Use capture phase to catch events before they're stopped
+      document.addEventListener('mousedown', clickHandler, true);
+      document.addEventListener('touchstart', clickHandler, { capture: true, passive: true });
+    }, 300); // Increased delay to ensure menu is fully open
+    
+    // Return cleanup function
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', clickHandler, true);
+      document.removeEventListener('touchstart', clickHandler, true);
+    };
+  }
+
+  /**
    * Creates a centered dialog box
    * @param id Unique identifier for the dialog
    * @param content The dialog content (string or HTMLElement)

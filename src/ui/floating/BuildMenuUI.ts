@@ -32,6 +32,7 @@ export class BuildMenuUI {
   private position: { x: number; y: number } | null = null;
   private contentInitialized: boolean = false;
   private lastCurrency: number = -1;
+  private clickOutsideCleanup: (() => void) | null = null;
 
   constructor(game: Game) {
     this.floatingUI = game.getFloatingUIManager();
@@ -118,17 +119,12 @@ export class BuildMenuUI {
       this.updateDynamicValues();
     }, 250);
 
-    // Close on click outside
-    setTimeout(() => {
-      const clickHandler = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (!target.closest('.build-menu-ui')) {
-          this.close();
-          document.removeEventListener('click', clickHandler);
-        }
-      };
-      document.addEventListener('click', clickHandler);
-    }, 100);
+    // Add click outside handler
+    this.clickOutsideCleanup = this.floatingUI.addClickOutsideHandler(
+      this.element,
+      () => this.close(),
+      ['.ui-control-bar button', '.ui-button-build'] // Exclude build button clicks
+    );
   }
 
   private createInitialContent(): void {
@@ -353,6 +349,11 @@ export class BuildMenuUI {
     if (this.updateInterval !== null) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
+    }
+
+    if (this.clickOutsideCleanup) {
+      this.clickOutsideCleanup();
+      this.clickOutsideCleanup = null;
     }
 
     if (this.element) {

@@ -34,6 +34,7 @@ export class InventoryUI {
   
   private screenPos?: { x: number; y: number };
   private anchorElement?: HTMLElement;
+  private clickOutsideCleanup: (() => void) | null = null;
 
   constructor(game: Game, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
@@ -111,6 +112,13 @@ export class InventoryUI {
     
     // Set up inventory listeners
     this.setupInventoryListeners();
+    
+    // Add click outside handler
+    this.clickOutsideCleanup = this.floatingUI.addClickOutsideHandler(
+      this.element,
+      () => this.close(),
+      ['.ui-control-bar button', '.ui-button-inventory'] // Exclude inventory button clicks
+    );
   }
 
   private updateContent(): void {
@@ -549,6 +557,12 @@ export class InventoryUI {
     // Clear update interval
     if (this.updateInterval !== null) {
       clearInterval(this.updateInterval);
+    }
+    
+    // Clean up click outside handler
+    if (this.clickOutsideCleanup) {
+      this.clickOutsideCleanup();
+      this.clickOutsideCleanup = null;
       this.updateInterval = null;
     }
     

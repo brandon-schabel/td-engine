@@ -152,8 +152,17 @@ export class UIController {
     this.activeElements.delete(id);
     this.updateCache.delete(id);
 
-    // Special handling for tower-upgrade to deselect the tower AFTER cleanup
-    if (id === 'tower-upgrade') {
+    // Clear UI component references
+    if (id === 'build-menu') {
+      this.buildMenuUI = null;
+    } else if (id === 'player-upgrade') {
+      this.playerUpgradeUI = null;
+    } else if (id === 'inventory') {
+      this.inventoryUI = null;
+    } else if (id === 'pause-menu') {
+      this.pauseMenuUI = null;
+    } else if (id === 'tower-upgrade') {
+      this.towerUpgradeUI = null;
       // Clear selected tower without calling close again
       if (this.game.getSelectedTower()) {
         this.game.clearSelectedTower();
@@ -174,14 +183,19 @@ export class UIController {
       return;
     }
 
+    // Close any existing build menu UI first
+    if (this.buildMenuUI) {
+      this.buildMenuUI.destroy();
+      this.buildMenuUI = null;
+    }
+
     // Use state manager to handle panel opening
     if (!this.stateManager.openPanel(UIPanelType.BUILD_MENU, { screenX, screenY, onTowerSelect })) {
       return;
     }
 
-    if (!this.buildMenuUI) {
-      this.buildMenuUI = new BuildMenuUI(this.game);
-    }
+    // Create new instance
+    this.buildMenuUI = new BuildMenuUI(this.game);
 
     // For build menu, we'll pass the screen coordinates as world coordinates
     // The BuildMenuUI will handle the proper positioning above the control bar
@@ -433,21 +447,73 @@ export class UIController {
     if (!indicator) {
       const buildIndicator = document.createElement('div');
       buildIndicator.id = 'build-mode-indicator';
-      buildIndicator.className = cn(
-        'fixed',
-        'top-4',
-        'left-1/2',
-        'transform',
-        '-translate-x-1/2',
-        'bg-surface-secondary',
-        'text-primary',
-        'px-4',
-        'py-2',
-        'rounded-lg',
-        'shadow-lg',
-        'z-50'
-      );
-      buildIndicator.textContent = 'Place tower or press ESC to cancel';
+      
+      const isMobile = 'ontouchstart' in window;
+      
+      if (isMobile) {
+        // Mobile version with cancel button
+        buildIndicator.className = cn(
+          'fixed',
+          'top-4',
+          'left-1/2',
+          'transform',
+          '-translate-x-1/2',
+          'bg-surface-secondary',
+          'border',
+          'border-border-primary',
+          'rounded-lg',
+          'shadow-lg',
+          'z-50',
+          'flex',
+          'items-center',
+          'gap-3',
+          'px-4',
+          'py-3'
+        );
+        
+        const text = document.createElement('span');
+        text.className = cn('text-primary', 'text-sm');
+        text.textContent = 'Tap to place tower';
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.className = cn(
+          'bg-danger',
+          'text-white',
+          'px-3',
+          'py-1',
+          'rounded',
+          'text-sm',
+          'font-medium',
+          'hover:bg-danger-dark',
+          'active:scale-95',
+          'transition-transform'
+        );
+        cancelButton.textContent = 'Cancel';
+        cancelButton.onclick = () => {
+          this.exitBuildMode();
+        };
+        
+        buildIndicator.appendChild(text);
+        buildIndicator.appendChild(cancelButton);
+      } else {
+        // Desktop version
+        buildIndicator.className = cn(
+          'fixed',
+          'top-4',
+          'left-1/2',
+          'transform',
+          '-translate-x-1/2',
+          'bg-surface-secondary',
+          'text-primary',
+          'px-4',
+          'py-2',
+          'rounded-lg',
+          'shadow-lg',
+          'z-50'
+        );
+        buildIndicator.textContent = 'Place tower or press ESC to cancel';
+      }
+      
       document.body.appendChild(buildIndicator);
     }
   }

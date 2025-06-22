@@ -1052,18 +1052,16 @@ export class Game {
           this.justSelectedTower = false;
         }, 500);
       }
-      this.selectedTowerType = null; // Clear tower placement mode
+      this.setSelectedTowerType(null); // Clear tower placement mode
       return; // Important: return early to prevent deselection logic
     } else if (this.selectedTowerType && !this.justSelectedTowerType) {
       // Place new tower (only if we didn't just select from menu)
       if (this.placeTower(this.selectedTowerType, worldPos)) {
-        // Clear selection after successful placement on mobile
-        if ('ontouchstart' in window) {
-          this.selectedTowerType = null;
-          // Dispatch event to update UI
-          const towerPlacedEvent = new CustomEvent('towerPlaced');
-          document.dispatchEvent(towerPlacedEvent);
-        }
+        // Clear selection after successful placement
+        this.setSelectedTowerType(null);
+        // Dispatch event to update UI
+        const towerPlacedEvent = new CustomEvent('towerPlaced');
+        document.dispatchEvent(towerPlacedEvent);
       } else {
         // Provide feedback for failed placement
         if ('vibrate' in navigator) {
@@ -1630,7 +1628,7 @@ export class Game {
     }
 
     this.selectedTower = tower;
-    this.selectedTowerType = null; // Clear tower placement mode
+    this.setSelectedTowerType(null); // Clear tower placement mode
 
     // Use UIController to show tower upgrade UI
     this.uiController.showTowerUpgrade(tower);
@@ -1833,7 +1831,7 @@ export class Game {
     this.renderer.setEnvironmentalEffects(this.currentMapData.effects);
 
     // Reset game state
-    this.selectedTowerType = null;
+    this.setSelectedTowerType(null);
     this.selectedTower = null;
     this.hoverTower = null;
 

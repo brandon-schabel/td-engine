@@ -26,6 +26,7 @@ export class PlayerUpgradeUI {
   private lastStats: any = {};
   private screenPos?: { x: number; y: number };
   private anchorElement?: HTMLElement;
+  private clickOutsideCleanup: (() => void) | null = null;
 
   constructor(player: Player, game: Game, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
@@ -100,6 +101,13 @@ export class PlayerUpgradeUI {
     this.updateInterval = window.setInterval(() => {
       this.updateContent();
     }, 100);
+    
+    // Add click outside handler
+    this.clickOutsideCleanup = this.floatingUI.addClickOutsideHandler(
+      this.element,
+      () => this.close(),
+      ['.ui-control-bar button', '.ui-button-player-upgrade'] // Exclude upgrade button clicks
+    );
   }
 
   private updateContent(): void {
@@ -385,6 +393,11 @@ export class PlayerUpgradeUI {
     if (this.updateInterval !== null) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
+    }
+    
+    if (this.clickOutsideCleanup) {
+      this.clickOutsideCleanup();
+      this.clickOutsideCleanup = null;
     }
 
     if (this.element) {
