@@ -11,7 +11,8 @@ export interface Stat {
   value: string | number;
   icon?: IconType;
   iconHtml?: string;
-  valueColor?: 'default' | 'primary' | 'secondary' | 'success' | 'danger' | 'warning';
+  valueColor?: 'default' | 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'muted' | 'foreground';
+  labelColor?: 'default' | 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'muted' | 'foreground';
   suffix?: string;
   prefix?: string;
   tooltip?: string;
@@ -119,7 +120,8 @@ function createStatItem(
   // Label
   if (showLabels) {
     const label = document.createElement('div');
-    label.className = cn('stat-label', getLabelSizeClass(variant), 'text-secondary');
+    const labelColorClass = stat.labelColor ? getValueColorClass(stat.labelColor) : 'text-secondary';
+    label.className = cn('stat-label', getLabelSizeClass(variant), labelColorClass);
     label.textContent = stat.label;
     content.appendChild(label);
   }
@@ -301,6 +303,10 @@ function getValueColorClass(color: string): string {
       return 'text-danger';
     case 'warning':
       return 'text-warning';
+    case 'muted':
+      return 'text-muted';
+    case 'foreground':
+      return 'text-foreground';
     default:
       return 'text-foreground';
   }

@@ -40,7 +40,7 @@ export function createHeader(options: CreateHeaderOptions): HTMLElement {
   } = options;
 
   const header = document.createElement('header');
-  
+
   if (id) {
     header.id = id;
   }
@@ -72,13 +72,13 @@ export function createHeader(options: CreateHeaderOptions): HTMLElement {
   if (icon) {
     const iconWrapper = document.createElement('div');
     iconWrapper.className = cn('header-icon', 'mr-3');
-    
+
     if (typeof icon === 'string') {
       iconWrapper.innerHTML = icon;
     } else {
       iconWrapper.appendChild(icon);
     }
-    
+
     contentWrapper.appendChild(iconWrapper);
   }
 
@@ -129,29 +129,31 @@ function getVariantClasses(variant: string): string[] {
         'px-4',
         'py-3'
       ];
-    
+
     case 'secondary':
       return [
         'bg-surface-secondary',
-        'text-foreground',
+        'text-primary',
         'px-4',
         'py-3',
         'border-b',
         'border-surface-border'
       ];
-    
+
     case 'compact':
       return [
         'px-3',
-        'py-2'
+        'py-2',
+        'text-primary'
       ];
-    
+
     default: // 'default'
       return [
         'px-4',
         'py-3',
         'border-b',
-        'border-surface-border'
+        'border-surface-border',
+        'text-primary'
       ];
   }
 }
@@ -204,7 +206,7 @@ export function createDialogHeader(
     title,
     showCloseButton: true,
     onClose,
-    variant: 'default',
+    variant: 'compact',
     level: 2,
     ...options
   });

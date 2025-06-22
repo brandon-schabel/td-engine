@@ -10,6 +10,65 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **UNIT TESTING ONLY**: No integration tests. Break down code until it's unit testable
 - **File Safety**: NEVER delete files outside `/Users/brandon/Programming/td-engine`
 
+
+### OctoPrompt MCP Usage
+
+The OctoPrompt MCP provides seamless integration with the OctoPrompt project management system, allowing you to manage projects, files, prompts, and AI-powered workflows directly from Claude.
+
+**TD Engine OctoPrompt Project Details:**
+
+- **Project ID**: `1750564556414`
+**Key MCP Tools Available:**
+
+- `mcp_octoprompt_project_*` - Project management (create, read, update, delete)
+- `mcp_octoprompt_file_*` - File operations (read, write, list)
+- `mcp_octoprompt_prompt_*` - Prompt management and organization
+- `mcp_octoprompt_suggest_files` - AI-powered file suggestions
+- `mcp_octoprompt_project_summary` - Generate project overviews
+- `mcp_octoprompt_optimize_user_input` - AI prompt optimization
+
+**Common Workflows:**
+
+1. **Project Management:**
+
+   ```typescript
+   // List all projects
+   mcp_octoprompt_project_list()
+   
+   // Get specific project details
+   mcp_octoprompt_project_get({ projectId: 1 })
+   
+   // Create new project
+   mcp_octoprompt_project_create({ name: "New Project", path: "/path/to/project" })
+   ```
+
+2. **File Operations:**
+
+   ```typescript
+   // List project files
+   mcp_octoprompt_file_list({ path: ".", recursive: true })
+   
+   // Read file content
+   mcp_octoprompt_file_read({ path: "src/main.ts" })
+   
+   // Write file content
+   mcp_octoprompt_file_write({ path: "new-file.ts", content: "console.log('Hello')" })
+   ```
+
+3. **AI-Powered Features:**
+
+   ```typescript
+   // Get AI file suggestions for a task
+   mcp_octoprompt_suggest_files({ prompt: "implement authentication", limit: 5 })
+   
+   // Generate project summary
+   mcp_octoprompt_project_summary({ include_files: true })
+   
+   // Optimize user prompts
+   mcp_octoprompt_optimize_user_input({ prompt: "help me build a login form" })
+   ```
+
+
 ## Environment & Commands
 
 - **Runtime**: Bun 1.2+ (always use bun, not npm)

@@ -256,9 +256,9 @@ export class TowerUpgradeUI {
 
     // Tower stats using inline stats display
     const stats: Stat[] = [
-      { label: 'DMG', value: this.tower.damage, valueColor: 'primary' },
-      { label: 'RNG', value: this.tower.range, valueColor: 'secondary' },
-      { label: 'SPD', value: `${(1000 / this.tower.fireRate).toFixed(1)}/s`, valueColor: 'success' }
+      { label: 'DMG', value: this.tower.damage, valueColor: 'primary', labelColor: 'secondary' },
+      { label: 'RNG', value: this.tower.range, valueColor: 'primary', labelColor: 'secondary' },
+      { label: 'SPD', value: `${(1000 / this.tower.fireRate).toFixed(1)}/s`, valueColor: 'primary', labelColor: 'secondary' }
     ];
 
     const towerStats = createInlineStats(stats, {

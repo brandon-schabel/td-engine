@@ -1,8 +1,10 @@
 /**
  * Pre-Game Configuration UI
  * 
- * Shows map configuration options before starting the game
- * Includes map size, difficulty, biome selection
+ * Recent changes:
+ * 1. Updated selected option text color to dark gray for better readability
+ * 2. Shows map configuration options before starting the game
+ * 3. Includes map size, difficulty, biome selection
  */
 
 import type { Game } from '@/core/Game';
@@ -34,7 +36,7 @@ export class PreGameConfigUI {
   constructor(floatingUI: FloatingUIManager, game?: Game) {
     this.floatingUI = floatingUI;
     this.game = game || null;
-    
+
     // Load saved preferences
     const savedConfig = localStorage.getItem('preGameConfig');
     if (savedConfig) {
@@ -77,7 +79,7 @@ export class PreGameConfigUI {
         className: 'pre-game-config-dialog'
       }
     );
-    
+
     console.log('[PreGameConfigUI] Dialog created:', this.element);
 
     // Position at center of screen
@@ -91,7 +93,7 @@ export class PreGameConfigUI {
 
     // Enable the element
     this.element.enable();
-    
+
     // Debug: Check if overlay is blocking
     setTimeout(() => {
       const overlay = document.querySelector('.ui-dialog-overlay');
@@ -231,7 +233,7 @@ export class PreGameConfigUI {
         'hover:scale-[1.02]',
         'active:scale-[0.98]',
         ...(selectedValue === option.value
-          ? ['bg-primary/20', 'border-primary', 'text-primary']
+          ? ['bg-primary/20', 'border-primary', 'text-gray-900']
           : ['bg-surface-secondary', 'border-white/10', 'text-primary', 'hover:border-white/20'])
       );
 
@@ -250,12 +252,12 @@ export class PreGameConfigUI {
       // Add pointer-events to ensure clickability
       button.style.pointerEvents = 'auto';
       button.style.cursor = 'pointer';
-      
+
       button.onclick = (e) => {
         console.log('[PreGameConfigUI] Button clicked:', option.label, option.value);
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Update visual state
         buttons.forEach(btn => {
           const isSelected = btn === button;
@@ -268,7 +270,7 @@ export class PreGameConfigUI {
             'hover:scale-[1.02]',
             'active:scale-[0.98]',
             ...(isSelected
-              ? ['bg-primary/20', 'border-primary', 'text-primary']
+              ? ['bg-primary/20', 'border-primary', 'text-gray-900']
               : ['bg-surface-secondary', 'border-white/10', 'text-primary', 'hover:border-white/20'])
           );
         });

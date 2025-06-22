@@ -1,10 +1,10 @@
 /**
  * Recent changes:
+ * - Removed ui-shimmer gradient/glow effect from tower cards to fix alignment issues
  * - Refactored to use new UI element abstractions (createClickableCard, createCompactResource)
  * - Using cn() helper for className assignments
  * - Removed hardcoded class strings in favor of utility classes
  * - Improved tower card creation with structured components
- * - Enhanced cost display with currency icon using createCompactResource
  */
 
 import type { Game } from '@/core/Game';
@@ -16,7 +16,7 @@ import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { TOWER_COSTS } from '@/config/GameConfig';
-import { 
+import {
   createClickableCard,
   createCompactResource,
   createResourceDisplay
@@ -32,7 +32,7 @@ export class BuildMenuUI {
   private position: { x: number; y: number } | null = null;
   private contentInitialized: boolean = false;
   private lastCurrency: number = -1;
-  
+
   constructor(game: Game) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
@@ -42,7 +42,7 @@ export class BuildMenuUI {
     // x, y are screen coordinates
     this.position = { x, y };
     this.onTowerSelect = onTowerSelect;
-    
+
     if (this.element) {
       // If anchor element is provided, update options
       if (anchorElement) {
@@ -66,15 +66,15 @@ export class BuildMenuUI {
       this.updateDynamicValues();
       return;
     }
-    
+
     this.create(anchorElement);
   }
 
   private create(anchorElement?: HTMLElement): void {
     if (!this.position || !this.onTowerSelect) return;
-    
+
     const elementId = 'build-menu-ui';
-    
+
     if (anchorElement) {
       // Use DOM element anchoring
       this.element = this.floatingUI.create(elementId, 'popup', {
@@ -100,24 +100,24 @@ export class BuildMenuUI {
         className: 'build-menu-ui',
         screenSpace: true
       });
-      
+
       // Create a dummy entity with screen coordinates
       const positionEntity = {
         position: { x: this.position.x, y: this.position.y - 10 },
         getPosition: () => ({ x: this.position!.x, y: this.position!.y - 10 })
       };
-      
+
       this.element.setTarget(positionEntity as unknown as Entity);
     }
-    
+
     this.createInitialContent();
     this.element.enable();
-    
+
     // Update only dynamic values periodically
     this.updateInterval = window.setInterval(() => {
       this.updateDynamicValues();
     }, 250);
-    
+
     // Close on click outside
     setTimeout(() => {
       const clickHandler = (e: MouseEvent) => {
@@ -136,46 +136,46 @@ export class BuildMenuUI {
 
     const content = document.createElement('div');
     content.className = cn('ui-card');
-    
+
     // Create title
     const title = document.createElement('h2');
     title.className = cn('ui-dialog-title', 'ui-text-center');
     title.textContent = 'Build Tower';
     content.appendChild(title);
-    
+
     // Create tower grid
     const grid = document.createElement('div');
     grid.className = cn('ui-grid', 'cols-2', 'ui-gap-sm', 'ui-mb-md');
     content.appendChild(grid);
 
     const towers = [
-      { 
-        type: TowerType.BASIC, 
-        name: 'Basic Tower', 
-        cost: TOWER_COSTS.BASIC, 
-        icon: IconType.BASIC_TOWER, 
-        color: COLOR_THEME.towers.basic 
+      {
+        type: TowerType.BASIC,
+        name: 'Basic Tower',
+        cost: TOWER_COSTS.BASIC,
+        icon: IconType.BASIC_TOWER,
+        color: COLOR_THEME.towers.basic
       },
-      { 
-        type: TowerType.SNIPER, 
-        name: 'Sniper Tower', 
-        cost: TOWER_COSTS.SNIPER, 
-        icon: IconType.SNIPER_TOWER, 
-        color: COLOR_THEME.towers.frost 
+      {
+        type: TowerType.SNIPER,
+        name: 'Sniper Tower',
+        cost: TOWER_COSTS.SNIPER,
+        icon: IconType.SNIPER_TOWER,
+        color: COLOR_THEME.towers.frost
       },
-      { 
-        type: TowerType.RAPID, 
-        name: 'Rapid Tower', 
-        cost: TOWER_COSTS.RAPID, 
-        icon: IconType.RAPID_TOWER, 
-        color: COLOR_THEME.towers.artillery 
+      {
+        type: TowerType.RAPID,
+        name: 'Rapid Tower',
+        cost: TOWER_COSTS.RAPID,
+        icon: IconType.RAPID_TOWER,
+        color: COLOR_THEME.towers.artillery
       },
-      { 
-        type: TowerType.WALL, 
-        name: 'Wall', 
-        cost: TOWER_COSTS.WALL, 
-        icon: IconType.WALL, 
-        color: COLOR_THEME.towers.wall 
+      {
+        type: TowerType.WALL,
+        name: 'Wall',
+        cost: TOWER_COSTS.WALL,
+        icon: IconType.WALL,
+        color: COLOR_THEME.towers.wall
       }
     ];
 
@@ -183,7 +183,7 @@ export class BuildMenuUI {
 
     towers.forEach(tower => {
       const canAfford = currency >= tower.cost;
-      
+
       // Create clickable card for the tower
       const card = createClickableCard(() => {
         if (canAfford) {
@@ -199,21 +199,20 @@ export class BuildMenuUI {
         customClasses: [
           'tower-card',
           'group',
-          'ui-shimmer',
           'hover:-translate-y-0.5',
           'transition-transform',
           ...(canAfford ? [] : ['ui-disabled'])
         ],
         ariaLabel: `Build ${tower.name} for ${tower.cost} coins`
       });
-      
+
       // Add data attributes for styling and state tracking
       card.setAttribute('data-tower-type', tower.type);
       card.setAttribute('data-tower-cost', String(tower.cost));
       if (!canAfford) {
         card.setAttribute('disabled', 'true');
       }
-      
+
       // Create tower icon
       const iconWrapper = document.createElement('div');
       // Map tower types to specific color classes
@@ -224,7 +223,7 @@ export class BuildMenuUI {
         'WALL': 'text-game-tower-wall'
       };
       const towerColorClass = towerColorMap[tower.type] || 'text-primary';
-      
+
       iconWrapper.className = cn(
         'tower-card-icon',
         'w-12',
@@ -239,7 +238,7 @@ export class BuildMenuUI {
       iconWrapper.setAttribute('data-tower-type', tower.type);
       iconWrapper.innerHTML = createSvgIcon(tower.icon, { size: 48 });
       card.appendChild(iconWrapper);
-      
+
       // Create tower name
       const nameElement = document.createElement('div');
       nameElement.className = cn(
@@ -254,7 +253,7 @@ export class BuildMenuUI {
       );
       nameElement.textContent = tower.name;
       card.appendChild(nameElement);
-      
+
       // Create cost display using createCompactResource
       const costDisplay = createCompactResource(tower.cost, IconType.COINS, {
         customClasses: [
@@ -281,15 +280,15 @@ export class BuildMenuUI {
       id: 'currency-display'
     });
     content.appendChild(currencyDisplay);
-    
+
     // Create close hint
     const closeHint = document.createElement('div');
     closeHint.className = cn('ui-text-center', 'ui-text-secondary', 'ui-mt-sm');
     closeHint.textContent = 'Click outside to close';
     content.appendChild(closeHint);
-    
+
     this.element.setContent(content);
-    
+
     this.contentInitialized = true;
     this.lastCurrency = currency;
   }
@@ -317,7 +316,7 @@ export class BuildMenuUI {
       const cardEl = card as HTMLDivElement;
       const cost = parseInt(cardEl.getAttribute('data-tower-cost') || '0');
       const canAfford = currency >= cost;
-      
+
       // Only update if affordability changed
       const wasDisabled = cardEl.hasAttribute('disabled');
       if (wasDisabled !== !canAfford) {
@@ -330,7 +329,7 @@ export class BuildMenuUI {
           cardEl.setAttribute('disabled', 'true');
           cardEl.style.pointerEvents = 'none';
         }
-        
+
         // Update aria-label
         const towerName = cardEl.querySelector('.tower-card-name')?.textContent || 'Tower';
         cardEl.setAttribute('aria-label', `Build ${towerName} for ${cost} coins`);
@@ -355,12 +354,12 @@ export class BuildMenuUI {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    
+
     if (this.element) {
       this.floatingUI.remove(this.element.id);
       this.element = null;
     }
-    
+
     this.position = null;
     this.onTowerSelect = null;
     this.contentInitialized = false;

@@ -45,7 +45,7 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
     name,
     id,
     disabled = false,
-    trackColor = 'bg-surface-tertiary',
+    trackColor = 'bg-black/50',
     thumbColor = 'bg-primary',
     fillColor = 'bg-primary',
     onChange,
@@ -68,7 +68,8 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
     labelEl.className = cn(
       'block',
       'text-primary',
-      'mb-2',
+      'mb-4',
+      'font-medium',
       getSizeLabelClass(size)
     );
     labelEl.textContent = label;
@@ -81,7 +82,7 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
   wrapper.className = cn(
     'flex',
     'items-center',
-    'gap-3',
+    'gap-4',
     valuePosition === 'top' || valuePosition === 'bottom' ? 'flex-col' : 'flex-row'
   );
 
@@ -90,7 +91,8 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
   sliderContainer.className = cn(
     'relative',
     'flex-1',
-    'w-full'
+    'w-full',
+    ...getSliderContainerHeightClasses(size)
   );
 
   // Create track
@@ -100,8 +102,8 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
     'w-full',
     'rounded-full',
     trackColor,
-    'border',
-    'border-surface-border',
+    'border-2',
+    'border-white/10',
     ...getTrackSizeClasses(size)
   );
 
@@ -160,10 +162,16 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
     valueDisplay = document.createElement('div');
     valueDisplay.className = cn(
       'text-primary',
-      'font-medium',
-      'min-w-[3ch]',
+      'font-semibold',
+      'min-w-[4ch]',
       'text-center',
-      getSizeLabelClass(size),
+      'text-lg',
+      'bg-surface-primary',
+      'px-3',
+      'py-1',
+      'rounded-md',
+      'border',
+      'border-surface-border',
       disabled && 'opacity-50'
     );
     valueDisplay.textContent = valueFormatter(value);
@@ -235,16 +243,30 @@ export function createSlider(options: CreateSliderOptions): HTMLDivElement {
 }
 
 /**
+ * Get slider container height classes
+ */
+function getSliderContainerHeightClasses(size: string): string[] {
+  switch (size) {
+    case 'sm':
+      return ['h-6'];
+    case 'lg':
+      return ['h-8'];
+    default: // md
+      return ['h-7'];
+  }
+}
+
+/**
  * Get track size classes
  */
 function getTrackSizeClasses(size: string): string[] {
   switch (size) {
     case 'sm':
-      return ['h-1', 'top-2'];
+      return ['h-1.5', 'top-1/2', '-translate-y-1/2'];
     case 'lg':
-      return ['h-2', 'top-3'];
+      return ['h-3', 'top-1/2', '-translate-y-1/2'];
     default: // md
-      return ['h-1.5', 'top-2.5'];
+      return ['h-2', 'top-1/2', '-translate-y-1/2'];
   }
 }
 
@@ -280,8 +302,8 @@ function getSizeLabelClass(size: string): string {
  * Generate slider-specific styles
  */
 function getSliderStyles(id: string, size: string, _thumbColor: string, disabled: boolean): string {
-  const thumbSize = size === 'sm' ? '16px' : size === 'lg' ? '24px' : '20px';
-  const thumbBorder = size === 'sm' ? '2px' : '3px';
+  const thumbSize = size === 'sm' ? '20px' : size === 'lg' ? '28px' : '24px';
+  const thumbBorder = '3px';
   const disabledOpacity = disabled ? 'opacity: 0.5;' : '';
   
   return `
@@ -293,14 +315,15 @@ function getSliderStyles(id: string, size: string, _thumbColor: string, disabled
       border-radius: 50%;
       border: ${thumbBorder} solid white;
       cursor: ${disabled ? 'not-allowed' : 'pointer'};
-      margin-top: -${parseInt(thumbSize) / 2 - 2}px;
+      margin-top: -${parseInt(thumbSize) / 2}px;
       transition: all 150ms ease-in-out;
       ${disabledOpacity}
     }
     
     .${id}::-webkit-slider-thumb {
-      background-color: var(--color-primary);
-      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+      background-color: white;
+      border: ${thumbBorder} solid var(--color-primary);
+      box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 0 rgba(0, 0, 0, 0.2);
     }
     
     .${id}:not(:disabled)::-webkit-slider-thumb:hover {
@@ -317,9 +340,9 @@ function getSliderStyles(id: string, size: string, _thumbColor: string, disabled
       width: ${thumbSize};
       height: ${thumbSize};
       border-radius: 50%;
-      border: ${thumbBorder} solid white;
-      background-color: var(--color-primary);
-      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+      border: ${thumbBorder} solid var(--color-primary);
+      background-color: white;
+      box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 0 rgba(0, 0, 0, 0.2);
       cursor: ${disabled ? 'not-allowed' : 'pointer'};
       transition: all 150ms ease-in-out;
       ${disabledOpacity}

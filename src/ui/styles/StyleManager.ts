@@ -74,6 +74,7 @@ export class StyleManager {
     variables.push(`--color-text-primary: ${COLOR_THEME.ui.text.primary};`);
     variables.push(`--color-text-secondary: ${COLOR_THEME.ui.text.secondary};`);
     variables.push(`--color-text-muted: ${COLOR_THEME.ui.text.secondary};`);
+    variables.push(`--color-text-foreground: ${COLOR_THEME.ui.text.primary};`);
     variables.push(`--color-text-success: ${COLOR_THEME.ui.text.success};`);
     variables.push(`--color-text-warning: ${COLOR_THEME.ui.text.warning};`);
     variables.push(`--color-text-on-primary: #FFFFFF;`);

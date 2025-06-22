@@ -3,7 +3,7 @@ import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { createSvgIcon, IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
-import { GameSettings, Difficulty, SettingsManager } from '@/config/GameSettings';
+import { GameSettings, SettingsManager } from '@/config/GameSettings';
 import { createButton, createHeader, createSlider, createToggle, cn } from '@/ui/elements';
 
 export class SettingsUI {
@@ -12,17 +12,12 @@ export class SettingsUI {
   private game: Game;
   private settings: SettingsManager;
   private onSettingsChange: ((settings: GameSettings) => void) | null = null;
-  private cameraControlsMinimized: boolean = false;
 
   constructor(game: Game, _anchorElement?: HTMLElement) {
     this.floatingUI = game.getFloatingUIManager();
     this.game = game;
     this.settings = SettingsManager.getInstance();
     // _anchorElement parameter kept for backward compatibility but not used with createDialog
-    
-    // Load camera controls state from localStorage
-    const savedState = localStorage.getItem('cameraControlsMinimized');
-    this.cameraControlsMinimized = savedState === 'true';
   }
 
   public show(onSettingsChange?: (settings: GameSettings) => void): void {
@@ -72,15 +67,15 @@ export class SettingsUI {
 
     // Audio Settings
     const audioSection = document.createElement('div');
-    audioSection.className = cn('mb-8', 'rounded-md', 'p-4', 'border', 'border-white/5', 'transition-all');
+    audioSection.className = cn('mb-6', 'rounded-lg', 'p-6', 'bg-surface-secondary', 'border', 'border-surface-border', 'transition-all');
     
     const audioHeader = createHeader({
       title: 'Audio Settings',
       level: 3,
       variant: 'compact',
       showCloseButton: false,
-      icon: createSvgIcon(IconType.SOUND, { size: 20, className: 'text-gray-400' }),
-      customClasses: ['mb-4', 'text-lg', 'font-semibold']
+      icon: createSvgIcon(IconType.SOUND, { size: 20 }),
+      customClasses: ['mb-6', 'text-xl', 'font-semibold', 'text-primary']
     });
     audioSection.appendChild(audioHeader);
 
@@ -96,127 +91,11 @@ export class SettingsUI {
       }
     });
 
-    // Sound Effects
-    this.createSliderSetting(audioSection, {
-      label: 'Sound Effects',
-      value: this.settings.sfxVolume,
-      min: 0,
-      max: 100,
-      onChange: (value) => {
-        this.settings.sfxVolume = value;
-        // TODO: Add setSfxVolume method to AudioManager
-        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-      }
-    });
-
-    // Music
-    this.createSliderSetting(audioSection, {
-      label: 'Music Volume',
-      value: this.settings.musicVolume,
-      min: 0,
-      max: 100,
-      onChange: (value) => {
-        this.settings.musicVolume = value;
-        // TODO: Add setMusicVolume method to AudioManager
-      }
-    });
-
     content.appendChild(audioSection);
-
-    // Gameplay Settings
-    const gameplaySection = document.createElement('div');
-    gameplaySection.className = cn('mb-8', 'rounded-md', 'p-4', 'border', 'border-white/5', 'transition-all');
-    
-    const gameplayHeader = createHeader({
-      title: 'Gameplay Settings',
-      level: 3,
-      variant: 'compact',
-      showCloseButton: false,
-      icon: createSvgIcon(IconType.UPGRADE, { size: 20, className: 'text-gray-400' }),
-      customClasses: ['mb-4', 'text-lg', 'font-semibold']
-    });
-    gameplaySection.appendChild(gameplayHeader);
-
-    // Difficulty
-    const difficultyItem = document.createElement('div');
-    difficultyItem.className = cn('mb-6');
-    
-    const difficultyLabel = document.createElement('span');
-    difficultyLabel.className = cn('block', 'text-primary', 'mb-2', 'text-base');
-    difficultyLabel.textContent = 'Difficulty';
-    difficultyItem.appendChild(difficultyLabel);
-
-    const difficultyButtons = document.createElement('div');
-    difficultyButtons.className = cn('flex', 'gap-2', 'flex-wrap');
-
-    const difficulties = [
-      { value: Difficulty.EASY, label: 'Easy', class: 'easy' },
-      { value: Difficulty.NORMAL, label: 'Normal', class: 'normal' },
-      { value: Difficulty.HARD, label: 'Hard', class: 'hard' },
-      { value: Difficulty.EXPERT, label: 'Expert', class: 'expert' }
-    ];
-
-    difficulties.forEach(diff => {
-      const button = createButton({
-        text: diff.label,
-        variant: this.settings.difficulty === diff.value ? 'primary' : 'outline',
-        size: 'sm',
-        customClasses: ['difficulty-button', diff.class],
-        onClick: () => {
-          this.settings.difficulty = diff.value;
-          // Update all difficulty buttons
-          difficultyButtons.querySelectorAll('.difficulty-button').forEach((btn, index) => {
-            const difficultyOption = difficulties[index];
-            if (difficultyOption) {
-              btn.className = createButton({
-                text: difficultyOption.label,
-                variant: this.settings.difficulty === difficultyOption.value ? 'primary' : 'outline',
-                size: 'sm',
-                customClasses: ['difficulty-button', difficultyOption.class]
-              }).className;
-            }
-          });
-          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-        }
-      });
-      difficultyButtons.appendChild(button);
-    });
-
-    difficultyItem.appendChild(difficultyButtons);
-    gameplaySection.appendChild(difficultyItem);
-
-    // Auto-pause
-    this.createToggleSetting(gameplaySection, {
-      label: 'Auto-pause when unfocused',
-      value: this.settings.autoPause,
-      onChange: (value) => {
-        this.settings.autoPause = value;
-      }
-    });
-
-    // Show FPS
-    this.createToggleSetting(gameplaySection, {
-      label: 'Show FPS Counter',
-      value: this.settings.showFps,
-      onChange: (value) => {
-        this.settings.showFps = value;
-      }
-    });
-
-    // Particle Effects
-    this.createToggleSetting(gameplaySection, {
-      label: 'Particle Effects',
-      value: this.settings.particleEffects,
-      onChange: (value) => {
-        this.settings.particleEffects = value;
-      }
-    });
-
-    content.appendChild(gameplaySection);
 
     // Camera Controls Section
     const cameraSection = document.createElement('div');
-    cameraSection.className = cn('mb-8', 'rounded-md', 'p-4', 'border', 'border-white/5', 'transition-all');
+    cameraSection.className = cn('mb-6', 'rounded-lg', 'p-6', 'bg-surface-secondary', 'border', 'border-surface-border', 'transition-all');
     
     const cameraHeader = createHeader({
       title: 'Camera Controls',
@@ -224,101 +103,80 @@ export class SettingsUI {
       variant: 'compact',
       showCloseButton: false,
       icon: createSvgIcon(IconType.ZOOM_IN, { size: 20 }),
-      customClasses: ['mb-4', 'text-lg', 'font-semibold']
+      customClasses: ['mb-6', 'text-xl', 'font-semibold', 'text-primary']
     });
     
-    // Add minimize/maximize button to header
-    const headerContainer = document.createElement('div');
-    headerContainer.className = cn('flex', 'items-center', 'justify-between', 'mb-4');
-    headerContainer.appendChild(cameraHeader);
+    cameraSection.appendChild(cameraHeader);
     
-    const minimizeButton = createButton({
-      text: this.cameraControlsMinimized ? 'Expand' : 'Minimize',
-      variant: 'ghost',
-      size: 'sm',
-      icon: this.cameraControlsMinimized ? IconType.EXPAND : IconType.COLLAPSE,
-      customClasses: ['ml-auto'],
+    // Camera controls content
+    const cameraControls = document.createElement('div');
+    cameraControls.className = cn('space-y-4');
+    
+    // Current zoom display
+    const zoomDisplay = document.createElement('div');
+    zoomDisplay.className = cn('text-center', 'text-primary', 'text-lg', 'font-medium', 'mb-6', 'p-3', 'bg-surface-primary', 'rounded-md', 'border', 'border-surface-border');
+    const currentZoom = Math.round(this.game.getCamera().getZoom() * 100);
+    zoomDisplay.textContent = `Current Zoom: ${currentZoom}%`;
+    cameraControls.appendChild(zoomDisplay);
+    
+    // Zoom buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = cn('flex', 'gap-2', 'justify-center', 'mb-4');
+    
+    const zoomInButton = createButton({
+      text: 'Zoom In',
+      icon: IconType.ZOOM_IN,
+      variant: 'secondary',
+      size: 'md',
       onClick: () => {
-        this.cameraControlsMinimized = !this.cameraControlsMinimized;
-        localStorage.setItem('cameraControlsMinimized', String(this.cameraControlsMinimized));
+        this.game.getCamera().zoomIn();
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
         this.updateContent();
       }
     });
-    headerContainer.appendChild(minimizeButton);
+    buttonContainer.appendChild(zoomInButton);
     
-    cameraSection.appendChild(headerContainer);
+    const zoomOutButton = createButton({
+      text: 'Zoom Out',
+      icon: IconType.ZOOM_OUT,
+      variant: 'secondary',
+      size: 'md',
+      onClick: () => {
+        this.game.getCamera().zoomOut();
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        this.updateContent();
+      }
+    });
+    buttonContainer.appendChild(zoomOutButton);
     
-    if (!this.cameraControlsMinimized) {
-      // Camera controls content
-      const cameraControls = document.createElement('div');
-      cameraControls.className = cn('space-y-4');
-      
-      // Current zoom display
-      const zoomDisplay = document.createElement('div');
-      zoomDisplay.className = cn('text-center', 'text-secondary', 'mb-4');
-      const currentZoom = Math.round(this.game.getCamera().getZoom() * 100);
-      zoomDisplay.textContent = `Current Zoom: ${currentZoom}%`;
-      cameraControls.appendChild(zoomDisplay);
-      
-      // Zoom buttons
-      const buttonContainer = document.createElement('div');
-      buttonContainer.className = cn('flex', 'gap-2', 'justify-center', 'mb-4');
-      
-      const zoomInButton = createButton({
-        text: 'Zoom In',
-        icon: IconType.ZOOM_IN,
-        variant: 'outline',
-        size: 'sm',
-        onClick: () => {
-          this.game.getCamera().zoomIn();
-          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-          this.updateContent();
+    const resetZoomButton = createButton({
+      text: 'Reset',
+      icon: IconType.RESET_ZOOM,
+      variant: 'secondary',
+      size: 'md',
+      onClick: () => {
+        this.game.getCamera().reset();
+        this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+        this.updateContent();
+      }
+    });
+    buttonContainer.appendChild(resetZoomButton);
+    
+    cameraControls.appendChild(buttonContainer);
+    
+    // Camera follow toggle
+    this.createToggleSetting(cameraControls, {
+      label: 'Follow Player',
+      value: this.game.getCamera().isFollowingTarget(),
+      onChange: (value) => {
+        this.game.getCamera().setFollowTarget(value);
+        if (value) {
+          this.game.resetCameraToPlayer();
         }
-      });
-      buttonContainer.appendChild(zoomInButton);
-      
-      const zoomOutButton = createButton({
-        text: 'Zoom Out',
-        icon: IconType.ZOOM_OUT,
-        variant: 'outline',
-        size: 'sm',
-        onClick: () => {
-          this.game.getCamera().zoomOut();
-          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-          this.updateContent();
-        }
-      });
-      buttonContainer.appendChild(zoomOutButton);
-      
-      const resetZoomButton = createButton({
-        text: 'Reset',
-        icon: IconType.RESET_ZOOM,
-        variant: 'outline',
-        size: 'sm',
-        onClick: () => {
-          this.game.getCamera().reset();
-          this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-          this.updateContent();
-        }
-      });
-      buttonContainer.appendChild(resetZoomButton);
-      
-      cameraControls.appendChild(buttonContainer);
-      
-      // Camera follow toggle
-      this.createToggleSetting(cameraControls, {
-        label: 'Follow Player',
-        value: this.game.getCamera().isFollowingTarget(),
-        onChange: (value) => {
-          this.game.getCamera().setFollowTarget(value);
-          if (value) {
-            this.game.resetCameraToPlayer();
-          }
-        }
-      });
-      
-      cameraSection.appendChild(cameraControls);
-    }
+      }
+    });
+    
+    cameraSection.appendChild(cameraControls);
     
     content.appendChild(cameraSection);
 
@@ -365,7 +223,7 @@ export class SettingsUI {
     onChange: (value: number) => void;
   }): void {
     const item = document.createElement('div');
-    item.className = cn('mb-6');
+    item.className = cn('mb-8');
 
     const slider = createSlider({
       label: options.label,
@@ -391,7 +249,7 @@ export class SettingsUI {
     onChange: (value: boolean) => void;
   }): void {
     const item = document.createElement('div');
-    item.className = cn('mb-4', 'flex', 'items-center', 'justify-between');
+    item.className = cn('mb-6', 'p-4', 'bg-surface-primary', 'rounded-md', 'border', 'border-surface-border');
 
     const toggle = createToggle({
       label: options.label,
@@ -400,7 +258,7 @@ export class SettingsUI {
         options.onChange(checked);
         this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
       },
-      size: 'md',
+      size: 'lg',
       labelPosition: 'left',
       containerClasses: ['w-full', 'justify-between']
     });

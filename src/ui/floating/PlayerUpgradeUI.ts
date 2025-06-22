@@ -4,7 +4,7 @@ import type { Entity } from '@/entities/Entity';
 import type { FloatingUIElement } from './index';
 import { FloatingUIManager } from './index';
 import { SoundType } from '@/audio/AudioManager';
-import { 
+import {
   createButton,
   createDialogHeader,
   createStatGrid,
@@ -124,11 +124,11 @@ export class PlayerUpgradeUI {
     // Create header with close button
     const header = createDialogHeader('Player Upgrades', () => this.close());
     content.appendChild(header);
-    
+
     // Create scrollable content area
     const dialogContent = document.createElement('div');
     dialogContent.className = cn('p-6', 'space-y-6', 'max-h-[500px]', 'overflow-y-auto');
-    
+
     // Create currency display
     const currencyDisplay = createResourceDisplay({
       icon: IconType.COINS,
@@ -137,16 +137,16 @@ export class PlayerUpgradeUI {
       customClasses: ['mb-4']
     });
     dialogContent.appendChild(currencyDisplay);
-    
+
     // Create stats section
     const statsSection = document.createElement('div');
     statsSection.className = cn('space-y-3');
-    
+
     const statsTitle = document.createElement('h3');
     statsTitle.className = cn('text-lg', 'font-semibold', 'text-primary', 'mb-3');
     statsTitle.textContent = 'STATS';
     statsSection.appendChild(statsTitle);
-    
+
     // Create stats grid
     const stats: Stat[] = [
       {
@@ -165,12 +165,12 @@ export class PlayerUpgradeUI {
         valueColor: 'warning'
       }
     ];
-    
+
     const statsGrid = createStatGrid(stats, {
       columns: 3,
       customClasses: ['player-stats']
     });
-    
+
     // Add data-stat attributes to each stat item for easy querying
     const statItems = statsGrid.querySelectorAll('.stat-item');
     const statLabels = ['health', 'shield', 'speed'];
@@ -179,28 +179,28 @@ export class PlayerUpgradeUI {
         item.setAttribute('data-stat', statLabels[index]);
       }
     });
-    
+
     statsSection.appendChild(statsGrid);
     dialogContent.appendChild(statsSection);
-    
+
     // Create abilities section
     const abilitiesSection = document.createElement('div');
     abilitiesSection.className = cn('space-y-3');
-    
+
     const abilitiesTitle = document.createElement('h3');
     abilitiesTitle.className = cn('text-lg', 'font-semibold', 'text-primary', 'mb-3');
     abilitiesTitle.textContent = 'ABILITIES';
     abilitiesSection.appendChild(abilitiesTitle);
-    
+
     const upgradeTree = document.createElement('div');
     upgradeTree.className = cn('space-y-3');
-    
+
     // Render abilities using DOM elements
     this.renderAbilitiesDOM(upgradeTree);
-    
+
     abilitiesSection.appendChild(upgradeTree);
     dialogContent.appendChild(abilitiesSection);
-    
+
     content.appendChild(dialogContent);
     this.element!.setContent(content);
   }
@@ -295,12 +295,12 @@ export class PlayerUpgradeUI {
       // Create the ability card header
       const headerDiv = document.createElement('div');
       headerDiv.className = cn('flex', 'justify-between', 'items-center', 'mb-2');
-      
+
       const nameSpan = document.createElement('span');
       nameSpan.className = cn('font-medium', 'text-primary');
       nameSpan.textContent = `${ability.name}Level ${ability.level}/${ability.maxLevel}`;
       headerDiv.appendChild(nameSpan);
-      
+
       // Create the ability card
       const card = createStructuredCard({
         header: headerDiv,
@@ -319,12 +319,12 @@ export class PlayerUpgradeUI {
       if (!isMaxLevel) {
         const footer = document.createElement('div');
         footer.className = cn('flex', 'justify-between', 'items-center', 'mt-3', 'pt-3', 'border-t', 'border-white/10');
-        
+
         const costSpan = document.createElement('span');
         costSpan.className = cn('text-sm', canAfford ? 'text-success' : 'text-secondary');
         costSpan.textContent = `Cost: ${ability.cost}`;
         footer.appendChild(costSpan);
-        
+
         const upgradeButton = createButton({
           text: 'Upgrade',
           size: 'sm',
@@ -334,7 +334,7 @@ export class PlayerUpgradeUI {
         upgradeButton.dataset.ability = ability.key;
         upgradeButton.dataset.cost = String(ability.cost);
         footer.appendChild(upgradeButton);
-        
+
         card.appendChild(footer);
       } else {
         const maxLevelText = document.createElement('div');
