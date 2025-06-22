@@ -8,4 +8,3 @@ export { PauseMenuUI } from './PauseMenuUI';
 export { SettingsUI } from './SettingsUI';
 export { GameOverUI } from './GameOverUI';
 export * from './types';
-export * from './helpers';

@@ -257,6 +257,7 @@ const utilityStyles = `
   .bg-warning-dark { background-color: var(--color-warning-dark); }
   .bg-surface-primary { background-color: var(--color-surface-primary); }
   .bg-surface-secondary { background-color: var(--color-surface-secondary); }
+  .bg-surface-tertiary { background-color: var(--color-surface-tertiary, rgba(255, 255, 255, 0.1)); }
   
   /* Text colors */
   .text-primary { color: var(--color-text-primary); }
@@ -287,6 +288,14 @@ const utilityStyles = `
   .text-damage-heal { color: #00FF00; } /* Bright green for healing */
   .text-damage-critical { color: #FF0000; } /* Red for critical hits */
   
+  /* Common UI colors */
+  .text-yellow-500 { color: #EAB308; } /* Gold/Currency */
+  .text-yellow-400 { color: #FACC15; } /* Bright yellow */
+  .text-green-500 { color: #22C55E; } /* Health/Success */
+  .text-blue-500 { color: #3B82F6; } /* Shield/Primary */
+  .text-red-500 { color: #EF4444; } /* Damage/Danger */
+  .text-gray-400 { color: #9CA3AF; } /* Muted/Secondary */
+  
   /* Tower type border colors */
   .border-game-tower-basic { border-color: var(--color-game-tower-basic); }
   .border-game-tower-sniper { border-color: var(--color-game-tower-frost); }
@@ -302,6 +311,7 @@ const utilityStyles = `
   .border-danger { border-color: var(--color-danger); }
   .border-danger-dark { border-color: var(--color-danger-dark); }
   .border-default { border-color: var(--color-border-primary); }
+  .border-surface-border { border-color: var(--color-surface-border, rgba(255, 255, 255, 0.2)); }
   .border-subtle { border-color: var(--color-border-subtle); }
   
   /* Rarity border colors */
@@ -481,6 +491,9 @@ const utilityStyles = `
   /* Combined transforms for hover */
   .hover\\:scale-110-rotate-5:hover { transform: scale(1.1) rotate(5deg); }
   
+  /* Tower card specific hover animation */
+  .tower-card:hover .hover\\:scale-110-rotate-5 { transform: scale(1.1) rotate(5deg); }
+  
   /* Hover border colors */
   .hover\\:border-primary:hover { border-color: var(--color-primary); }
   .hover\\:border-warning:hover { border-color: var(--color-warning); }
@@ -629,6 +642,18 @@ const utilityStyles = `
   .bg-danger\\/20 { background-color: rgba(220, 53, 69, 0.2); }
   .bg-danger\\/50 { background-color: rgba(220, 53, 69, 0.5); }
   .bg-primary\\/10 { background-color: rgba(74, 144, 226, 0.1); }
+  
+  /* Gradient backgrounds */
+  .bg-gradient-primary { background: linear-gradient(90deg, var(--color-button-primary) 0%, #5a7fdb 100%); }
+  .bg-gradient-surface { background: linear-gradient(135deg, rgba(33, 37, 41, 0.98) 0%, rgba(40, 44, 48, 0.98) 100%); }
+  
+  /* Gradient text utilities */
+  .text-gradient-primary {
+    background: linear-gradient(90deg, var(--color-button-primary) 0%, #5a7fdb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
   
   /* Control colors */
   .bg-controls-joystick-base { background-color: var(--color-controls-joystick-base); }

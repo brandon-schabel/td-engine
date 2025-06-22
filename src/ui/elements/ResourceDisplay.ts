@@ -170,7 +170,9 @@ function updateResourceContent(
   // Icon
   if (showIcon && (icon || iconHtml)) {
     const iconWrapper = document.createElement('span');
-    iconWrapper.className = cn('resource-icon', getIconSizeClass(variant));
+    // Add gold color for coins icon
+    const iconColorClass = icon === IconType.COINS ? 'text-yellow-500' : '';
+    iconWrapper.className = cn('resource-icon', getIconSizeClass(variant), iconColorClass);
     
     if (iconHtml) {
       iconWrapper.innerHTML = iconHtml;
@@ -186,14 +188,14 @@ function updateResourceContent(
   // Label
   if (showLabel && label) {
     const labelEl = document.createElement('span');
-    labelEl.className = cn('resource-label', getLabelSizeClass(variant));
+    labelEl.className = cn('resource-label', getLabelSizeClass(variant), 'text-secondary');
     labelEl.textContent = label;
     container.appendChild(labelEl);
   }
 
   // Value
   const valueEl = document.createElement('span');
-  valueEl.className = cn('resource-value', getValueSizeClass(variant));
+  valueEl.className = cn('resource-value', getValueSizeClass(variant), 'text-primary');
   
   // Format value
   let formattedValue: string;

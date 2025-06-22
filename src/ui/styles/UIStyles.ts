@@ -203,43 +203,6 @@ const baseUIStyles = `
     width: 100%;
   }
 
-  .ui-slider-track {
-    height: 6px;
-    background-color: var(--color-surface-secondary);
-    border-radius: 3px;
-    position: relative;
-    cursor: pointer;
-  }
-
-  .ui-slider-fill {
-    height: 100%;
-    background-color: var(--color-button-primary);
-    border-radius: 3px;
-    transition: width var(--duration-sliderChange) var(--easing-smooth);
-  }
-
-  .ui-slider-thumb {
-    width: 20px;
-    height: 20px;
-    background-color: var(--color-button-primary);
-    border: 2px solid white;
-    border-radius: 50%;
-    position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    cursor: grab;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform var(--duration-buttonHover) var(--easing-smooth);
-  }
-
-  .ui-slider-thumb:hover {
-    transform: translate(-50%, -50%) scale(1.2);
-  }
-
-  .ui-slider-thumb:active {
-    cursor: grabbing;
-  }
-
   /* Grid layout */
   .ui-grid {
     display: grid;

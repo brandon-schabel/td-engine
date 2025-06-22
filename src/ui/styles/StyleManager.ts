@@ -61,12 +61,26 @@ export class StyleManager {
   private generateCSSVariables(): string {
     const variables: string[] = [];
     
-    // Colors
+    // Colors - flatten nested structure
     Object.entries(COLOR_THEME.ui).forEach(([category, values]) => {
-      Object.entries(values).forEach(([key, value]) => {
-        variables.push(`--color-${category}-${key}: ${value};`);
-      });
+      if (typeof values === 'object' && values !== null) {
+        Object.entries(values).forEach(([key, value]) => {
+          variables.push(`--color-${category}-${key}: ${value};`);
+        });
+      }
     });
+    
+    // Add specific text colors that components expect
+    variables.push(`--color-text-primary: ${COLOR_THEME.ui.text.primary};`);
+    variables.push(`--color-text-secondary: ${COLOR_THEME.ui.text.secondary};`);
+    variables.push(`--color-text-muted: ${COLOR_THEME.ui.text.secondary};`);
+    variables.push(`--color-text-success: ${COLOR_THEME.ui.text.success};`);
+    variables.push(`--color-text-warning: ${COLOR_THEME.ui.text.warning};`);
+    variables.push(`--color-text-on-primary: #FFFFFF;`);
+    variables.push(`--color-text-on-secondary: #FFFFFF;`);
+    variables.push(`--color-text-on-danger: #FFFFFF;`);
+    variables.push(`--color-text-on-success: #FFFFFF;`);
+    variables.push(`--color-text-on-warning: #000000;`);
     
     // Tower colors
     Object.entries(COLOR_THEME.towers).forEach(([key, value]) => {
@@ -165,14 +179,12 @@ export class StyleManager {
     // Additional UI colors
     variables.push(`--color-surface-primary: ${COLOR_THEME.ui.background.primary};`);
     variables.push(`--color-surface-secondary: ${COLOR_THEME.ui.background.secondary};`);
+    variables.push(`--color-surface-tertiary: rgba(255, 255, 255, 0.1);`);
     variables.push(`--color-surface-hover: rgba(255, 255, 255, 0.05);`);
     variables.push(`--color-surface-tooltip: rgba(0, 0, 0, 0.9);`);
+    variables.push(`--color-surface-border: rgba(255, 255, 255, 0.2);`);
     variables.push(`--color-border-primary: ${COLOR_THEME.ui.border.default};`);
     variables.push(`--color-border-subtle: rgba(255, 255, 255, 0.1);`);
-    variables.push(`--color-text-primary: ${COLOR_THEME.ui.text.primary};`);
-    variables.push(`--color-text-secondary: ${COLOR_THEME.ui.text.secondary};`);
-    variables.push(`--color-text-success: ${COLOR_THEME.ui.text.success};`);
-    variables.push(`--color-text-warning: ${COLOR_THEME.ui.text.warning};`);
     variables.push(`--color-status-success: ${COLOR_THEME.ui.text.success};`);
     variables.push(`--color-status-warning: ${COLOR_THEME.ui.text.warning};`);
     variables.push(`--color-status-error: ${COLOR_THEME.ui.text.danger};`);

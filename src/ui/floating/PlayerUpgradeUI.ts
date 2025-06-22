@@ -13,6 +13,7 @@ import {
   type Stat
 } from '@/ui/elements';
 import { cn } from '@/ui/styles/UtilityStyles';
+import { IconType } from '@/ui/icons/SvgIcons';
 
 export class PlayerUpgradeUI {
   private floatingUI: FloatingUIManager;
@@ -130,7 +131,7 @@ export class PlayerUpgradeUI {
     
     // Create currency display
     const currencyDisplay = createResourceDisplay({
-      iconHtml: '💰',
+      icon: IconType.COINS,
       value: currency,
       label: '',
       customClasses: ['mb-4']
@@ -150,15 +151,18 @@ export class PlayerUpgradeUI {
     const stats: Stat[] = [
       {
         label: 'Health',
-        value: `${this.player.health}/${this.player.maxHealth}`
+        value: `${this.player.health}/${this.player.maxHealth}`,
+        valueColor: 'success'
       },
       {
         label: 'Shield',
-        value: '0/0'
+        value: '0/0',
+        valueColor: 'primary'
       },
       {
         label: 'Move Speed',
-        value: this.player.speed.toFixed(1)
+        value: this.player.speed.toFixed(1),
+        valueColor: 'warning'
       }
     ];
     
@@ -301,6 +305,7 @@ export class PlayerUpgradeUI {
       const card = createStructuredCard({
         header: headerDiv,
         body: ability.description,
+        bodyClasses: ['text-secondary'],
         customClasses: [
           'bg-surface-secondary',
           'border',

@@ -23,17 +23,13 @@ export class PlayerLevelDisplay {
     // Create main display container
     this.displayElement = document.createElement('div');
     this.displayElement.className = cn(
-      'fixed',
-      'top-4',
-      'left-4',
       'bg-surface-secondary',
       'border',
-      'border-surface-border',
+      'border-default',
       'rounded-lg',
       'p-3',
       'shadow-lg',
-      'z-20',
-      'min-w-[250px]'
+      'min-w-[200px]'
     );
 
     // Level header
@@ -65,7 +61,7 @@ export class PlayerLevelDisplay {
 
     // Experience text
     const expText = document.createElement('div');
-    expText.className = cn('text-xs', 'text-center', 'text-muted');
+    expText.className = cn('text-xs', 'text-center', 'text-secondary');
     expText.id = 'experience-text';
 
     // Assemble display

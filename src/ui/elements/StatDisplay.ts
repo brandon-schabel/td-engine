@@ -119,7 +119,7 @@ function createStatItem(
   // Label
   if (showLabels) {
     const label = document.createElement('div');
-    label.className = cn('stat-label', getLabelSizeClass(variant));
+    label.className = cn('stat-label', getLabelSizeClass(variant), 'text-secondary');
     label.textContent = stat.label;
     content.appendChild(label);
   }
@@ -139,6 +139,9 @@ function createStatItem(
   // Apply value color
   if (stat.valueColor && stat.valueColor !== 'default') {
     valueWrapper.classList.add(getValueColorClass(stat.valueColor));
+  } else {
+    // Default to primary text color
+    valueWrapper.classList.add('text-primary');
   }
 
   content.appendChild(valueWrapper);
