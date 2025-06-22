@@ -13,9 +13,9 @@ import { createIconButton, createResourceDisplay, cn } from "@/ui/elements";
 
 
 export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) {
-  const gameContainer = document.getElementById("game-container");
+  const gameContainer = document.getElementById("app-container");
   if (!gameContainer) {
-    console.error("[SimpleGameUI] ERROR: game-container element not found!");
+    console.error("[SimpleGameUI] ERROR: app-container element not found!");
     return;
   }
   // Get UIController reference
@@ -29,6 +29,24 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     gameContainer.appendChild(controlBar);
   } else {
     console.log("[SimpleGameUI] Using existing bottom-ui-container");
+    // Ensure it has the proper styling
+    controlBar.className = cn(
+      'absolute',
+      'bottom-0',
+      'left-0',
+      'right-0',
+      'h-[60px]',
+      'bg-surface-secondary/80',
+      'backdrop-blur-sm',
+      'border-t',
+      'border-border-primary',
+      'flex',
+      'items-center',
+      'justify-center',
+      'gap-2',
+      'px-4',
+      'z-20'
+    );
   }
 
   console.log(
@@ -190,7 +208,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
       console.log("[SimpleGameUI] Game paused:", game.isPaused());
       console.log("[SimpleGameUI] Button disabled:", startWaveButton.disabled);
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-      
+
       if (game.isWaveComplete() && !game.isGameOverPublic()) {
         console.log("[SimpleGameUI] Starting next wave...");
         const started = game.startNextWave();
@@ -217,7 +235,16 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
             uiController.close('pause-menu');
           },
           onSettings: () => {
-            uiController.showSettings();
+            console.log('[SimpleGameUI] Settings requested from pause menu');
+            // Get scene manager from global window object
+            const sceneManager = (window as any).sceneManager;
+            if (sceneManager) {
+              // Store the return scene globally
+              (window as any).__settingsReturnScene = 'game';
+              // Close pause menu and switch to settings scene
+              uiController.close('pause-menu');
+              sceneManager.switchTo('settings');
+            }
           },
           onRestart: () => {
             if (confirm("Are you sure you want to restart the game?")) {
@@ -240,9 +267,38 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     () => {
       console.log("[SimpleGameUI] Settings button clicked");
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-      // Use UIController to show settings with anchor element
-      console.log("[SimpleGameUI] Calling uiController.showSettings");
-      uiController.showSettings(settingsButton);
+      // Pause the game and show pause menu
+      if (!game.isPaused()) {
+        game.pause();
+        uiController.showPauseMenu({
+          onResume: () => {
+            game.resume();
+            uiController.close('pause-menu');
+          },
+          onSettings: () => {
+            console.log('[SimpleGameUI] Settings requested from pause menu');
+            // Get scene manager from global window object
+            const sceneManager = (window as any).sceneManager;
+            if (sceneManager) {
+              // Store the return scene globally
+              (window as any).__settingsReturnScene = 'game';
+              // Close pause menu and switch to settings scene
+              uiController.close('pause-menu');
+              sceneManager.switchTo('settings');
+            }
+          },
+          onRestart: () => {
+            if (confirm("Are you sure you want to restart the game?")) {
+              window.location.reload();
+            }
+          },
+          onQuit: () => {
+            if (confirm("Are you sure you want to quit to main menu?")) {
+              window.location.reload();
+            }
+          }
+        });
+      }
     }
   );
 
@@ -374,8 +430,14 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   powerUpDisplay.mount(gameContainer);
 
   // Player level display setup
+  // Clean up any existing instances first
+  (PlayerLevelDisplay as any).cleanupAll?.();
+  
   const playerLevelDisplay = new PlayerLevelDisplay({ game });
   playerLevelDisplay.mount(rightResources);
+  
+  // Connect to game instance for level up notifications
+  game.setPlayerLevelDisplay(playerLevelDisplay);
 
   // Mobile controls setup
   if ("ontouchstart" in window || checkIsMobile(window.innerWidth)) {
@@ -407,7 +469,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   const waveButton = startWaveButton as HTMLButtonElement;
   const originalStartText = "Start Next Wave (Enter)";
   const startingText = "Starting...";
-  
+
   console.log("[SimpleGameUI] Wave button element:", waveButton);
   console.log("[SimpleGameUI] Initial wave complete status:", game.isWaveComplete());
 

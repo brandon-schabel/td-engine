@@ -57,6 +57,16 @@ export class Renderer {
     }
     this.ctx = ctx;
     
+    console.log('[Renderer] Created with canvas:', {
+      canvas: canvas,
+      width: canvas.width,
+      height: canvas.height,
+      viewportWidth: this.viewportWidth,
+      viewportHeight: this.viewportHeight,
+      context: ctx,
+      gridSize: { width: grid.width, height: grid.height }
+    });
+    
     // Preload common textures
     this.preloadTextures();
   }

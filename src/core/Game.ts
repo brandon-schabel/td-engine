@@ -757,14 +757,14 @@ export class Game {
       mapDifficulty: this.currentMapData.metadata.difficulty || "MEDIUM",
     };
 
-    ScoreManager.saveScore(stats);
+    const scoreEntry = ScoreManager.saveScore(stats);
 
     // Dispatch event for UI to handle
     const gameEndEvent = new CustomEvent("gameEnd", {
       detail: {
         stats,
         victory,
-        scoreEntry: ScoreManager.saveScore(stats),
+        scoreEntry: scoreEntry,
       },
     });
     document.dispatchEvent(gameEndEvent);
@@ -840,9 +840,8 @@ export class Game {
       this.renderer.renderGameOver();
     } else if (this.engine.getState() === GameState.VICTORY) {
       this.renderer.renderVictory();
-    } else if (this.engine.getState() === GameState.PAUSED) {
-      this.renderer.renderPaused();
     }
+    // Note: Pause overlay is now handled by PauseMenuUI, not rendered directly
 
     // Render camera diagnostics overlay if enabled
     if (this.cameraDiagnostics.isVisualDebugEnabled()) {
@@ -1150,6 +1149,31 @@ export class Game {
         // Toggle visual debug mode
         this.renderer.setDebugMode(key === "V");
         console.log(`Visual debug mode: ${key === "V" ? "ON" : "OFF"}`);
+        break;
+        
+      // Tower selection hotkeys
+      case "1":
+        this.setSelectedTowerType(TowerType.BASIC);
+        console.log('[Game] Selected tower: BASIC');
+        break;
+      case "2":
+        this.setSelectedTowerType(TowerType.SNIPER);
+        console.log('[Game] Selected tower: SNIPER');
+        break;
+      case "3":
+        this.setSelectedTowerType(TowerType.RAPID);
+        console.log('[Game] Selected tower: RAPID');
+        break;
+      case "4":
+        this.setSelectedTowerType(TowerType.WALL);
+        console.log('[Game] Selected tower: WALL');
+        break;
+      case "escape":
+        // Clear tower selection
+        if (this.selectedTowerType) {
+          this.setSelectedTowerType(null);
+          console.log('[Game] Cleared tower selection');
+        }
         break;
     }
   }

@@ -31,16 +31,7 @@
       -webkit-user-select: none;
       user-select: none;
     }
-    
-    #game-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+
     
     #canvas-container {
       position: relative;
@@ -508,19 +499,7 @@
         height: 8px !important;
       }
     }
-    
-    /* iPhone notch support */
-    @supports (padding-top: constant(safe-area-inset-top)) {
-      #game-container {
-        padding-top: constant(safe-area-inset-top);
-      }
-    }
-    
-    @supports (padding-top: env(safe-area-inset-top)) {
-      #game-container {
-        padding-top: env(safe-area-inset-top);
-      }
-    }
+
     
     /* Dialog container fixes - less aggressive */
     .dialog-container {
@@ -631,16 +610,56 @@
         padding: 6px !important;
       }
     }
+
+    /* Animations for UI elements */
+    @keyframes gradientShift {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    @keyframes particleFloat {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      25% { transform: translateY(-10px) translateX(5px); }
+      50% { transform: translateY(0) translateX(-5px); }
+      75% { transform: translateY(-5px) translateX(2px); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+      }
+      50% { 
+        opacity: 0.8; 
+        transform: scale(1.05);
+      }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200px 0; }
+      100% { background-position: 200px 0; }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 <body>
-  <div id="game-container">
-    <div id="canvas-container">
-      <canvas id="game-canvas"></canvas>
-    </div>
-    <div id="ui-container"></div>
-    <div id="bottom-ui-container"></div>
-  </div>
+  <div id="app-container"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

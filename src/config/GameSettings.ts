@@ -57,6 +57,29 @@ export const DEFAULT_SETTINGS: GameSettings = {
   touchControlsLayout: 'default'
 };
 
+// Load settings from localStorage
+export function loadSettings(): GameSettings {
+  try {
+    const stored = localStorage.getItem('gameSettings');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return { ...DEFAULT_SETTINGS, ...parsed };
+    }
+  } catch (error) {
+    console.warn('Failed to load settings:', error);
+  }
+  return { ...DEFAULT_SETTINGS };
+}
+
+// Save settings to localStorage
+export function saveSettings(settings: GameSettings): void {
+  try {
+    localStorage.setItem('gameSettings', JSON.stringify(settings));
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+  }
+}
+
 // Difficulty presets that modify game constants
 export const DIFFICULTY_PRESETS = {
   CASUAL: {

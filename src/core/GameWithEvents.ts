@@ -35,6 +35,7 @@ export class GameWithEvents extends Game {
     score: number;
     gameState: GameState;
   };
+  private firstUpdate: boolean = true;
 
   constructor(canvas: HTMLCanvasElement, mapConfig?: MapGenerationConfig, autoStart: boolean = true) {
     super(canvas, mapConfig, autoStart);
@@ -48,6 +49,8 @@ export class GameWithEvents extends Game {
       score: this.getScore(),
       gameState: this.getGameState()
     };
+    
+    console.log('[GameWithEvents] Created with canvas:', canvas, 'autoStart:', autoStart);
   }
 
   /**
@@ -75,6 +78,11 @@ export class GameWithEvents extends Game {
    * Override update to check for state changes
    */
   update = (deltaTime: number): void => {
+    if (this.firstUpdate) {
+      console.log('[GameWithEvents] First update called, deltaTime:', deltaTime);
+      this.firstUpdate = false;
+    }
+    
     // Call parent update method directly
     // Since update is an arrow function property, we need to call it as a property
     const parentUpdate = Object.getPrototypeOf(Object.getPrototypeOf(this)).update;

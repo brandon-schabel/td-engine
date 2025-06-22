@@ -106,6 +106,15 @@ export enum IconType {
   EYE = "EYE",
   EYE_OFF = "EYE_OFF",
   CHEVRON_DOWN = "CHEVRON_DOWN",
+  
+  // Navigation Icons
+  ARROW_LEFT = "ARROW_LEFT",
+  
+  // Action Icons (additional)
+  SAVE = "SAVE",
+  FLAG = "FLAG",
+  REFRESH = "REFRESH",
+  SPEAKER = "SPEAKER"
 }
 
 interface SvgIconOptions {
@@ -618,6 +627,28 @@ const ICON_PATHS: Record<IconType, string> = {
   
   [IconType.CHEVRON_DOWN]: `
     <polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  
+  [IconType.ARROW_LEFT]: `
+    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  `,
+  
+  [IconType.SAVE]: `
+    <path d="M19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H16L21 8V19C21 20.1 20.1 21 19 21Z" stroke="currentColor" stroke-width="2" fill="none"/>
+    <path d="M17 21V13H7V21M7 3V8H15" stroke="currentColor" stroke-width="2" fill="none"/>
+  `,
+  
+  [IconType.FLAG]: `
+    <path d="M4 15V21M4 4V8M4 8V15L9 13L14 15V8L9 10L4 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  `,
+  
+  [IconType.REFRESH]: `
+    <path d="M21 2V8H15M3 12C3 7.02944 7.02944 3 12 3C14.8273 3 17.35 4.30367 19 6.34267L21 8M3 22V16H9M21 12C21 16.9706 16.9706 21 12 21C9.17273 21 6.64996 19.6963 5 17.6573L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  `,
+  
+  [IconType.SPEAKER]: `
+    <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M15.54 8.46C16.4774 9.39764 17.0039 10.6692 17.0039 11.995C17.0039 13.3208 16.4774 14.5924 15.54 15.53M19.07 4.93C20.9447 6.80528 21.9979 9.34836 21.9979 12C21.9979 14.6516 20.9447 17.1947 19.07 19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
   `,
 };
 

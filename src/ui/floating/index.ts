@@ -5,6 +5,4 @@ export { PlayerUpgradeUI } from './PlayerUpgradeUI';
 export { InventoryUI } from './InventoryUI';
 export { BuildMenuUI } from './BuildMenuUI';
 export { PauseMenuUI } from './PauseMenuUI';
-export { SettingsUI } from './SettingsUI';
-export { GameOverUI } from './GameOverUI';
 export * from './types';

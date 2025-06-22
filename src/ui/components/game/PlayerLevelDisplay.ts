@@ -9,18 +9,29 @@ import type { FloatingUIManager } from "@/ui/floating/FloatingUIManager";
 import { SoundType } from "@/audio/AudioManager";
 
 export class PlayerLevelDisplay {
+  private static instances: PlayerLevelDisplay[] = [];
+  
   private game: Game;
   private floatingUI: FloatingUIManager;
   private updateInterval: number | null = null;
   private displayElement: HTMLDivElement | null = null;
   private progressBar: HTMLDivElement | null = null;
+  private levelTextElement: HTMLDivElement | null = null;
+  private pointsTextElement: HTMLDivElement | null = null;
+  private expTextElement: HTMLDivElement | null = null;
 
   constructor(options: { game: Game; visible?: boolean }) {
     this.game = options.game;
     this.floatingUI = this.game.getFloatingUIManager();
+    
+    // Track instance
+    PlayerLevelDisplay.instances.push(this);
   }
 
   mount(parent: HTMLElement): void {
+    // Clean up any existing instance first
+    this.cleanup();
+    
     // Create main display container
     this.displayElement = document.createElement('div');
     this.displayElement.className = cn(
@@ -37,16 +48,14 @@ export class PlayerLevelDisplay {
     const header = document.createElement('div');
     header.className = cn('flex', 'items-center', 'justify-between', 'mb-2');
     
-    const levelText = document.createElement('div');
-    levelText.className = cn('text-lg', 'font-bold', 'text-primary');
-    levelText.id = 'player-level-text';
+    this.levelTextElement = document.createElement('div');
+    this.levelTextElement.className = cn('text-lg', 'font-bold', 'text-primary');
     
-    const pointsText = document.createElement('div');
-    pointsText.className = cn('text-sm', 'text-secondary');
-    pointsText.id = 'upgrade-points-text';
+    this.pointsTextElement = document.createElement('div');
+    this.pointsTextElement.className = cn('text-sm', 'text-secondary');
     
-    header.appendChild(levelText);
-    header.appendChild(pointsText);
+    header.appendChild(this.levelTextElement);
+    header.appendChild(this.pointsTextElement);
 
     // Experience progress bar
     this.progressBar = createProgressBar({
@@ -61,14 +70,13 @@ export class PlayerLevelDisplay {
     });
 
     // Experience text
-    const expText = document.createElement('div');
-    expText.className = cn('text-xs', 'text-center', 'text-secondary');
-    expText.id = 'experience-text';
+    this.expTextElement = document.createElement('div');
+    this.expTextElement.className = cn('text-xs', 'text-center', 'text-secondary');
 
     // Assemble display
     this.displayElement.appendChild(header);
     this.displayElement.appendChild(this.progressBar);
-    this.displayElement.appendChild(expText);
+    this.displayElement.appendChild(this.expTextElement);
 
     parent.appendChild(this.displayElement);
 
@@ -82,20 +90,18 @@ export class PlayerLevelDisplay {
     const levelSystem = player.getPlayerLevelSystem();
     
     // Update level text
-    const levelText = document.getElementById('player-level-text');
-    if (levelText) {
-      levelText.textContent = `Level ${levelSystem.getLevel()}`;
+    if (this.levelTextElement) {
+      this.levelTextElement.textContent = `Level ${levelSystem.getLevel()}`;
     }
 
     // Update upgrade points
-    const pointsText = document.getElementById('upgrade-points-text');
-    if (pointsText) {
+    if (this.pointsTextElement) {
       const availablePoints = levelSystem.getAvailableUpgradePoints();
       if (availablePoints > 0) {
-        pointsText.textContent = `${availablePoints} Points`;
-        pointsText.className = cn('text-sm', 'text-success', 'font-medium');
+        this.pointsTextElement.textContent = `${availablePoints} Points`;
+        this.pointsTextElement.className = cn('text-sm', 'text-success', 'font-medium');
       } else {
-        pointsText.textContent = '';
+        this.pointsTextElement.textContent = '';
       }
     }
 
@@ -106,17 +112,16 @@ export class PlayerLevelDisplay {
     }
 
     // Update experience text
-    const expText = document.getElementById('experience-text');
-    if (expText) {
+    if (this.expTextElement) {
       const exp = levelSystem.getExperience();
       const required = levelSystem.getExperienceToNextLevel();
       
       if (levelSystem.getLevel() >= 50) {
-        expText.textContent = 'MAX LEVEL';
-        expText.className = cn('text-xs', 'text-center', 'text-warning', 'font-bold');
+        this.expTextElement.textContent = 'MAX LEVEL';
+        this.expTextElement.className = cn('text-xs', 'text-center', 'text-warning', 'font-bold');
       } else {
-        expText.textContent = `${Math.floor(exp)} / ${required} XP`;
-        expText.className = cn('text-xs', 'text-center', 'text-secondary');
+        this.expTextElement.textContent = `${Math.floor(exp)} / ${required} XP`;
+        this.expTextElement.className = cn('text-xs', 'text-center', 'text-secondary');
       }
     }
   }
@@ -327,5 +332,18 @@ export class PlayerLevelDisplay {
       this.displayElement.remove();
       this.displayElement = null;
     }
+    
+    // Remove from instances tracking
+    const index = PlayerLevelDisplay.instances.indexOf(this);
+    if (index > -1) {
+      PlayerLevelDisplay.instances.splice(index, 1);
+    }
+  }
+  
+  static cleanupAll(): void {
+    // Clean up all existing instances
+    const instances = [...PlayerLevelDisplay.instances];
+    instances.forEach(instance => instance.cleanup());
+    PlayerLevelDisplay.instances = [];
   }
 }

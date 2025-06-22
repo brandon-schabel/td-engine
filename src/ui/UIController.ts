@@ -13,15 +13,12 @@ import { TowerUpgradeUI } from '@/ui/floating/TowerUpgradeUI';
 import { PlayerUpgradeUI } from '@/ui/floating/PlayerUpgradeUI';
 import { InventoryUI } from '@/ui/floating/InventoryUI';
 import { BuildMenuUI } from '@/ui/floating/BuildMenuUI';
-import { GameOverUI } from '@/ui/floating/GameOverUI';
-import { SettingsUI } from '@/ui/floating/SettingsUI';
 import { PauseMenuUI } from '@/ui/floating/PauseMenuUI';
 import { UIStateManager, UIPanelType } from './UIStateManager';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
 import type { Entity } from '@/entities/Entity';
 import type { TowerType } from '@/entities/Tower';
-import type { GameSettings } from '@/config/GameSettings';
 import { cn } from '@/ui/styles/UtilityStyles';
 
 export interface UIElementInfo {
@@ -44,10 +41,7 @@ export class UIController {
   private playerUpgradeUI: PlayerUpgradeUI | null = null;
   private inventoryUI: InventoryUI | null = null;
   private buildMenuUI: BuildMenuUI | null = null;
-  private gameOverUI: GameOverUI | null = null;
-  private settingsUI: SettingsUI | null = null;
   private pauseMenuUI: PauseMenuUI | null = null;
-  private preGameConfigUI: any | null = null; // Dynamic import
 
   // Update tracking to prevent flickering
   private updateCache = new Map<string, any>();
@@ -75,12 +69,10 @@ export class UIController {
       // Ensure UI component is properly cleaned up when state manager closes panel
       const mappings: Partial<Record<UIPanelType, string>> = {
         [UIPanelType.PAUSE_MENU]: 'pause-menu',
-        [UIPanelType.SETTINGS]: 'settings',
         [UIPanelType.TOWER_UPGRADE]: 'tower-upgrade',
         [UIPanelType.PLAYER_UPGRADE]: 'player-upgrade',
         [UIPanelType.INVENTORY]: 'inventory',
         [UIPanelType.BUILD_MENU]: 'build-menu',
-        [UIPanelType.GAME_OVER]: 'game-over',
         [UIPanelType.BUILD_MODE]: 'build-mode'
       };
 
@@ -253,44 +245,6 @@ export class UIController {
     this.register('inventory', this.inventoryUI, 'dialog');
   }
 
-  /**
-   * Show game over UI
-   */
-  public showGameOver(stats: any): void {
-    // Use state manager to handle panel opening
-    if (!this.stateManager.openPanel(UIPanelType.GAME_OVER, { stats })) {
-      return;
-    }
-
-    this.closeAllDialogs();
-
-    if (!this.gameOverUI) {
-      this.gameOverUI = new GameOverUI(this.game);
-    }
-
-    this.gameOverUI.show(stats);
-    this.register('game-over', this.gameOverUI, 'dialog', false, true);
-  }
-
-  /**
-   * Show settings UI
-   */
-  public showSettings(anchorElement?: HTMLElement, onSettingsChange?: (settings: GameSettings) => void): void {
-    // Use state manager to handle panel opening
-    if (!this.stateManager.openPanel(UIPanelType.SETTINGS, { onSettingsChange })) {
-      return;
-    }
-
-    // Close any existing settings UI
-    this.close('settings');
-
-    if (!this.settingsUI) {
-      this.settingsUI = new SettingsUI(this.game, anchorElement);
-    }
-
-    this.settingsUI.show(onSettingsChange);
-    this.register('settings', this.settingsUI, 'dialog');
-  }
 
   /**
    * Show pause menu UI
@@ -317,30 +271,6 @@ export class UIController {
     this.register('pause-menu', this.pauseMenuUI, 'dialog');
   }
 
-  /**
-   * Show pre-game configuration UI
-   */
-  public showPreGameConfig(callbacks?: {
-    onStartGame?: (config: any) => void;
-    onBack?: () => void;
-  }): void {
-    // Use state manager to handle panel opening
-    if (!this.stateManager.openPanel(UIPanelType.PRE_GAME_CONFIG, callbacks)) {
-      return;
-    }
-
-    // Close any existing pre-game config
-    this.close('pre-game-config');
-
-    // Dynamic import to avoid circular dependencies
-    import('@/ui/floating/PreGameConfigUI').then(({ PreGameConfigUI }) => {
-      this.preGameConfigUI = new PreGameConfigUI(this.floatingUI, this.game);
-      this.preGameConfigUI.show(callbacks);
-      this.register('pre-game-config', this.preGameConfigUI, 'dialog');
-    }).catch(error => {
-      console.error('[UIController] Failed to load PreGameConfigUI:', error);
-    });
-  }
 
   /**
    * Create a health bar for an entity
@@ -418,8 +348,6 @@ export class UIController {
     this.playerUpgradeUI = null;
     this.inventoryUI = null;
     this.buildMenuUI = null;
-    this.gameOverUI = null;
-    this.settingsUI = null;
     this.pauseMenuUI = null;
     
     // Reset state manager

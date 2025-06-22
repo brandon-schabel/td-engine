@@ -70,12 +70,7 @@ Create an HTML file with a canvas element:
 <head>
     <title>My Tower Defense Game</title>
     <style>
-        #game-container {
-            width: 800px;
-            height: 600px;
-            margin: 0 auto;
-            position: relative;
-        }
+
         #game-canvas {
             width: 100%;
             height: 100%;

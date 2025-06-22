@@ -11,18 +11,26 @@ export class GameEngine {
   private paused: boolean = false;
   private animationId: number | null = null;
   private lastTime: number = 0;
+  private frameCount: number = 0;
   
   private updateCallbacks: Set<UpdateCallback> = new Set();
   private renderCallbacks: Set<RenderCallback> = new Set();
 
-  constructor() {}
+  constructor() {
+    console.log('[GameEngine] Created');
+  }
 
   start(): void {
-    if (this.running) return;
+    if (this.running) {
+      console.log('[GameEngine] Already running');
+      return;
+    }
     
+    console.log('[GameEngine] Starting game loop');
     this.running = true;
     this.state = GameState.PLAYING;
     this.lastTime = 0;
+    this.frameCount = 0;
     this.gameLoop(0);
   }
 
@@ -120,6 +128,12 @@ export class GameEngine {
 
     const deltaTime = this.lastTime === 0 ? 0 : currentTime - this.lastTime;
     this.lastTime = currentTime;
+
+    // Log first few frames for debugging
+    if (this.frameCount < 5) {
+      console.log(`[GameEngine] Frame ${this.frameCount}, deltaTime: ${deltaTime}, callbacks: update=${this.updateCallbacks.size}, render=${this.renderCallbacks.size}`);
+    }
+    this.frameCount++;
 
     this.update(deltaTime);
     this.render(deltaTime);

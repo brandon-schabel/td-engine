@@ -49,6 +49,8 @@ export class PauseMenuUI {
       closeable: false,
       className: cn('min-w-[400px]', 'text-center', 'sm:min-w-[280px]')
     });
+
+    // Note: Escape key handling removed to avoid conflict with tower placement cancellation
   }
 
   private createContent(): HTMLElement {

@@ -21,6 +21,7 @@ export enum SoundType {
   SELECT = 'select',
   DESELECT = 'deselect',
   ERROR = 'error',
+  SUCCESS = 'success',
 
   // Game state sounds
   WAVE_START = 'wave_start',
@@ -294,6 +295,32 @@ export class AudioManager {
       type: 'square',
       envelope: { attack: 0.02, decay: 0.08, sustain: 0.3, release: 0.15 },
       modulation: { frequency: 5, depth: 40 }
+    });
+
+    this.soundConfigs.set(SoundType.SUCCESS, {
+      sequence: [
+        {
+          frequency: 523, // C5
+          duration: 0.1,
+          volume: 0.3,
+          type: 'sine',
+          envelope: { attack: 0.01, decay: 0.03, sustain: 0.7, release: 0.06 }
+        },
+        {
+          frequency: 659, // E5
+          duration: 0.1,
+          volume: 0.3,
+          type: 'sine',
+          envelope: { attack: 0.01, decay: 0.03, sustain: 0.7, release: 0.06 }
+        },
+        {
+          frequency: 784, // G5
+          duration: 0.2,
+          volume: 0.4,
+          type: 'triangle',
+          envelope: { attack: 0.02, decay: 0.08, sustain: 0.6, release: 0.1 }
+        }
+      ]
     });
 
     // Game state sounds
