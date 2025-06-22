@@ -43,7 +43,7 @@ interface ProgressBarElement extends HTMLDivElement {
 export function createProgressBar(options: CreateProgressBarOptions): ProgressBarElement {
   const {
     width,
-    height,
+    height: _height, // Keep for API compatibility but not used
     progress,
     fillColor = 'primary',
     backgroundColor = 'surface-secondary',

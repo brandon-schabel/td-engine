@@ -379,7 +379,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Mobile controls setup
   if ("ontouchstart" in window || checkIsMobile(window.innerWidth)) {
-    const mobileControls = new MobileControls({
+    new MobileControls({
       game,
       container: gameContainer
     });

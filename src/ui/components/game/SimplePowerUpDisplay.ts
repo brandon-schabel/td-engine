@@ -94,7 +94,7 @@ export class PowerUpDisplay {
 
     // Update or create elements for active power-ups
     let index = 0;
-    activePowerUps.forEach((powerUp, type) => {
+    activePowerUps.forEach((powerUp: ActivePowerUp, type: string) => {
       const powerUpId = `powerup-${type}-${index}`;
 
       if (!this.activePowerUpIds.has(powerUpId)) {
@@ -159,7 +159,9 @@ export class PowerUpDisplay {
     const header = document.createElement('div');
     header.className = cn('flex', 'items-center', 'gap-2');
     
-    const icon = createSvgIcon(this.getPowerUpIcon(type), { size: 20 });
+    const iconType = this.getPowerUpIcon(type);
+    const iconColor = this.getPowerUpIconColor(type);
+    const icon = createSvgIcon(iconType, { size: 20, className: iconColor });
     const name = this.getPowerUpName(type);
     
     header.innerHTML = `
@@ -217,6 +219,19 @@ export class PowerUpDisplay {
     return nameMap[type] || "Power-Up";
   }
 
+  private getPowerUpIconColor(type: string): string {
+    const colorMap: Record<string, string> = {
+      EXTRA_DAMAGE: 'text-red-500',
+      SPEED_BOOST: 'text-yellow-400',
+      FASTER_SHOOTING: 'text-yellow-400',
+      SHIELD: 'text-blue-500',
+      HEALTH: 'text-green-500',
+      HEALTH_REGEN: 'text-green-500',
+      EXTRA_CURRENCY: 'text-yellow-500'
+    };
+    return colorMap[type] || 'text-primary';
+  }
+
   /**
    * Show a power-up collection notification
    */
@@ -245,7 +260,9 @@ export class PowerUpDisplay {
       )
     });
 
-    const icon = createSvgIcon(this.getPowerUpIcon(type), { size: 24 });
+    const iconType = this.getPowerUpIcon(type);
+    const iconColor = this.getPowerUpIconColor(type);
+    const icon = createSvgIcon(iconType, { size: 24, className: iconColor });
     const name = this.getPowerUpName(type);
 
     const element = notification.getElement();

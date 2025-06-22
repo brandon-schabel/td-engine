@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createProgressBar, createTimerProgressBar } from '../ProgressBar';
+import { IconType } from '@/ui/icons/SvgIcons';
 
 describe('ProgressBar', () => {
   let container: HTMLDivElement;
@@ -26,7 +27,7 @@ describe('ProgressBar', () => {
       
       const fillElement = progressBar.querySelector('.progress-bar-fill');
       expect(fillElement).toBeTruthy();
-      expect(fillElement?.style.width).toBe('50%');
+      expect((fillElement as HTMLElement)?.style.width).toBe('50%');
     });
 
     it('should apply custom colors', () => {
@@ -35,12 +36,12 @@ describe('ProgressBar', () => {
         height: 20,
         progress: 0.7,
         fillColor: 'primary',
-        backgroundColor: 'secondary'
+        backgroundColor: 'surface-secondary'
       });
 
       const fillElement = progressBar.querySelector('.progress-bar-fill') as HTMLElement;
       expect(fillElement?.className).toContain('bg-primary');
-      expect(progressBar.className).toContain('bg-secondary');
+      expect(progressBar.className).toContain('bg-surface-secondary');
     });
 
     it('should handle different variants', () => {
@@ -206,7 +207,7 @@ describe('ProgressBar', () => {
         height: 20,
         duration: 5000,
         startTime: Date.now(),
-        icon: 'SPEED',
+        icon: IconType.SPEED,
         powerUpType: 'SPEED_BOOST'
       });
 

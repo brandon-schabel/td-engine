@@ -79,7 +79,7 @@ export class SettingsUI {
       level: 3,
       variant: 'compact',
       showCloseButton: false,
-      icon: createSvgIcon(IconType.SOUND, { size: 20 }),
+      icon: createSvgIcon(IconType.SOUND, { size: 20, className: 'text-gray-400' }),
       customClasses: ['mb-4', 'text-lg', 'font-semibold']
     });
     audioSection.appendChild(audioHeader);
@@ -132,7 +132,7 @@ export class SettingsUI {
       level: 3,
       variant: 'compact',
       showCloseButton: false,
-      icon: createSvgIcon(IconType.UPGRADE, { size: 20 }),
+      icon: createSvgIcon(IconType.UPGRADE, { size: 20, className: 'text-gray-400' }),
       customClasses: ['mb-4', 'text-lg', 'font-semibold']
     });
     gameplaySection.appendChild(gameplayHeader);
@@ -235,7 +235,7 @@ export class SettingsUI {
     const minimizeButton = createButton({
       text: this.cameraControlsMinimized ? 'Expand' : 'Minimize',
       variant: 'ghost',
-      size: 'xs',
+      size: 'sm',
       icon: this.cameraControlsMinimized ? IconType.EXPAND : IconType.COLLAPSE,
       customClasses: ['ml-auto'],
       onClick: () => {

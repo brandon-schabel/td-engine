@@ -20,9 +20,9 @@ export class MainMenuUI {
   private floatingUI: FloatingUIManager;
   private element: FloatingUIElement | null = null;
   private audioManager: AudioManager | null = null;
-  private onStart: (() => void) | null = null;
-  private onSettings: (() => void) | null = null;
-  private onLeaderboard: (() => void) | null = null;
+  private onStart: (() => void) | undefined;
+  private onSettings: (() => void) | undefined;
+  private onLeaderboard: (() => void) | undefined;
   
   constructor(floatingUI: FloatingUIManager, audioManager?: AudioManager) {
     this.floatingUI = floatingUI;
@@ -34,9 +34,9 @@ export class MainMenuUI {
     onSettings?: () => void;
     onLeaderboard?: () => void;
   } = {}): void {
-    this.onStart = callbacks.onStart || null;
-    this.onSettings = callbacks.onSettings || null;
-    this.onLeaderboard = callbacks.onLeaderboard || null;
+    this.onStart = callbacks.onStart;
+    this.onSettings = callbacks.onSettings;
+    this.onLeaderboard = callbacks.onLeaderboard;
     
     if (this.element) {
       this.element.enable();

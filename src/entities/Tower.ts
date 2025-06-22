@@ -381,9 +381,7 @@ export class Tower extends Entity implements ShootingCapable {
     this.damageTaken = 0;
     
     // Dispatch repair event
-    this.dispatchEvent?.(new CustomEvent('towerRepaired', {
-      detail: { tower: this }
-    }));
+    // Note: Tower entities don't have dispatchEvent method
     
     return true;
   }

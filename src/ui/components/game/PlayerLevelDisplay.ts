@@ -4,7 +4,7 @@
  */
 
 import { Game } from "@/core/Game";
-import { cn, createProgressBar, createStatDisplay } from "@/ui/elements";
+import { cn, createProgressBar } from "@/ui/elements";
 import type { FloatingUIManager } from "@/ui/floating/FloatingUIManager";
 
 export class PlayerLevelDisplay {
@@ -99,9 +99,9 @@ export class PlayerLevelDisplay {
     }
 
     // Update progress bar
-    if (this.progressBar && this.progressBar.updateProgress) {
+    if (this.progressBar && (this.progressBar as any).updateProgress) {
       const progress = levelSystem.getLevelProgress();
-      this.progressBar.updateProgress(progress);
+      (this.progressBar as any).updateProgress(progress);
     }
 
     // Update experience text

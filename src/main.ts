@@ -11,7 +11,6 @@ import {
   BiomeType,
   MapDifficulty,
   DecorationLevel,
-  MapSize,
 } from "./types/MapData";
 import { createSvgIcon, IconType } from "./ui/icons/SvgIcons";
 import { setupGameUI } from "./ui/setupGameUI";
@@ -125,7 +124,7 @@ function initializeGame(preGameConfig?: any) {
       HUGE: { width: 50, height: 50 }
     };
     
-    const preset = sizePresets[preGameConfig.mapSize] || sizePresets.MEDIUM;
+    const preset = sizePresets[preGameConfig.mapSize as keyof typeof sizePresets] || sizePresets.MEDIUM;
     
     mapGenConfig = {
       width: preset.width,

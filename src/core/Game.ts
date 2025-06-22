@@ -2456,7 +2456,7 @@ export class Game {
     // Show damage number indicating tower was destroyed
     this.floatingUIManager.createDamageNumber(
       tower,
-      'DESTROYED',
+      0,
       'critical'
     );
   }

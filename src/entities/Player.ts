@@ -32,7 +32,6 @@ export class Player extends Entity implements ShootingCapable {
   
   // Upgrade levels
   private upgradeLevels: Map<PlayerUpgradeType, number> = new Map();
-  private level: number = 1;
   
   // Healing mechanics
   private regenerationTimer: number = 0;
@@ -218,9 +217,6 @@ export class Player extends Entity implements ShootingCapable {
     return UPGRADE_CONSTANTS.maxLevel;
   }
 
-  getLevel(): number {
-    return this.level;
-  }
 
   getTotalUpgrades(): number {
     let total = 0;
@@ -308,10 +304,6 @@ export class Player extends Entity implements ShootingCapable {
 
   isMoving(): boolean {
     return this.velocity.x !== 0 || this.velocity.y !== 0;
-  }
-
-  getPlayerPowerUps(): PlayerPowerUps {
-    return this.powerUps;
   }
 
   getPlayerLevelSystem(): PlayerLevelSystem {
@@ -540,7 +532,6 @@ export class Player extends Entity implements ShootingCapable {
     return this.powerUps.hasActivePowerUp(type);
   }
 
-  // Additional methods to expose powerup system functionality
   getPlayerPowerUps(): PlayerPowerUps {
     return this.powerUps;
   }

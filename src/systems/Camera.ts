@@ -247,10 +247,6 @@ export class Camera {
     this.centerOnTarget(targetPosition);
   }
 
-  // Reset camera zoom to default
-  reset(): void {
-    this.setZoom(1.0);
-  }
 
   // Get zoom limits
   getZoomLimits(): { min: number; max: number } {
