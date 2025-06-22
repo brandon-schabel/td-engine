@@ -110,7 +110,18 @@ export class PlayerLevelDisplay {
     // Load saved position or use default
     const savedPosition = PersistentPositionManager.loadPosition('player-level-display', 'player-level-display-position');
     if (savedPosition) {
-      // Position will be set by FloatingUIElement's loadStoredPosition
+      // Ensure minimum margins from screen edges
+      const minMargin = 20;
+      const width = isMobile ? 120 : 220;
+      const adjustedPos = {
+        x: Math.min(Math.max(minMargin, savedPosition.x), window.innerWidth - width - minMargin),
+        y: Math.max(minMargin, savedPosition.y)
+      };
+      
+      // Only update if position was adjusted
+      if (adjustedPos.x !== savedPosition.x || adjustedPos.y !== savedPosition.y) {
+        this.floatingElement.setTarget(adjustedPos);
+      }
       this.floatingElement.enable();
     } else {
       // Set default position in top-right with better padding

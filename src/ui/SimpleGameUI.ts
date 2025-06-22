@@ -419,11 +419,21 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   // Load saved position or use default
   const savedCurrencyPos = PersistentPositionManager.loadPosition('currency-display', 'currency-display-position');
   if (savedCurrencyPos) {
-    // Position will be set by FloatingUIElement's loadStoredPosition
+    // Ensure minimum margins from screen edges
+    const minMargin = 20;
+    const adjustedPos = {
+      x: Math.max(minMargin, savedCurrencyPos.x),
+      y: Math.max(60, savedCurrencyPos.y) // Minimum 60px from top to avoid overlap
+    };
+    
+    // Only update if position was adjusted
+    if (adjustedPos.x !== savedCurrencyPos.x || adjustedPos.y !== savedCurrencyPos.y) {
+      currencyFloatingElement.setTarget(adjustedPos);
+    }
     currencyFloatingElement.enable();
   } else {
-    // Set default position in top-left
-    const defaultPos = PersistentPositionManager.getDefaultPosition(150, 50, 'top-left', 10);
+    // Set default position with safe margins
+    const defaultPos = { x: 20, y: 100 };
     currencyFloatingElement.setTarget({ x: defaultPos.x, y: defaultPos.y });
     currencyFloatingElement.enable();
   }

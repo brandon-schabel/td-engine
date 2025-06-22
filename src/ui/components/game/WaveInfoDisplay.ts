@@ -100,7 +100,17 @@ export class WaveInfoDisplay {
     // Load saved position or use default
     const savedPosition = PersistentPositionManager.loadPosition('wave-info-display', 'wave-info-display-position');
     if (savedPosition) {
-      // Position will be set by FloatingUIElement's loadStoredPosition
+      // Ensure minimum margins from screen edges
+      const minMargin = 20;
+      const adjustedPos = {
+        x: Math.max(minMargin, savedPosition.x),
+        y: Math.max(minMargin, savedPosition.y)
+      };
+      
+      // Only update if position was adjusted
+      if (adjustedPos.x !== savedPosition.x || adjustedPos.y !== savedPosition.y) {
+        this.floatingElement.setTarget(adjustedPos);
+      }
       this.floatingElement.enable();
     } else {
       // Set default position in top-left corner with padding
