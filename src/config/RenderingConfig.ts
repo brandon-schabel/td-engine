@@ -18,10 +18,10 @@ export const RENDER_SETTINGS = {
 export const ENTITY_RENDER = {
   // Health bars
   healthBar: {
-    width: 28,
-    height: 5,
-    offset: 15,
-    borderWidth: 1,
+    width: 56,  // Doubled from 28
+    height: 10, // Doubled from 5
+    offset: 20, // Increased from 15
+    borderWidth: 2, // Doubled from 1
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderColor: '#000000',
     colors: {
