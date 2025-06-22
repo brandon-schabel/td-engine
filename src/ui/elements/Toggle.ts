@@ -124,10 +124,10 @@ function createSwitchVisual(size: string, checked: boolean, disabled: boolean, c
     'duration-200',
     'ease-in-out',
     'rounded-full',
-    checked ? 'bg-primary' : 'bg-surface-tertiary',
-    disabled ? '' : 'hover:shadow-md',
-    'border',
-    'border-surface-border',
+    checked ? 'bg-primary' : 'bg-surface-secondary',
+    disabled ? '' : 'hover:shadow-lg',
+    'border-2',
+    checked ? 'border-primary-dark' : 'border-default',
     ...getSwitchSizeClasses(size),
     ...customClasses
   ];
@@ -140,14 +140,14 @@ function createSwitchVisual(size: string, checked: boolean, disabled: boolean, c
     'absolute',
     'bg-white',
     'rounded-full',
-    'shadow-md',
+    'shadow-xl',
     'transition-all',
     'duration-200',
     'ease-in-out',
     'top-1/2',
     '-translate-y-1/2',
     'border',
-    'border-white/20',
+    'border-surface-border',
     ...getThumbSizeClasses(size),
     checked ? getThumbCheckedPosition(size) : 'left-0.5'
   ];
@@ -217,6 +217,7 @@ function createLabel(text: string, size: string): HTMLSpanElement {
   label.textContent = text;
   label.className = cn(
     'text-primary',
+    'font-medium',
     getLabelSizeClass(size)
   );
   return label;
@@ -238,13 +239,13 @@ function updateSwitchState(switchEl: HTMLElement, checked: boolean): void {
   const thumb = switchEl.querySelector('div') as HTMLDivElement;
   
   if (checked) {
-    switchEl.classList.remove('bg-surface-tertiary');
-    switchEl.classList.add('bg-primary');
+    switchEl.classList.remove('bg-surface-secondary', 'border-default');
+    switchEl.classList.add('bg-primary', 'border-primary-dark');
     thumb.classList.remove('left-0.5');
     thumb.classList.add(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
   } else {
-    switchEl.classList.remove('bg-primary');
-    switchEl.classList.add('bg-surface-tertiary');
+    switchEl.classList.remove('bg-primary', 'border-primary-dark');
+    switchEl.classList.add('bg-surface-secondary', 'border-default');
     thumb.classList.remove(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
     thumb.classList.add('left-0.5');
   }
