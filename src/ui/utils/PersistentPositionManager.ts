@@ -141,7 +141,7 @@ export class PersistentPositionManager {
     elementWidth: number, 
     elementHeight: number, 
     corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' = 'top-right',
-    margin = 10
+    margin = 50
   ): Position {
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;

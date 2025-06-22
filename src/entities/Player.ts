@@ -46,7 +46,6 @@ export class Player extends Entity implements ShootingCapable {
   private aimPosition: Vector2 = { x: 0, y: 0 };
   private isHolding: boolean = false;
   private shootingMode: 'manual' | 'auto' = 'manual';
-  private isShooting: boolean = false; // For continuous shooting
   
   // Power-up system
   private powerUps: PlayerPowerUps;
@@ -605,11 +604,13 @@ export class Player extends Entity implements ShootingCapable {
   }
   
   startShooting(): void {
-    this.isShooting = true;
+    // For mobile controls - simulate holding down
+    this.isHolding = true;
   }
   
   stopShooting(): void {
-    this.isShooting = false;
+    // For mobile controls - simulate releasing
+    this.isHolding = false;
   }
   
   tryShoot(): Projectile | null {
@@ -621,7 +622,7 @@ export class Player extends Entity implements ShootingCapable {
   
   // Update shooting to support continuous touch shooting
   updateShooting(): Projectile | null {
-    if ((this.isHolding || this.isShooting) && this.canShoot()) {
+    if (this.isHolding && this.canShoot()) {
       return this.shootManual();
     }
     return null;

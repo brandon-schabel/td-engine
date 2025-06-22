@@ -4,6 +4,7 @@ import { AudioManager, SoundType } from "../audio/AudioManager";
 
 import { PowerUpDisplay } from "./components/game/SimplePowerUpDisplay";
 import { PlayerLevelDisplay } from "./components/game/PlayerLevelDisplay";
+import { WaveInfoDisplay } from "./components/game/WaveInfoDisplay";
 import { MobileControls } from "./components/game/MobileControls";
 
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
@@ -447,6 +448,13 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   
   // Connect to game instance for level up notifications
   game.setPlayerLevelDisplay(playerLevelDisplay);
+
+  // Wave info display setup
+  // Clean up any existing instances first
+  (WaveInfoDisplay as any).cleanupAll?.();
+  
+  const waveInfoDisplay = new WaveInfoDisplay({ game });
+  waveInfoDisplay.mount(rightResources); // Mount parameter is not used but required by interface
 
   // Mobile controls setup
   if ("ontouchstart" in window || checkIsMobile(window.innerWidth)) {

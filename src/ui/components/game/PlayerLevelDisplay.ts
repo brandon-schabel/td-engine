@@ -35,6 +35,9 @@ export class PlayerLevelDisplay {
     // Clean up any existing instance first
     this.cleanup();
     
+    // Check if mobile
+    const isMobile = 'ontouchstart' in window;
+    
     // Create main display container
     this.displayElement = document.createElement('div');
     this.displayElement.className = cn(
@@ -42,9 +45,9 @@ export class PlayerLevelDisplay {
       'border',
       'border-default',
       'rounded-lg',
-      'p-3',
+      isMobile ? 'p-2' : 'p-3',
       'shadow-lg',
-      'min-w-[200px]',
+      isMobile ? 'min-w-[120px]' : 'min-w-[200px]',
       'pointer-events-auto'
     );
 
@@ -53,18 +56,25 @@ export class PlayerLevelDisplay {
     header.className = cn('flex', 'items-center', 'justify-between', 'mb-2');
     
     this.levelTextElement = document.createElement('div');
-    this.levelTextElement.className = cn('text-lg', 'font-bold', 'text-primary');
+    this.levelTextElement.className = cn(
+      isMobile ? 'text-sm' : 'text-lg', 
+      'font-bold', 
+      'text-primary'
+    );
     
     this.pointsTextElement = document.createElement('div');
-    this.pointsTextElement.className = cn('text-sm', 'text-secondary');
+    this.pointsTextElement.className = cn(
+      isMobile ? 'text-xs' : 'text-sm', 
+      'text-secondary'
+    );
     
     header.appendChild(this.levelTextElement);
     header.appendChild(this.pointsTextElement);
 
     // Experience progress bar
     this.progressBar = createProgressBar({
-      width: 220,
-      height: 12,
+      width: isMobile ? 120 : 220,
+      height: isMobile ? 8 : 12,
       progress: 0,
       fillColor: 'primary',
       backgroundColor: 'surface-primary',
@@ -103,8 +113,11 @@ export class PlayerLevelDisplay {
       // Position will be set by FloatingUIElement's loadStoredPosition
       this.floatingElement.enable();
     } else {
-      // Set default position in top-right
-      const defaultPos = PersistentPositionManager.getDefaultPosition(220, 100, 'top-right', 10);
+      // Set default position in top-right with better padding
+      const width = isMobile ? 120 : 220;
+      const height = isMobile ? 70 : 100;
+      const padding = isMobile ? 20 : 50;
+      const defaultPos = PersistentPositionManager.getDefaultPosition(width, height, 'top-right', padding);
       this.floatingElement.setTarget({ x: defaultPos.x, y: defaultPos.y });
       this.floatingElement.enable();
     }
@@ -128,7 +141,12 @@ export class PlayerLevelDisplay {
       const availablePoints = levelSystem.getAvailableUpgradePoints();
       if (availablePoints > 0) {
         this.pointsTextElement.textContent = `${availablePoints} Points`;
-        this.pointsTextElement.className = cn('text-sm', 'text-success', 'font-medium');
+        const isMobile = 'ontouchstart' in window;
+        this.pointsTextElement.className = cn(
+          isMobile ? 'text-xs' : 'text-sm', 
+          'text-success', 
+          'font-medium'
+        );
       } else {
         this.pointsTextElement.textContent = '';
       }

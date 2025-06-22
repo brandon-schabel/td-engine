@@ -47,6 +47,7 @@ import { EquipmentManager } from "@/entities/items/Equipment";
 import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager } from "@/ui/floating";
 import { UIController } from "@/ui/UIController";
+import { TouchGestureManager } from "@/input/TouchGestureManager";
 
 export class Game {
   private engine: GameEngine;
@@ -55,6 +56,7 @@ export class Game {
   private waveManager: WaveManager;
   private spawnZoneManager: SpawnZoneManager;
   private canvas: HTMLCanvasElement;
+  private touchGestureManager: TouchGestureManager | null = null;
 
   // Inlined resource management for better performance
   private currency: number = GAME_INIT.startingCurrency;
@@ -98,6 +100,7 @@ export class Game {
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
   private justSelectedTowerType: boolean = false; // Flag to prevent immediate placement after menu selection
   private firstRenderLogged: boolean = false;
+  private lastPlayerPosition: Vector2 | null = null; // Track player position for movement detection
 
 
   constructor(
@@ -244,6 +247,23 @@ export class Game {
     // Initialize floating UI manager with camera
     this.floatingUIManager = new FloatingUIManager(canvas, this.camera);
     this.uiController = new UIController(this);
+    
+    // Initialize touch gesture manager for mobile/touch devices
+    if ('ontouchstart' in window) {
+      this.touchGestureManager = new TouchGestureManager(this, canvas);
+      
+      // Listen for gesture events
+      this.touchGestureManager.on('swipe', (data) => {
+        console.log('Swipe detected:', data.direction);
+      });
+      
+      this.touchGestureManager.on('doubleTap', () => {
+        console.log('Double tap - centering on player');
+      });
+      
+      // Initialize last player position
+      this.lastPlayerPosition = { ...this.player.position };
+    }
 
     // Create health bar for player that follows them in world space
     this.uiController.createHealthBar(this.player, {
@@ -525,6 +545,27 @@ export class Game {
     const worldWidth = this.grid.width * this.grid.cellSize;
     const worldHeight = this.grid.height * this.grid.cellSize;
     this.player.constrainToBounds(worldWidth, worldHeight); // Keep player within world bounds
+
+    // Check for player movement and auto-follow
+    if (this.touchGestureManager) {
+      const playerMoved = this.lastPlayerPosition && 
+        (Math.abs(this.player.position.x - this.lastPlayerPosition.x) > 0.1 ||
+         Math.abs(this.player.position.y - this.lastPlayerPosition.y) > 0.1);
+      
+      if (playerMoved && this.player.isMoving() && this.touchGestureManager.shouldAutoFollow()) {
+        // Player is moving and enough time has passed since last gesture
+        if (!this.camera.isFollowingTarget()) {
+          // Smoothly return camera to player
+          this.camera.smoothReturnToTarget(
+            this.player.position,
+            (this.touchGestureManager as any).config.camera.smoothReturnDuration
+          );
+        }
+      }
+    }
+    
+    // Update last player position
+    this.lastPlayerPosition = { ...this.player.position };
 
     // Update camera to follow player
     this.camera.update(this.player.position);
@@ -1237,6 +1278,18 @@ export class Game {
     return this.waveManager.currentWave;
   }
 
+  getTotalWaves(): number {
+    return this.waveManager.getTotalWaves();
+  }
+
+  getEnemyCount(): number {
+    return this.enemies.length;
+  }
+
+  isInfiniteMode(): boolean {
+    return this.waveManager.isInfiniteMode();
+  }
+
   getTowers(): Tower[] {
     return [...this.towers];
   }
@@ -1465,8 +1518,18 @@ export class Game {
       setTimeout(() => {
         this.justSelectedTowerType = false;
       }, 100);
+      
+      // Disable gestures during tower placement
+      if (this.touchGestureManager) {
+        this.touchGestureManager.setEnabled(false);
+      }
     } else {
       this.uiController.exitBuildMode();
+      
+      // Re-enable gestures after tower placement
+      if (this.touchGestureManager) {
+        this.touchGestureManager.setEnabled(true);
+      }
     }
   }
 
@@ -1510,6 +1573,12 @@ export class Game {
   stop(): void {
     this.engine.stop();
     this.uiController.destroy();
+    
+    // Clean up touch gesture manager
+    if (this.touchGestureManager) {
+      this.touchGestureManager.destroy();
+      this.touchGestureManager = null;
+    }
   }
 
   isPaused(): boolean {

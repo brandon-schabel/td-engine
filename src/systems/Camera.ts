@@ -209,6 +209,26 @@ export class Camera {
     this.position.x = (this.worldWidth - effectiveViewportWidth) / 2;
     this.position.y = (this.worldHeight - effectiveViewportHeight) / 2;
   }
+  
+  // Zoom with focal point (for pinch gestures)
+  zoomAtPoint(newZoom: number, focalPoint: Vector2): void {
+    // Get world position of focal point before zoom
+    const worldPointBefore = this.screenToWorld(focalPoint);
+    
+    // Apply new zoom
+    const clampedZoom = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+    this.targetZoom = clampedZoom;
+    this.zoom = clampedZoom; // Instant zoom for gestures
+    
+    // Get world position of focal point after zoom
+    const worldPointAfter = this.screenToWorld(focalPoint);
+    
+    // Adjust camera position to keep focal point stable
+    this.position.x += worldPointBefore.x - worldPointAfter.x;
+    this.position.y += worldPointBefore.y - worldPointAfter.y;
+    
+    this.clampCameraPosition();
+  }
 
   // Camera movement control
   setFollowTarget(follow: boolean): void {
@@ -226,6 +246,17 @@ export class Camera {
       this.position.y += deltaY / this.zoom;
       this.clampCameraPosition();
     }
+  }
+  
+  // Smooth pan with optional easing (for gestures)
+  smoothPan(deltaX: number, deltaY: number, smoothingFactor: number = 0.1): void {
+    const targetX = this.position.x + deltaX / this.zoom;
+    const targetY = this.position.y + deltaY / this.zoom;
+    
+    this.position.x += (targetX - this.position.x) * smoothingFactor;
+    this.position.y += (targetY - this.position.y) * smoothingFactor;
+    
+    this.clampCameraPosition();
   }
 
   // Instantly center on target without smoothing
@@ -307,6 +338,41 @@ export class Camera {
     this.position.x = (this.worldWidth - this.viewportWidth) / 2;
     this.position.y = (this.worldHeight - this.viewportHeight) / 2;
     this.clampCameraPosition();
+  }
+
+  // Smooth return to target with animation
+  smoothReturnToTarget(targetPosition: Vector2, duration: number = 800): void {
+    const startTime = Date.now();
+    const startPosition = { ...this.position };
+    const targetCameraPos = {
+      x: targetPosition.x - (this.viewportWidth / 2) / this.zoom,
+      y: targetPosition.y - (this.viewportHeight / 2) / this.zoom
+    };
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Use ease-in-out curve
+      const easeProgress = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      
+      // Interpolate position
+      this.position.x = startPosition.x + (targetCameraPos.x - startPosition.x) * easeProgress;
+      this.position.y = startPosition.y + (targetCameraPos.y - startPosition.y) * easeProgress;
+      
+      this.clampCameraPosition();
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Enable following when animation completes
+        this.followTarget = true;
+      }
+    };
+    
+    requestAnimationFrame(animate);
   }
 
   // Enable/disable debug mode

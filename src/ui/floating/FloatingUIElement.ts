@@ -97,6 +97,11 @@ export class FloatingUIElement {
     this.element.style.height = 'auto'; // Don't stretch to full height
     this.element.style.display = 'block';
     this.element.style.whiteSpace = 'nowrap'; // Prevent text wrapping for compact elements
+    
+    // Prevent touch scrolling/zooming when dragging
+    if (this.options.draggable) {
+      this.element.style.touchAction = 'none';
+    }
 
     // Apply mobile scaling if on mobile device
     if (this.isMobile()) {
@@ -523,7 +528,11 @@ export class FloatingUIElement {
   private handleDragStart(e: MouseEvent | TouchEvent): void {
     if (!this.enabled) return;
     
-    e.preventDefault();
+    // Only prevent default for touch events to avoid breaking mouse interactions
+    if (e instanceof TouchEvent) {
+      e.preventDefault();
+    }
+    
     this.isDragging = true;
     
     // Get initial mouse/touch position
@@ -546,6 +555,11 @@ export class FloatingUIElement {
     this.element.style.opacity = '0.8';
     this.element.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
     
+    // Add touch-specific visual feedback
+    if (e instanceof TouchEvent) {
+      this.element.style.transform = 'scale(1.05)';
+    }
+    
     // Call drag start callback
     if (this.options.onDragStart) {
       this.options.onDragStart(this);
@@ -555,7 +569,11 @@ export class FloatingUIElement {
   private handleDragMove(e: MouseEvent | TouchEvent): void {
     if (!this.isDragging || !this.enabled) return;
     
-    e.preventDefault();
+    // Only prevent default for touch events
+    if (e instanceof TouchEvent) {
+      e.preventDefault();
+      e.stopPropagation(); // Prevent touch events from bubbling to game canvas
+    }
     
     // Get current mouse/touch position
     const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
@@ -583,13 +601,18 @@ export class FloatingUIElement {
   private handleDragEnd(e: MouseEvent | TouchEvent): void {
     if (!this.isDragging) return;
     
-    e.preventDefault();
+    // Only prevent default for touch events
+    if (e instanceof TouchEvent) {
+      e.preventDefault();
+    }
+    
     this.isDragging = false;
     
     // Remove dragging class
     this.element.classList.remove('dragging');
     this.element.style.opacity = '';
     this.element.style.boxShadow = '';
+    this.element.style.transform = ''; // Reset transform
     
     // Validate position is within bounds
     this.validateAndFixPosition();

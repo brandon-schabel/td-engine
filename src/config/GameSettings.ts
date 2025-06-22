@@ -4,9 +4,9 @@ export interface GameSettings {
   difficulty: 'CASUAL' | 'NORMAL' | 'CHALLENGE';
 
   // Audio settings
-  masterVolume: number; // 0-100
-  sfxVolume: number; // 0-100
-  musicVolume: number; // 0-100
+  masterVolume: number; // 0-1
+  sfxVolume: number; // 0-1
+  musicVolume: number; // 0-1
   soundEnabled: boolean;
 
   // Visual settings
@@ -40,9 +40,9 @@ export enum Difficulty {
 // Default settings
 export const DEFAULT_SETTINGS: GameSettings = {
   difficulty: 'NORMAL',
-  masterVolume: 70,
-  sfxVolume: 70,
-  musicVolume: 50,
+  masterVolume: 0.7,
+  sfxVolume: 0.7,
+  musicVolume: 0.5,
   soundEnabled: true,
   visualQuality: 'MEDIUM',
   showFPS: false,
@@ -63,6 +63,16 @@ export function loadSettings(): GameSettings {
     const stored = localStorage.getItem('gameSettings');
     if (stored) {
       const parsed = JSON.parse(stored);
+      // Migrate old volume values (0-100) to new range (0-1)
+      if (parsed.masterVolume > 1) {
+        parsed.masterVolume = parsed.masterVolume / 100;
+      }
+      if (parsed.sfxVolume > 1) {
+        parsed.sfxVolume = parsed.sfxVolume / 100;
+      }
+      if (parsed.musicVolume > 1) {
+        parsed.musicVolume = parsed.musicVolume / 100;
+      }
       return { ...DEFAULT_SETTINGS, ...parsed };
     }
   } catch (error) {
@@ -231,6 +241,16 @@ export class SettingsManager implements GameSettings {
       const saved = localStorage.getItem(SETTINGS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Migrate old volume values (0-100) to new range (0-1)
+        if (parsed.masterVolume > 1) {
+          parsed.masterVolume = parsed.masterVolume / 100;
+        }
+        if (parsed.sfxVolume > 1) {
+          parsed.sfxVolume = parsed.sfxVolume / 100;
+        }
+        if (parsed.musicVolume > 1) {
+          parsed.musicVolume = parsed.musicVolume / 100;
+        }
         return { ...DEFAULT_SETTINGS, ...parsed };
       }
     } catch (error) {

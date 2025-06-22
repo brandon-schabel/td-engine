@@ -71,6 +71,7 @@ export function initializeDraggableStyles(): void {
         /* Larger touch target on mobile */
         min-width: 44px;
         min-height: 44px;
+        touch-action: none; /* Prevent default touch behaviors */
       }
       
       .drag-handle {
@@ -80,6 +81,13 @@ export function initializeDraggableStyles(): void {
         display: flex;
         align-items: center;
         justify-content: center;
+        touch-action: none; /* Prevent default touch behaviors */
+      }
+      
+      /* Additional touch feedback */
+      .floating-ui-element[data-draggable="true"]:active {
+        transform: scale(1.05);
+        transition: transform 0.1s ease-out;
       }
     }
   `);

@@ -102,6 +102,9 @@ export class GameScene extends Scene {
       
       this.game.handleMouseClick(canvasEvent);
     }
+    
+    // Touch events are handled by TouchGestureManager in the Game class
+    // We don't process them here to avoid conflicts
   }
 
   protected onDestroy(): void {

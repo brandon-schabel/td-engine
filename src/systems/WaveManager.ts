@@ -100,6 +100,10 @@ export class WaveManager {
     return this.waves.length;
   }
 
+  isInfiniteMode(): boolean {
+    return this.infiniteWavesEnabled && this.currentWave >= this.infiniteWaveStartAt;
+  }
+
   private getWaveConfig(waveNumber: number): WaveConfig | null {
     // Use predefined waves for waves before the infinite wave start
     if (waveNumber < this.infiniteWaveStartAt || !this.infiniteWavesEnabled) {

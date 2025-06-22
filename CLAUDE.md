@@ -238,6 +238,12 @@ All gameplay values live in config files:
 3. **CSS Cleanup**: Removed 90% of custom CSS classes
 4. **TypeScript**: Strict mode enforced, no `any` types allowed
 5. **Testing**: Unit tests only, no integration tests
+6. **Touch Gestures (Jan 2025)**: Added comprehensive touch gesture system
+   - Swipe to pan camera
+   - Pinch to zoom
+   - Double tap to center on player
+   - Gestures disabled during tower placement
+   - See `docs/TOUCH_GESTURES.md` for details
 
 ## Linear Integration
 
