@@ -96,6 +96,7 @@ export class Game {
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
+  private justSelectedTowerType: boolean = false; // Flag to prevent immediate placement after menu selection
   private firstRenderLogged: boolean = false;
 
 
@@ -1012,8 +1013,8 @@ export class Game {
       }
       this.selectedTowerType = null; // Clear tower placement mode
       return; // Important: return early to prevent deselection logic
-    } else if (this.selectedTowerType) {
-      // Place new tower
+    } else if (this.selectedTowerType && !this.justSelectedTowerType) {
+      // Place new tower (only if we didn't just select from menu)
       if (this.placeTower(this.selectedTowerType, worldPos)) {
         // Clear selection after successful placement on mobile
         if ('ontouchstart' in window) {
@@ -1037,14 +1038,7 @@ export class Game {
 
       // Only deselect tower if we didn't just select one
       if (this.selectedTower && !this.justSelectedTower) {
-        const previousTower = this.selectedTower;
-        this.selectedTower = null;
-
-        // Dispatch deselect event
-        const deselectEvent = new CustomEvent('towerDeselected', {
-          detail: { tower: previousTower }
-        });
-        document.dispatchEvent(deselectEvent);
+        this.deselectTower();
       }
     }
   }
@@ -1466,6 +1460,11 @@ export class Game {
     // Enter or exit build mode based on tower selection
     if (towerType) {
       this.uiController.enterBuildMode(towerType);
+      // Prevent immediate placement after selecting from build menu
+      this.justSelectedTowerType = true;
+      setTimeout(() => {
+        this.justSelectedTowerType = false;
+      }, 100);
     } else {
       this.uiController.exitBuildMode();
     }

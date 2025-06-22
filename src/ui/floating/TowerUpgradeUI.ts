@@ -52,6 +52,8 @@ export class TowerUpgradeUI {
   private isDestroyed: boolean = false;
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
   private currencyDisplay: HTMLDivElement | null = null;
+  private openTime: number = 0;
+  private minOpenDuration: number = 300; // Minimum time UI must stay open (ms)
 
   constructor(tower: Tower, game: Game) {
     // Destroy any existing UI
@@ -122,6 +124,9 @@ export class TowerUpgradeUI {
     this.updateContent();
     this.element.enable();
 
+    // Record when the UI was opened
+    this.openTime = Date.now();
+
     // Prevent clicks on the UI from propagating to the canvas
     this.setupClickHandling();
 
@@ -171,17 +176,34 @@ export class TowerUpgradeUI {
     // Handle click outside to close
     if (!this.clickOutsideHandler) {
       this.clickOutsideHandler = (e: MouseEvent) => {
+        // Don't close if UI was just opened
+        const timeSinceOpen = Date.now() - this.openTime;
+        if (timeSinceOpen < this.minOpenDuration) {
+          return;
+        }
+
+        // Check if the click is outside the upgrade UI
         if (!element.contains(e.target as Node)) {
-          this.game.deselectTower();
+          // Check if we clicked on another tower
+          const clickedElement = e.target as HTMLElement;
+          const isCanvasClick = clickedElement.tagName === 'CANVAS' || clickedElement.id === 'game-canvas';
+          
+          // If we clicked on the canvas (not another UI element), close this UI
+          if (isCanvasClick) {
+            e.stopPropagation();
+            this.game.deselectTower();
+          }
         }
       };
 
-      // Add with slight delay to avoid immediate trigger
+      // Add with a slight delay to avoid catching the same click that opened the UI
       setTimeout(() => {
         if (!this.isDestroyed) {
+          document.addEventListener('mousedown', this.clickOutsideHandler!, true);
+          document.addEventListener('mouseup', this.clickOutsideHandler!, true);
           document.addEventListener('click', this.clickOutsideHandler!, true);
         }
-      }, 100);
+      }, 50);
     }
   }
 
@@ -511,6 +533,8 @@ export class TowerUpgradeUI {
 
     // Remove click outside handler
     if (this.clickOutsideHandler) {
+      document.removeEventListener('mousedown', this.clickOutsideHandler, true);
+      document.removeEventListener('mouseup', this.clickOutsideHandler, true);
       document.removeEventListener('click', this.clickOutsideHandler, true);
       this.clickOutsideHandler = null;
     }
