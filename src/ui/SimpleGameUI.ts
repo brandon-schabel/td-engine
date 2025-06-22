@@ -9,6 +9,7 @@ import { MobileControls } from "./components/game/MobileControls";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { isMobile as checkIsMobile } from "@/config/ResponsiveConfig";
 import { createIconButton, createResourceDisplay, cn } from "@/ui/elements";
+import { PersistentPositionManager } from "@/ui/utils/PersistentPositionManager";
 
 
 
@@ -389,7 +390,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     gameContainer.classList.remove("game-paused");
   });
 
-  // Ensure the currency display is setup correctly
+  // Create currency display
   let currencyDisplay = createResourceDisplay({
     value: game.getCurrency(),
     icon: IconType.COINS,
@@ -398,30 +399,38 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     showIcon: true
   });
 
-  // Create a top bar for resources
-  const topBar = document.createElement('div');
-  topBar.className = cn(
-    'fixed',
-    'top-2',
-    'left-2',
-    'right-2',
-    'flex',
-    'justify-between',
-    'items-start',
-    'pointer-events-none',
-    'z-40'
-  );
+  // Create floating currency display with draggable functionality
+  const floatingUI = game.getFloatingUIManager();
+  const currencyFloatingElement = floatingUI.create('currency-display-floating', 'custom', {
+    className: cn('pointer-events-auto'),
+    screenSpace: true,
+    draggable: true,
+    persistPosition: true,
+    positionKey: 'currency-display-position',
+    zIndex: 500,
+    smoothing: 0,
+    autoHide: false,
+    persistent: true
+  });
+  
+  currencyFloatingElement.setContent(currencyDisplay);
+  
+  // Load saved position or use default
+  const savedCurrencyPos = PersistentPositionManager.loadPosition('currency-display', 'currency-display-position');
+  if (savedCurrencyPos) {
+    // Position will be set by FloatingUIElement's loadStoredPosition
+    currencyFloatingElement.enable();
+  } else {
+    // Set default position in top-left
+    const defaultPos = PersistentPositionManager.getDefaultPosition(150, 50, 'top-left', 10);
+    currencyFloatingElement.setTarget({ x: defaultPos.x, y: defaultPos.y });
+    currencyFloatingElement.enable();
+  }
 
-  const leftResources = document.createElement('div');
-  leftResources.className = cn('flex', 'gap-2', 'pointer-events-auto');
-  leftResources.appendChild(currencyDisplay);
-
+  // Create a container for right-side resources (used by player level display)
   const rightResources = document.createElement('div');
-  rightResources.className = cn('flex', 'gap-2', 'pointer-events-auto');
-
-  topBar.appendChild(leftResources);
-  topBar.appendChild(rightResources);
-  gameContainer.appendChild(topBar);
+  rightResources.className = cn('fixed', 'top-2', 'right-2', 'pointer-events-none', 'z-40');
+  gameContainer.appendChild(rightResources);
 
   // Setup power-up display
   const powerUpDisplay = new PowerUpDisplay({

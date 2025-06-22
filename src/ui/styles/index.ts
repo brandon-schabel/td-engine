@@ -7,6 +7,7 @@ import { styleManager } from './StyleManager';
 import { initializeUIStyles } from './UIStyles';
 import { initializeComponentStyles } from './ComponentStyles';
 import { initializeUtilityStyles } from './UtilityStyles';
+import { initializeDraggableStyles } from './DraggableStyles';
 
 export function initializeAllStyles(): void {
   // Initialize utility classes (should come first for proper cascade)
@@ -17,6 +18,9 @@ export function initializeAllStyles(): void {
   
   // Initialize game component styles
   initializeComponentStyles();
+  
+  // Initialize draggable UI styles
+  initializeDraggableStyles();
   
   // Inject all styles into the DOM
   styleManager.inject();

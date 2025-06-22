@@ -9,6 +9,13 @@ export interface FloatingUIOptions {
   mobileScale?: number;
   zIndex?: number;
   screenSpace?: boolean; // If true, position is in screen coordinates, not world coordinates
+  draggable?: boolean; // Enable drag functionality
+  dragHandle?: HTMLElement | string; // Element or selector for drag handle
+  persistPosition?: boolean; // Save position to localStorage
+  positionKey?: string; // Custom localStorage key for position
+  onDragStart?: (element: any) => void; // Callback when drag starts
+  onDrag?: (element: any, x: number, y: number) => void; // Callback during drag
+  onDragEnd?: (element: any, x: number, y: number) => void; // Callback when drag ends
 }
 
 export type UIType = 'healthbar' | 'tooltip' | 'popup' | 'dialog' | 'custom';
@@ -45,5 +52,20 @@ export interface FloatingUIElementState {
     mobileScale: number;
     zIndex: number;
     screenSpace: boolean;
+    draggable: boolean;
+    dragHandle?: HTMLElement | string;
+    persistPosition: boolean;
+    positionKey?: string;
+    onDragStart?: (element: any) => void;
+    onDrag?: (element: any, x: number, y: number) => void;
+    onDragEnd?: (element: any, x: number, y: number) => void;
   };
+}
+
+export interface StoredPosition {
+  x: number;
+  y: number;
+  screenWidth: number;
+  screenHeight: number;
+  version: string;
 }

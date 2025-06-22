@@ -21,6 +21,10 @@ export class StyleManager {
       this.reinject();
     }
   }
+  
+  registerStyles(id: string, styles: string): void {
+    this.addStyles(id, styles);
+  }
 
   removeStyles(id: string): void {
     this.styles.delete(id);

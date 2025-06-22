@@ -6,13 +6,16 @@
 import { Game } from "@/core/Game";
 import { cn, createProgressBar } from "@/ui/elements";
 import type { FloatingUIManager } from "@/ui/floating/FloatingUIManager";
+import type { FloatingUIElement } from "@/ui/floating/FloatingUIElement";
 import { SoundType } from "@/audio/AudioManager";
+import { PersistentPositionManager } from "@/ui/utils/PersistentPositionManager";
 
 export class PlayerLevelDisplay {
   private static instances: PlayerLevelDisplay[] = [];
   
   private game: Game;
   private floatingUI: FloatingUIManager;
+  private floatingElement: FloatingUIElement | null = null;
   private updateInterval: number | null = null;
   private displayElement: HTMLDivElement | null = null;
   private progressBar: HTMLDivElement | null = null;
@@ -28,7 +31,7 @@ export class PlayerLevelDisplay {
     PlayerLevelDisplay.instances.push(this);
   }
 
-  mount(parent: HTMLElement): void {
+  mount(_parent: HTMLElement): void {
     // Clean up any existing instance first
     this.cleanup();
     
@@ -41,7 +44,8 @@ export class PlayerLevelDisplay {
       'rounded-lg',
       'p-3',
       'shadow-lg',
-      'min-w-[200px]'
+      'min-w-[200px]',
+      'pointer-events-auto'
     );
 
     // Level header
@@ -78,7 +82,32 @@ export class PlayerLevelDisplay {
     this.displayElement.appendChild(this.progressBar);
     this.displayElement.appendChild(this.expTextElement);
 
-    parent.appendChild(this.displayElement);
+    // Create floating UI element with draggable functionality
+    this.floatingElement = this.floatingUI.create('player-level-display', 'custom', {
+      className: cn('pointer-events-auto'),
+      screenSpace: true,
+      draggable: true,
+      persistPosition: true,
+      positionKey: 'player-level-display-position',
+      zIndex: 500,
+      smoothing: 0,
+      autoHide: false,
+      persistent: true
+    });
+    
+    this.floatingElement.setContent(this.displayElement);
+    
+    // Load saved position or use default
+    const savedPosition = PersistentPositionManager.loadPosition('player-level-display', 'player-level-display-position');
+    if (savedPosition) {
+      // Position will be set by FloatingUIElement's loadStoredPosition
+      this.floatingElement.enable();
+    } else {
+      // Set default position in top-right
+      const defaultPos = PersistentPositionManager.getDefaultPosition(220, 100, 'top-right', 10);
+      this.floatingElement.setTarget({ x: defaultPos.x, y: defaultPos.y });
+      this.floatingElement.enable();
+    }
 
     // Start updating
     this.update();
@@ -317,8 +346,12 @@ export class PlayerLevelDisplay {
    * Toggle visibility
    */
   setVisible(visible: boolean): void {
-    if (this.displayElement) {
-      this.displayElement.style.display = visible ? 'block' : 'none';
+    if (this.floatingElement) {
+      if (visible) {
+        this.floatingElement.enable();
+      } else {
+        this.floatingElement.disable();
+      }
     }
   }
 
@@ -326,6 +359,11 @@ export class PlayerLevelDisplay {
     if (this.updateInterval) {
       window.clearInterval(this.updateInterval);
       this.updateInterval = null;
+    }
+
+    if (this.floatingElement) {
+      this.floatingElement.destroy();
+      this.floatingElement = null;
     }
 
     if (this.displayElement) {

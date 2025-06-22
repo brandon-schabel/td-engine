@@ -1,5 +1,5 @@
 import type { FloatingUIManager } from './FloatingUIManager';
-import type { Entity, FloatingUIOptions, Position, UIType } from './types';
+import type { Entity, FloatingUIOptions, Position, UIType, StoredPosition } from './types';
 
 export class FloatingUIElement {
   public readonly id: string;
@@ -19,10 +19,24 @@ export class FloatingUIElement {
     mobileScale: number;
     zIndex: number;
     screenSpace: boolean;
+    draggable: boolean;
+    dragHandle?: HTMLElement | string;
+    persistPosition: boolean;
+    positionKey?: string;
+    onDragStart?: (element: any) => void;
+    onDrag?: (element: any, x: number, y: number) => void;
+    onDragEnd?: (element: any, x: number, y: number) => void;
   };
   private currentPos: Position = { x: 0, y: 0 };
   private targetPos: Position = { x: 0, y: 0 };
   private resizeObserver: ResizeObserver | null = null;
+  
+  // Drag state
+  private isDragging = false;
+  private dragStartPos: Position = { x: 0, y: 0 };
+  private dragOffset: Position = { x: 0, y: 0 };
+  private dragHandle: HTMLElement | null = null;
+  private storedPosition: Position | null = null;
 
   constructor(id: string, type: UIType, manager: FloatingUIManager, options: FloatingUIOptions = {}) {
     this.id = id;
@@ -40,6 +54,8 @@ export class FloatingUIElement {
       mobileScale: 0.8,
       zIndex: 0,
       screenSpace: false,
+      draggable: false,
+      persistPosition: false,
       ...options
     };
 
@@ -49,6 +65,16 @@ export class FloatingUIElement {
     }
 
     this.createElement();
+    
+    // Set up dragging if enabled
+    if (this.options.draggable) {
+      this.setupDragHandlers();
+    }
+    
+    // Load persisted position if enabled
+    if (this.options.persistPosition) {
+      this.loadStoredPosition();
+    }
   }
 
   private createElement(): void {
@@ -58,6 +84,11 @@ export class FloatingUIElement {
     this.element.className = `floating-ui-element ${typeConfig.class} ${this.options.className}`;
     this.element.style.zIndex = (this.options.zIndex || typeConfig.zIndex).toString();
     this.element.dataset.floatingId = this.id;
+    
+    // Mark as draggable if enabled
+    if (this.options.draggable) {
+      this.element.dataset.draggable = 'true';
+    }
 
     // Essential CSS for floating UI elements
     this.element.style.position = 'absolute';
@@ -119,7 +150,20 @@ export class FloatingUIElement {
   }
 
   public update(_deltaTime: number): void {
-    if (!this.enabled || !this.target) return;
+    if (!this.enabled) return;
+    
+    // Don't update position from target if dragging
+    if (this.isDragging) return;
+    
+    // If we have a stored position and no target, use stored position
+    if (this.storedPosition && !this.target) {
+      this.currentPos = { ...this.storedPosition };
+      this.element.style.left = `${this.currentPos.x}px`;
+      this.element.style.top = `${this.currentPos.y}px`;
+      return;
+    }
+    
+    if (!this.target) return;
     this.updatePosition();
   }
 
@@ -432,5 +476,262 @@ export class FloatingUIElement {
 
   public getTarget(): Entity | null {
     return this.target;
+  }
+  
+  private setupDragHandlers(): void {
+    // Determine drag handle
+    if (this.options.dragHandle) {
+      if (typeof this.options.dragHandle === 'string') {
+        // Wait for content to be set before querying for handle
+        const observer = new MutationObserver(() => {
+          const handle = this.element.querySelector(this.options.dragHandle as string) as HTMLElement;
+          if (handle) {
+            this.dragHandle = handle;
+            this.attachDragListeners();
+            observer.disconnect();
+          }
+        });
+        observer.observe(this.element, { childList: true, subtree: true });
+      } else {
+        this.dragHandle = this.options.dragHandle;
+        this.attachDragListeners();
+      }
+    } else {
+      // Use entire element as drag handle
+      this.dragHandle = this.element;
+      this.attachDragListeners();
+    }
+  }
+  
+  private attachDragListeners(): void {
+    if (!this.dragHandle) return;
+    
+    // Add cursor style
+    this.dragHandle.style.cursor = 'move';
+    
+    // Mouse events
+    this.dragHandle.addEventListener('mousedown', this.handleDragStart.bind(this));
+    document.addEventListener('mousemove', this.handleDragMove.bind(this));
+    document.addEventListener('mouseup', this.handleDragEnd.bind(this));
+    
+    // Touch events
+    this.dragHandle.addEventListener('touchstart', this.handleDragStart.bind(this), { passive: false });
+    document.addEventListener('touchmove', this.handleDragMove.bind(this), { passive: false });
+    document.addEventListener('touchend', this.handleDragEnd.bind(this));
+  }
+  
+  private handleDragStart(e: MouseEvent | TouchEvent): void {
+    if (!this.enabled) return;
+    
+    e.preventDefault();
+    this.isDragging = true;
+    
+    // Get initial mouse/touch position
+    const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+    const clientY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+    
+    this.dragStartPos = { x: clientX, y: clientY };
+    
+    // Get current element position
+    const rect = this.element.getBoundingClientRect();
+    const containerRect = this.manager.getContainer().getBoundingClientRect();
+    
+    this.dragOffset = {
+      x: rect.left - containerRect.left,
+      y: rect.top - containerRect.top
+    };
+    
+    // Add dragging class for visual feedback
+    this.element.classList.add('dragging');
+    this.element.style.opacity = '0.8';
+    this.element.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+    
+    // Call drag start callback
+    if (this.options.onDragStart) {
+      this.options.onDragStart(this);
+    }
+  }
+  
+  private handleDragMove(e: MouseEvent | TouchEvent): void {
+    if (!this.isDragging || !this.enabled) return;
+    
+    e.preventDefault();
+    
+    // Get current mouse/touch position
+    const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+    const clientY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+    
+    // Calculate new position
+    const deltaX = clientX - this.dragStartPos.x;
+    const deltaY = clientY - this.dragStartPos.y;
+    
+    const newX = this.dragOffset.x + deltaX;
+    const newY = this.dragOffset.y + deltaY;
+    
+    // Update position immediately (no smoothing during drag)
+    this.currentPos.x = newX;
+    this.currentPos.y = newY;
+    this.element.style.left = `${newX}px`;
+    this.element.style.top = `${newY}px`;
+    
+    // Call drag callback
+    if (this.options.onDrag) {
+      this.options.onDrag(this, newX, newY);
+    }
+  }
+  
+  private handleDragEnd(e: MouseEvent | TouchEvent): void {
+    if (!this.isDragging) return;
+    
+    e.preventDefault();
+    this.isDragging = false;
+    
+    // Remove dragging class
+    this.element.classList.remove('dragging');
+    this.element.style.opacity = '';
+    this.element.style.boxShadow = '';
+    
+    // Validate position is within bounds
+    this.validateAndFixPosition();
+    
+    // Save position if persistence is enabled
+    if (this.options.persistPosition) {
+      this.savePosition();
+    }
+    
+    // Update stored position
+    this.storedPosition = { ...this.currentPos };
+    
+    // Call drag end callback
+    if (this.options.onDragEnd) {
+      this.options.onDragEnd(this, this.currentPos.x, this.currentPos.y);
+    }
+  }
+  
+  private validateAndFixPosition(): void {
+    const container = this.manager.getContainer();
+    const containerRect = container.getBoundingClientRect();
+    const elementRect = this.element.getBoundingClientRect();
+    
+    // Calculate element bounds relative to container
+    const elementLeft = this.currentPos.x;
+    const elementTop = this.currentPos.y;
+    const elementRight = elementLeft + elementRect.width;
+    const elementBottom = elementTop + elementRect.height;
+    
+    // Check if any part is outside container
+    let needsReset = false;
+    let newX = this.currentPos.x;
+    let newY = this.currentPos.y;
+    
+    // Check horizontal bounds
+    if (elementLeft < 0) {
+      newX = 10; // Small margin from edge
+      needsReset = true;
+    } else if (elementRight > containerRect.width) {
+      newX = containerRect.width - elementRect.width - 10;
+      needsReset = true;
+    }
+    
+    // Check vertical bounds
+    if (elementTop < 0) {
+      newY = 10;
+      needsReset = true;
+    } else if (elementBottom > containerRect.height) {
+      newY = containerRect.height - elementRect.height - 10;
+      needsReset = true;
+    }
+    
+    // Apply position if needs adjustment
+    if (needsReset) {
+      this.currentPos.x = newX;
+      this.currentPos.y = newY;
+      this.element.style.left = `${newX}px`;
+      this.element.style.top = `${newY}px`;
+    }
+  }
+  
+  private savePosition(): void {
+    if (!this.options.persistPosition) return;
+    
+    const key = this.options.positionKey || `floating-ui-position-${this.id}`;
+    const position: StoredPosition = {
+      x: this.currentPos.x,
+      y: this.currentPos.y,
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
+      version: '1.0.0'
+    };
+    
+    try {
+      localStorage.setItem(key, JSON.stringify(position));
+    } catch (e) {
+      console.warn('Failed to save position:', e);
+    }
+  }
+  
+  private loadStoredPosition(): void {
+    if (!this.options.persistPosition) return;
+    
+    const key = this.options.positionKey || `floating-ui-position-${this.id}`;
+    
+    try {
+      const stored = localStorage.getItem(key);
+      if (!stored) return;
+      
+      const position: StoredPosition = JSON.parse(stored);
+      
+      // Validate stored position is for current screen size (with some tolerance)
+      const widthRatio = window.innerWidth / position.screenWidth;
+      const heightRatio = window.innerHeight / position.screenHeight;
+      
+      // If screen size changed significantly, adjust position proportionally
+      if (Math.abs(widthRatio - 1) > 0.1 || Math.abs(heightRatio - 1) > 0.1) {
+        this.storedPosition = {
+          x: position.x * widthRatio,
+          y: position.y * heightRatio
+        };
+      } else {
+        this.storedPosition = {
+          x: position.x,
+          y: position.y
+        };
+      }
+      
+      // Apply stored position
+      this.currentPos = { ...this.storedPosition };
+      this.targetPos = { ...this.storedPosition };
+      this.element.style.left = `${this.currentPos.x}px`;
+      this.element.style.top = `${this.currentPos.y}px`;
+      
+      // Validate position is still within bounds
+      requestAnimationFrame(() => {
+        this.validateAndFixPosition();
+        if (this.options.persistPosition) {
+          this.savePosition();
+        }
+      });
+    } catch (e) {
+      console.warn('Failed to load stored position:', e);
+    }
+  }
+  
+  public resetPosition(): void {
+    // Clear stored position
+    this.storedPosition = null;
+    
+    if (this.options.persistPosition) {
+      const key = this.options.positionKey || `floating-ui-position-${this.id}`;
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn('Failed to clear stored position:', e);
+      }
+    }
+    
+    // Reset to default position behavior
+    if (this.target) {
+      this.updatePosition(true);
+    }
   }
 }
