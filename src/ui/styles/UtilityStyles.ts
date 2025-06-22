@@ -258,6 +258,9 @@ const utilityStyles = `
   .bg-surface-primary { background-color: var(--color-surface-primary); }
   .bg-surface-secondary { background-color: var(--color-surface-secondary); }
   .bg-surface-tertiary { background-color: var(--color-surface-tertiary, rgba(255, 255, 255, 0.1)); }
+  .bg-golden { background-color: #FFD700; }
+  .bg-golden\\/10 { background-color: rgba(255, 215, 0, 0.1); }
+  .bg-golden\\/20 { background-color: rgba(255, 215, 0, 0.2); }
   
   /* Text colors */
   .text-primary { color: var(--color-text-primary); }
@@ -295,6 +298,8 @@ const utilityStyles = `
   .text-blue-500 { color: #3B82F6; } /* Shield/Primary */
   .text-red-500 { color: #EF4444; } /* Damage/Danger */
   .text-gray-400 { color: #9CA3AF; } /* Muted/Secondary */
+  .text-golden { color: #FFD700; } /* Golden for level up */
+  .text-golden-light { color: #FFF59D; } /* Light golden */
   
   /* Tower type border colors */
   .border-game-tower-basic { border-color: var(--color-game-tower-basic); }
@@ -970,6 +975,96 @@ const utilityStyles = `
     }
   }
   
+  /* Level Up Epic Animation */
+  @keyframes level-up-epic {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+    }
+    15% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.3) rotate(10deg);
+    }
+    30% {
+      transform: translate(-50%, -50%) scale(0.95) rotate(-5deg);
+    }
+    45% {
+      transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+    }
+    60% {
+      transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    }
+  }
+  
+  @keyframes golden-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.4),
+                  0 0 40px rgba(255, 215, 0, 0.3),
+                  0 0 60px rgba(255, 215, 0, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.6),
+                  0 0 60px rgba(255, 215, 0, 0.5),
+                  0 0 90px rgba(255, 215, 0, 0.3);
+    }
+  }
+  
+  @keyframes sparkle {
+    0% {
+      opacity: 0;
+      transform: scale(0) rotate(0deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1) rotate(180deg);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0) rotate(360deg);
+    }
+  }
+  
+  @keyframes radial-burst {
+    0% {
+      opacity: 0.8;
+      transform: translate(-50%, -50%) scale(0.1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(3);
+    }
+  }
+  
+  @keyframes float-up {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    20% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-60px);
+    }
+  }
+  
+  @keyframes screen-flash {
+    0% {
+      opacity: 0;
+    }
+    20% {
+      opacity: 0.4;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  
   /* Animation Utility Classes */
   .animate-bounce-in {
     animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -1046,6 +1141,31 @@ const utilityStyles = `
   .animate-tooltip-fade-in {
     animation: tooltip-fade-in 0.2s ease forwards;
     animation-delay: 0.5s;
+  }
+  
+  /* Level Up Animation Classes */
+  .animate-level-up-epic {
+    animation: level-up-epic 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  .animate-golden-pulse {
+    animation: golden-pulse 2s ease-in-out infinite;
+  }
+  
+  .animate-sparkle {
+    animation: sparkle 1.5s ease-in-out infinite;
+  }
+  
+  .animate-radial-burst {
+    animation: radial-burst 1s ease-out forwards;
+  }
+  
+  .animate-float-up {
+    animation: float-up 2s ease-out forwards;
+  }
+  
+  .animate-screen-flash {
+    animation: screen-flash 0.5s ease-out forwards;
   }
   
   /* --- VISIBILITY --- */
