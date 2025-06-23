@@ -197,6 +197,54 @@ export class Tower extends Entity implements ShootingCapable {
     return this.cooldownTime;
   }
 
+  // Get preview of what stats would be after upgrade
+  getUpgradePreview(upgradeType: UpgradeType): {
+    currentValue: number;
+    newValue: number;
+    increase: number;
+    percentIncrease: number;
+  } | null {
+    const currentLevel = this.getUpgradeLevel(upgradeType);
+    if (currentLevel >= TOWER_UPGRADES.maxLevel) {
+      return null; // Max level reached
+    }
+
+    const bonusMultiplier = TOWER_UPGRADES.bonusMultipliers[upgradeType];
+    let currentValue: number;
+    let baseValue: number;
+
+    switch (upgradeType) {
+      case UpgradeType.DAMAGE:
+        baseValue = this.baseDamage;
+        currentValue = this.damage;
+        break;
+      case UpgradeType.RANGE:
+        baseValue = this.baseRange;
+        currentValue = this.range;
+        break;
+      case UpgradeType.FIRE_RATE:
+        // For fire rate, we show attacks per second
+        baseValue = 1000 / this.baseFireRate;
+        currentValue = 1000 / this.fireRate;
+        break;
+      default:
+        return null;
+    }
+
+    // Calculate what the new value would be after upgrade
+    const newMultiplier = 1 + bonusMultiplier * (currentLevel + 1);
+    const newValue = baseValue * newMultiplier;
+    const increase = newValue - currentValue;
+    const percentIncrease = currentLevel === 0 ? bonusMultiplier * 100 : (increase / currentValue) * 100;
+
+    return {
+      currentValue,
+      newValue,
+      increase,
+      percentIncrease
+    };
+  }
+
   // Computed properties based on upgrades
   get damage(): number {
     const damageLevel = this.getUpgradeLevel(UpgradeType.DAMAGE);

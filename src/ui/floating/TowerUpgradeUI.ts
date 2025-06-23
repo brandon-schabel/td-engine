@@ -82,7 +82,7 @@ export class TowerUpgradeUI {
         currentLevel: this.tower.getUpgradeLevel(UpgradeType.DAMAGE),
         maxLevel: this.tower.getMaxUpgradeLevel(),
         icon: IconType.DAMAGE,
-        effect: '+25% damage'
+        effect: this.getUpgradeEffectText(UpgradeType.DAMAGE)
       },
       {
         type: UpgradeType.RANGE,
@@ -92,7 +92,7 @@ export class TowerUpgradeUI {
         currentLevel: this.tower.getUpgradeLevel(UpgradeType.RANGE),
         maxLevel: this.tower.getMaxUpgradeLevel(),
         icon: IconType.RANGE,
-        effect: '+20% range'
+        effect: this.getUpgradeEffectText(UpgradeType.RANGE)
       },
       {
         type: UpgradeType.FIRE_RATE,
@@ -102,9 +102,28 @@ export class TowerUpgradeUI {
         currentLevel: this.tower.getUpgradeLevel(UpgradeType.FIRE_RATE),
         maxLevel: this.tower.getMaxUpgradeLevel(),
         icon: IconType.SPEED,
-        effect: '+30% speed'
+        effect: this.getUpgradeEffectText(UpgradeType.FIRE_RATE)
       }
     ];
+  }
+
+  private getUpgradeEffectText(upgradeType: UpgradeType): string {
+    const preview = this.tower.getUpgradePreview(upgradeType);
+    if (!preview) {
+      return 'MAX';
+    }
+
+    switch (upgradeType) {
+      case UpgradeType.DAMAGE:
+        return `${Math.round(preview.currentValue)} → ${Math.round(preview.newValue)} (+${Math.round(preview.increase)})`;
+      case UpgradeType.RANGE:
+        return `${Math.round(preview.currentValue)} → ${Math.round(preview.newValue)} (+${Math.round(preview.increase)})`;
+      case UpgradeType.FIRE_RATE:
+        // Fire rate shows attacks per second with 1 decimal
+        return `${preview.currentValue.toFixed(1)}/s → ${preview.newValue.toFixed(1)}/s (+${preview.increase.toFixed(1)}/s)`;
+      default:
+        return '';
+    }
   }
 
   private create(): void {
@@ -322,8 +341,11 @@ export class TowerUpgradeUI {
     const container = document.createElement('div');
     container.className = cn('grid', 'gap-2', 'mb-3');
 
-    // Determine grid columns based on number of upgrades
-    if (this.upgradeOptions.length <= 2) {
+    // Use 1 column on very small screens, otherwise use original layout
+    const isMobile = window.innerWidth < 400;
+    if (isMobile) {
+      container.classList.add('grid-cols-1');
+    } else if (this.upgradeOptions.length <= 2) {
       container.classList.add('grid-cols-2');
     } else {
       container.classList.add('grid-cols-3');
@@ -360,9 +382,13 @@ export class TowerUpgradeUI {
       }
     );
 
-    // Card content wrapper
+    // Card content wrapper - use flex-col for better mobile layout
     const content = document.createElement('div');
-    content.className = cn('flex', 'items-center', 'gap-2');
+    content.className = cn('flex', 'flex-col', 'gap-1');
+
+    // Top row with icon and name
+    const topRow = document.createElement('div');
+    topRow.className = cn('flex', 'items-center', 'gap-2');
 
     // Upgrade icon
     const icon = createIconContainer({
@@ -380,24 +406,31 @@ export class TowerUpgradeUI {
     name.className = cn('text-sm', 'font-medium', 'truncate', 'text-foreground');
     name.textContent = `${option.name} ${isMaxed ? 'MAX' : `${option.currentLevel}/${option.maxLevel}`}`;
 
+    info.appendChild(name);
+
     if (!isMaxed) {
+      // Add effect text showing stat increases
+      const effectText = document.createElement('div');
+      effectText.className = cn('text-xs', 'text-success', 'font-medium', 'mt-1');
+      effectText.textContent = option.effect;
+      content.appendChild(effectText);
+      
       const cost = createCurrencyDisplay(option.cost, {
         variant: 'inline',
         color: canAfford ? 'success' : 'danger',
-        customClasses: ['text-xs']
+        customClasses: ['text-xs', 'mt-1']
       });
-      info.appendChild(name);
-      info.appendChild(cost);
+      content.appendChild(cost);
     } else {
       const maxedText = document.createElement('div');
       maxedText.className = cn('text-xs', 'text-muted', 'font-semibold');
       maxedText.textContent = 'MAXED';
-      info.appendChild(name);
       info.appendChild(maxedText);
     }
 
-    content.appendChild(icon);
-    content.appendChild(info);
+    topRow.appendChild(icon);
+    topRow.appendChild(info);
+    content.appendChild(topRow);
     card.appendChild(content);
 
     // Disable pointer events if not clickable
