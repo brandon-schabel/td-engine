@@ -4,7 +4,7 @@
  */
 
 import { Enemy } from '@/entities/Enemy';
-import { Projectile } from '@/entities/Projectile';
+import { Projectile, ProjectileType } from '@/entities/Projectile';
 import type { Vector2 } from '@/utils/Vector2';
 import { CooldownManager } from '@/utils/CooldownManager';
 
@@ -29,6 +29,7 @@ export interface ProjectileConfig {
   target: Enemy;
   damage: number;
   speed: number;
+  projectileType?: ProjectileType;
 }
 
 /**
@@ -57,7 +58,9 @@ export class ShootingUtils {
       { ...config.position }, // Copy position to avoid reference issues
       config.target,
       config.damage,
-      config.speed
+      config.speed,
+      undefined, // velocity
+      config.projectileType || ProjectileType.BASIC_BULLET
     );
   }
 

@@ -59,6 +59,9 @@ const utilityStyles = `
   .flex-initial { flex: 0 1 auto; }
   .flex-none { flex: none; }
   
+  .flex-shrink-0 { flex-shrink: 0; }
+  .flex-shrink { flex-shrink: 1; }
+  
   /* --- GRID --- */
   .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
   .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -581,10 +584,14 @@ const utilityStyles = `
   .h-7 { height: 1.75rem; }
   .w-8 { width: var(--spacing-8); }
   .h-8 { height: var(--spacing-8); }
+  .w-9 { width: 2.25rem; }
+  .h-9 { height: 2.25rem; }
   .w-10 { width: 2.5rem; }
   .h-10 { height: 2.5rem; }
   .w-12 { width: 3rem; }
   .h-12 { height: 3rem; }
+  .w-14 { width: 3.5rem; }
+  .h-14 { height: 3.5rem; }
   .w-16 { width: var(--spacing-16); }
   .h-16 { height: var(--spacing-16); }
   

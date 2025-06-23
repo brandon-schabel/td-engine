@@ -188,27 +188,7 @@ export class PlayerLevelDisplay {
    * Show level up notification
    */
   showLevelUpNotification(newLevel: number, pointsEarned: number): void {
-    // Create radial burst background effect
-    const burstId = `burst-${Date.now()}`;
-    const burst = this.floatingUI.create(burstId, 'popup', {
-      persistent: false,
-      autoHide: false,
-      className: cn(
-        'fixed',
-        'top-1/2',
-        'left-1/2',
-        'w-[300px]',
-        'h-[300px]',
-        'bg-golden/20',
-        'rounded-full',
-        'animate-radial-burst',
-        'z-[899]',
-        'pointer-events-none'
-      )
-    });
-    burst.enable();
-
-    // Main notification with epic animation
+    // Main notification - smaller and at top of screen
     const notificationId = `level-up-${Date.now()}`;
     const notification = this.floatingUI.create(notificationId, 'popup', {
       persistent: false,
@@ -216,57 +196,40 @@ export class PlayerLevelDisplay {
       smoothing: 0.1,
       className: cn(
         'fixed',
-        'top-1/2',
+        'top-20',  // Positioned at top with padding
         'left-1/2',
         'transform',
         '-translate-x-1/2',
-        '-translate-y-1/2',
         'bg-surface-primary',
-        'border-4',
+        'border-2',
         'border-warning',
-        'rounded-xl',
-        'px-10',
-        'py-8',
-        'shadow-2xl',
+        'rounded-lg',
+        'px-6',
+        'py-3',
+        'shadow-lg',
         'z-[900]',
-        'animate-level-up-epic',
-        'animate-golden-pulse'
+        'animate-slide-down-fade-in'
       )
     });
 
     const content = document.createElement('div');
-    content.className = cn('text-center', 'space-y-4', 'relative');
-    
-    // Add sparkle effects
-    this.addSparkles(content);
+    content.className = cn('text-center', 'space-y-1');
     
     const title = document.createElement('div');
-    title.className = cn('text-3xl', 'font-bold', 'text-golden', 'tracking-wider');
-    title.textContent = 'LEVEL UP!';
-    title.style.textShadow = '0 0 20px rgba(255, 215, 0, 0.8)';
-    
-    const levelInfo = document.createElement('div');
-    levelInfo.className = cn('text-2xl', 'text-golden-light', 'font-semibold');
-    levelInfo.textContent = `Level ${newLevel}`;
+    title.className = cn('text-lg', 'font-bold', 'text-golden');
+    title.textContent = `LEVEL ${newLevel}`;
     
     const pointsInfo = document.createElement('div');
-    pointsInfo.className = cn('text-lg', 'text-warning', 'font-medium');
+    pointsInfo.className = cn('text-sm', 'text-warning');
     pointsInfo.textContent = pointsEarned === 1 
-      ? '✨ 1 Upgrade Point Earned ✨' 
-      : `✨ ${pointsEarned} Upgrade Points Earned ✨`;
+      ? '+1 Upgrade Point' 
+      : `+${pointsEarned} Upgrade Points`;
     
     content.appendChild(title);
-    content.appendChild(levelInfo);
     content.appendChild(pointsInfo);
     
     notification.setContent(content);
     notification.enable();
-
-    // Add floating upgrade point indicator
-    this.showFloatingPoints(pointsEarned);
-
-    // Trigger screen flash effect
-    this.createScreenFlash();
 
     // Play level up sound
     this.playLevelUpSound();
@@ -277,81 +240,9 @@ export class PlayerLevelDisplay {
     // Auto-remove after animation
     setTimeout(() => {
       this.floatingUI.remove(notificationId);
-      this.floatingUI.remove(burstId);
-    }, 3500);
+    }, 2500);
   }
 
-  private addSparkles(container: HTMLElement): void {
-    for (let i = 0; i < 6; i++) {
-      const sparkle = document.createElement('div');
-      sparkle.className = cn(
-        'absolute',
-        'w-2',
-        'h-2',
-        'bg-golden',
-        'rounded-full',
-        'animate-sparkle'
-      );
-      sparkle.style.left = `${20 + Math.random() * 60}%`;
-      sparkle.style.top = `${20 + Math.random() * 60}%`;
-      sparkle.style.animationDelay = `${Math.random() * 1.5}s`;
-      container.appendChild(sparkle);
-    }
-  }
-
-  private showFloatingPoints(points: number): void {
-    const floatingId = `floating-points-${Date.now()}`;
-    const floating = this.floatingUI.create(floatingId, 'popup', {
-      persistent: false,
-      autoHide: false,
-      className: cn(
-        'fixed',
-        'top-1/2',
-        'left-1/2',
-        'transform',
-        '-translate-x-1/2',
-        'text-2xl',
-        'font-bold',
-        'text-golden',
-        'animate-float-up',
-        'z-[901]',
-        'pointer-events-none'
-      )
-    });
-
-    const text = document.createElement('div');
-    text.textContent = `+${points} ${points === 1 ? 'Point' : 'Points'}`;
-    text.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8)';
-    
-    floating.setContent(text);
-    floating.enable();
-
-    setTimeout(() => {
-      this.floatingUI.remove(floatingId);
-    }, 2000);
-  }
-
-  private createScreenFlash(): void {
-    const flashId = `screen-flash-${Date.now()}`;
-    const flash = this.floatingUI.create(flashId, 'popup', {
-      persistent: false,
-      autoHide: false,
-      className: cn(
-        'fixed',
-        'inset-0',
-        'bg-golden/10',
-        'animate-screen-flash',
-        'z-[898]',
-        'pointer-events-none'
-      )
-    });
-    
-    flash.enable();
-    
-    setTimeout(() => {
-      this.floatingUI.remove(flashId);
-    }, 500);
-  }
 
   private playLevelUpSound(): void {
     try {

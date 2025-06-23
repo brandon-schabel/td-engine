@@ -16,6 +16,7 @@ import { COLOR_THEME } from '../config/ColorTheme';
 import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
 import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
+import { DestructionEffect } from '@/effects/DestructionEffect';
 
 // Legacy render config for backward compatibility
 const RENDER_CONFIG = {
@@ -1035,23 +1036,84 @@ export class Renderer {
       const scaledSize = projectile.radius * 2 * zoom;
       this.renderTextureAt(texture, screenPos, scaledSize, scaledSize);
     } else {
-      // Fallback to primitive rendering with zoom scaling
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.arc === 'function') {
-        this.ctx.arc(screenPos.x, screenPos.y, projectile.radius * zoom, 0, Math.PI * 2);
-      }
-      this.ctx.fillStyle = '#FFEB3B';
-      if (typeof this.ctx.fill === 'function') {
-        this.ctx.fill();
+      // Enhanced primitive rendering based on projectile type
+      this.ctx.save();
+      this.ctx.translate(screenPos.x, screenPos.y);
+      this.ctx.scale(zoom, zoom);
+      
+      const rotation = projectile.getRotation();
+      
+      switch (projectile.projectileType) {
+        case 'SNIPER_ROUND':
+          // Long, thin bullet
+          this.ctx.rotate(rotation);
+          
+          // Bullet trail
+          const gradient = this.ctx.createLinearGradient(-projectile.radius * 3, 0, projectile.radius, 0);
+          gradient.addColorStop(0, 'rgba(100, 200, 255, 0)');
+          gradient.addColorStop(0.7, 'rgba(100, 200, 255, 0.5)');
+          gradient.addColorStop(1, 'rgba(200, 220, 255, 1)');
+          this.ctx.fillStyle = gradient;
+          this.ctx.fillRect(-projectile.radius * 3, -projectile.radius * 0.3, projectile.radius * 4, projectile.radius * 0.6);
+          
+          // Main bullet
+          this.ctx.fillStyle = '#E0F0FF';
+          this.ctx.fillRect(-projectile.radius, -projectile.radius * 0.4, projectile.radius * 2, projectile.radius * 0.8);
+          
+          // Tip
+          this.ctx.beginPath();
+          this.ctx.moveTo(projectile.radius, 0);
+          this.ctx.lineTo(projectile.radius * 1.5, -projectile.radius * 0.3);
+          this.ctx.lineTo(projectile.radius * 1.5, projectile.radius * 0.3);
+          this.ctx.closePath();
+          this.ctx.fill();
+          break;
+          
+        case 'RAPID_PELLET':
+          // Small orange pellet
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, projectile.radius, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#FF6B35';
+          this.ctx.fill();
+          
+          // Glow effect
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, projectile.radius * 1.5, 0, Math.PI * 2);
+          this.ctx.fillStyle = 'rgba(255, 107, 53, 0.3)';
+          this.ctx.fill();
+          break;
+          
+        case 'PLAYER_SHOT':
+          // Green energy shot
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, projectile.radius, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#00FF00';
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#00AA00';
+          this.ctx.lineWidth = 1;
+          this.ctx.stroke();
+          break;
+          
+        case 'BASIC_BULLET':
+        default:
+          // Yellow circular bullet with glow
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, projectile.radius * 1.5, 0, Math.PI * 2);
+          this.ctx.fillStyle = 'rgba(255, 235, 59, 0.3)';
+          this.ctx.fill();
+          
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, projectile.radius, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#FFEB3B';
+          this.ctx.fill();
+          
+          this.ctx.strokeStyle = '#FFC107';
+          this.ctx.lineWidth = 1;
+          this.ctx.stroke();
+          break;
       }
       
-      this.ctx.strokeStyle = '#FFC107';
-      this.ctx.lineWidth = zoom;
-      if (typeof this.ctx.stroke === 'function') {
-        this.ctx.stroke();
-      }
+      this.ctx.restore();
     }
   }
 
@@ -1067,28 +1129,70 @@ export class Renderer {
       const scaledSize = player.radius * 2 * zoom;
       this.renderTextureAt(texture, screenPos, scaledSize, scaledSize);
     } else {
-      // Fallback to primitive rendering with zoom scaling
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.arc === 'function') {
-        this.ctx.arc(screenPos.x, screenPos.y, player.radius * zoom, 0, Math.PI * 2);
-      }
+      // Enhanced primitive rendering for player
+      this.ctx.save();
+      this.ctx.translate(screenPos.x, screenPos.y);
+      this.ctx.scale(zoom, zoom);
       
       // Player color based on level
       const level = player.getLevel();
       const hue = Math.min(180 + level * 20, 280); // Blue to purple progression
-      this.ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
-      if (typeof this.ctx.fill === 'function') {
+      const mainColor = `hsl(${hue}, 70%, 60%)`;
+      const darkColor = `hsl(${hue}, 70%, 40%)`;
+      const lightColor = `hsl(${hue}, 70%, 80%)`;
+      
+      // Body (torso)
+      this.ctx.fillStyle = mainColor;
+      this.ctx.fillRect(-player.radius * 0.6, -player.radius * 0.4, player.radius * 1.2, player.radius * 0.8);
+      
+      // Head with helmet
+      this.ctx.beginPath();
+      this.ctx.arc(0, -player.radius * 0.7, player.radius * 0.4, 0, Math.PI * 2);
+      this.ctx.fillStyle = lightColor;
+      this.ctx.fill();
+      
+      // Helmet top
+      this.ctx.beginPath();
+      this.ctx.arc(0, -player.radius * 0.7, player.radius * 0.4, Math.PI, 0);
+      this.ctx.fillStyle = mainColor;
+      this.ctx.fill();
+      
+      // Visor
+      this.ctx.fillStyle = darkColor;
+      this.ctx.fillRect(-player.radius * 0.3, -player.radius * 0.75, player.radius * 0.6, player.radius * 0.15);
+      
+      // Arms
+      this.ctx.fillStyle = darkColor;
+      this.ctx.fillRect(-player.radius * 0.9, -player.radius * 0.3, player.radius * 0.3, player.radius * 0.6);
+      this.ctx.fillRect(player.radius * 0.6, -player.radius * 0.3, player.radius * 0.3, player.radius * 0.6);
+      
+      // Legs
+      this.ctx.fillRect(-player.radius * 0.4, player.radius * 0.3, player.radius * 0.3, player.radius * 0.5);
+      this.ctx.fillRect(player.radius * 0.1, player.radius * 0.3, player.radius * 0.3, player.radius * 0.5);
+      
+      // Armor details
+      this.ctx.fillStyle = lightColor;
+      this.ctx.fillRect(-player.radius * 0.2, -player.radius * 0.2, player.radius * 0.4, player.radius * 0.3);
+      
+      // Level badge on chest
+      if (level > 1) {
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, player.radius * 0.25, 0, Math.PI * 2);
+        this.ctx.fillStyle = '#FFD700';
         this.ctx.fill();
+        this.ctx.strokeStyle = darkColor;
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
       }
       
       // Player outline
       this.ctx.strokeStyle = '#FFFFFF';
-      this.ctx.lineWidth = 2 * zoom;
-      if (typeof this.ctx.stroke === 'function') {
-        this.ctx.stroke();
-      }
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, player.radius + 2, 0, Math.PI * 2);
+      this.ctx.stroke();
+      
+      this.ctx.restore();
     }
     
     // Movement indicator (if moving)
@@ -1218,6 +1322,11 @@ export class Renderer {
     
     const screenPos = this.getScreenPosition(collectible);
     collectible.render(this.ctx, screenPos);
+  }
+
+  renderDestructionEffect(effect: DestructionEffect): void {
+    if (!effect || effect.isComplete) return;
+    effect.render(this.ctx, this.camera);
   }
 
   // PowerUp rendering removed - type not defined
@@ -1411,7 +1520,7 @@ export class Renderer {
     }
   }
 
-  renderEntities(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
+  renderEntities(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
     // Render towers with health bars
     towers.forEach(tower => {
       this.renderTower(tower, tower === selectedTower);
@@ -1444,9 +1553,14 @@ export class Renderer {
     if (aimerLine) {
       this.renderAimerLine(aimerLine);
     }
+
+    // Render destruction effects
+    destructionEffects.forEach(effect => {
+      this.renderDestructionEffect(effect);
+    });
   }
 
-  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], _effects: any[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
+  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
@@ -1469,7 +1583,7 @@ export class Renderer {
     this.renderEnvironmentalEffects();
     
     // Render all entities
-    this.renderEntities(towers, enemies, projectiles, collectibles, aimerLine, player, selectedTower);
+    this.renderEntities(towers, enemies, projectiles, collectibles, destructionEffects, aimerLine, player, selectedTower);
     
     // Render debug overlay if enabled
     if (this.debugMode) {

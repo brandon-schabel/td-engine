@@ -46,6 +46,7 @@ export function createToggle(options: CreateToggleOptions): HTMLLabelElement {
     'items-center',
     'cursor-pointer',
     'select-none',
+    'flex-shrink-0', // Prevent shrinking in flex containers
     disabled && 'opacity-50 cursor-not-allowed',
     ...containerClasses
   );
@@ -117,42 +118,69 @@ export function createToggle(options: CreateToggleOptions): HTMLLabelElement {
 function createSwitchVisual(size: string, checked: boolean, disabled: boolean, customClasses: string[]): HTMLDivElement {
   const switchEl = document.createElement('div');
   
-  const switchClasses = [
-    'relative',
-    'inline-block',
-    'transition-colors',
-    'duration-200',
-    'ease-in-out',
-    'rounded-full',
-    checked ? 'bg-primary' : 'bg-surface-secondary',
-    disabled ? '' : 'hover:shadow-lg',
-    'border-2',
-    checked ? 'border-primary-dark' : 'border-default',
-    ...getSwitchSizeClasses(size),
-    ...customClasses
-  ];
-
-  switchEl.className = cn(...switchClasses);
+  // Set explicit dimensions based on size
+  const dimensions = {
+    sm: { width: '48px', height: '28px' },
+    md: { width: '56px', height: '32px' },
+    lg: { width: '64px', height: '36px' }
+  };
+  
+  const dim = dimensions[size as keyof typeof dimensions] || dimensions.md;
+  
+  // Apply all critical styles inline to ensure they work
+  switchEl.style.position = 'relative';
+  switchEl.style.display = 'inline-block';
+  switchEl.style.width = dim.width;
+  switchEl.style.height = dim.height;
+  switchEl.style.borderRadius = '9999px';
+  switchEl.style.transition = 'all 200ms ease-in-out';
+  switchEl.style.backgroundColor = checked ? '#4A90E2' : '#4B5563';
+  switchEl.style.border = '1px solid';
+  switchEl.style.borderColor = checked ? '#3A7BC8' : '#374151';
+  switchEl.style.cursor = disabled ? 'not-allowed' : 'pointer';
+  switchEl.style.opacity = disabled ? '0.5' : '1';
+  switchEl.style.flexShrink = '0';
+  
+  // Add hover effect
+  if (!disabled) {
+    switchEl.onmouseenter = () => {
+      switchEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+    };
+    switchEl.onmouseleave = () => {
+      switchEl.style.boxShadow = '';
+    };
+  }
+  
+  switchEl.className = cn(...customClasses);
 
   // Create thumb
   const thumb = document.createElement('div');
-  const thumbClasses = [
-    'absolute',
-    'bg-white',
-    'rounded-full',
-    'shadow-xl',
-    'transition-all',
-    'duration-200',
-    'ease-in-out',
-    'top-1/2',
-    '-translate-y-1/2',
-    'border',
-    'border-surface-border',
-    ...getThumbSizeClasses(size),
-    checked ? getThumbCheckedPosition(size) : 'left-0.5'
-  ];
-
-  thumb.className = cn(...thumbClasses);
+  
+  // Set thumb dimensions based on size
+  const thumbDimensions = {
+    sm: { size: '20px', checkedPos: '22px' },
+    md: { size: '24px', checkedPos: '28px' },
+    lg: { size: '28px', checkedPos: '34px' }
+  };
+  
+  const thumbDim = thumbDimensions[size as keyof typeof thumbDimensions] || thumbDimensions.md;
+  
+  // Apply thumb styles inline
+  thumb.style.position = 'absolute';
+  thumb.style.width = thumbDim.size;
+  thumb.style.height = thumbDim.size;
+  thumb.style.backgroundColor = 'white';
+  thumb.style.borderRadius = '50%';
+  thumb.style.border = '1px solid rgba(0, 0, 0, 0.1)';
+  thumb.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
+  thumb.style.transition = 'all 200ms ease-in-out';
+  thumb.style.top = '50%';
+  thumb.style.left = '0';
+  
+  // Position thumb
+  const xPos = checked ? thumbDim.checkedPos : '3px';
+  thumb.style.transform = `translateY(-50%) translateX(${xPos})`;
+  
   switchEl.appendChild(thumb);
 
   return switchEl;
@@ -238,17 +266,36 @@ function createSpacer(size: string): HTMLDivElement {
 function updateSwitchState(switchEl: HTMLElement, checked: boolean): void {
   const thumb = switchEl.querySelector('div') as HTMLDivElement;
   
-  if (checked) {
-    switchEl.classList.remove('bg-surface-secondary', 'border-default');
-    switchEl.classList.add('bg-primary', 'border-primary-dark');
-    thumb.classList.remove('left-0.5');
-    thumb.classList.add(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
-  } else {
-    switchEl.classList.remove('bg-primary', 'border-primary-dark');
-    switchEl.classList.add('bg-surface-secondary', 'border-default');
-    thumb.classList.remove(...getThumbCheckedPosition(getSizeFromElement(switchEl)).split(' '));
-    thumb.classList.add('left-0.5');
-  }
+  // Determine size from switch width
+  let size = 'md';
+  const width = switchEl.style.width;
+  if (width === '48px') size = 'sm';
+  else if (width === '64px') size = 'lg';
+  
+  // Update background and border colors
+  switchEl.style.backgroundColor = checked ? '#4A90E2' : '#4B5563';
+  switchEl.style.borderColor = checked ? '#3A7BC8' : '#374151';
+  
+  // Update thumb position
+  const thumbPositions = {
+    sm: { checkedPos: '22px' },
+    md: { checkedPos: '28px' },
+    lg: { checkedPos: '34px' }
+  };
+  
+  const pos = thumbPositions[size as keyof typeof thumbPositions] || thumbPositions.md;
+  thumb.style.left = '0';
+  const xPos = checked ? pos.checkedPos : '3px';
+  thumb.style.transform = `translateY(-50%) translateX(${xPos})`;
+}
+
+/**
+ * Get size from checkbox element
+ */
+function getCheckboxSize(element: HTMLElement): string {
+  if (element.classList.contains('w-4')) return 'sm';
+  if (element.classList.contains('w-6')) return 'lg';
+  return 'md';
 }
 
 /**
@@ -273,7 +320,7 @@ function updateCheckboxState(checkboxEl: HTMLElement, checked: boolean): void {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 20 20');
       svg.setAttribute('fill', 'currentColor');
-      const checkmarkClasses = getCheckmarkSizeClasses(getSizeFromElement(checkboxEl));
+      const checkmarkClasses = getCheckmarkSizeClasses(getCheckboxSize(checkboxEl));
       svg.setAttribute('class', cn('text-white', ...checkmarkClasses));
 
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -297,28 +344,6 @@ function updateCheckboxState(checkboxEl: HTMLElement, checked: boolean): void {
   }
 }
 
-/**
- * Get size from element classes (helper for event handlers)
- */
-function getSizeFromElement(element: HTMLElement): string {
-  if (element.classList.contains('w-11')) return 'sm';
-  if (element.classList.contains('w-16')) return 'lg';
-  return 'md';
-}
-
-/**
- * Size classes for switch
- */
-function getSwitchSizeClasses(size: string): string[] {
-  switch (size) {
-    case 'sm':
-      return ['w-11', 'h-6'];
-    case 'lg':
-      return ['w-16', 'h-8'];
-    default: // md
-      return ['w-14', 'h-7'];
-  }
-}
 
 /**
  * Size classes for checkbox
@@ -334,33 +359,6 @@ function getCheckboxSizeClasses(size: string): string[] {
   }
 }
 
-/**
- * Size classes for switch thumb
- */
-function getThumbSizeClasses(size: string): string[] {
-  switch (size) {
-    case 'sm':
-      return ['w-5', 'h-5'];
-    case 'lg':
-      return ['w-7', 'h-7'];
-    default: // md
-      return ['w-6', 'h-6'];
-  }
-}
-
-/**
- * Get thumb checked position
- */
-function getThumbCheckedPosition(size: string): string {
-  switch (size) {
-    case 'sm':
-      return 'left-[1.375rem]';
-    case 'lg':
-      return 'left-8';
-    default: // md
-      return 'left-[1.875rem]';
-  }
-}
 
 /**
  * Size classes for checkmark SVG

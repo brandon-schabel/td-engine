@@ -137,44 +137,114 @@ const DEFAULT_OPTIONS: Required<SvgIconOptions> = {
 const ICON_PATHS: Record<IconType, string> = {
   // Tower Icons
   [IconType.BASIC_TOWER]: `
-    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
-    <circle cx="12" cy="12" r="3" fill="currentColor"/>
+    <!-- Tower base -->
+    <path d="M7 20 L7 16 L17 16 L17 20 L19 22 L5 22 Z" fill="currentColor" opacity="0.7"/>
+    <!-- Tower body -->
+    <rect x="8" y="8" width="8" height="8" fill="currentColor" opacity="0.8" rx="1"/>
+    <!-- Battlements -->
+    <path d="M8 8 L8 6 L10 6 L10 8 M11 8 L11 6 L13 6 L13 8 M14 8 L14 6 L16 6 L16 8" fill="currentColor"/>
+    <!-- Cannon barrel -->
+    <rect x="10" y="10" width="4" height="6" fill="currentColor" rx="0.5"/>
+    <circle cx="12" cy="16" r="2" fill="currentColor" opacity="0.5"/>
+    <!-- Details -->
+    <rect x="9" y="11" width="1" height="1" fill="currentColor" opacity="0.3"/>
+    <rect x="14" y="11" width="1" height="1" fill="currentColor" opacity="0.3"/>
   `,
 
   [IconType.SNIPER_TOWER]: `
-    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-    <line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" stroke-width="2"/>
-    <line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/>
-    <line x1="2" y1="12" x2="7" y2="12" stroke="currentColor" stroke-width="2"/>
-    <line x1="17" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/>
-    <circle cx="12" cy="12" r="2" fill="currentColor"/>
+    <!-- Tower base with elevation -->
+    <path d="M8 22 L8 18 L16 18 L16 22 L18 23 L6 23 Z" fill="currentColor" opacity="0.6"/>
+    <!-- Tall tower structure -->
+    <rect x="9" y="10" width="6" height="8" fill="currentColor" opacity="0.8" rx="0.5"/>
+    <!-- Observation deck -->
+    <path d="M7 10 L17 10 L16 8 L8 8 Z" fill="currentColor" opacity="0.9"/>
+    <!-- Sniper scope/crosshair -->
+    <circle cx="12" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <line x1="12" y1="2" x2="12" y2="4" stroke="currentColor" stroke-width="1"/>
+    <line x1="12" y1="8" x2="12" y2="10" stroke="currentColor" stroke-width="1"/>
+    <line x1="8" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1"/>
+    <line x1="14" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="1"/>
+    <circle cx="12" cy="6" r="1" fill="currentColor"/>
+    <!-- Long rifle barrel -->
+    <rect x="11" y="4" width="2" height="8" fill="currentColor" rx="0.5"/>
+    <!-- Window detail -->
+    <rect x="10" y="12" width="1" height="2" fill="currentColor" opacity="0.3"/>
+    <rect x="13" y="12" width="1" height="2" fill="currentColor" opacity="0.3"/>
   `,
 
   [IconType.RAPID_TOWER]: `
-    <path d="M12 2 L8 10 L16 10 Z" fill="currentColor"/>
-    <path d="M12 8 L8 16 L16 16 Z" fill="currentColor" opacity="0.7"/>
-    <path d="M12 14 L8 22 L16 22 Z" fill="currentColor" opacity="0.4"/>
+    <!-- Tower base -->
+    <path d="M8 20 L8 18 L16 18 L16 20 L17 22 L7 22 Z" fill="currentColor" opacity="0.6"/>
+    <!-- Rotating turret base -->
+    <circle cx="12" cy="15" r="5" fill="currentColor" opacity="0.7"/>
+    <circle cx="12" cy="15" r="3" fill="currentColor" opacity="0.4"/>
+    <!-- Multiple gun barrels in star pattern -->
+    <g transform="translate(12,15)">
+      <!-- Main barrel (top) -->
+      <rect x="-1" y="-8" width="2" height="6" fill="currentColor" rx="0.5"/>
+      <!-- Right barrel -->
+      <rect x="2" y="-1" width="6" height="2" fill="currentColor" rx="0.5" transform="rotate(45)"/>
+      <!-- Bottom barrel -->
+      <rect x="-1" y="2" width="2" height="6" fill="currentColor" rx="0.5"/>
+      <!-- Left barrel -->
+      <rect x="-8" y="-1" width="6" height="2" fill="currentColor" rx="0.5" transform="rotate(-45)"/>
+    </g>
+    <!-- Muzzle flashes to show rapid fire -->
+    <circle cx="12" cy="7" r="1" fill="currentColor" opacity="0.3"/>
+    <circle cx="18" cy="13" r="1" fill="currentColor" opacity="0.3"/>
+    <circle cx="6" cy="13" r="1" fill="currentColor" opacity="0.3"/>
+    <!-- Central mechanism -->
+    <circle cx="12" cy="15" r="1.5" fill="currentColor"/>
   `,
 
   [IconType.WALL]: `
-    <rect x="4" y="6" width="16" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
-    <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
-    <line x1="12" y1="6" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
-    <line x1="8" y1="12" x2="8" y2="18" stroke="currentColor" stroke-width="2"/>
-    <line x1="16" y1="12" x2="16" y2="18" stroke="currentColor" stroke-width="2"/>
+    <!-- Stone blocks pattern -->
+    <!-- Bottom row -->
+    <rect x="3" y="16" width="6" height="5" fill="currentColor" opacity="0.8" stroke="currentColor" stroke-width="0.5"/>
+    <rect x="9" y="16" width="6" height="5" fill="currentColor" opacity="0.7" stroke="currentColor" stroke-width="0.5"/>
+    <rect x="15" y="16" width="6" height="5" fill="currentColor" opacity="0.8" stroke="currentColor" stroke-width="0.5"/>
+    <!-- Middle row -->
+    <rect x="6" y="11" width="6" height="5" fill="currentColor" opacity="0.7" stroke="currentColor" stroke-width="0.5"/>
+    <rect x="12" y="11" width="6" height="5" fill="currentColor" opacity="0.8" stroke="currentColor" stroke-width="0.5"/>
+    <rect x="3" y="11" width="3" height="5" fill="currentColor" opacity="0.7" stroke="currentColor" stroke-width="0.5"/>
+    <rect x="18" y="11" width="3" height="5" fill="currentColor" opacity="0.7" stroke="currentColor" stroke-width="0.5"/>
+    <!-- Top row -->
+    <rect x="3" y="6" width="6" height="5" fill="currentColor" opacity="0.7" stroke="currentColor" stroke-width="0.5"/>
+    <rect x="9" y="6" width="6" height="5" fill="currentColor" opacity="0.8" stroke="currentColor" stroke-width="0.5"/>
+    <rect x="15" y="6" width="6" height="5" fill="currentColor" opacity="0.7" stroke="currentColor" stroke-width="0.5"/>
+    <!-- Battlements -->
+    <rect x="4" y="3" width="3" height="3" fill="currentColor" opacity="0.9"/>
+    <rect x="10.5" y="3" width="3" height="3" fill="currentColor" opacity="0.9"/>
+    <rect x="17" y="3" width="3" height="3" fill="currentColor" opacity="0.9"/>
   `,
 
   [IconType.TOWER]: `
-    <path d="M5 21L19 21L17 7L7 7Z" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M10 7V3H14V7" stroke="currentColor" stroke-width="2"/>
-    <circle cx="12" cy="14" r="3" fill="currentColor"/>
+    <!-- Generic tower structure -->
+    <!-- Base foundation -->
+    <path d="M6 22 L6 20 L18 20 L18 22 L20 23 L4 23 Z" fill="currentColor" opacity="0.5"/>
+    <!-- Main tower body - tapered -->
+    <path d="M7 20 L8 8 L16 8 L17 20 Z" fill="currentColor" opacity="0.8"/>
+    <!-- Tower top/roof -->
+    <path d="M6 8 L12 3 L18 8 Z" fill="currentColor" opacity="0.9"/>
+    <!-- Flag on top -->
+    <rect x="11.5" y="1" width="1" height="4" fill="currentColor"/>
+    <path d="M12.5 1 L16 2 L12.5 3 Z" fill="currentColor" opacity="0.7"/>
+    <!-- Windows -->
+    <rect x="10" y="10" width="2" height="3" fill="currentColor" opacity="0.3"/>
+    <rect x="13" y="10" width="2" height="3" fill="currentColor" opacity="0.3"/>
+    <rect x="10" y="15" width="2" height="3" fill="currentColor" opacity="0.3"/>
+    <rect x="13" y="15" width="2" height="3" fill="currentColor" opacity="0.3"/>
+    <!-- Door -->
+    <path d="M10 20 L10 17 A2 2 0 0 1 14 17 L14 20 Z" fill="currentColor" opacity="0.4"/>
   `,
 
   [IconType.SELL]: `
-    <path d="M12 2L2 12h3v8h6v-5h4v5h6v-8h3L12 2z" fill="currentColor"/>
-    
-
-    
+    <!-- Dollar sign in circle -->
+    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M12 6 L12 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M9 8 C9 7 10 6 12 6 C14 6 15 7 15 8 C15 9 14 10 12 10 C10 10 9 11 9 12 C9 13 10 14 12 14 C14 14 15 13 15 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Arrow indicating selling/down -->
+    <path d="M7 20 L12 23 L17 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   `,
 
   // Action Icons
@@ -188,8 +258,22 @@ const ICON_PATHS: Record<IconType, string> = {
   `,
 
   [IconType.PLAYER]: `
-    <circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M4 21 C4 16 8 13 12 13 C16 13 20 16 20 21" fill="none" stroke="currentColor" stroke-width="2"/>
+    <!-- Head with helmet -->
+    <circle cx="12" cy="6" r="4" fill="currentColor" opacity="0.9"/>
+    <path d="M8 4 C8 2 10 1 12 1 C14 1 16 2 16 4" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>
+    <!-- Face details -->
+    <circle cx="10" cy="5" r="0.5" fill="white"/>
+    <circle cx="14" cy="5" r="0.5" fill="white"/>
+    <!-- Body with armor -->
+    <path d="M6 11 C6 10 8 9 12 9 C16 9 18 10 18 11 L18 16 C18 17 17 18 16 18 L8 18 C7 18 6 17 6 16 Z" fill="currentColor" opacity="0.8"/>
+    <!-- Armor details -->
+    <rect x="10" y="11" width="4" height="5" fill="currentColor" opacity="0.4" rx="0.5"/>
+    <!-- Arms -->
+    <rect x="4" y="12" width="3" height="6" fill="currentColor" opacity="0.7" rx="1"/>
+    <rect x="17" y="12" width="3" height="6" fill="currentColor" opacity="0.7" rx="1"/>
+    <!-- Legs -->
+    <rect x="8" y="17" width="3" height="5" fill="currentColor" opacity="0.7" rx="1"/>
+    <rect x="13" y="17" width="3" height="5" fill="currentColor" opacity="0.7" rx="1"/>
   `,
 
   [IconType.CLOSE]: `
@@ -219,41 +303,13 @@ const ICON_PATHS: Record<IconType, string> = {
   `,
 
   [IconType.BUILD]: `
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <!-- Wrench (behind hammer) -->
-  <g transform="rotate(-45 50 50)">
-    <!-- Wrench handle -->
-    <rect x="45" y="20" width="10" height="50" fill="currentColor" rx="1"/>
-    <!-- Wrench head -->
-    <path d="M 42 15 L 42 5 L 45 5 L 45 8 L 55 8 L 55 5 L 58 5 L 58 15 L 55 15 L 55 20 L 45 20 L 45 15 Z" fill="currentColor"/>
-    <!-- Wrench jaw detail -->
-    <rect x="47" y="12" width="6" height="3" fill="currentColor" opacity="0.3"/>
-  </g>
-  
-  <!-- Hammer (in front) -->
-  <g transform="rotate(45 50 50)">
-    <!-- Hammer handle -->
-    <rect x="48" y="35" width="4" height="40" fill="currentColor" rx="0.5"/>
-    <!-- Handle grip texture -->
-    <rect x="48" y="60" width="4" height="3" fill="currentColor" opacity="0.4"/>
-    <rect x="48" y="65" width="4" height="3" fill="currentColor" opacity="0.4"/>
-    <rect x="48" y="70" width="4" height="3" fill="currentColor" opacity="0.4"/>
-    
-    <!-- Hammer head -->
-    <rect x="40" y="25" width="20" height="12" fill="currentColor" rx="1"/>
-    <!-- Hammer claw -->
-    <path d="M 40 25 L 40 22 Q 40 20 42 20 L 44 20 L 44 25 Z" fill="currentColor"/>
-    <path d="M 40 37 L 40 40 Q 40 42 42 42 L 44 42 L 44 37 Z" fill="currentColor"/>
-    <!-- Hammer face detail -->
-    <rect x="56" y="27" width="3" height="8" fill="currentColor" opacity="0.3"/>
-    
-    <!-- Center mounting hole -->
-    <circle cx="50" cy="31" r="2" fill="currentColor" opacity="0.5"/>
-  </g>
-  
-  <!-- Optional outer ring for better icon framing -->
-  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
-</svg>
+    <!-- Simple hammer icon -->
+    <!-- Handle -->
+    <rect x="10" y="8" width="4" height="12" fill="currentColor" rx="1"/>
+    <!-- Head -->
+    <rect x="7" y="4" width="10" height="6" fill="currentColor" rx="1"/>
+    <!-- Claw detail -->
+    <path d="M7 4 L7 3 Q7 2 8 2 L9 2 L9 4 M15 4 L15 2 L16 2 Q17 2 17 3 L17 4" fill="currentColor"/>
   `,
 
   [IconType.SETTINGS]: `
@@ -294,7 +350,10 @@ const ICON_PATHS: Record<IconType, string> = {
   `,
 
   [IconType.HEART]: `
-    <path d="M12 21 C12 21 3 13.5 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 12 4 12 4 C12 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 13.5 12 21 12 21 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <!-- Heart with gradient effect -->
+    <path d="M12 21 C12 21 3 13.5 3 8.5 C3 5.5 5.5 3 8.5 3 C10.5 3 12 4 12 4 C12 4 13.5 3 15.5 3 C18.5 3 21 5.5 21 8.5 C21 13.5 12 21 12 21 Z" fill="currentColor" opacity="0.9"/>
+    <!-- Highlight -->
+    <ellipse cx="9" cy="8" rx="2" ry="2.5" fill="white" opacity="0.3"/>
   `,
 
   // Audio Icons
@@ -409,9 +468,18 @@ const ICON_PATHS: Record<IconType, string> = {
   `,
 
   [IconType.COINS]: `
-    <ellipse cx="12" cy="8" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M4 8 L4 12 C4 13.5 7.5 15 12 15 C16.5 15 20 13.5 20 12 L20 8" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M4 12 L4 16 C4 17.5 7.5 19 12 19 C16.5 19 20 17.5 20 16 L20 12" fill="none" stroke="currentColor" stroke-width="2"/>
+    <!-- Stack of coins with 3D effect -->
+    <!-- Bottom coin -->
+    <ellipse cx="12" cy="16" rx="7" ry="2.5" fill="currentColor" opacity="0.6"/>
+    <path d="M5 16 L5 18 C5 19.5 8 20 12 20 C16 20 19 19.5 19 18 L19 16" fill="currentColor" opacity="0.5"/>
+    <!-- Middle coin -->
+    <ellipse cx="12" cy="12" rx="7" ry="2.5" fill="currentColor" opacity="0.7"/>
+    <path d="M5 12 L5 14 C5 15.5 8 16 12 16 C16 16 19 15.5 19 14 L19 12" fill="currentColor" opacity="0.6"/>
+    <!-- Top coin -->
+    <ellipse cx="12" cy="8" rx="7" ry="2.5" fill="currentColor" opacity="0.9"/>
+    <path d="M5 8 L5 10 C5 11.5 8 12 12 12 C16 12 19 11.5 19 10 L19 8" fill="currentColor" opacity="0.8"/>
+    <!-- Dollar sign on top coin -->
+    <text x="12" y="10" text-anchor="middle" font-size="6" fill="white" font-weight="bold">$</text>
   `,
 
   [IconType.WAVE]: `
@@ -464,19 +532,37 @@ const ICON_PATHS: Record<IconType, string> = {
   `,
 
   [IconType.SKULL]: `
-    <path d="M9.5 2 C5.9 2 3 4.9 3 8.5 C3 10.5 3.8 12.3 5 13.6 L5 18 C5 19.1 5.9 20 7 20 L17 20 C18.1 20 19 19.1 19 18 L19 13.6 C20.2 12.3 21 10.5 21 8.5 C21 4.9 18.1 2 14.5 2 L9.5 2 Z" fill="none" stroke="currentColor" stroke-width="2"/>
-    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
-    <circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/>
-    <path d="M10 14 L10 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M12 14 L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M14 14 L14 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Skull shape -->
+    <path d="M12 2 C7 2 3 6 3 11 C3 14 4 16 5 17 L5 19 C5 20 6 21 7 21 L17 21 C18 21 19 20 19 19 L19 17 C20 16 21 14 21 11 C21 6 17 2 12 2 Z" fill="currentColor" opacity="0.9"/>
+    <!-- Eye sockets -->
+    <circle cx="8" cy="10" r="2.5" fill="black" opacity="0.8"/>
+    <circle cx="16" cy="10" r="2.5" fill="black" opacity="0.8"/>
+    <!-- Glowing eyes -->
+    <circle cx="8" cy="10" r="0.5" fill="red" opacity="0.9"/>
+    <circle cx="16" cy="10" r="0.5" fill="red" opacity="0.9"/>
+    <!-- Nose -->
+    <path d="M12 13 L10 15 L12 16 L14 15 Z" fill="black" opacity="0.7"/>
+    <!-- Teeth -->
+    <rect x="8" y="17" width="2" height="3" fill="white" opacity="0.9" rx="0.5"/>
+    <rect x="11" y="17" width="2" height="3" fill="white" opacity="0.9" rx="0.5"/>
+    <rect x="14" y="17" width="2" height="3" fill="white" opacity="0.9" rx="0.5"/>
+    <!-- Cracks for damage effect -->
+    <path d="M6 6 L7 8 L6 10" fill="none" stroke="black" stroke-width="0.5" opacity="0.3"/>
   `,
 
   [IconType.TROPHY]: `
-    <path d="M6 9H4.5A2.5 2.5 0 0 1 2 6.5V4A2 2 0 0 1 4 2H20A2 2 0 0 1 22 4V6.5A2.5 2.5 0 0 1 19.5 9H18" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M6 9H18V15A6 6 0 0 1 6 15V9Z" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M10 22H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M8 22H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Trophy cup -->
+    <path d="M6 8 L6 14 C6 17 8 19 12 19 C16 19 18 17 18 14 L18 8 Z" fill="currentColor" opacity="0.9"/>
+    <!-- Handles -->
+    <path d="M6 9 L3 9 C2 9 1 8 1 7 L1 6 C1 5 2 4 3 4 L6 4" fill="currentColor" opacity="0.7"/>
+    <path d="M18 9 L21 9 C22 9 23 8 23 7 L23 6 C23 5 22 4 21 4 L18 4" fill="currentColor" opacity="0.7"/>
+    <!-- Base -->
+    <rect x="10" y="18" width="4" height="3" fill="currentColor" opacity="0.8"/>
+    <path d="M8 21 L16 21 L17 22 L7 22 Z" fill="currentColor" opacity="0.7"/>
+    <!-- Star on trophy -->
+    <path d="M12 10 L13 12 L15 12 L13.5 13.5 L14 15.5 L12 14 L10 15.5 L10.5 13.5 L9 12 L11 12 Z" fill="white" opacity="0.8"/>
+    <!-- Shine effect -->
+    <ellipse cx="10" cy="10" rx="2" ry="3" fill="white" opacity="0.3"/>
   `,
 
   [IconType.LEADERBOARD]: `
@@ -492,10 +578,25 @@ const ICON_PATHS: Record<IconType, string> = {
   `,
 
   [IconType.ENEMY]: `
-    <circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M12 14V22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M8 18L12 14L16 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M8 20H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Menacing head with horns -->
+    <circle cx="12" cy="8" r="5" fill="currentColor" opacity="0.9"/>
+    <path d="M7 3 L5 1 M17 3 L19 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <!-- Evil eyes -->
+    <circle cx="9" cy="7" r="1.5" fill="red" opacity="0.8"/>
+    <circle cx="15" cy="7" r="1.5" fill="red" opacity="0.8"/>
+    <circle cx="9" cy="7" r="0.5" fill="white"/>
+    <circle cx="15" cy="7" r="0.5" fill="white"/>
+    <!-- Mouth/teeth -->
+    <path d="M8 10 Q12 12 16 10" fill="none" stroke="white" stroke-width="1"/>
+    <path d="M9 10 L9 11 M11 10 L11 11 M13 10 L13 11 M15 10 L15 11" stroke="white" stroke-width="0.5"/>
+    <!-- Spiky body -->
+    <path d="M7 13 L6 14 L7 15 L6 16 L7 17 L6 18 L7 19 L12 20 L17 19 L18 18 L17 17 L18 16 L17 15 L18 14 L17 13 Z" fill="currentColor" opacity="0.8"/>
+    <!-- Claws/arms -->
+    <path d="M5 15 L3 13 L2 14 L3 16 L5 17" fill="currentColor" opacity="0.7"/>
+    <path d="M19 15 L21 13 L22 14 L21 16 L19 17" fill="currentColor" opacity="0.7"/>
+    <!-- Legs -->
+    <path d="M9 20 L8 23 L10 23 Z" fill="currentColor" opacity="0.7"/>
+    <path d="M15 20 L14 23 L16 23 Z" fill="currentColor" opacity="0.7"/>
   `,
 
   [IconType.CURRENCY]: `

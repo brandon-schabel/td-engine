@@ -99,7 +99,7 @@ export class SettingsScene extends Scene {
     header.appendChild(backButton);
 
     const title = document.createElement('h1');
-    title.className = cn('text-2xl', 'font-bold', 'text-text-primary');
+    title.className = cn('text-2xl', 'font-bold', 'text-white');
     title.textContent = 'Settings';
     header.appendChild(title);
 
@@ -245,7 +245,7 @@ export class SettingsScene extends Scene {
       icon: iconSvg,
       level: 3,
       variant: 'compact',
-      customClasses: ['text-text-primary', 'uppercase', 'text-sm', 'font-semibold', 'tracking-wider']
+      customClasses: ['text-white', 'uppercase', 'text-sm', 'font-semibold', 'tracking-wider']
     });
     section.appendChild(header);
 
@@ -266,7 +266,7 @@ export class SettingsScene extends Scene {
     );
 
     const labelElement = document.createElement('label');
-    labelElement.className = cn('text-text-primary', 'font-medium');
+    labelElement.className = cn('text-white', 'font-medium');
     labelElement.textContent = label;
     row.appendChild(labelElement);
 

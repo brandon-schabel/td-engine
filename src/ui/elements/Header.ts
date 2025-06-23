@@ -227,3 +227,26 @@ export function createCompactHeader(
     ...options
   });
 }
+
+// Add CSS animations for level up notification
+if (typeof document !== 'undefined' && !document.getElementById('level-up-animations')) {
+  const style = document.createElement('style');
+  style.id = 'level-up-animations';
+  style.textContent = `
+    @keyframes slide-down-fade-in {
+      0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+    
+    .animate-slide-down-fade-in {
+      animation: slide-down-fade-in 0.3s ease-out;
+    }
+  `;
+  document.head.appendChild(style);
+}

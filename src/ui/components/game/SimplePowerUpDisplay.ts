@@ -248,7 +248,7 @@ export class PowerUpDisplay {
         'transform',
         '-translate-x-1/2',
         '-translate-y-1/2',
-        'bg-surface-primary',
+        'bg-white',
         'border-2',
         'border-primary',
         'rounded-lg',
@@ -273,7 +273,7 @@ export class PowerUpDisplay {
       'transform',
       '-translate-x-1/2',
       '-translate-y-1/2',
-      'bg-surface-primary',
+      'bg-white',
       'border-2',
       'border-primary',
       'rounded-lg',
@@ -291,8 +291,8 @@ export class PowerUpDisplay {
     content.innerHTML = `
       ${icon}
       <div class="${cn('flex', 'flex-col')}">
-        <div class="${cn('text-lg', 'font-bold', 'text-primary')}">${name}</div>
-        <div class="${cn('text-sm', 'text-secondary')}">${Math.ceil(duration / 1000)}s duration</div>
+        <div class="${cn('text-lg', 'font-bold')}" style="color: #000">${name}</div>
+        <div class="${cn('text-sm')}" style="color: #666">${Math.ceil(duration / 1000)}s duration</div>
       </div>
     `;
     notification.setContent(content);

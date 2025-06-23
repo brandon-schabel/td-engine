@@ -6,6 +6,7 @@ import { CooldownManager } from '@/utils/CooldownManager';
 import { ENEMY_STATS, ENEMY_BEHAVIOR, EnemyBehavior } from '../config/EnemyConfig';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ENEMY_RENDER } from '@/config/RenderingConfig';
+import { DestructionEffect } from '@/effects/DestructionEffect';
 
 export enum EnemyType {
   BASIC = 'BASIC',
@@ -203,6 +204,11 @@ export class Enemy extends Entity {
     return this.attackCooldownTime;
   }
 
+  // Create destruction effect when enemy dies
+  createDestructionEffect(): DestructionEffect {
+    return new DestructionEffect(this.position, this.enemyType);
+  }
+
   // Rendering method (moved from Renderer class)
   render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any): void {
     // Try to render with texture first
@@ -212,30 +218,118 @@ export class Enemy extends Entity {
     if (texture && texture.loaded && textureManager) {
       ctx.drawImage(texture.image, screenPos.x - this.radius, screenPos.y - this.radius, this.radius * 2, this.radius * 2);
     } else {
-      // Fallback to primitive rendering
-      ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, this.radius, 0, Math.PI * 2);
+      // Enhanced primitive rendering based on enemy type
+      ctx.save();
+      ctx.translate(screenPos.x, screenPos.y);
       
-      // Different colors for different enemy types
       switch (this.enemyType) {
         case EnemyType.BASIC:
+          // Basic enemy - spiky circle with eyes
           ctx.fillStyle = COLOR_THEME.enemies.basic;
+          
+          // Body with spikes
+          ctx.beginPath();
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const spikeRadius = i % 2 === 0 ? this.radius : this.radius * 0.8;
+            const x = Math.cos(angle) * spikeRadius;
+            const y = Math.sin(angle) * spikeRadius;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.fill();
+          
+          // Evil eyes
+          ctx.fillStyle = 'red';
+          ctx.beginPath();
+          ctx.arc(-this.radius * 0.3, -this.radius * 0.2, this.radius * 0.15, 0, Math.PI * 2);
+          ctx.arc(this.radius * 0.3, -this.radius * 0.2, this.radius * 0.15, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Eye pupils
+          ctx.fillStyle = 'black';
+          ctx.beginPath();
+          ctx.arc(-this.radius * 0.3, -this.radius * 0.2, this.radius * 0.05, 0, Math.PI * 2);
+          ctx.arc(this.radius * 0.3, -this.radius * 0.2, this.radius * 0.05, 0, Math.PI * 2);
+          ctx.fill();
           break;
+          
         case EnemyType.FAST:
+          // Fast enemy - streamlined triangle shape
           ctx.fillStyle = COLOR_THEME.enemies.fast;
+          
+          // Pointed body facing movement direction
+          const moveAngle = Math.atan2(this.velocity.y, this.velocity.x);
+          ctx.rotate(moveAngle);
+          
+          ctx.beginPath();
+          ctx.moveTo(this.radius, 0);
+          ctx.lineTo(-this.radius * 0.7, -this.radius * 0.7);
+          ctx.lineTo(-this.radius * 0.3, 0);
+          ctx.lineTo(-this.radius * 0.7, this.radius * 0.7);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Speed lines
+          ctx.strokeStyle = COLOR_THEME.enemies.fast;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(-this.radius * 1.2, -this.radius * 0.3);
+          ctx.lineTo(-this.radius * 0.8, 0);
+          ctx.moveTo(-this.radius * 1.2, this.radius * 0.3);
+          ctx.lineTo(-this.radius * 0.8, 0);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
           break;
+          
         case EnemyType.TANK:
+          // Tank enemy - heavy armored square with treads
           ctx.fillStyle = COLOR_THEME.enemies.tank;
+          
+          // Main body
+          ctx.fillRect(-this.radius * 0.8, -this.radius * 0.6, this.radius * 1.6, this.radius * 1.2);
+          
+          // Armor plates
+          ctx.fillStyle = 'rgba(0,0,0,0.2)';
+          ctx.fillRect(-this.radius * 0.7, -this.radius * 0.5, this.radius * 0.3, this.radius);
+          ctx.fillRect(this.radius * 0.4, -this.radius * 0.5, this.radius * 0.3, this.radius);
+          
+          // Treads
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(-this.radius * 0.9, -this.radius * 0.7, this.radius * 1.8, this.radius * 0.2);
+          ctx.fillRect(-this.radius * 0.9, this.radius * 0.5, this.radius * 1.8, this.radius * 0.2);
+          
+          // Tread details
+          ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+          ctx.lineWidth = 1;
+          for (let i = -3; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * this.radius * 0.25, -this.radius * 0.7);
+            ctx.lineTo(i * this.radius * 0.25, -this.radius * 0.5);
+            ctx.moveTo(i * this.radius * 0.25, this.radius * 0.5);
+            ctx.lineTo(i * this.radius * 0.25, this.radius * 0.7);
+            ctx.stroke();
+          }
           break;
+          
         default:
+          // Default circular enemy
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
           ctx.fillStyle = COLOR_THEME.enemies.default;
+          ctx.fill();
       }
       
-      ctx.fill();
+      ctx.restore();
     }
     
     // Enemy outline - different color based on target
     const targetType = this.getTargetType();
+    ctx.beginPath();
+    ctx.arc(screenPos.x, screenPos.y, this.radius + 2, 0, Math.PI * 2);
+    
     if (targetType === 'tower') {
       ctx.strokeStyle = COLOR_THEME.enemies.outlines.tower;
       ctx.lineWidth = ENEMY_RENDER.outline.towerAttacker;
@@ -246,12 +340,7 @@ export class Enemy extends Entity {
       ctx.strokeStyle = COLOR_THEME.enemies.outlines.default;
       ctx.lineWidth = ENEMY_RENDER.outline.default;
     }
-    ctx.strokeRect(
-      screenPos.x - this.radius,
-      screenPos.y - this.radius,
-      this.radius * 2,
-      this.radius * 2
-    );
+    ctx.stroke();
   }
 
   // Render target indicator line

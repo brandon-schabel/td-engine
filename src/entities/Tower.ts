@@ -1,6 +1,6 @@
 import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
-import { Projectile } from './Projectile';
+import { Projectile, ProjectileType } from './Projectile';
 import type { Vector2 } from '@/utils/Vector2';
 export enum UpgradeType {
   DAMAGE = 'DAMAGE',
@@ -98,7 +98,37 @@ export class Tower extends Entity implements ShootingCapable {
     if (this.towerType === TowerType.WALL) {
       return null;
     }
-    return ShootingUtils.performShoot(this as ShootingCapable, target, GAME_MECHANICS.towerProjectileSpeed);
+    
+    // Determine projectile type based on tower type
+    let projectileType: ProjectileType;
+    switch (this.towerType) {
+      case TowerType.SNIPER:
+        projectileType = ProjectileType.SNIPER_ROUND;
+        break;
+      case TowerType.RAPID:
+        projectileType = ProjectileType.RAPID_PELLET;
+        break;
+      case TowerType.BASIC:
+      default:
+        projectileType = ProjectileType.BASIC_BULLET;
+        break;
+    }
+    
+    if (!ShootingUtils.canShoot(this.currentCooldown)) {
+      return null;
+    }
+
+    // Start cooldown
+    this.currentCooldown = ShootingUtils.startShootingCooldown(this.cooldownTime);
+
+    // Create and return projectile with appropriate type
+    return ShootingUtils.createProjectile({
+      position: this.position,
+      target,
+      damage: this.damage,
+      speed: GAME_MECHANICS.towerProjectileSpeed,
+      projectileType
+    });
   }
 
   updateAndShoot(enemies: Enemy[], deltaTime: number): Projectile[] {
@@ -298,38 +328,149 @@ export class Tower extends Entity implements ShootingCapable {
       // Texture rendering - would need renderTextureAt method, use fallback for now
       ctx.drawImage(texture.image, screenPos.x - this.radius, screenPos.y - this.radius, this.radius * 2, this.radius * 2);
     } else {
-      // Fallback to primitive rendering
-      ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, this.radius, 0, Math.PI * 2);
-      
-      // Different colors for different tower types with upgrade intensity
+      // Enhanced primitive rendering based on tower type
       const upgradeLevel = this.getVisualLevel();
       const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONSTANTS.visualUpgradeMultiplier, UPGRADE_CONSTANTS.visualIntensityMultiplier);
       
+      ctx.save();
+      ctx.translate(screenPos.x, screenPos.y);
+      
       switch (this.towerType) {
         case TowerType.BASIC:
-          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          // Basic tower - square base with circular turret
+          const basicColor = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          
+          // Square base
+          ctx.fillStyle = basicColor;
+          ctx.fillRect(-this.radius * 0.8, -this.radius * 0.8, this.radius * 1.6, this.radius * 1.6);
+          ctx.strokeStyle = COLOR_THEME.ui.border.default;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-this.radius * 0.8, -this.radius * 0.8, this.radius * 1.6, this.radius * 1.6);
+          
+          // Circular turret
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius * 0.5, 0, Math.PI * 2);
+          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(40 * intensity, 70)}%)`;
+          ctx.fill();
+          ctx.stroke();
+          
+          // Cannon barrel pointing up
+          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(30 * intensity, 60)}%)`;
+          ctx.fillRect(-this.radius * 0.15, -this.radius * 0.8, this.radius * 0.3, this.radius * 0.6);
           break;
+          
         case TowerType.SNIPER:
-          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          // Sniper tower - tall hexagonal shape with crosshair
+          const sniperColor = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          
+          // Hexagonal body
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            const x = Math.cos(angle) * this.radius * 0.9;
+            const y = Math.sin(angle) * this.radius * 0.9;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.fillStyle = sniperColor;
+          ctx.fill();
+          ctx.strokeStyle = COLOR_THEME.ui.border.default;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Crosshair
+          ctx.strokeStyle = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(70 * intensity, 90)}%)`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(-this.radius * 0.6, 0);
+          ctx.lineTo(-this.radius * 0.2, 0);
+          ctx.moveTo(this.radius * 0.2, 0);
+          ctx.lineTo(this.radius * 0.6, 0);
+          ctx.moveTo(0, -this.radius * 0.6);
+          ctx.lineTo(0, -this.radius * 0.2);
+          ctx.moveTo(0, this.radius * 0.2);
+          ctx.lineTo(0, this.radius * 0.6);
+          ctx.stroke();
+          
+          // Center dot
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius * 0.1, 0, Math.PI * 2);
+          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(80 * intensity, 95)}%)`;
+          ctx.fill();
           break;
+          
         case TowerType.RAPID:
-          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          // Rapid tower - rotating multi-barrel design
+          const rapidColor = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(50 * intensity, 80)}%)`;
+          const time = Date.now() * 0.002;
+          
+          // Base circle
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius * 0.8, 0, Math.PI * 2);
+          ctx.fillStyle = rapidColor;
+          ctx.fill();
+          ctx.strokeStyle = COLOR_THEME.ui.border.default;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Rotating barrels
+          ctx.save();
+          ctx.rotate(time);
+          for (let i = 0; i < 4; i++) {
+            ctx.save();
+            ctx.rotate((i / 4) * Math.PI * 2);
+            ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(35 * intensity, 65)}%)`;
+            ctx.fillRect(-this.radius * 0.1, -this.radius * 0.9, this.radius * 0.2, this.radius * 0.7);
+            ctx.strokeRect(-this.radius * 0.1, -this.radius * 0.9, this.radius * 0.2, this.radius * 0.7);
+            ctx.restore();
+          }
+          ctx.restore();
+          
+          // Center hub
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius * 0.3, 0, Math.PI * 2);
+          ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(30 * intensity, 60)}%)`;
+          ctx.fill();
+          ctx.stroke();
           break;
+          
         case TowerType.WALL:
-          // Walls are gray/stone colored
+          // Wall - stone block pattern
           ctx.fillStyle = COLOR_THEME.towers.wall;
+          const blockSize = this.radius * 0.5;
+          
+          // Draw stone blocks in a grid
+          for (let x = -1; x <= 1; x++) {
+            for (let y = -1; y <= 1; y++) {
+              const offsetX = y % 2 === 0 ? 0 : blockSize * 0.5;
+              ctx.fillRect(
+                x * blockSize * 0.9 + offsetX - blockSize * 0.45,
+                y * blockSize * 0.9 - blockSize * 0.45,
+                blockSize * 0.8,
+                blockSize * 0.8
+              );
+            }
+          }
+          
+          // Outline
+          ctx.strokeStyle = COLOR_THEME.ui.border.default;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
           break;
+          
         default:
+          // Default circular tower
+          ctx.beginPath();
+          ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
           ctx.fillStyle = COLOR_CONFIG.health.high;
+          ctx.fill();
+          ctx.strokeStyle = COLOR_THEME.ui.border.default;
+          ctx.lineWidth = 2;
+          ctx.stroke();
       }
       
-      ctx.fill();
-      
-      // Tower outline - thicker for upgraded towers
-      ctx.strokeStyle = upgradeLevel > 1 ? COLOR_THEME.towers.outline.upgraded : COLOR_THEME.towers.outline.base;
-      ctx.lineWidth = upgradeLevel > 1 ? TOWER_RENDER.upgradedOutlineWidth : TOWER_RENDER.baseOutlineWidth;
-      ctx.stroke();
+      ctx.restore();
     }
     
     // Render upgrade dots (not for walls)

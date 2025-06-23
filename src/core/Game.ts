@@ -16,6 +16,7 @@ import { Projectile } from "@/entities/Projectile";
 import { Player, PlayerUpgradeType } from "@/entities/Player";
 import { Collectible } from "@/entities/Collectible";
 import { CollectibleType } from "@/entities/items/ItemTypes";
+import { DestructionEffect } from "@/effects/DestructionEffect";
 import type { Vector2 } from "@/utils/Vector2";
 import { AudioManager, SoundType } from "../audio/AudioManager";
 import { MapGenerator } from "@/systems/MapGenerator";
@@ -84,6 +85,7 @@ export class Game {
   private collectibles: Collectible[] = [];
   private inventory: Inventory;
   private equipment: EquipmentManager;
+  private destructionEffects: DestructionEffect[] = [];
   // Removed unused uiManager - all UI handled by floatingUIManager
   private floatingUIManager: FloatingUIManager;
   private uiController: UIController;
@@ -698,6 +700,9 @@ export class Game {
     // Clean up dead entities (inlined from EntityCleaner)
     this.enemies = this.enemies.filter((enemy) => {
       if (!enemy.isAlive) {
+        // Create destruction effect
+        this.destructionEffects.push(enemy.createDestructionEffect());
+        
         // Remove health bar when enemy dies
         const healthBarId = `healthbar_${enemy.id}`;
         this.floatingUIManager.remove(healthBarId);
@@ -711,6 +716,12 @@ export class Game {
     this.collectibles = this.collectibles.filter(
       (collectible) => collectible.isActive
     );
+    
+    // Update and clean up destruction effects
+    this.destructionEffects = this.destructionEffects.filter((effect) => {
+      effect.update(deltaTime);
+      return !effect.isComplete;
+    });
     this.towers = this.towers.filter((tower) => {
       if (!tower.isAlive) {
         // Play destruction sound
@@ -837,7 +848,7 @@ export class Game {
       this.enemies,
       this.projectiles,
       this.collectibles,
-      [], // effects (empty for now)
+      this.destructionEffects, // Pass destruction effects
       this.getPlayerAimerLine(),
       this.player,
       this.selectedTower
@@ -1248,16 +1259,33 @@ export class Game {
   }
 
   private spendCurrency(amount: number): void {
+    const oldCurrency = this.currency;
     this.currency = Math.max(0, this.currency - amount);
+    // Dispatch currency changed event
+    const event = new CustomEvent('currencyChanged', { 
+      detail: { currency: this.currency, change: oldCurrency - this.currency } 
+    });
+    document.dispatchEvent(event);
   }
 
   public addCurrency(amount: number): void {
     this.currency += amount;
+    // Dispatch currency changed event
+    const event = new CustomEvent('currencyChanged', { 
+      detail: { currency: this.currency, change: amount } 
+    });
+    document.dispatchEvent(event);
   }
 
   // Public method for testing
   public setCurrency(amount: number): void {
+    const oldCurrency = this.currency;
     this.currency = amount;
+    // Dispatch currency changed event
+    const event = new CustomEvent('currencyChanged', { 
+      detail: { currency: this.currency, change: amount - oldCurrency } 
+    });
+    document.dispatchEvent(event);
   }
 
   private loseLife(): void {
@@ -1453,8 +1481,9 @@ export class Game {
       "addExperience" in this.player &&
       typeof this.player.addExperience === "function"
     ) {
-      // Award experience based on enemy reward (could be adjusted)
-      const experienceGain = enemy.reward * GAMEPLAY_CONSTANTS.scoring.enemyKillBase; // XP based on base enemy score
+      // Award experience based on enemy reward
+      // Enemies give 2x their reward value as XP
+      const experienceGain = enemy.reward * 2;
       const leveledUp = (this.player as any).addExperience(experienceGain);
       
       // Show level up notification if player leveled up
@@ -1472,8 +1501,8 @@ export class Game {
 
     for (let i = 0; i < numDrops; i++) {
       if (Collectible.shouldSpawnItem(dropRate)) {
-        // 70% chance for new inventory items, 30% chance for traditional collectibles
-        if (Math.random() < 0.7) {
+        // 40% chance for new inventory items, 60% chance for traditional collectibles
+        if (Math.random() < 0.4) {
           // Spawn new item types as collectibles
           const randomItem = Collectible.generateRandomItem();
           // Create a special collectible that represents the item
@@ -2133,8 +2162,8 @@ export class Game {
   // Enhanced item drop system helpers
   private getEnemyDropRate(enemy: Enemy): number {
     // Base drop rate varies by enemy type and wave
-    const baseRate = GAMEPLAY_CONSTANTS.powerUps.dropChance * 2.5; // 25% base chance (0.1 * 2.5)
-    const waveBonus = Math.min(this.waveManager.currentWave * 0.02, 0.15); // Up to +15% at wave 8+
+    const baseRate = GAMEPLAY_CONSTANTS.powerUps.dropChance; // 10% base chance
+    const waveBonus = Math.min(this.waveManager.currentWave * 0.01, 0.08); // Up to +8% at wave 8+
 
     // Different enemy types have different drop rates
     let enemyMultiplier = 1.0;
@@ -2146,7 +2175,7 @@ export class Game {
       enemyMultiplier = 1.0; // Basic enemies have normal drop rate
     }
 
-    return Math.min(baseRate + waveBonus, 0.6) * enemyMultiplier;
+    return Math.min(baseRate + waveBonus, 0.25) * enemyMultiplier; // Cap at 25%
   }
 
   private getNumDropsForEnemy(enemy: Enemy): number {

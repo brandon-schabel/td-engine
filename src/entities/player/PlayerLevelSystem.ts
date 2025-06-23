@@ -26,8 +26,8 @@ export interface LevelStatistics {
 
 export class PlayerLevelSystem {
   private static readonly MAX_LEVEL = 50;
-  private static readonly BASE_XP = 100;
-  private static readonly XP_MULTIPLIER = 1.15; // Reduced from 1.5 for smoother progression
+  private static readonly BASE_XP = 50; // Base XP for level 2
+  private static readonly XP_MULTIPLIER = 1.18; // 18% increase per level
   private static readonly MILESTONE_LEVELS = [10, 20, 30, 40, 50];
   
   // Stat bonuses per level (multiplicative)

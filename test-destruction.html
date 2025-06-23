@@ -1,0 +1,69 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Destruction Effect Test</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #222; color: white; font-family: Arial; }
+        canvas { border: 1px solid #555; background: #111; }
+    </style>
+</head>
+<body>
+    <h2>Destruction Effect Test</h2>
+    <p>Click to create destruction effects</p>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    
+    <script type="module">
+        import { DestructionEffect } from './src/effects/DestructionEffect.js';
+        import { EnemyType } from './src/entities/Enemy.js';
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const effects = [];
+        
+        // Mock camera
+        const camera = {
+            worldToScreen: (pos) => pos,
+            getZoom: () => 1
+        };
+        
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Cycle through enemy types
+            const types = [EnemyType.BASIC, EnemyType.FAST, EnemyType.TANK, 'tower'];
+            const type = types[effects.length % types.length];
+            
+            effects.push(new DestructionEffect({ x, y }, type));
+            console.log(`Created ${type} destruction effect at (${x}, ${y})`);
+        });
+        
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update and render effects
+            for (let i = effects.length - 1; i >= 0; i--) {
+                const effect = effects[i];
+                effect.update(16); // ~60fps
+                
+                if (effect.isComplete) {
+                    effects.splice(i, 1);
+                } else {
+                    effect.render(ctx, camera);
+                }
+            }
+            
+            // Display effect count
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Arial';
+            ctx.fillText(`Active effects: ${effects.length}`, 10, 20);
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
+EOF < /dev/null

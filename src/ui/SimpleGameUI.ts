@@ -11,6 +11,7 @@ import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { isMobile as checkIsMobile } from "@/config/ResponsiveConfig";
 import { createIconButton, createResourceDisplay, cn } from "@/ui/elements";
 import { PersistentPositionManager } from "@/ui/utils/PersistentPositionManager";
+import { InGameSettingsUI } from "@/ui/floating/InGameSettingsUI";
 
 
 
@@ -238,15 +239,11 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
           },
           onSettings: () => {
             console.log('[SimpleGameUI] Settings requested from pause menu');
-            // Get scene manager from global window object
-            const sceneManager = (window as any).sceneManager;
-            if (sceneManager) {
-              // Store the return scene globally
-              (window as any).__settingsReturnScene = 'game';
-              // Close pause menu and switch to settings scene
-              uiController.close('pause-menu');
-              sceneManager.switchTo('settings');
-            }
+            // Close pause menu
+            uiController.close('pause-menu');
+            // Show in-game settings dialog
+            const settingsUI = new InGameSettingsUI(game);
+            settingsUI.show();
           },
           onRestart: () => {
             if (confirm("Are you sure you want to restart the game?")) {
@@ -269,38 +266,9 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     () => {
       console.log("[SimpleGameUI] Settings button clicked");
       audioManager.playUISound(SoundType.BUTTON_CLICK);
-      // Pause the game and show pause menu
-      if (!game.isPaused()) {
-        game.pause();
-        uiController.showPauseMenu({
-          onResume: () => {
-            game.resume();
-            uiController.close('pause-menu');
-          },
-          onSettings: () => {
-            console.log('[SimpleGameUI] Settings requested from pause menu');
-            // Get scene manager from global window object
-            const sceneManager = (window as any).sceneManager;
-            if (sceneManager) {
-              // Store the return scene globally
-              (window as any).__settingsReturnScene = 'game';
-              // Close pause menu and switch to settings scene
-              uiController.close('pause-menu');
-              sceneManager.switchTo('settings');
-            }
-          },
-          onRestart: () => {
-            if (confirm("Are you sure you want to restart the game?")) {
-              window.location.reload();
-            }
-          },
-          onQuit: () => {
-            if (confirm("Are you sure you want to quit to main menu?")) {
-              window.location.reload();
-            }
-          }
-        });
-      }
+      // Show in-game settings dialog directly
+      const settingsUI = new InGameSettingsUI(game);
+      settingsUI.show();
     }
   );
 
@@ -392,13 +360,22 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   });
 
   // Create currency display
-  let currencyDisplay = createResourceDisplay({
-    value: game.getCurrency(),
+  const initialCurrency = game.getCurrency();
+  console.log("[SimpleGameUI] Initial currency value:", initialCurrency);
+  
+  const currencyDisplay = createResourceDisplay({
+    value: initialCurrency,
     icon: IconType.COINS,
     id: 'currency-display',
     variant: 'compact',
     showIcon: true
   });
+
+  // Store reference to the currency display element BEFORE adding to floating container
+  const currencyDisplayElement = currencyDisplay;
+  
+  // Debug: Check if updateValue method exists
+  console.log("[SimpleGameUI] Currency display has updateValue method:", !!(currencyDisplayElement as any).updateValue);
 
   // Create floating currency display with draggable functionality
   const floatingUI = game.getFloatingUIManager();
@@ -415,6 +392,12 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   });
   
   currencyFloatingElement.setContent(currencyDisplay);
+  
+  // Debug: Check if there are multiple currency displays
+  console.log("[SimpleGameUI] All floating elements with currency:", 
+    document.querySelectorAll('[data-floating-id*="currency"]').length);
+  console.log("[SimpleGameUI] All resource-value elements:", 
+    document.querySelectorAll('.resource-value').length);
   
   // Load saved position or use default
   const savedCurrencyPos = PersistentPositionManager.loadPosition('currency-display', 'currency-display-position');
@@ -525,8 +508,29 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
 
   // Currency update handling
   const updateCurrency = () => {
-    if ((currencyDisplay as any).updateValue) {
-      (currencyDisplay as any).updateValue(game.getCurrency());
+    const currentCurrency = game.getCurrency();
+    console.log("[SimpleGameUI] Updating currency to:", currentCurrency);
+    
+    // Update using the stored reference to the currency display element
+    if ((currencyDisplayElement as any).updateValue) {
+      console.log("[SimpleGameUI] Calling updateValue on currency display");
+      (currencyDisplayElement as any).updateValue(currentCurrency);
+    } else {
+      console.warn("[SimpleGameUI] updateValue method not found on currency display!");
+      
+      // Fallback: directly update the DOM
+      const floatingElement = currencyFloatingElement.getElement();
+      if (floatingElement) {
+        // Try to find the currency display element inside the floating container
+        const resourceDisplay = floatingElement.querySelector('#currency-display');
+        if (resourceDisplay) {
+          const valueElement = resourceDisplay.querySelector('.resource-value');
+          if (valueElement) {
+            console.log("[SimpleGameUI] Fallback: Directly updating resource-value element");
+            valueElement.textContent = currentCurrency.toString();
+          }
+        }
+      }
     }
   };
 
@@ -544,7 +548,16 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
   } else {
     handleWaveStart(); // Disable the wave button if wave is active
   }
+  
+  // Force initial currency update
+  console.log("[SimpleGameUI] Forcing initial currency update");
   updateCurrency();
+  
+  // Also set a short timeout to ensure the DOM is ready
+  setTimeout(() => {
+    console.log("[SimpleGameUI] Delayed currency update check");
+    updateCurrency();
+  }, 100);
 
   console.log("[SimpleGameUI] Simple game UI setup complete!");
 
