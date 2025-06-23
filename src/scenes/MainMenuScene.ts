@@ -64,7 +64,8 @@ export class MainMenuScene extends Scene {
       'flex-col',
       'items-center',
       'justify-center',
-      'overflow-hidden'
+      'overflow-hidden',
+      'px-4'  // Add horizontal padding to ensure content never touches edges
     );
 
     // Create animated background

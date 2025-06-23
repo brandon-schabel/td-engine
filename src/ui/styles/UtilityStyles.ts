@@ -6,6 +6,11 @@
 import { styleManager } from './StyleManager';
 
 const utilityStyles = `
+  /* --- GLOBAL RESET --- */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  
   /* --- LAYOUT --- */
   .block { display: block; }
   .inline-block { display: inline-block; }
@@ -715,6 +720,7 @@ const utilityStyles = `
     user-select: none;
     text-decoration: none;
     border: var(--border-width-thick) solid transparent;
+    box-sizing: border-box;
   }
   
   .card-base {
