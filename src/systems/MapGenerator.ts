@@ -12,6 +12,7 @@ import type {
 import { BiomeType, BIOME_PRESETS, MapDifficulty, DecorationLevel } from '@/types/MapData';
 import { Grid, CellType } from './Grid';
 import { PathGenerator } from './PathGenerator';
+import { TerrainGenerator } from './TerrainGenerator';
 import { EdgeType } from './SpawnZoneManager';
 
 export class MapGenerator {
@@ -64,6 +65,10 @@ export class MapGenerator {
     // Apply paths to grid
     this.applyPathsToGrid(grid, paths);
 
+    // Generate terrain features (water, rough terrain, etc.)
+    const terrainGenerator = new TerrainGenerator(grid, config.biome, useSeed);
+    terrainGenerator.generateTerrain(config);
+
     // Generate spawn zones
     const spawnZones = this.generateSpawnZones(grid, mainPath, config);
 
@@ -85,6 +90,20 @@ export class MapGenerator {
     // Generate height map for 3D effects
     const heightMap = this.generateHeightMap(grid, biomeConfig);
 
+    // Capture terrain cells (water, rough terrain, bridges)
+    const terrainCells: MapData['terrainCells'] = [];
+    const terrainTypes = [CellType.WATER, CellType.ROUGH_TERRAIN, CellType.BRIDGE];
+    
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const cellType = grid.getCellType(x, y);
+        if (terrainTypes.includes(cellType)) {
+          terrainCells.push({ x, y, type: cellType });
+        }
+      }
+    }
+    
+
     const mapData: MapData = {
       metadata,
       biomeConfig,
@@ -95,6 +114,7 @@ export class MapGenerator {
       spawnZonesWithMetadata: (this as any)._generatedSpawnZoneMetadata || undefined,
       playerStart,
       heightMap,
+      terrainCells,
       customProperties: {}
     };
     

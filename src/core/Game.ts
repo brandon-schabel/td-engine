@@ -49,10 +49,13 @@ import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager } from "@/ui/floating";
 import { UIController } from "@/ui/UIController";
 import { TouchGestureManager } from "@/input/TouchGestureManager";
+import { TerrainDebug } from "@/debug/TerrainDebug";
+import { NavigationGrid } from "@/systems/NavigationGrid";
 
 export class Game {
   private engine: GameEngine;
   private grid: Grid;
+  private navigationGrid: NavigationGrid;
   // private pathfinder: Pathfinder; // Unused - commented out to fix TypeScript error
   private waveManager: WaveManager;
   private spawnZoneManager: SpawnZoneManager;
@@ -128,6 +131,9 @@ export class Game {
 
     // Apply generated map to grid
     this.applyMapToGrid();
+    
+    // Initialize navigation grid
+    this.navigationGrid = new NavigationGrid(this.grid);
 
     // Calculate world size
     const worldWidth = this.grid.width * this.grid.cellSize;
@@ -332,6 +338,13 @@ export class Game {
         }
       }
     }
+    
+    // Apply terrain cells (water, rough terrain, bridges)
+    if (this.currentMapData.terrainCells && this.currentMapData.terrainCells.length > 0) {
+      this.currentMapData.terrainCells.forEach(terrainCell => {
+        this.grid.setCellType(terrainCell.x, terrainCell.y, terrainCell.type as CellType);
+      });
+    }
   }
 
   private loadWaveConfigurations(): void {
@@ -517,6 +530,9 @@ export class Game {
     newEnemies.forEach((enemy) => {
       // Set enemy to target player instead of following path
       enemy.setTarget(this.player);
+      
+      // Provide navigation grid for pathfinding
+      enemy.setNavigationGrid(this.navigationGrid);
 
       // Add damage callback for floating damage numbers
       enemy.onDamage = (event) => {
@@ -539,11 +555,11 @@ export class Game {
     this.enemies.forEach((enemy) => {
       // Provide tower information to enemies for targeting decisions
       enemy.setTowers(this.towers);
-      enemy.update(deltaTime);
+      enemy.update(deltaTime, this.grid);
     });
 
     // Update player
-    this.player.update(deltaTime);
+    this.player.update(deltaTime, this.grid);
     const worldWidth = this.grid.width * this.grid.cellSize;
     const worldHeight = this.grid.height * this.grid.cellSize;
     this.player.constrainToBounds(worldWidth, worldHeight); // Keep player within world bounds
@@ -745,6 +761,9 @@ export class Game {
         const gridPos = this.grid.worldToGrid(tower.position);
         this.grid.setCellType(gridPos.x, gridPos.y, CellType.EMPTY);
         
+        // Remove from navigation grid
+        this.navigationGrid.removeDynamicObstacle(tower.position);
+        
         return false;
       }
       return true;
@@ -851,7 +870,8 @@ export class Game {
       this.destructionEffects, // Pass destruction effects
       this.getPlayerAimerLine(),
       this.player,
-      this.selectedTower
+      this.selectedTower,
+      this.navigationGrid
     );
 
     // Render tower range if hovering
@@ -947,6 +967,9 @@ export class Game {
     } else {
       this.grid.setCellType(gridPos.x, gridPos.y, CellType.TOWER);
     }
+    
+    // Update navigation grid for pathfinding
+    this.navigationGrid.addDynamicObstacle(worldPosition, tower.radius);
 
     // Spend currency
     this.spendCurrency(cost);

@@ -2,6 +2,8 @@ import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
 import type { Vector2 } from '@/utils/Vector2';
+import type { Grid } from '@/systems/Grid';
+import { MovementSystem, MovementType } from '@/systems/MovementSystem';
 import { BASE_PLAYER_STATS, GAME_MECHANICS } from '../config/GameConfig';
 import { UPGRADE_CONSTANTS } from '../config/UpgradeConfig';
 import { PLAYER_ABILITIES, PLAYER_UPGRADES, POWER_UP_CONFIG, PLAYER_VISUALS } from '../config/PlayerConfig';
@@ -21,10 +23,11 @@ export enum PlayerUpgradeType {
 
 export class Player extends Entity implements ShootingCapable {
   private baseDamage: number;
-  private baseSpeed: number;
+  private playerBaseSpeed: number;
   private baseFireRate: number;
   public cooldownTime: number;
   public currentCooldown: number = 0;
+  private grid: Grid | null = null;
   
   // Movement
   public override velocity: Vector2 = { x: 0, y: 0 };
@@ -57,9 +60,14 @@ export class Player extends Entity implements ShootingCapable {
     super(EntityType.PLAYER, position, BASE_PLAYER_STATS.health, BASE_PLAYER_STATS.radius);
     
     this.baseDamage = BASE_PLAYER_STATS.damage;
-    this.baseSpeed = BASE_PLAYER_STATS.speed;
+    this.playerBaseSpeed = BASE_PLAYER_STATS.speed;
     this.baseFireRate = BASE_PLAYER_STATS.fireRate;
     this.cooldownTime = 1000 / BASE_PLAYER_STATS.fireRate;
+    
+    // Set up terrain-aware movement
+    this.baseSpeed = BASE_PLAYER_STATS.speed;
+    this.currentSpeed = BASE_PLAYER_STATS.speed;
+    this.movementType = MovementType.WALKING;
     
     // Initialize upgrade levels
     this.upgradeLevels.set(PlayerUpgradeType.DAMAGE, 0);
@@ -75,8 +83,19 @@ export class Player extends Entity implements ShootingCapable {
     this.levelSystem = new PlayerLevelSystem();
   }
 
-  override update(deltaTime: number): void {
-    super.update(deltaTime);
+  setGrid(grid: Grid): void {
+    this.grid = grid;
+  }
+
+  override update(deltaTime: number, grid?: Grid): void {
+    // Use provided grid or stored grid reference
+    const activeGrid = grid || this.grid || undefined;
+    
+    // Update movement BEFORE calling super.update() so velocity is set correctly
+    this.updateMovement(deltaTime, activeGrid);
+    
+    // Let parent Entity class handle terrain effects and position updates
+    super.update(deltaTime, activeGrid);
     
     // Update cooldowns using CooldownManager
     this.currentCooldown = CooldownManager.updateCooldown(this.currentCooldown, deltaTime);
@@ -101,12 +120,9 @@ export class Player extends Entity implements ShootingCapable {
     
     // Update power-ups
     this.powerUps.update(deltaTime);
-    
-    // Update movement
-    this.updateMovement(deltaTime);
   }
 
-  private updateMovement(deltaTime: number): void {
+  private updateMovement(deltaTime: number, grid?: Grid): void {
     let movementX = 0;
     let movementY = 0;
     
@@ -126,13 +142,28 @@ export class Player extends Entity implements ShootingCapable {
     
     // Normalize diagonal movement
     const normalized = normalizeMovement(movementX, movementY);
-    this.velocity.x = normalized.x * this.getCurrentSpeed();
-    this.velocity.y = normalized.y * this.getCurrentSpeed();
     
-    // Apply movement
-    const deltaSeconds = deltaTime / 1000;
-    this.position.x += this.velocity.x * deltaSeconds;
-    this.position.y += this.velocity.y * deltaSeconds;
+    // Use base speed for velocity calculation
+    // The Entity.update() will apply terrain modifiers
+    const speed = this.getCurrentSpeed();
+    
+    this.velocity.x = normalized.x * speed;
+    this.velocity.y = normalized.y * speed;
+    
+    // Check if target position would be valid
+    if (grid && (normalized.x !== 0 || normalized.y !== 0)) {
+      const deltaSeconds = deltaTime / 1000;
+      const targetPos = {
+        x: this.position.x + this.velocity.x * deltaSeconds,
+        y: this.position.y + this.velocity.y * deltaSeconds
+      };
+      
+      if (!MovementSystem.canEntityMoveTo(this, targetPos, grid)) {
+        // Stop movement if hitting impassable terrain
+        this.velocity.x = 0;
+        this.velocity.y = 0;
+      }
+    }
   }
 
   handleKeyDown(key: string): void {
@@ -276,7 +307,7 @@ export class Player extends Entity implements ShootingCapable {
   get speed(): number {
     const speedLevel = this.getUpgradeLevel(PlayerUpgradeType.SPEED);
     const levelBonus = this.levelSystem.getLevelBonus('speed');
-    const baseSpeed = Math.floor(this.baseSpeed * (1 + speedLevel * 0.3) * (1 + levelBonus));
+    const baseSpeed = Math.floor(this.playerBaseSpeed * (1 + speedLevel * 0.3) * (1 + levelBonus));
     return Math.floor(baseSpeed * this.powerUps.getSpeedMultiplier());
   }
 
@@ -581,7 +612,14 @@ export class Player extends Entity implements ShootingCapable {
   
   // Touch control methods
   setVelocity(x: number, y: number): void {
-    const speed = this.getCurrentSpeed();
+    let speed = this.getCurrentSpeed();
+    
+    // Apply terrain speed multiplier if available
+    if (this.grid && this.baseSpeed > 0) {
+      const terrainMultiplier = this.lastTerrainSpeed || 1.0;
+      speed = speed * terrainMultiplier;
+    }
+    
     // Normalize the input if needed
     const magnitude = Math.sqrt(x * x + y * y);
     if (magnitude > 1) {
@@ -591,6 +629,22 @@ export class Player extends Entity implements ShootingCapable {
     } else {
       this.velocity.x = x * speed;
       this.velocity.y = y * speed;
+    }
+    
+    // Check if the velocity would move us into impassable terrain
+    if (this.grid && (this.velocity.x !== 0 || this.velocity.y !== 0)) {
+      // Calculate a small test movement to check terrain
+      const testDelta = 0.016; // ~1 frame at 60fps
+      const targetPos = {
+        x: this.position.x + this.velocity.x * testDelta,
+        y: this.position.y + this.velocity.y * testDelta
+      };
+      
+      if (!MovementSystem.canEntityMoveTo(this, targetPos, this.grid)) {
+        // Stop movement if hitting impassable terrain
+        this.velocity.x = 0;
+        this.velocity.y = 0;
+      }
     }
   }
   

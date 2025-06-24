@@ -17,6 +17,8 @@ import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
 import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
 import { DestructionEffect } from '@/effects/DestructionEffect';
+import { PathfindingDebug } from '@/debug/PathfindingDebug';
+import type { NavigationGrid } from './NavigationGrid';
 
 // Legacy render config for backward compatibility
 const RENDER_CONFIG = {
@@ -124,6 +126,7 @@ export class Renderer {
     const startY = Math.max(0, Math.floor(visibleBounds.min.y / cellSize));
     const endY = Math.min(this.grid.height, Math.ceil(visibleBounds.max.y / cellSize));
     
+    
     // Render only visible cells
     for (let x = startX; x < endX; x++) {
       for (let y = startY; y < endY; y++) {
@@ -195,6 +198,170 @@ export class Renderer {
                 cellSize,
                 cellSize
               );
+            }
+            break;
+            
+          case CellType.WATER:
+            // Render water with animated effect
+            const time = Date.now() * 0.001;
+            const waveOffset = Math.sin(time + x * 0.3 + y * 0.2) * 2;
+            
+            // Base water color
+            this.ctx.fillStyle = adjustColorBrightness(biomeColors.water || '#4682B4', brightness);
+            if (typeof this.ctx.fillRect === 'function') {
+              this.ctx.fillRect(
+                screenPos.x - cellSize / 2,
+                screenPos.y - cellSize / 2,
+                cellSize,
+                cellSize
+              );
+            }
+            
+            // Add animated wave lines
+            this.ctx.strokeStyle = adjustColorBrightness('#6495ED', brightness * 1.2);
+            this.ctx.lineWidth = 1;
+            if (typeof this.ctx.beginPath === 'function') {
+              this.ctx.beginPath();
+              // First wave
+              const wave1Y = screenPos.y - cellSize / 4 + waveOffset;
+              if (typeof this.ctx.moveTo === 'function') {
+                this.ctx.moveTo(screenPos.x - cellSize / 2, wave1Y);
+              }
+              if (typeof this.ctx.quadraticCurveTo === 'function') {
+                this.ctx.quadraticCurveTo(
+                  screenPos.x - cellSize / 4, wave1Y - 3,
+                  screenPos.x, wave1Y
+                );
+                this.ctx.quadraticCurveTo(
+                  screenPos.x + cellSize / 4, wave1Y + 3,
+                  screenPos.x + cellSize / 2, wave1Y
+                );
+              }
+              // Second wave
+              const wave2Y = screenPos.y + cellSize / 4 + waveOffset;
+              if (typeof this.ctx.moveTo === 'function') {
+                this.ctx.moveTo(screenPos.x - cellSize / 2, wave2Y);
+              }
+              if (typeof this.ctx.quadraticCurveTo === 'function') {
+                this.ctx.quadraticCurveTo(
+                  screenPos.x - cellSize / 4, wave2Y + 3,
+                  screenPos.x, wave2Y
+                );
+                this.ctx.quadraticCurveTo(
+                  screenPos.x + cellSize / 4, wave2Y - 3,
+                  screenPos.x + cellSize / 2, wave2Y
+                );
+              }
+            }
+            if (typeof this.ctx.stroke === 'function') {
+              this.ctx.stroke();
+            }
+            break;
+            
+          case CellType.ROUGH_TERRAIN:
+            // Base rough terrain color
+            this.ctx.fillStyle = adjustColorBrightness('#8B7355', brightness);
+            if (typeof this.ctx.fillRect === 'function') {
+              this.ctx.fillRect(
+                screenPos.x - cellSize / 2,
+                screenPos.y - cellSize / 2,
+                cellSize,
+                cellSize
+              );
+            }
+            
+            // Add texture with small rocks
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            const rockCount = 4;
+            const rockSize = cellSize / 10;
+            for (let i = 0; i < rockCount; i++) {
+              const angle = (Math.PI * 2 * i) / rockCount + coordinateVariation(x, y, 1);
+              const distance = cellSize / 3;
+              const rockX = screenPos.x + Math.cos(angle) * distance;
+              const rockY = screenPos.y + Math.sin(angle) * distance;
+              
+              if (typeof this.ctx.beginPath === 'function') {
+                this.ctx.beginPath();
+              }
+              if (typeof this.ctx.arc === 'function') {
+                this.ctx.arc(rockX, rockY, rockSize, 0, Math.PI * 2);
+              }
+              if (typeof this.ctx.fill === 'function') {
+                this.ctx.fill();
+              }
+            }
+            
+            // Add dashed border
+            this.ctx.strokeStyle = 'rgba(139, 69, 19, 0.5)';
+            this.ctx.lineWidth = 1;
+            if (typeof this.ctx.setLineDash === 'function') {
+              this.ctx.setLineDash([3, 3]);
+            }
+            if (typeof this.ctx.strokeRect === 'function') {
+              this.ctx.strokeRect(
+                screenPos.x - cellSize / 2 + 1,
+                screenPos.y - cellSize / 2 + 1,
+                cellSize - 2,
+                cellSize - 2
+              );
+            }
+            if (typeof this.ctx.setLineDash === 'function') {
+              this.ctx.setLineDash([]);
+            }
+            break;
+            
+          case CellType.BRIDGE:
+            // First render water underneath
+            this.ctx.fillStyle = adjustColorBrightness(biomeColors.water || '#4682B4', brightness * 0.8);
+            if (typeof this.ctx.fillRect === 'function') {
+              this.ctx.fillRect(
+                screenPos.x - cellSize / 2,
+                screenPos.y - cellSize / 2,
+                cellSize,
+                cellSize
+              );
+            }
+            
+            // Bridge planks
+            this.ctx.fillStyle = adjustColorBrightness('#8B6F47', brightness);
+            const plankWidth = cellSize / 5;
+            const plankGap = 2;
+            
+            // Draw vertical planks
+            for (let i = 0; i < 5; i++) {
+              const plankX = screenPos.x - cellSize / 2 + i * (plankWidth + plankGap) + plankGap / 2;
+              if (typeof this.ctx.fillRect === 'function') {
+                this.ctx.fillRect(
+                  plankX,
+                  screenPos.y - cellSize / 2,
+                  plankWidth - plankGap,
+                  cellSize
+                );
+              }
+            }
+            
+            // Bridge rails
+            this.ctx.strokeStyle = adjustColorBrightness('#654321', brightness * 0.7);
+            this.ctx.lineWidth = 2;
+            if (typeof this.ctx.beginPath === 'function') {
+              this.ctx.beginPath();
+              // Left rail
+              if (typeof this.ctx.moveTo === 'function') {
+                this.ctx.moveTo(screenPos.x - cellSize / 2 + 2, screenPos.y - cellSize / 2);
+              }
+              if (typeof this.ctx.lineTo === 'function') {
+                this.ctx.lineTo(screenPos.x - cellSize / 2 + 2, screenPos.y + cellSize / 2);
+              }
+              // Right rail
+              if (typeof this.ctx.moveTo === 'function') {
+                this.ctx.moveTo(screenPos.x + cellSize / 2 - 2, screenPos.y - cellSize / 2);
+              }
+              if (typeof this.ctx.lineTo === 'function') {
+                this.ctx.lineTo(screenPos.x + cellSize / 2 - 2, screenPos.y + cellSize / 2);
+              }
+            }
+            if (typeof this.ctx.stroke === 'function') {
+              this.ctx.stroke();
             }
             break;
             
@@ -1560,7 +1727,7 @@ export class Renderer {
     });
   }
 
-  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
+  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null, navGrid?: NavigationGrid): void {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
@@ -1584,6 +1751,11 @@ export class Renderer {
     
     // Render all entities
     this.renderEntities(towers, enemies, projectiles, collectibles, destructionEffects, aimerLine, player, selectedTower);
+    
+    // Render pathfinding debug if enabled
+    if (navGrid) {
+      PathfindingDebug.render(this.ctx, this.grid, navGrid, enemies, this.camera);
+    }
     
     // Render debug overlay if enabled
     if (this.debugMode) {

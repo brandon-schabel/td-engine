@@ -101,6 +101,13 @@ export interface MapData {
   // Terrain height map for 3D-like effects (optional)
   heightMap?: number[][];
   
+  // Terrain cells (water, rough terrain, bridges, etc.)
+  terrainCells?: {
+    x: number;
+    y: number;
+    type: string; // CellType
+  }[];
+  
   // Custom properties for specific map features
   customProperties: Record<string, any>;
 }

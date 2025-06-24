@@ -235,13 +235,26 @@ export const GRID_RENDER_DETAILS = {
     SPAWN: '#4a4a00',
     DESTINATION: '#004a00',
     BLOCKED: '#444444',
-    ROUGH_TERRAIN: '#8B4513'
+    ROUGH_TERRAIN: '#8B4513',
+    WATER: '#1E6BA8',
+    BRIDGE: '#8B6914'
   },
   terrainEffects: {
     ROUGH_TERRAIN: {
       borderWidth: 2,
       borderColor: '#8B4513',
       dashPattern: [3, 3]
+    },
+    WATER: {
+      waveColor: 'rgba(255, 255, 255, 0.3)',
+      waveLineWidth: 1,
+      waveAmplitude: 3
+    },
+    BRIDGE: {
+      plankColor: '#8B6914',
+      railColor: '#654321',
+      railWidth: 2,
+      plankCount: 5
     }
   }
 } as const;

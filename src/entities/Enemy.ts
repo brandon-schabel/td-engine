@@ -2,11 +2,15 @@ import { Entity, EntityType } from './Entity';
 import { Player } from './Player';
 import { Tower } from './Tower';
 import type { Vector2 } from '@/utils/Vector2';
+import type { Grid } from '@/systems/Grid';
+import { MovementType } from '@/systems/MovementSystem';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ENEMY_STATS, ENEMY_BEHAVIOR, EnemyBehavior } from '../config/EnemyConfig';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ENEMY_RENDER } from '@/config/RenderingConfig';
 import { DestructionEffect } from '@/effects/DestructionEffect';
+import { Pathfinding } from '@/systems/Pathfinding';
+import { NavigationGrid } from '@/systems/NavigationGrid';
 
 export enum EnemyType {
   BASIC = 'BASIC',
@@ -31,6 +35,15 @@ export class Enemy extends Entity {
   private path: Vector2[] = [];
   private currentPathIndex: number = 0;
   private availableTowers: Tower[] = [];
+  private grid: Grid | null = null;
+  private navigationGrid: NavigationGrid | null = null;
+  
+  // Pathfinding properties
+  private currentPath: Vector2[] = [];
+  private currentPathTarget: Vector2 | null = null;
+  private pathRecalculationTimer: number = 0;
+  private readonly PATH_RECALCULATION_INTERVAL = 1000; // Recalculate path every second
+  private readonly WAYPOINT_REACHED_DISTANCE = 10; // Distance to consider waypoint reached
 
   constructor(
     position: Vector2, 
@@ -48,6 +61,22 @@ export class Enemy extends Entity {
     this.attackCooldownTime = stats.attackCooldown;
     this.towerDetectionRange = stats.towerDetectionRange;
     this.behavior = stats.behavior;
+    
+    // Set up terrain-aware movement
+    this.baseSpeed = stats.speed;
+    this.currentSpeed = stats.speed;
+    
+    // Set movement type based on enemy type
+    switch (enemyType) {
+      case EnemyType.FAST:
+        this.movementType = MovementType.WALKING;
+        break;
+      case EnemyType.TANK:
+        this.movementType = MovementType.WALKING;
+        break;
+      default:
+        this.movementType = MovementType.WALKING;
+    }
   }
 
   setPath(path: Vector2[]): void {
@@ -57,6 +86,18 @@ export class Enemy extends Entity {
 
   setTowers(towers: Tower[]): void {
     this.availableTowers = towers;
+  }
+
+  setGrid(grid: Grid): void {
+    this.grid = grid;
+  }
+
+  setNavigationGrid(navGrid: NavigationGrid): void {
+    this.navigationGrid = navGrid;
+  }
+
+  setPlayerTarget(player: Player): void {
+    this.playerTarget = player;
   }
 
   private findBestTowerTarget(): Tower | null {
@@ -99,13 +140,19 @@ export class Enemy extends Entity {
     }
   }
 
-  override update(deltaTime: number): void {
+  override update(deltaTime: number, grid?: Grid): void {
     if (!this.isAlive) {
       return;
     }
 
+    // Use provided grid or stored grid reference
+    const activeGrid = grid || this.grid || undefined;
+
     // Update attack cooldown using CooldownManager
     this.currentAttackCooldown = CooldownManager.updateCooldown(this.currentAttackCooldown, deltaTime);
+    
+    // Update path recalculation timer
+    this.pathRecalculationTimer += deltaTime;
 
     // Select best target based on behavior and proximity
     this.target = this.selectTarget();
@@ -114,22 +161,23 @@ export class Enemy extends Entity {
     if (this.target && this.target.isAlive) {
       if (this.isInAttackRange()) {
         // Stop moving and attack
+        this.velocity = { x: 0, y: 0 };
         this.tryAttack();
       } else {
-        // Move towards target (tower or player)
-        this.moveTo(this.target.position, this.speed);
+        // Use pathfinding to move towards target
+        this.moveToWithPathfinding(this.target.position, activeGrid);
       }
     } else if (this.playerTarget && this.playerTarget.isAlive) {
       // No towers to attack, move toward player
       if (this.playerTarget.position) {
-        this.moveTo(this.playerTarget.position, this.speed);
+        this.moveToWithPathfinding(this.playerTarget.position, activeGrid);
       }
     } else if (this.path.length > 0) {
-      // Fallback to path movement if no target
+      // Fallback to original path movement if no target
       if (this.currentPathIndex < this.path.length) {
         const waypoint = this.path[this.currentPathIndex];
         if (waypoint) {
-          this.moveTo(waypoint, this.speed);
+          this.moveTo(waypoint, this.speed, activeGrid);
           
           // Check if reached waypoint
           if (this.distanceTo(waypoint) < ENEMY_BEHAVIOR.waypointReachedThreshold) {
@@ -139,7 +187,7 @@ export class Enemy extends Entity {
       }
     }
 
-    super.update(deltaTime);
+    super.update(deltaTime, activeGrid);
   }
 
   hasReachedEnd(): boolean {
@@ -207,6 +255,59 @@ export class Enemy extends Entity {
   // Create destruction effect when enemy dies
   createDestructionEffect(): DestructionEffect {
     return new DestructionEffect(this.position, this.enemyType);
+  }
+
+  // Pathfinding movement
+  private moveToWithPathfinding(targetPos: Vector2, grid?: Grid): void {
+    if (!grid || !this.navigationGrid) {
+      // Fallback to direct movement if no grid available
+      this.moveTo(targetPos, this.speed, grid);
+      return;
+    }
+
+    // Check if we need to recalculate path
+    const needsNewPath = !this.currentPath.length || 
+                        !this.currentPathTarget ||
+                        this.distanceTo(targetPos) > 50 || // Target moved significantly
+                        this.pathRecalculationTimer >= this.PATH_RECALCULATION_INTERVAL;
+
+    if (needsNewPath) {
+      // Calculate new path
+      const pathResult = Pathfinding.findPath(
+        this.position,
+        targetPos,
+        grid,
+        {
+          movementType: this.movementType || MovementType.WALKING,
+          allowDiagonal: true,
+          minDistanceFromObstacles: this.radius / grid.cellSize,
+          smoothPath: true
+        }
+      );
+
+      if (pathResult.success && pathResult.path.length > 0) {
+        this.currentPath = pathResult.path;
+        this.currentPathTarget = targetPos;
+        this.pathRecalculationTimer = 0;
+      } else {
+        // No path found, try direct movement as fallback
+        this.moveTo(targetPos, this.speed, grid);
+        return;
+      }
+    }
+
+    // Follow current path
+    if (this.currentPath.length > 0) {
+      // Find the next waypoint we haven't reached yet
+      while (this.currentPath.length > 1 && this.distanceTo(this.currentPath[0]) < this.WAYPOINT_REACHED_DISTANCE) {
+        this.currentPath.shift();
+      }
+
+      // Move towards next waypoint
+      if (this.currentPath.length > 0) {
+        this.moveTo(this.currentPath[0], this.speed, grid);
+      }
+    }
   }
 
   // Rendering method (moved from Renderer class)

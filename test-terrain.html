@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Terrain Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #log {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            border: 1px solid #444;
+        }
+        .success { color: #4CAF50; }
+        .info { color: #2196F3; }
+        .warning { color: #FF9800; }
+    </style>
+</head>
+<body>
+    <h1>Terrain System Test</h1>
+    <p>Check the console for terrain generation logs. You should see:</p>
+    <ul>
+        <li>TerrainGenerator creating water and rough terrain</li>
+        <li>MapGenerator capturing terrain cells</li>
+        <li>Game applying terrain cells to the grid</li>
+        <li>Blue water areas with animated waves</li>
+        <li>Brown rough terrain patches</li>
+        <li>Wooden bridges where paths cross water</li>
+    </ul>
+    
+    <div id="log"></div>
+    
+    <script>
+        const log = document.getElementById('log');
+        const originalLog = console.log;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            
+            let className = 'info';
+            if (message.includes('[TerrainGenerator]')) className = 'success';
+            if (message.includes('[MapGenerator]')) className = 'success';
+            if (message.includes('[Game]')) className = 'success';
+            if (message.includes('[Renderer]')) className = 'info';
+            
+            const entry = document.createElement('div');
+            entry.className = className;
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        };
+        
+        console.log('Terrain test page loaded. Open the game to see terrain generation logs.');
+    </script>
+</body>
+</html>
