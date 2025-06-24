@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TerrainGenerator } from '../TerrainGenerator';
 import { Grid, CellType } from '../Grid';
 import { BiomeType } from '@/types/MapData';
@@ -104,7 +104,12 @@ describe('TerrainGenerator', () => {
       pathComplexity: 0.5,
       obstacleCount: 0,
       decorationLevel: 'NONE' as any,
-      enableWater: true
+      enableWater: true,
+      enableAnimations: false,
+      chokePointCount: 0,
+      openAreaCount: 0,
+      playerAdvantageSpots: 0,
+      seed: 12345
     };
 
     it('should generate appropriate terrain for forest biome', () => {
@@ -160,7 +165,12 @@ describe('TerrainGenerator', () => {
         pathComplexity: 0.5,
         obstacleCount: 0,
         decorationLevel: 'NONE' as any,
-        chokePointCount: 1
+        chokePointCount: 1,
+        enableWater: false,
+        enableAnimations: false,
+        openAreaCount: 0,
+        playerAdvantageSpots: 0,
+        seed: 12345
       };
       
       generator.generateTerrain(config);
@@ -235,7 +245,12 @@ describe('TerrainGenerator', () => {
         difficulty: 'MEDIUM' as any,
         pathComplexity: 0.5,
         obstacleCount: 0,
-        decorationLevel: 'NONE' as any
+        decorationLevel: 'NONE' as any,
+      enableWater: true,
+      enableAnimations: false,
+      chokePointCount: 0,
+      openAreaCount: 0,
+      playerAdvantageSpots: 0
       };
       
       generator.generateTerrain(config);
@@ -266,7 +281,12 @@ describe('TerrainGenerator', () => {
         pathComplexity: 0.5,
         obstacleCount: 0,
         decorationLevel: 'NONE' as any,
-        enableWater: true
+        enableWater: true,
+        enableAnimations: false,
+        chokePointCount: 0,
+        openAreaCount: 0,
+        playerAdvantageSpots: 0,
+        seed: 12345
       };
       
       const largeGrid = new Grid(30, 30, 32);
@@ -298,7 +318,12 @@ describe('TerrainGenerator', () => {
         difficulty: 'MEDIUM' as any,
         pathComplexity: 0.5,
         obstacleCount: 0,
-        decorationLevel: 'NONE' as any
+        decorationLevel: 'NONE' as any,
+      enableWater: true,
+      enableAnimations: false,
+      chokePointCount: 0,
+      openAreaCount: 0,
+      playerAdvantageSpots: 0
       };
       
       generator.generateTerrain(config);

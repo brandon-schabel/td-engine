@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Entity, EntityType } from '../Entity';
 import { Enemy, EnemyType } from '../Enemy';
 import { Player } from '../Player';
@@ -228,8 +228,6 @@ describe('Entity terrain-aware movement', () => {
       // Player should try to move but updateMovement should block it
       // The current implementation sets velocity but then blocks actual position change
       // This is the expected behavior - velocity is set but position doesn't change
-      const newX = player.position.x;
-      
       // Update again - position should not change significantly towards water
       player.update(16, grid);
       
@@ -248,7 +246,6 @@ describe('Entity terrain-aware movement', () => {
       player.setVelocity(1, 0); // Move right
       
       // Velocity should include terrain effect
-      const expectedSpeed = player.getCurrentSpeed() * player.lastTerrainSpeed;
       expect(Math.abs(player.velocity.x)).toBeLessThan(player.getCurrentSpeed());
     });
 
@@ -257,14 +254,14 @@ describe('Entity terrain-aware movement', () => {
       player.position = { x: 96, y: 96 };
       
       player.update(100, grid);
-      const terrainMultiplier = player.lastTerrainSpeed;
+      const terrainMultiplier = (player as any).lastTerrainSpeed;
       
       // Upgrade speed
       player.upgrade('SPEED' as any);
       
       // Terrain multiplier should still apply
       player.update(16, grid);
-      expect(player.lastTerrainSpeed).toBeCloseTo(terrainMultiplier, 2);
+      expect((player as any).lastTerrainSpeed).toBeCloseTo(terrainMultiplier, 2);
     });
   });
 

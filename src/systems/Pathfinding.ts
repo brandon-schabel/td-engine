@@ -80,7 +80,7 @@ export class Pathfinding {
     const nodeMap = new Map<string, PathNode>();
     
     // Create start node
-    const startH = this.heuristic(startGrid, goalGrid);
+    const startH = this.heuristic({ gridX: startGrid.x, gridY: startGrid.y }, { gridX: goalGrid.x, gridY: goalGrid.y });
     const startNode: PathNode = {
       position: start,
       gridX: startGrid.x,
@@ -137,7 +137,7 @@ export class Pathfinding {
             gridX: neighbor.gridX,
             gridY: neighbor.gridY,
             g: Infinity,
-            h: this.heuristic({ gridX: neighbor.gridX, gridY: neighbor.gridY }, goalGrid),
+            h: this.heuristic({ gridX: neighbor.gridX, gridY: neighbor.gridY }, { gridX: goalGrid.x, gridY: goalGrid.y }),
             f: Infinity,
             parent: null
           };
@@ -295,9 +295,9 @@ export class Pathfinding {
   /**
    * Heuristic function for A* (Euclidean distance)
    */
-  private static heuristic(a: {gridX: number, gridY: number}, b: {gridX: number, gridY: number}): number {
-    const dx = b.gridX - a.gridX;
-    const dy = b.gridY - a.gridY;
+  private static heuristic(a: { gridX: number, gridY: number }, b: { gridX: number, gridY: number }): number {
+    const dx = Math.abs(a.gridX - b.gridX);
+    const dy = Math.abs(a.gridY - b.gridY);
     return Math.sqrt(dx * dx + dy * dy);
   }
 

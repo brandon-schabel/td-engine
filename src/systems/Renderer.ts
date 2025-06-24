@@ -143,12 +143,12 @@ export class Renderer {
         
         const worldPos = this.grid.gridToWorld(x, y);
         const screenPos = this.camera.worldToScreen(worldPos);
-        const height = cellData.height || 0;
+        const height = cellData?.height || 0;
         
         // Base cell color with height variation
         const brightness = 1 - height * 0.3; // Darker at higher elevations
         
-        switch (cellData.type) {
+        switch (cellData?.type) {
           case CellType.PATH:
             this.ctx.fillStyle = adjustColorBrightness(biomeColors.path, brightness);
             if (typeof this.ctx.fillRect === 'function') {

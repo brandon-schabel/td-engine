@@ -49,7 +49,7 @@ import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager } from "@/ui/floating";
 import { UIController } from "@/ui/UIController";
 import { TouchGestureManager } from "@/input/TouchGestureManager";
-import { TerrainDebug } from "@/debug/TerrainDebug";
+// import { TerrainDebug } from "@/debug/TerrainDebug"; // Commented out - unused
 import { NavigationGrid } from "@/systems/NavigationGrid";
 
 export class Game {

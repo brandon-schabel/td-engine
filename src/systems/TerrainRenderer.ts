@@ -1,7 +1,6 @@
 import { Grid, CellType } from './Grid';
 import { Camera } from './Camera';
-import { COLOR_THEME } from '../config/ColorTheme';
-import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
+import { BIOME_PRESETS } from '@/types/MapData';
 import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
 import { ZOOM_RENDER_CONFIG } from '../config/RenderingConfig';
 
@@ -433,8 +432,8 @@ export class TerrainRenderer {
     ];
     
     for (const [dir, dx, dy] of directions) {
-      const nx = x + dx;
-      const ny = y + dy;
+      const nx = x + (dx as number);
+      const ny = y + (dy as number);
       const cell = this.grid.getCellData(nx, ny);
       if (cell) {
         neighbors.set(dir as string, cell.type);
