@@ -299,12 +299,12 @@ export class Tower extends Entity implements ShootingCapable {
   }
 
   // Rendering method (moved from Renderer class)
-  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any, isSelected: boolean = false): void {
+  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any, isSelected: boolean = false, zoom: number = 1): void {
     // Draw selection indicator first (behind the tower)
     if (isSelected) {
       ctx.save();
       ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, this.radius + ENTITY_RENDER.selection.radiusOffset, 0, Math.PI * 2);
+      ctx.arc(screenPos.x, screenPos.y, (this.radius + ENTITY_RENDER.selection.radiusOffset) * zoom, 0, Math.PI * 2);
       ctx.strokeStyle = COLOR_THEME.towers.selection.indicator;
       ctx.lineWidth = ENTITY_RENDER.selection.strokeWidth;
       ctx.setLineDash(TOWER_RENDER.selection.dashPattern);
@@ -313,7 +313,7 @@ export class Tower extends Entity implements ShootingCapable {
       
       // Glowing effect
       ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, this.radius + ENTITY_RENDER.selection.glowRadiusOffset, 0, Math.PI * 2);
+      ctx.arc(screenPos.x, screenPos.y, (this.radius + ENTITY_RENDER.selection.glowRadiusOffset) * zoom, 0, Math.PI * 2);
       ctx.strokeStyle = COLOR_THEME.towers.selection.glow;
       ctx.lineWidth = ENTITY_RENDER.lineWidths.normal;
       ctx.stroke();
@@ -325,12 +325,14 @@ export class Tower extends Entity implements ShootingCapable {
     const texture = textureManager?.getTexture(textureId);
     
     if (texture && texture.loaded && textureManager) {
-      // Texture rendering - would need renderTextureAt method, use fallback for now
-      ctx.drawImage(texture.image, screenPos.x - this.radius, screenPos.y - this.radius, this.radius * 2, this.radius * 2);
+      // Texture rendering with zoom
+      const scaledRadius = this.radius * zoom;
+      ctx.drawImage(texture.image, screenPos.x - scaledRadius, screenPos.y - scaledRadius, scaledRadius * 2, scaledRadius * 2);
     } else {
       // Enhanced primitive rendering based on tower type
       const upgradeLevel = this.getVisualLevel();
       const intensity = Math.min(1 + (upgradeLevel - 1) * UPGRADE_CONSTANTS.visualUpgradeMultiplier, UPGRADE_CONSTANTS.visualIntensityMultiplier);
+      const scaledRadius = this.radius * zoom;
       
       ctx.save();
       ctx.translate(screenPos.x, screenPos.y);
@@ -342,21 +344,21 @@ export class Tower extends Entity implements ShootingCapable {
           
           // Square base
           ctx.fillStyle = basicColor;
-          ctx.fillRect(-this.radius * 0.8, -this.radius * 0.8, this.radius * 1.6, this.radius * 1.6);
+          ctx.fillRect(-scaledRadius * 0.8, -scaledRadius * 0.8, scaledRadius * 1.6, scaledRadius * 1.6);
           ctx.strokeStyle = COLOR_THEME.ui.border.default;
           ctx.lineWidth = 2;
-          ctx.strokeRect(-this.radius * 0.8, -this.radius * 0.8, this.radius * 1.6, this.radius * 1.6);
+          ctx.strokeRect(-scaledRadius * 0.8, -scaledRadius * 0.8, scaledRadius * 1.6, scaledRadius * 1.6);
           
           // Circular turret
           ctx.beginPath();
-          ctx.arc(0, 0, this.radius * 0.5, 0, Math.PI * 2);
+          ctx.arc(0, 0, scaledRadius * 0.5, 0, Math.PI * 2);
           ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(40 * intensity, 70)}%)`;
           ctx.fill();
           ctx.stroke();
           
           // Cannon barrel pointing up
           ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.basic.hue}, ${COLOR_CONFIG.towers.basic.saturation}%, ${Math.min(30 * intensity, 60)}%)`;
-          ctx.fillRect(-this.radius * 0.15, -this.radius * 0.8, this.radius * 0.3, this.radius * 0.6);
+          ctx.fillRect(-scaledRadius * 0.15, -scaledRadius * 0.8, scaledRadius * 0.3, scaledRadius * 0.6);
           break;
           
         case TowerType.SNIPER:
@@ -367,8 +369,8 @@ export class Tower extends Entity implements ShootingCapable {
           ctx.beginPath();
           for (let i = 0; i < 6; i++) {
             const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-            const x = Math.cos(angle) * this.radius * 0.9;
-            const y = Math.sin(angle) * this.radius * 0.9;
+            const x = Math.cos(angle) * scaledRadius * 0.9;
+            const y = Math.sin(angle) * scaledRadius * 0.9;
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
           }
@@ -383,19 +385,19 @@ export class Tower extends Entity implements ShootingCapable {
           ctx.strokeStyle = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(70 * intensity, 90)}%)`;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.moveTo(-this.radius * 0.6, 0);
-          ctx.lineTo(-this.radius * 0.2, 0);
-          ctx.moveTo(this.radius * 0.2, 0);
-          ctx.lineTo(this.radius * 0.6, 0);
-          ctx.moveTo(0, -this.radius * 0.6);
-          ctx.lineTo(0, -this.radius * 0.2);
-          ctx.moveTo(0, this.radius * 0.2);
-          ctx.lineTo(0, this.radius * 0.6);
+          ctx.moveTo(-scaledRadius * 0.6, 0);
+          ctx.lineTo(-scaledRadius * 0.2, 0);
+          ctx.moveTo(scaledRadius * 0.2, 0);
+          ctx.lineTo(scaledRadius * 0.6, 0);
+          ctx.moveTo(0, -scaledRadius * 0.6);
+          ctx.lineTo(0, -scaledRadius * 0.2);
+          ctx.moveTo(0, scaledRadius * 0.2);
+          ctx.lineTo(0, scaledRadius * 0.6);
           ctx.stroke();
           
           // Center dot
           ctx.beginPath();
-          ctx.arc(0, 0, this.radius * 0.1, 0, Math.PI * 2);
+          ctx.arc(0, 0, scaledRadius * 0.1, 0, Math.PI * 2);
           ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.sniper.hue}, ${COLOR_CONFIG.towers.sniper.saturation}%, ${Math.min(80 * intensity, 95)}%)`;
           ctx.fill();
           break;
@@ -407,7 +409,7 @@ export class Tower extends Entity implements ShootingCapable {
           
           // Base circle
           ctx.beginPath();
-          ctx.arc(0, 0, this.radius * 0.8, 0, Math.PI * 2);
+          ctx.arc(0, 0, scaledRadius * 0.8, 0, Math.PI * 2);
           ctx.fillStyle = rapidColor;
           ctx.fill();
           ctx.strokeStyle = COLOR_THEME.ui.border.default;
@@ -421,15 +423,15 @@ export class Tower extends Entity implements ShootingCapable {
             ctx.save();
             ctx.rotate((i / 4) * Math.PI * 2);
             ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(35 * intensity, 65)}%)`;
-            ctx.fillRect(-this.radius * 0.1, -this.radius * 0.9, this.radius * 0.2, this.radius * 0.7);
-            ctx.strokeRect(-this.radius * 0.1, -this.radius * 0.9, this.radius * 0.2, this.radius * 0.7);
+            ctx.fillRect(-scaledRadius * 0.1, -scaledRadius * 0.9, scaledRadius * 0.2, scaledRadius * 0.7);
+            ctx.strokeRect(-scaledRadius * 0.1, -scaledRadius * 0.9, scaledRadius * 0.2, scaledRadius * 0.7);
             ctx.restore();
           }
           ctx.restore();
           
           // Center hub
           ctx.beginPath();
-          ctx.arc(0, 0, this.radius * 0.3, 0, Math.PI * 2);
+          ctx.arc(0, 0, scaledRadius * 0.3, 0, Math.PI * 2);
           ctx.fillStyle = `hsl(${COLOR_CONFIG.towers.rapid.hue}, ${COLOR_CONFIG.towers.rapid.saturation}%, ${Math.min(30 * intensity, 60)}%)`;
           ctx.fill();
           ctx.stroke();
@@ -438,7 +440,7 @@ export class Tower extends Entity implements ShootingCapable {
         case TowerType.WALL:
           // Wall - stone block pattern
           ctx.fillStyle = COLOR_THEME.towers.wall;
-          const blockSize = this.radius * 0.5;
+          const blockSize = scaledRadius * 0.5;
           
           // Draw stone blocks in a grid
           for (let x = -1; x <= 1; x++) {
@@ -456,13 +458,13 @@ export class Tower extends Entity implements ShootingCapable {
           // Outline
           ctx.strokeStyle = COLOR_THEME.ui.border.default;
           ctx.lineWidth = 2;
-          ctx.strokeRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+          ctx.strokeRect(-scaledRadius, -scaledRadius, scaledRadius * 2, scaledRadius * 2);
           break;
           
         default:
           // Default circular tower
           ctx.beginPath();
-          ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+          ctx.arc(0, 0, scaledRadius, 0, Math.PI * 2);
           ctx.fillStyle = COLOR_CONFIG.health.high;
           ctx.fill();
           ctx.strokeStyle = COLOR_THEME.ui.border.default;
@@ -475,14 +477,14 @@ export class Tower extends Entity implements ShootingCapable {
     
     // Render upgrade dots (not for walls)
     if (this.towerType !== TowerType.WALL) {
-      this.renderUpgradeDots(ctx, screenPos);
+      this.renderUpgradeDots(ctx, screenPos, zoom);
     }
   }
 
-  private renderUpgradeDots(ctx: CanvasRenderingContext2D, screenPos: Vector2): void {
+  private renderUpgradeDots(ctx: CanvasRenderingContext2D, screenPos: Vector2, zoom: number): void {
     const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
     const colors = COLOR_CONFIG.upgradeDots;
-    const dotRadius = ENTITY_RENDER.upgradeDots.radius;
+    const dotRadius = ENTITY_RENDER.upgradeDots.radius * zoom;
     
     upgradeTypes.forEach((upgradeType, index) => {
       const level = this.getUpgradeLevel(upgradeType);
@@ -490,10 +492,10 @@ export class Tower extends Entity implements ShootingCapable {
       if (level > 0) {
         // Position dots around the tower
         const angle = (index * ENTITY_RENDER.upgradeDots.angleSpacing) * (Math.PI / 180);
-        const distance = this.radius + ENTITY_RENDER.upgradeDots.distanceOffset;
+        const distance = (this.radius + ENTITY_RENDER.upgradeDots.distanceOffset) * zoom;
         
         for (let i = 0; i < level; i++) {
-          const dotDistance = distance + (i * ENTITY_RENDER.upgradeDots.spacingCompact);
+          const dotDistance = distance + (i * ENTITY_RENDER.upgradeDots.spacingCompact * zoom);
           const x = screenPos.x + Math.cos(angle) * dotDistance;
           const y = screenPos.y + Math.sin(angle) * dotDistance;
           

@@ -14,6 +14,31 @@ export const RENDER_SETTINGS = {
   debugMode: false
 } as const;
 
+// Zoom-aware rendering configuration
+export const ZOOM_RENDER_CONFIG = {
+  // Line width constraints
+  gridLineWidth: {
+    base: 1,          // Base line width at 1x zoom
+    min: 0.5,         // Minimum line width
+    max: 2,           // Maximum line width
+    scaleInversely: true  // Scale inversely with zoom
+  },
+  strokeWidth: {
+    thin: 1,          // Thin strokes (always fixed)
+    normal: 2,        // Normal strokes (always fixed)
+    thick: 3,         // Thick strokes (always fixed)
+    scaleWithZoom: false  // Don't scale stroke widths
+  },
+  // Entity scaling
+  entityScale: {
+    scaleGeometry: true,    // Scale entity sizes with zoom
+    scaleStrokes: false,    // Don't scale stroke widths
+    scaleFonts: true,       // Scale font sizes with zoom
+    minFontSize: 8,         // Minimum readable font size
+    maxFontSize: 24         // Maximum font size
+  }
+} as const;
+
 // Entity rendering configuration
 export const ENTITY_RENDER = {
   // Health bars

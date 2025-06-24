@@ -96,9 +96,33 @@ export class Entity {
       }
     }
     
-    // Apply velocity with terrain speed modifier
-    this.position.x += this.velocity.x * speedModifier * dt;
-    this.position.y += this.velocity.y * speedModifier * dt;
+    // Calculate next position
+    const nextX = this.position.x + this.velocity.x * speedModifier * dt;
+    const nextY = this.position.y + this.velocity.y * speedModifier * dt;
+    const nextPosition = { x: nextX, y: nextY };
+    
+    // Check if we can move to the next position
+    if (grid && this.movementType !== undefined) {
+      // Check if the next position is valid for our movement type
+      const canMove = MovementSystem.canEntityMoveTo(this, nextPosition, grid);
+      
+      if (canMove) {
+        // Move normally
+        this.position = nextPosition;
+      } else {
+        // Try to slide along obstacles
+        const slidePosition = this.trySlideMovement(this.position, nextPosition, grid, speedModifier * dt);
+        if (slidePosition) {
+          this.position = slidePosition;
+        } else {
+          // Can't move at all, stop
+          this.velocity = { x: 0, y: 0 };
+        }
+      }
+    } else {
+      // No grid or movement type, move normally
+      this.position = nextPosition;
+    }
   }
 
   takeDamage(amount: number, source?: Entity): void {
@@ -173,5 +197,42 @@ export class Entity {
   collidesWith(other: Entity): boolean {
     const distance = this.distanceTo(other);
     return distance < (this.radius + other.radius);
+  }
+
+  // Try to slide along obstacles when direct movement is blocked
+  private trySlideMovement(currentPos: Vector2, targetPos: Vector2, grid: Grid, maxDistance: number): Vector2 | null {
+    const dx = targetPos.x - currentPos.x;
+    const dy = targetPos.y - currentPos.y;
+    
+    // Try horizontal movement only
+    const horizontalPos = { x: targetPos.x, y: currentPos.y };
+    if (dx !== 0 && MovementSystem.canEntityMoveTo(this, horizontalPos, grid)) {
+      return horizontalPos;
+    }
+    
+    // Try vertical movement only
+    const verticalPos = { x: currentPos.x, y: targetPos.y };
+    if (dy !== 0 && MovementSystem.canEntityMoveTo(this, verticalPos, grid)) {
+      return verticalPos;
+    }
+    
+    // Try diagonal slide (move at 45 degrees along obstacle)
+    const slideAngle = Math.atan2(dy, dx);
+    const angles = [
+      slideAngle + Math.PI / 4,  // Slide right
+      slideAngle - Math.PI / 4   // Slide left
+    ];
+    
+    for (const angle of angles) {
+      const slideX = currentPos.x + Math.cos(angle) * maxDistance;
+      const slideY = currentPos.y + Math.sin(angle) * maxDistance;
+      const slidePos = { x: slideX, y: slideY };
+      
+      if (MovementSystem.canEntityMoveTo(this, slidePos, grid)) {
+        return slidePos;
+      }
+    }
+    
+    return null;
   }
 }

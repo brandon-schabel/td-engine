@@ -300,6 +300,15 @@ export class Game {
         const cameraInfo = this.camera.getCameraInfo();
         console.log("Camera follow mode:", cameraInfo.followTarget ? "ENABLED" : "DISABLED");
         console.log("Press 'B' to check camera, 'N' to fix camera, 'Shift+V' to toggle visual debug");
+        
+        // Enable pathfinding debug
+        const PathfindingDebug = (window as any).PathfindingDebug;
+        if (PathfindingDebug) {
+          PathfindingDebug.enable();
+          console.log("=== PATHFINDING DEBUG ENABLED ===");
+          console.log("Press 'P' to toggle enemy paths visualization");
+          console.log("Press 'G' to toggle navigation grid visualization");
+        }
       }, ANIMATION_CONFIG.durations.slowest);
     }
   }
@@ -1234,6 +1243,19 @@ export class Game {
       case "4":
         this.setSelectedTowerType(TowerType.WALL);
         console.log('[Game] Selected tower: WALL');
+        break;
+      // Pathfinding debug controls
+      case "p":
+        const PathfindingDebugP = (window as any).PathfindingDebug;
+        if (PathfindingDebugP) {
+          PathfindingDebugP.togglePaths();
+        }
+        break;
+      case "g":
+        const PathfindingDebugG = (window as any).PathfindingDebug;
+        if (PathfindingDebugG) {
+          PathfindingDebugG.toggleNavGrid();
+        }
         break;
       case "escape":
         // Clear tower selection

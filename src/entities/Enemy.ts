@@ -3,7 +3,7 @@ import { Player } from './Player';
 import { Tower } from './Tower';
 import type { Vector2 } from '@/utils/Vector2';
 import type { Grid } from '@/systems/Grid';
-import { MovementType } from '@/systems/MovementSystem';
+import { MovementType, MovementSystem } from '@/systems/MovementSystem';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ENEMY_STATS, ENEMY_BEHAVIOR, EnemyBehavior } from '../config/EnemyConfig';
 import { COLOR_THEME } from '@/config/ColorTheme';
@@ -260,8 +260,9 @@ export class Enemy extends Entity {
   // Pathfinding movement
   private moveToWithPathfinding(targetPos: Vector2, grid?: Grid): void {
     if (!grid || !this.navigationGrid) {
-      // Fallback to direct movement if no grid available
-      this.moveTo(targetPos, this.speed, grid);
+      console.warn(`Enemy ${this.id} missing grid or navigation grid for pathfinding`);
+      // Stop movement if we can't pathfind
+      this.velocity = { x: 0, y: 0 };
       return;
     }
 
@@ -290,9 +291,36 @@ export class Enemy extends Entity {
         this.currentPathTarget = targetPos;
         this.pathRecalculationTimer = 0;
       } else {
-        // No path found, try direct movement as fallback
-        this.moveTo(targetPos, this.speed, grid);
-        return;
+        // No path found - enemy is stuck
+        // Try to find a path to a nearby accessible position
+        const nearbyPos = this.findNearbyAccessiblePosition(targetPos, grid);
+        if (nearbyPos) {
+          const alternativePath = Pathfinding.findPath(
+            this.position,
+            nearbyPos,
+            grid,
+            {
+              movementType: this.movementType || MovementType.WALKING,
+              allowDiagonal: true,
+              minDistanceFromObstacles: this.radius / grid.cellSize,
+              smoothPath: true
+            }
+          );
+          
+          if (alternativePath.success && alternativePath.path.length > 0) {
+            this.currentPath = alternativePath.path;
+            this.currentPathTarget = nearbyPos;
+            this.pathRecalculationTimer = 0;
+          } else {
+            // Really stuck - stop moving
+            this.velocity = { x: 0, y: 0 };
+            return;
+          }
+        } else {
+          // No accessible position found - stop
+          this.velocity = { x: 0, y: 0 };
+          return;
+        }
       }
     }
 
@@ -310,16 +338,54 @@ export class Enemy extends Entity {
     }
   }
 
+  // Find a nearby accessible position when target is unreachable
+  private findNearbyAccessiblePosition(targetPos: Vector2, grid: Grid): Vector2 | null {
+    // Search in expanding circles around the target
+    const searchRadii = [50, 100, 150, 200];
+    const angleStep = Math.PI / 4; // Check 8 directions
+    
+    for (const radius of searchRadii) {
+      for (let angle = 0; angle < Math.PI * 2; angle += angleStep) {
+        const testX = targetPos.x + Math.cos(angle) * radius;
+        const testY = targetPos.y + Math.sin(angle) * radius;
+        const testPos = { x: testX, y: testY };
+        
+        // Check if this position is accessible
+        if (MovementSystem.canEntityMoveTo(this, testPos, grid)) {
+          // Try to find a path to this position
+          const testPath = Pathfinding.findPath(
+            this.position,
+            testPos,
+            grid,
+            {
+              movementType: this.movementType || MovementType.WALKING,
+              allowDiagonal: true,
+              maxIterations: 500 // Limit iterations for performance
+            }
+          );
+          
+          if (testPath.success) {
+            return testPos;
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+
   // Rendering method (moved from Renderer class)
-  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any): void {
+  render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any, zoom: number = 1): void {
     // Try to render with texture first
     const textureId = `enemy_${this.enemyType.toLowerCase()}`;
     const texture = textureManager?.getTexture(textureId);
     
     if (texture && texture.loaded && textureManager) {
-      ctx.drawImage(texture.image, screenPos.x - this.radius, screenPos.y - this.radius, this.radius * 2, this.radius * 2);
+      const scaledRadius = this.radius * zoom;
+      ctx.drawImage(texture.image, screenPos.x - scaledRadius, screenPos.y - scaledRadius, scaledRadius * 2, scaledRadius * 2);
     } else {
       // Enhanced primitive rendering based on enemy type
+      const scaledRadius = this.radius * zoom;
       ctx.save();
       ctx.translate(screenPos.x, screenPos.y);
       
@@ -332,7 +398,7 @@ export class Enemy extends Entity {
           ctx.beginPath();
           for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
-            const spikeRadius = i % 2 === 0 ? this.radius : this.radius * 0.8;
+            const spikeRadius = i % 2 === 0 ? scaledRadius : scaledRadius * 0.8;
             const x = Math.cos(angle) * spikeRadius;
             const y = Math.sin(angle) * spikeRadius;
             if (i === 0) ctx.moveTo(x, y);
@@ -344,15 +410,15 @@ export class Enemy extends Entity {
           // Evil eyes
           ctx.fillStyle = 'red';
           ctx.beginPath();
-          ctx.arc(-this.radius * 0.3, -this.radius * 0.2, this.radius * 0.15, 0, Math.PI * 2);
-          ctx.arc(this.radius * 0.3, -this.radius * 0.2, this.radius * 0.15, 0, Math.PI * 2);
+          ctx.arc(-scaledRadius * 0.3, -scaledRadius * 0.2, scaledRadius * 0.15, 0, Math.PI * 2);
+          ctx.arc(scaledRadius * 0.3, -scaledRadius * 0.2, scaledRadius * 0.15, 0, Math.PI * 2);
           ctx.fill();
           
           // Eye pupils
           ctx.fillStyle = 'black';
           ctx.beginPath();
-          ctx.arc(-this.radius * 0.3, -this.radius * 0.2, this.radius * 0.05, 0, Math.PI * 2);
-          ctx.arc(this.radius * 0.3, -this.radius * 0.2, this.radius * 0.05, 0, Math.PI * 2);
+          ctx.arc(-scaledRadius * 0.3, -scaledRadius * 0.2, scaledRadius * 0.05, 0, Math.PI * 2);
+          ctx.arc(scaledRadius * 0.3, -scaledRadius * 0.2, scaledRadius * 0.05, 0, Math.PI * 2);
           ctx.fill();
           break;
           
@@ -365,10 +431,10 @@ export class Enemy extends Entity {
           ctx.rotate(moveAngle);
           
           ctx.beginPath();
-          ctx.moveTo(this.radius, 0);
-          ctx.lineTo(-this.radius * 0.7, -this.radius * 0.7);
-          ctx.lineTo(-this.radius * 0.3, 0);
-          ctx.lineTo(-this.radius * 0.7, this.radius * 0.7);
+          ctx.moveTo(scaledRadius, 0);
+          ctx.lineTo(-scaledRadius * 0.7, -scaledRadius * 0.7);
+          ctx.lineTo(-scaledRadius * 0.3, 0);
+          ctx.lineTo(-scaledRadius * 0.7, scaledRadius * 0.7);
           ctx.closePath();
           ctx.fill();
           
@@ -377,10 +443,10 @@ export class Enemy extends Entity {
           ctx.lineWidth = 1;
           ctx.globalAlpha = 0.5;
           ctx.beginPath();
-          ctx.moveTo(-this.radius * 1.2, -this.radius * 0.3);
-          ctx.lineTo(-this.radius * 0.8, 0);
-          ctx.moveTo(-this.radius * 1.2, this.radius * 0.3);
-          ctx.lineTo(-this.radius * 0.8, 0);
+          ctx.moveTo(-scaledRadius * 1.2, -scaledRadius * 0.3);
+          ctx.lineTo(-scaledRadius * 0.8, 0);
+          ctx.moveTo(-scaledRadius * 1.2, scaledRadius * 0.3);
+          ctx.lineTo(-scaledRadius * 0.8, 0);
           ctx.stroke();
           ctx.globalAlpha = 1;
           break;
@@ -390,27 +456,27 @@ export class Enemy extends Entity {
           ctx.fillStyle = COLOR_THEME.enemies.tank;
           
           // Main body
-          ctx.fillRect(-this.radius * 0.8, -this.radius * 0.6, this.radius * 1.6, this.radius * 1.2);
+          ctx.fillRect(-scaledRadius * 0.8, -scaledRadius * 0.6, scaledRadius * 1.6, scaledRadius * 1.2);
           
           // Armor plates
           ctx.fillStyle = 'rgba(0,0,0,0.2)';
-          ctx.fillRect(-this.radius * 0.7, -this.radius * 0.5, this.radius * 0.3, this.radius);
-          ctx.fillRect(this.radius * 0.4, -this.radius * 0.5, this.radius * 0.3, this.radius);
+          ctx.fillRect(-scaledRadius * 0.7, -scaledRadius * 0.5, scaledRadius * 0.3, scaledRadius);
+          ctx.fillRect(scaledRadius * 0.4, -scaledRadius * 0.5, scaledRadius * 0.3, scaledRadius);
           
           // Treads
           ctx.fillStyle = 'rgba(0,0,0,0.3)';
-          ctx.fillRect(-this.radius * 0.9, -this.radius * 0.7, this.radius * 1.8, this.radius * 0.2);
-          ctx.fillRect(-this.radius * 0.9, this.radius * 0.5, this.radius * 1.8, this.radius * 0.2);
+          ctx.fillRect(-scaledRadius * 0.9, -scaledRadius * 0.7, scaledRadius * 1.8, scaledRadius * 0.2);
+          ctx.fillRect(-scaledRadius * 0.9, scaledRadius * 0.5, scaledRadius * 1.8, scaledRadius * 0.2);
           
           // Tread details
           ctx.strokeStyle = 'rgba(0,0,0,0.4)';
           ctx.lineWidth = 1;
           for (let i = -3; i <= 3; i++) {
             ctx.beginPath();
-            ctx.moveTo(i * this.radius * 0.25, -this.radius * 0.7);
-            ctx.lineTo(i * this.radius * 0.25, -this.radius * 0.5);
-            ctx.moveTo(i * this.radius * 0.25, this.radius * 0.5);
-            ctx.lineTo(i * this.radius * 0.25, this.radius * 0.7);
+            ctx.moveTo(i * scaledRadius * 0.25, -scaledRadius * 0.7);
+            ctx.lineTo(i * scaledRadius * 0.25, -scaledRadius * 0.5);
+            ctx.moveTo(i * scaledRadius * 0.25, scaledRadius * 0.5);
+            ctx.lineTo(i * scaledRadius * 0.25, scaledRadius * 0.7);
             ctx.stroke();
           }
           break;
@@ -418,7 +484,7 @@ export class Enemy extends Entity {
         default:
           // Default circular enemy
           ctx.beginPath();
-          ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+          ctx.arc(0, 0, scaledRadius, 0, Math.PI * 2);
           ctx.fillStyle = COLOR_THEME.enemies.default;
           ctx.fill();
       }
@@ -429,7 +495,7 @@ export class Enemy extends Entity {
     // Enemy outline - different color based on target
     const targetType = this.getTargetType();
     ctx.beginPath();
-    ctx.arc(screenPos.x, screenPos.y, this.radius + 2, 0, Math.PI * 2);
+    ctx.arc(screenPos.x, screenPos.y, this.radius * zoom + 2, 0, Math.PI * 2);
     
     if (targetType === 'tower') {
       ctx.strokeStyle = COLOR_THEME.enemies.outlines.tower;

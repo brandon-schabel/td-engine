@@ -11,7 +11,7 @@ import { UpgradeType } from '@/entities/Tower';
 import { TextureManager, type Texture } from './TextureManager';
 import type { Vector2 } from '@/utils/Vector2';
 import { COLOR_CONFIG } from '../config/GameConfig';
-import { GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER } from '../config/RenderingConfig';
+import { GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER, ZOOM_RENDER_CONFIG } from '../config/RenderingConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
 import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
@@ -19,6 +19,7 @@ import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
 import { DestructionEffect } from '@/effects/DestructionEffect';
 import { PathfindingDebug } from '@/debug/PathfindingDebug';
 import type { NavigationGrid } from './NavigationGrid';
+import { TerrainRenderer } from './TerrainRenderer';
 
 // Legacy render config for backward compatibility
 const RENDER_CONFIG = {
@@ -38,6 +39,7 @@ export class Renderer {
   private viewportWidth: number;
   private viewportHeight: number;
   private textureManager: TextureManager;
+  private terrainRenderer: TerrainRenderer;
   private environmentalEffects: EnvironmentalEffect[] = [];
   private debugMode: boolean = false;
   private biomeLogged: boolean = false;
@@ -59,6 +61,9 @@ export class Renderer {
       throw new Error('Could not get 2D context');
     }
     this.ctx = ctx;
+    
+    // Initialize terrain renderer
+    this.terrainRenderer = new TerrainRenderer(ctx, grid, camera);
     
     console.log('[Renderer] Created with canvas:', {
       canvas: canvas,
@@ -113,6 +118,9 @@ export class Renderer {
 
 
   renderGrid(): void {
+    // Use the new terrain renderer
+    this.terrainRenderer.renderGrid();
+    return;
     const cellSize = this.grid.cellSize;
     const visibleBounds = this.camera.getVisibleBounds();
     
@@ -398,7 +406,15 @@ export class Renderer {
 
     // Render grid lines
     this.ctx.strokeStyle = RENDER_CONFIG.gridLineColor;
-    this.ctx.lineWidth = 1;
+    // Scale line width inversely with zoom to maintain consistent visual thickness
+    const zoom = this.camera.getZoom();
+    const lineWidth = ZOOM_RENDER_CONFIG.gridLineWidth.scaleInversely 
+      ? ZOOM_RENDER_CONFIG.gridLineWidth.base / zoom
+      : ZOOM_RENDER_CONFIG.gridLineWidth.base;
+    this.ctx.lineWidth = Math.max(
+      ZOOM_RENDER_CONFIG.gridLineWidth.min, 
+      Math.min(ZOOM_RENDER_CONFIG.gridLineWidth.max, lineWidth)
+    );
     if (typeof this.ctx.beginPath === 'function') {
       this.ctx.beginPath();
     }
@@ -1108,28 +1124,21 @@ export class Renderer {
       this.ctx.beginPath();
       this.ctx.arc(screenPos.x, screenPos.y, (tower.radius + 10) * zoom * pulseScale, 0, Math.PI * 2);
       this.ctx.strokeStyle = '#FFD700'; // Gold color
-      this.ctx.lineWidth = 3 * zoom;
+      this.ctx.lineWidth = Math.max(1, 3);
       this.ctx.stroke();
       
       // Inner selection ring
       this.ctx.beginPath();
       this.ctx.arc(screenPos.x, screenPos.y, (tower.radius + 5) * zoom * pulseScale, 0, Math.PI * 2);
       this.ctx.strokeStyle = '#FFA500'; // Orange color
-      this.ctx.lineWidth = 2 * zoom;
+      this.ctx.lineWidth = Math.max(1, 2);
       this.ctx.stroke();
       
       this.ctx.restore();
     }
     
-    // Apply zoom scaling to context
-    this.ctx.save();
-    this.ctx.translate(screenPos.x, screenPos.y);
-    this.ctx.scale(zoom, zoom);
-    this.ctx.translate(-screenPos.x, -screenPos.y);
-    
-    tower.render(this.ctx, screenPos, this.textureManager, isSelected);
-    
-    this.ctx.restore();
+    // Pass zoom to the tower render method instead of scaling context
+    tower.render(this.ctx, screenPos, this.textureManager, isSelected, zoom);
     
     // Also call the separate upgrade dots method for testing compatibility
     this.renderTowerUpgradeDots(tower);
@@ -1164,7 +1173,7 @@ export class Renderer {
           
           // Dot outline
           this.ctx.strokeStyle = '#000000';
-          this.ctx.lineWidth = zoom; // Scale line width with zoom
+          this.ctx.lineWidth = Math.max(0.5, 1); // Fixed line width
           this.ctx.stroke();
         }
       }
@@ -1177,15 +1186,8 @@ export class Renderer {
     const screenPos = this.getScreenPosition(enemy);
     const zoom = this.camera.getZoom();
     
-    // Apply zoom scaling to context
-    this.ctx.save();
-    this.ctx.translate(screenPos.x, screenPos.y);
-    this.ctx.scale(zoom, zoom);
-    this.ctx.translate(-screenPos.x, -screenPos.y);
-    
-    enemy.render(this.ctx, screenPos, this.textureManager);
-    
-    this.ctx.restore();
+    // Pass zoom to the enemy render method instead of scaling context
+    enemy.render(this.ctx, screenPos, this.textureManager, zoom);
     
     // Render target line with proper scaling
     enemy.renderTargetLine(this.ctx, screenPos, this.getScreenPosition.bind(this), this.camera);
