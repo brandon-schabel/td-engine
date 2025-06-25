@@ -10,6 +10,7 @@ export interface TerrainSvgOptions {
   size: number;
   biomeColor?: string;
   brightness?: number;
+  detailLevel?: 'high' | 'medium' | 'low';
 }
 
 export class TerrainSvgGenerator {
@@ -18,15 +19,16 @@ export class TerrainSvgGenerator {
   /**
    * Generate a unique cache key for a tile
    */
-  private getCacheKey(x: number, y: number, type: CellType): string {
-    return `${x}_${y}_${type}`;
+  private getCacheKey(x: number, y: number, type: CellType, detailLevel?: string): string {
+    return `${x}_${y}_${type}_${detailLevel || 'high'}`;
   }
   
   /**
    * Get or generate SVG for a specific tile
    */
   getTerrainSvg(x: number, y: number, type: CellType, options: TerrainSvgOptions): string {
-    const cacheKey = this.getCacheKey(x, y, type);
+    const detailLevel = options.detailLevel || 'high';
+    const cacheKey = this.getCacheKey(x, y, type, detailLevel);
     
     if (this.svgCache.has(cacheKey)) {
       return this.svgCache.get(cacheKey)!;
@@ -66,14 +68,35 @@ export class TerrainSvgGenerator {
   }
   
   private generateGrassSvg(x: number, y: number, options: TerrainSvgOptions): string {
-    const { size, brightness = 1 } = options;
+    const { size, brightness = 1, detailLevel = 'high' } = options;
     const variation = coordinateVariation(x, y, 0.2);
     const baseColor = this.adjustBrightness('#4a7c4e', brightness + variation);
     const darkColor = this.adjustBrightness('#3d6b3d', brightness + variation);
     
+    // Low detail - just solid color
+    if (detailLevel === 'low') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+        </svg>
+      `;
+    }
+    
     // Use a seeded random based on coordinates for consistent randomness
     const random = this.seededRandom(x, y);
     
+    // Medium detail - simplified
+    if (detailLevel === 'medium') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+          <!-- Simple texture -->
+          ${this.generateSimpleGrassTexture(x, y, size, random)}
+        </svg>
+      `;
+    }
+    
+    // High detail - full version
     return `
       <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
         <!-- Base grass color with gradient -->
@@ -92,6 +115,26 @@ export class TerrainSvgGenerator {
         ${random.next() > 0.7 ? this.generateSmallFlowers(x, y, size, random) : ''}
       </svg>
     `;
+  }
+  
+  private generateSimpleGrassTexture(_x: number, _y: number, size: number, random: any): string {
+    let texture = '';
+    const dotCount = 5 + Math.floor(random.next() * 3);
+    
+    // Simple dots to represent grass texture
+    for (let i = 0; i < dotCount; i++) {
+      const dx = random.next() * size;
+      const dy = random.next() * size;
+      const radius = 1 + random.next() * 0.5;
+      const opacity = 0.1 + random.next() * 0.1;
+      
+      texture += `
+        <circle cx="${dx}" cy="${dy}" r="${radius}" 
+                fill="rgba(0, 0, 0, ${opacity})" />
+      `;
+    }
+    
+    return texture;
   }
   
   private generateGrassBlades(_x: number, _y: number, size: number, random: any): string {
@@ -135,11 +178,36 @@ export class TerrainSvgGenerator {
   }
   
   private generateDirtSvg(x: number, y: number, options: TerrainSvgOptions): string {
-    const { size, brightness = 1 } = options;
+    const { size, brightness = 1, detailLevel = 'high' } = options;
     const variation = coordinateVariation(x, y, 0.15);
     const baseColor = this.adjustBrightness('#8B7355', brightness + variation);
+    
+    // Low detail - just solid color
+    if (detailLevel === 'low') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+        </svg>
+      `;
+    }
+    
     const random = this.seededRandom(x, y);
     
+    // Medium detail - simplified
+    if (detailLevel === 'medium') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+          <!-- Simple wear mark -->
+          <line x1="${size * 0.2}" y1="${size * 0.3}" 
+                x2="${size * 0.8}" y2="${size * 0.7}" 
+                stroke="rgba(0, 0, 0, 0.1)" 
+                stroke-width="1" />
+        </svg>
+      `;
+    }
+    
+    // High detail - full version
     return `
       <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
         <!-- Base dirt color -->
@@ -199,11 +267,36 @@ export class TerrainSvgGenerator {
   }
   
   private generateStoneSvg(x: number, y: number, options: TerrainSvgOptions): string {
-    const { size, brightness = 1 } = options;
+    const { size, brightness = 1, detailLevel = 'high' } = options;
     const variation = coordinateVariation(x, y, 0.1);
     const baseColor = this.adjustBrightness('#696969', brightness * 0.7 + variation);
+    
+    // Low detail - just solid color
+    if (detailLevel === 'low') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+        </svg>
+      `;
+    }
+    
     const random = this.seededRandom(x, y);
     
+    // Medium detail - simplified with just borders
+    if (detailLevel === 'medium') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+          <!-- 3D effect borders -->
+          <rect x="0" y="0" width="${size}" height="2" fill="rgba(255, 255, 255, 0.1)" />
+          <rect x="0" y="0" width="2" height="${size}" fill="rgba(255, 255, 255, 0.1)" />
+          <rect x="0" y="${size - 2}" width="${size}" height="2" fill="rgba(0, 0, 0, 0.2)" />
+          <rect x="${size - 2}" y="0" width="2" height="${size}" fill="rgba(0, 0, 0, 0.2)" />
+        </svg>
+      `;
+    }
+    
+    // High detail - full version
     return `
       <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
         <!-- Base stone color -->
@@ -263,11 +356,34 @@ export class TerrainSvgGenerator {
   }
   
   private generateWaterSvg(x: number, y: number, options: TerrainSvgOptions): string {
-    const { size, brightness = 1 } = options;
+    const { size, brightness = 1, detailLevel = 'high' } = options;
     const variation = coordinateVariation(x, y, 0.1);
     const baseColor = this.adjustBrightness('#4682B4', brightness + variation);
+    
+    // Low detail - just solid color
+    if (detailLevel === 'low') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+        </svg>
+      `;
+    }
+    
     const random = this.seededRandom(x, y);
     
+    // Medium detail - simple waves
+    if (detailLevel === 'medium') {
+      return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="${baseColor}" />
+          <!-- Simple wave line -->
+          <line x1="0" y1="${size/2}" x2="${size}" y2="${size/2}" 
+                stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" />
+        </svg>
+      `;
+    }
+    
+    // High detail - full version
     // Add animation phase based on coordinates for variety
     const phase = (x * 7 + y * 13) % 360;
     
