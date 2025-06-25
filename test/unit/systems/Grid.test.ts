@@ -262,14 +262,20 @@ describe('Grid', () => {
     test('setBorders sets border cells', () => {
       grid.setBorders();
       
-      // Check top and bottom borders
-      for (let x = 0; x < grid.width; x++) {
-        expect(grid.getCellType(x, 0)).toBe(CellType.BORDER);
-        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.BORDER);
+      // Check corners are BORDER
+      expect(grid.getCellType(0, 0)).toBe(CellType.BORDER);
+      expect(grid.getCellType(grid.width - 1, 0)).toBe(CellType.BORDER);
+      expect(grid.getCellType(0, grid.height - 1)).toBe(CellType.BORDER);
+      expect(grid.getCellType(grid.width - 1, grid.height - 1)).toBe(CellType.BORDER);
+      
+      // Check top and bottom edges (except corners) are EMPTY
+      for (let x = 1; x < grid.width - 1; x++) {
+        expect(grid.getCellType(x, 0)).toBe(CellType.EMPTY);
+        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.EMPTY);
       }
       
-      // Check left and right borders
-      for (let y = 0; y < grid.height; y++) {
+      // Check left and right borders (excluding corners)
+      for (let y = 1; y < grid.height - 1; y++) {
         expect(grid.getCellType(0, y)).toBe(CellType.BORDER);
         expect(grid.getCellType(grid.width - 1, y)).toBe(CellType.BORDER);
       }

@@ -46,9 +46,50 @@ export class EnvironmentRenderer extends BaseRenderer {
         const worldPos = this.grid.gridToWorld(x, y);
         const screenPos = this.getScreenPosition(worldPos);
 
+        // Add subtle visual indicator for 2-tile border area
+        const isInWalkableBorder = this.isInWalkableBorderArea(x, y);
+        if (isInWalkableBorder && cellType === CellType.EMPTY) {
+          this.renderWalkableBorderBackground(screenPos, cellSize);
+        }
+
         this.renderCell(cellType, screenPos, cellSize);
       }
     }
+  }
+
+  private isInWalkableBorderArea(x: number, y: number): boolean {
+    // Check if cell is within 2 tiles of the edge but not on the absolute edge
+    const isNearEdge = (
+      (x > 0 && x <= 2) || (x >= this.grid.width - 3 && x < this.grid.width - 1) ||
+      (y > 0 && y <= 2) || (y >= this.grid.height - 3 && y < this.grid.height - 1)
+    );
+    
+    return isNearEdge;
+  }
+
+  private renderWalkableBorderBackground(screenPos: Vector2, cellSize: number): void {
+    const halfSize = cellSize / 2;
+    
+    // Render a subtle tinted background to indicate walkable border area
+    this.ctx.fillStyle = 'rgba(100, 150, 200, 0.1)';
+    this.ctx.fillRect(
+      screenPos.x - halfSize,
+      screenPos.y - halfSize,
+      cellSize,
+      cellSize
+    );
+    
+    // Add subtle border pattern
+    this.ctx.strokeStyle = 'rgba(100, 150, 200, 0.2)';
+    this.ctx.lineWidth = 1;
+    this.ctx.setLineDash([4, 4]);
+    this.ctx.strokeRect(
+      screenPos.x - halfSize + 2,
+      screenPos.y - halfSize + 2,
+      cellSize - 4,
+      cellSize - 4
+    );
+    this.ctx.setLineDash([]);
   }
 
   private renderCell(cellType: CellType, screenPos: Vector2, cellSize: number): void {
@@ -92,6 +133,10 @@ export class EnvironmentRenderer extends BaseRenderer {
       case CellType.BRIDGE:
         console.log('Rendering bridge');
         this.renderBridge(screenPos, cellSize);
+        break;
+
+      case CellType.BORDER:
+        this.renderBorder(screenPos, cellSize);
         break;
     }
   }
@@ -235,6 +280,40 @@ export class EnvironmentRenderer extends BaseRenderer {
     this.ctx.moveTo(screenPos.x + halfSize - 2, screenPos.y - halfSize);
     this.ctx.lineTo(screenPos.x + halfSize - 2, screenPos.y + halfSize);
     this.ctx.stroke();
+  }
+
+  private renderBorder(screenPos: Vector2, cellSize: number): void {
+    const halfSize = cellSize / 2;
+
+    // Dark solid border color
+    this.ctx.fillStyle = '#2a2a2a';
+    this.ctx.fillRect(
+      screenPos.x - halfSize,
+      screenPos.y - halfSize,
+      cellSize,
+      cellSize
+    );
+
+    // Add cross-hatch pattern to indicate impassable
+    this.ctx.strokeStyle = '#444444';
+    this.ctx.lineWidth = 2;
+    
+    // Draw diagonal lines
+    const spacing = cellSize / 4;
+    for (let i = 0; i < 4; i++) {
+      const offset = i * spacing;
+      
+      // Top-left to bottom-right lines
+      this.ctx.beginPath();
+      this.ctx.moveTo(screenPos.x - halfSize + offset, screenPos.y - halfSize);
+      this.ctx.lineTo(screenPos.x - halfSize, screenPos.y - halfSize + offset);
+      this.ctx.stroke();
+      
+      this.ctx.beginPath();
+      this.ctx.moveTo(screenPos.x + halfSize, screenPos.y + halfSize - offset);
+      this.ctx.lineTo(screenPos.x + halfSize - offset, screenPos.y + halfSize);
+      this.ctx.stroke();
+    }
   }
 
   private renderGridLines(startX: number, endX: number, startY: number, endY: number, cellSize: number): void {

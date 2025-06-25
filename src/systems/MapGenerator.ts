@@ -169,12 +169,12 @@ export class MapGenerator {
     const spawnZones: Vector2[] = [];
     const spawnZonesWithMetadata: MapData['spawnZonesWithMetadata'] = [];
     
-    // Helper to determine edge type
+    // Helper to determine edge type (spawn zones are now 1 tile inward)
     const getEdgeType = (pos: Vector2): EdgeType => {
-      const isTop = pos.y === 0;
-      const isBottom = pos.y === grid.height - 1;
-      const isLeft = pos.x === 0;
-      const isRight = pos.x === grid.width - 1;
+      const isTop = pos.y === 1;
+      const isBottom = pos.y === grid.height - 2;
+      const isLeft = pos.x === 1;
+      const isRight = pos.x === grid.width - 2;
       
       if (isTop && isLeft) return EdgeType.TOP_LEFT;
       if (isTop && isRight) return EdgeType.TOP_RIGHT;
@@ -214,29 +214,29 @@ export class MapGenerator {
     // Define edge positions (excluding corners initially)
     const edgePositions: Array<{pos: Vector2, edge: EdgeType}> = [];
     
-    // Top edge (excluding corners)
+    // Top edge (1 tile inward from border, excluding corners)
     for (let x = 2; x < grid.width - 2; x++) {
-      edgePositions.push({ pos: { x, y: 0 }, edge: EdgeType.TOP });
+      edgePositions.push({ pos: { x, y: 1 }, edge: EdgeType.TOP });
     }
-    // Bottom edge (excluding corners)
+    // Bottom edge (1 tile inward from border, excluding corners)
     for (let x = 2; x < grid.width - 2; x++) {
-      edgePositions.push({ pos: { x, y: grid.height - 1 }, edge: EdgeType.BOTTOM });
+      edgePositions.push({ pos: { x, y: grid.height - 2 }, edge: EdgeType.BOTTOM });
     }
-    // Left edge (excluding corners)
+    // Left edge (1 tile inward from border, excluding corners)
     for (let y = 2; y < grid.height - 2; y++) {
-      edgePositions.push({ pos: { x: 0, y }, edge: EdgeType.LEFT });
+      edgePositions.push({ pos: { x: 1, y }, edge: EdgeType.LEFT });
     }
-    // Right edge (excluding corners)
+    // Right edge (1 tile inward from border, excluding corners)
     for (let y = 2; y < grid.height - 2; y++) {
-      edgePositions.push({ pos: { x: grid.width - 1, y }, edge: EdgeType.RIGHT });
+      edgePositions.push({ pos: { x: grid.width - 2, y }, edge: EdgeType.RIGHT });
     }
     
-    // Add corner positions separately (prioritized)
+    // Add corner positions separately (prioritized) - 1 tile inward from actual corners
     const cornerPositions: Array<{pos: Vector2, edge: EdgeType}> = [
-      { pos: { x: 0, y: 0 }, edge: EdgeType.TOP_LEFT },
-      { pos: { x: grid.width - 1, y: 0 }, edge: EdgeType.TOP_RIGHT },
-      { pos: { x: 0, y: grid.height - 1 }, edge: EdgeType.BOTTOM_LEFT },
-      { pos: { x: grid.width - 1, y: grid.height - 1 }, edge: EdgeType.BOTTOM_RIGHT }
+      { pos: { x: 1, y: 1 }, edge: EdgeType.TOP_LEFT },
+      { pos: { x: grid.width - 2, y: 1 }, edge: EdgeType.TOP_RIGHT },
+      { pos: { x: 1, y: grid.height - 2 }, edge: EdgeType.BOTTOM_LEFT },
+      { pos: { x: grid.width - 2, y: grid.height - 2 }, edge: EdgeType.BOTTOM_RIGHT }
     ];
     
     // Shuffle positions for randomness

@@ -68,18 +68,18 @@ export class PathGenerator {
   private generatePathWaypoints(options: PathGenerationOptions): Vector2[] {
     const waypoints: Vector2[] = [];
     
-    // Start from left edge, end at right edge (or other configuration)
+    // Start from left edge (1 tile inward), end at right edge (1 tile inward)
     const startY = Math.floor(this.height * (0.3 + this.random() * 0.4));
     const endY = Math.floor(this.height * (0.3 + this.random() * 0.4));
     
-    waypoints.push({ x: 0, y: startY });
+    waypoints.push({ x: 1, y: startY });
 
     // Generate intermediate waypoints based on complexity
     const segmentCount = Math.floor(3 + options.complexity * 5);
     
     for (let i = 1; i < segmentCount; i++) {
       const progress = i / segmentCount;
-      const baseX = Math.floor(progress * (this.width - 1));
+      const baseX = Math.floor(1 + progress * (this.width - 3));
       
       // Add some randomness based on complexity
       const maxDeviation = Math.floor(this.height * 0.3 * options.complexity);
@@ -87,12 +87,12 @@ export class PathGenerator {
       
       // Interpolate Y between start and end, plus deviation
       const baseY = startY + (endY - startY) * progress;
-      const finalY = Math.floor(Math.max(1, Math.min(this.height - 2, baseY + yDeviation)));
+      const finalY = Math.floor(Math.max(2, Math.min(this.height - 3, baseY + yDeviation)));
       
       waypoints.push({ x: baseX, y: finalY });
     }
 
-    waypoints.push({ x: this.width - 1, y: endY });
+    waypoints.push({ x: this.width - 2, y: endY });
     
     return waypoints;
   }

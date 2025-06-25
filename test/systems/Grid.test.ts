@@ -417,17 +417,22 @@ describe('Grid', () => {
   });
 
   describe('borders', () => {
-    it('should set border cells', () => {
+    it('should set only corner cells as BORDER', () => {
       grid.setBorders();
       
-      // Check top and bottom borders
-      for (let x = 0; x < grid.width; x++) {
-        expect(grid.getCellType(x, 0)).toBe(CellType.BORDER);
-        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.BORDER);
+      // Check corners are BORDER
+      expect(grid.getCellType(0, 0)).toBe(CellType.BORDER);
+      expect(grid.getCellType(grid.width - 1, 0)).toBe(CellType.BORDER);
+      expect(grid.getCellType(0, grid.height - 1)).toBe(CellType.BORDER);
+      expect(grid.getCellType(grid.width - 1, grid.height - 1)).toBe(CellType.BORDER);
+      
+      // Check that top and bottom edges (except corners) are EMPTY
+      for (let x = 1; x < grid.width - 1; x++) {
+        expect(grid.getCellType(x, 0)).toBe(CellType.EMPTY);
+        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.EMPTY);
       }
       
-      // Check left and right borders
-      for (let y = 0; y < grid.height; y++) {
+      for (let y = 1; y < grid.height - 1; y++) {
         expect(grid.getCellType(0, y)).toBe(CellType.BORDER);
         expect(grid.getCellType(grid.width - 1, y)).toBe(CellType.BORDER);
       }
@@ -435,19 +440,78 @@ describe('Grid', () => {
       // Check interior is not affected
       expect(grid.getCellType(5, 5)).toBe(CellType.EMPTY);
     });
+
+    it('should keep 2-tile border area walkable', () => {
+      grid.setBorders();
+      
+      // Check that cells 1 tile away from edge are walkable
+      for (let x = 1; x < grid.width - 1; x++) {
+        expect(grid.isWalkable(x, 1)).toBe(true);
+        expect(grid.isWalkable(x, grid.height - 2)).toBe(true);
+      }
+      
+      for (let y = 1; y < grid.height - 1; y++) {
+        expect(grid.isWalkable(1, y)).toBe(true);
+        expect(grid.isWalkable(grid.width - 2, y)).toBe(true);
+      }
+      
+      // Check that cells 2 tiles away from edge are walkable
+      for (let x = 2; x < grid.width - 2; x++) {
+        expect(grid.isWalkable(x, 2)).toBe(true);
+        expect(grid.isWalkable(x, grid.height - 3)).toBe(true);
+      }
+      
+      for (let y = 2; y < grid.height - 2; y++) {
+        expect(grid.isWalkable(2, y)).toBe(true);
+        expect(grid.isWalkable(grid.width - 3, y)).toBe(true);
+      }
+    });
+
+    it('should block movement only at the absolute edge', () => {
+      grid.setBorders();
+      
+      // Only the absolute corners and left/right edges should be non-walkable
+      expect(grid.isWalkable(0, 0)).toBe(false);
+      expect(grid.isWalkable(0, 5)).toBe(false);
+      expect(grid.isWalkable(grid.width - 1, 5)).toBe(false);
+      
+      // Top and bottom edges (except corners) should be walkable
+      expect(grid.isWalkable(5, 0)).toBe(true);
+      expect(grid.isWalkable(5, grid.height - 1)).toBe(true);
+      
+      // Everything else should be walkable
+      expect(grid.isWalkable(1, 1)).toBe(true);
+      expect(grid.isWalkable(2, 2)).toBe(true);
+    });
   });
 
   describe('spawn zones', () => {
     it('should set spawn zones', () => {
       const spawnZones = [
-        { x: 0, y: 5 },
-        { x: 9, y: 5 },
+        { x: 1, y: 5 },
+        { x: 8, y: 5 },
       ];
       
       grid.setSpawnZones(spawnZones);
       
       spawnZones.forEach(spawn => {
         expect(grid.getCellType(spawn.x, spawn.y)).toBe(CellType.SPAWN_ZONE);
+      });
+    });
+
+    it('should allow spawn zones at edge positions (1 tile inward)', () => {
+      const edgeSpawnZones = [
+        { x: 1, y: 1 }, // Top-left corner area
+        { x: grid.width - 2, y: 1 }, // Top-right corner area
+        { x: 1, y: grid.height - 2 }, // Bottom-left corner area
+        { x: grid.width - 2, y: grid.height - 2 }, // Bottom-right corner area
+      ];
+      
+      grid.setSpawnZones(edgeSpawnZones);
+      
+      edgeSpawnZones.forEach(spawn => {
+        expect(grid.getCellType(spawn.x, spawn.y)).toBe(CellType.SPAWN_ZONE);
+        expect(grid.isWalkable(spawn.x, spawn.y)).toBe(true);
       });
     });
   });

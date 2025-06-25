@@ -3,20 +3,225 @@ import { Camera } from './Camera';
 import { BIOME_PRESETS } from '@/types/MapData';
 import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
 import { ZOOM_RENDER_CONFIG } from '../config/RenderingConfig';
+import { TerrainSvgGenerator } from '@/rendering/TerrainSvgGenerator';
 
 export class TerrainRenderer {
   private ctx: CanvasRenderingContext2D;
   private grid: Grid;
   private camera: Camera;
   private patternCache: Map<string, CanvasPattern | null> = new Map();
+  private svgGenerator: TerrainSvgGenerator;
+  private imageCache: Map<string, HTMLImageElement> = new Map();
+  private loadingImages: Map<string, Promise<HTMLImageElement>> = new Map();
   
   constructor(ctx: CanvasRenderingContext2D, grid: Grid, camera: Camera) {
     this.ctx = ctx;
     this.grid = grid;
     this.camera = camera;
-    this.initializePatterns();
+    this.svgGenerator = new TerrainSvgGenerator();
+    // Skip pattern initialization since we're using SVG now
   }
   
+  renderGrid(): void {
+    const cellSize = this.grid.cellSize;
+    const visibleBounds = this.camera.getVisibleBounds();
+    const zoom = this.camera.getZoom();
+    
+    // Get biome colors
+    const biome = this.grid.getBiome();
+    const biomeColors = BIOME_PRESETS[biome].colors;
+    
+    // Calculate visible grid bounds
+    const startX = Math.max(0, Math.floor(visibleBounds.min.x / cellSize));
+    const endX = Math.min(this.grid.width, Math.ceil(visibleBounds.max.x / cellSize));
+    const startY = Math.max(0, Math.floor(visibleBounds.min.y / cellSize));
+    const endY = Math.min(this.grid.height, Math.ceil(visibleBounds.max.y / cellSize));
+    
+    // Enable image smoothing for better texture rendering
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
+    
+    // Render terrain tiles
+    for (let x = startX; x < endX; x++) {
+      for (let y = startY; y < endY; y++) {
+        const cellData = this.grid.getCellData(x, y);
+        if (!cellData) continue;
+        
+        const worldPos = this.grid.gridToWorld(x, y);
+        const screenPos = this.camera.worldToScreen(worldPos);
+        const scaledCellSize = cellSize * zoom;
+        
+        // Calculate cell bounds
+        const cellLeft = screenPos.x - scaledCellSize / 2;
+        const cellTop = screenPos.y - scaledCellSize / 2;
+        
+        // Save context state
+        this.ctx.save();
+        
+        // Clip to cell bounds for clean edges
+        this.ctx.beginPath();
+        this.ctx.rect(cellLeft, cellTop, scaledCellSize, scaledCellSize);
+        this.ctx.clip();
+        
+        // Render base terrain using SVG
+        this.renderTerrainTileSvg(cellData.type, cellLeft, cellTop, scaledCellSize, x, y, biomeColors);
+        
+        // Add grid overlay for high zoom levels
+        if (zoom > 1.5) {
+          this.renderCellBorder(cellLeft, cellTop, scaledCellSize, cellData.type);
+        }
+        
+        this.ctx.restore();
+      }
+    }
+    
+    // Render subtle grid lines at lower zoom levels
+    if (zoom <= 1.5) {
+      this.renderGridLines(startX, endX, startY, endY, cellSize, zoom);
+    }
+  }
+  
+  /**
+   * Load SVG as an image for rendering
+   */
+  private async loadSvgAsImage(svg: string, cacheKey: string): Promise<HTMLImageElement> {
+    // Check if already loading
+    if (this.loadingImages.has(cacheKey)) {
+      return this.loadingImages.get(cacheKey)!;
+    }
+    
+    // Check if already loaded
+    if (this.imageCache.has(cacheKey)) {
+      return this.imageCache.get(cacheKey)!;
+    }
+    
+    // Create promise for loading
+    const loadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        this.imageCache.set(cacheKey, img);
+        this.loadingImages.delete(cacheKey);
+        resolve(img);
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        this.loadingImages.delete(cacheKey);
+        reject(new Error(`Failed to load SVG for ${cacheKey}`));
+      };
+      
+      img.src = url;
+    });
+    
+    this.loadingImages.set(cacheKey, loadPromise);
+    return loadPromise;
+  }
+  
+  /**
+   * Render terrain tile using SVG
+   */
+  private renderTerrainTileSvg(
+    cellType: CellType,
+    x: number,
+    y: number,
+    size: number,
+    gridX: number,
+    gridY: number,
+    biomeColors: any
+  ): void {
+    const height = this.grid.getCellData(gridX, gridY)?.height || 0;
+    const variation = coordinateVariation(gridX, gridY, 0.1);
+    const brightness = 1 - height * 0.3 + variation;
+    
+    // Generate SVG for this specific tile
+    const svg = this.svgGenerator.getTerrainSvg(gridX, gridY, cellType, {
+      size: this.grid.cellSize,
+      biomeColor: biomeColors.primary,
+      brightness
+    });
+    
+    const cacheKey = `${gridX}_${gridY}_${cellType}`;
+    
+    // Try to get cached image
+    const cachedImage = this.imageCache.get(cacheKey);
+    if (cachedImage) {
+      // Draw the cached image
+      this.ctx.drawImage(cachedImage, x, y, size, size);
+    } else {
+      // Load and draw later, for now draw fallback
+      this.loadSvgAsImage(svg, cacheKey).then(_img => {
+        // The image will be drawn on next frame when it's cached
+      }).catch(err => {
+        console.warn('Failed to load terrain SVG:', err);
+      });
+      
+      // Draw fallback color while loading
+      this.ctx.fillStyle = adjustColorBrightness(biomeColors.primary, brightness);
+      this.ctx.fillRect(x, y, size, size);
+    }
+  }
+  
+  private renderCellBorder(x: number, y: number, size: number, cellType: CellType): void {
+    // Only render borders for certain cell types at high zoom
+    if (cellType === CellType.PATH || cellType === CellType.EMPTY || cellType === CellType.DECORATIVE) {
+      this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+      this.ctx.lineWidth = 0.5;
+      this.ctx.strokeRect(x, y, size, size);
+    }
+  }
+  
+  private renderGridLines(startX: number, endX: number, startY: number, endY: number, cellSize: number, zoom: number): void {
+    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+    const lineWidth = ZOOM_RENDER_CONFIG.gridLineWidth.scaleInversely 
+      ? ZOOM_RENDER_CONFIG.gridLineWidth.base / zoom
+      : ZOOM_RENDER_CONFIG.gridLineWidth.base;
+    this.ctx.lineWidth = Math.max(
+      ZOOM_RENDER_CONFIG.gridLineWidth.min, 
+      Math.min(ZOOM_RENDER_CONFIG.gridLineWidth.max, lineWidth)
+    );
+    
+    this.ctx.beginPath();
+    
+    // Vertical lines
+    for (let x = startX; x <= endX; x++) {
+      const worldX = x * cellSize;
+      const screenX = this.camera.worldToScreen({ x: worldX, y: 0 }).x;
+      this.ctx.moveTo(screenX, 0);
+      this.ctx.lineTo(screenX, this.ctx.canvas.height);
+    }
+    
+    // Horizontal lines
+    for (let y = startY; y <= endY; y++) {
+      const worldY = y * cellSize;
+      const screenY = this.camera.worldToScreen({ x: 0, y: worldY }).y;
+      this.ctx.moveTo(0, screenY);
+      this.ctx.lineTo(this.ctx.canvas.width, screenY);
+    }
+    
+    this.ctx.stroke();
+  }
+  
+  /**
+   * Clear all caches (patterns, SVGs, and images)
+   */
+  clearCaches(): void {
+    this.patternCache.clear();
+    this.imageCache.clear();
+    this.loadingImages.clear();
+    this.svgGenerator.clearCache();
+  }
+  
+  /* =================================================================
+   * Old pattern-based rendering code - preserved for reference
+   * These methods have been replaced by SVG-based rendering above
+   * =================================================================
+   */
+  
+  /*
   private initializePatterns(): void {
     // Create reusable patterns for different terrain types
     this.createGrassPattern();
@@ -186,298 +391,5 @@ export class TerrainRenderer {
     const pattern = this.ctx.createPattern(patternCanvas, 'repeat');
     this.patternCache.set('water', pattern);
   }
-  
-  renderGrid(): void {
-    const cellSize = this.grid.cellSize;
-    const visibleBounds = this.camera.getVisibleBounds();
-    const zoom = this.camera.getZoom();
-    
-    // Get biome colors
-    const biome = this.grid.getBiome();
-    const biomeColors = BIOME_PRESETS[biome].colors;
-    
-    // Calculate visible grid bounds
-    const startX = Math.max(0, Math.floor(visibleBounds.min.x / cellSize));
-    const endX = Math.min(this.grid.width, Math.ceil(visibleBounds.max.x / cellSize));
-    const startY = Math.max(0, Math.floor(visibleBounds.min.y / cellSize));
-    const endY = Math.min(this.grid.height, Math.ceil(visibleBounds.max.y / cellSize));
-    
-    // Enable image smoothing for better texture rendering
-    this.ctx.imageSmoothingEnabled = true;
-    this.ctx.imageSmoothingQuality = 'high';
-    
-    // Render terrain tiles
-    for (let x = startX; x < endX; x++) {
-      for (let y = startY; y < endY; y++) {
-        const cellData = this.grid.getCellData(x, y);
-        if (!cellData) continue;
-        
-        const worldPos = this.grid.gridToWorld(x, y);
-        const screenPos = this.camera.worldToScreen(worldPos);
-        const scaledCellSize = cellSize * zoom;
-        
-        // Calculate cell bounds
-        const cellLeft = screenPos.x - scaledCellSize / 2;
-        const cellTop = screenPos.y - scaledCellSize / 2;
-        
-        // Save context state
-        this.ctx.save();
-        
-        // Clip to cell bounds for clean edges
-        this.ctx.beginPath();
-        this.ctx.rect(cellLeft, cellTop, scaledCellSize, scaledCellSize);
-        this.ctx.clip();
-        
-        // Render base terrain
-        this.renderTerrainTile(cellData.type, cellLeft, cellTop, scaledCellSize, x, y, biomeColors);
-        
-        // Add grid overlay for high zoom levels
-        if (zoom > 1.5) {
-          this.renderCellBorder(cellLeft, cellTop, scaledCellSize, cellData.type);
-        }
-        
-        this.ctx.restore();
-      }
-    }
-    
-    // Render subtle grid lines at lower zoom levels
-    if (zoom <= 1.5) {
-      this.renderGridLines(startX, endX, startY, endY, cellSize, zoom);
-    }
-  }
-  
-  private renderTerrainTile(
-    cellType: CellType, 
-    x: number, 
-    y: number, 
-    size: number, 
-    gridX: number, 
-    gridY: number,
-    biomeColors: any
-  ): void {
-    const height = this.grid.getCellData(gridX, gridY)?.height || 0;
-    const variation = coordinateVariation(gridX, gridY, 0.1);
-    const brightness = 1 - height * 0.3 + variation;
-    
-    // Check neighboring cells for smooth transitions
-    const neighbors = this.getNeighborTypes(gridX, gridY);
-    
-    switch (cellType) {
-      case CellType.EMPTY:
-      case CellType.DECORATIVE:
-        // Base layer
-        this.ctx.fillStyle = adjustColorBrightness(biomeColors.primary, brightness);
-        this.ctx.fillRect(x, y, size, size);
-        
-        // Use grass pattern overlay
-        const grassPattern = this.patternCache.get('grass');
-        if (grassPattern) {
-          this.ctx.save();
-          this.ctx.globalAlpha = 0.8;
-          this.ctx.fillStyle = grassPattern;
-          this.ctx.fillRect(x, y, size, size);
-          this.ctx.restore();
-        }
-        
-        // Add edge transitions
-        this.renderEdgeTransitions(x, y, size, cellType, neighbors);
-        
-        // Add subtle shading
-        const gradient = this.ctx.createLinearGradient(x, y, x, y + size);
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        gradient.addColorStop(1, `rgba(0, 0, 0, ${0.05 * (1 - brightness)})`);
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(x, y, size, size);
-        break;
-        
-      case CellType.PATH:
-        // Use dirt pattern for paths
-        const dirtPattern = this.patternCache.get('dirt');
-        if (dirtPattern) {
-          this.ctx.fillStyle = dirtPattern;
-        } else {
-          this.ctx.fillStyle = adjustColorBrightness(biomeColors.path, brightness);
-        }
-        this.ctx.fillRect(x, y, size, size);
-        
-        // Add wear marks
-        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-        this.ctx.lineWidth = 1;
-        this.ctx.beginPath();
-        this.ctx.moveTo(x + size * 0.2, y + size * 0.3);
-        this.ctx.lineTo(x + size * 0.8, y + size * 0.7);
-        this.ctx.stroke();
-        break;
-        
-      case CellType.BLOCKED:
-      case CellType.BORDER:
-        // Use stone pattern
-        const stonePattern = this.patternCache.get('stone');
-        if (stonePattern) {
-          this.ctx.fillStyle = stonePattern;
-        } else {
-          this.ctx.fillStyle = adjustColorBrightness(biomeColors.border, brightness * 0.7);
-        }
-        this.ctx.fillRect(x, y, size, size);
-        
-        // Add 3D effect
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        this.ctx.fillRect(x, y, size, 2);
-        this.ctx.fillRect(x, y, 2, size);
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        this.ctx.fillRect(x, y + size - 2, size, 2);
-        this.ctx.fillRect(x + size - 2, y, 2, size);
-        break;
-        
-      case CellType.WATER:
-        // Use water pattern
-        const waterPattern = this.patternCache.get('water');
-        if (waterPattern) {
-          // Animate water pattern
-          this.ctx.save();
-          const time = Date.now() * 0.001;
-          this.ctx.translate(x + Math.sin(time) * 2, y + Math.cos(time) * 1);
-          this.ctx.fillStyle = waterPattern;
-          this.ctx.fillRect(-2, -2, size + 4, size + 4);
-          this.ctx.restore();
-        } else {
-          this.ctx.fillStyle = adjustColorBrightness(biomeColors.water || '#4682B4', brightness);
-          this.ctx.fillRect(x, y, size, size);
-        }
-        break;
-        
-      case CellType.OBSTACLE:
-        // Render rock/obstacle with more detail
-        this.renderObstacle(x + size/2, y + size/2, size * 0.4, brightness);
-        break;
-        
-      default:
-        // Fallback solid color
-        this.ctx.fillStyle = adjustColorBrightness(biomeColors.primary, brightness);
-        this.ctx.fillRect(x, y, size, size);
-    }
-  }
-  
-  private renderObstacle(centerX: number, centerY: number, radius: number, brightness: number): void {
-    // Rock base
-    this.ctx.fillStyle = adjustColorBrightness('#808080', brightness);
-    this.ctx.beginPath();
-    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    this.ctx.fill();
-    
-    // Rock highlight
-    this.ctx.fillStyle = adjustColorBrightness('#A0A0A0', brightness);
-    this.ctx.beginPath();
-    this.ctx.arc(centerX - radius * 0.2, centerY - radius * 0.2, radius * 0.6, 0, Math.PI * 2);
-    this.ctx.fill();
-    
-    // Rock shadow
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    this.ctx.beginPath();
-    this.ctx.arc(centerX + 2, centerY + 2, radius, 0, Math.PI * 2);
-    this.ctx.fill();
-  }
-  
-  private renderCellBorder(x: number, y: number, size: number, cellType: CellType): void {
-    // Only render borders for certain cell types at high zoom
-    if (cellType === CellType.PATH || cellType === CellType.EMPTY || cellType === CellType.DECORATIVE) {
-      this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
-      this.ctx.lineWidth = 0.5;
-      this.ctx.strokeRect(x, y, size, size);
-    }
-  }
-  
-  private renderGridLines(startX: number, endX: number, startY: number, endY: number, cellSize: number, zoom: number): void {
-    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-    const lineWidth = ZOOM_RENDER_CONFIG.gridLineWidth.scaleInversely 
-      ? ZOOM_RENDER_CONFIG.gridLineWidth.base / zoom
-      : ZOOM_RENDER_CONFIG.gridLineWidth.base;
-    this.ctx.lineWidth = Math.max(
-      ZOOM_RENDER_CONFIG.gridLineWidth.min, 
-      Math.min(ZOOM_RENDER_CONFIG.gridLineWidth.max, lineWidth)
-    );
-    
-    this.ctx.beginPath();
-    
-    // Vertical lines
-    for (let x = startX; x <= endX; x++) {
-      const worldX = x * cellSize;
-      const screenX = this.camera.worldToScreen({ x: worldX, y: 0 }).x;
-      this.ctx.moveTo(screenX, 0);
-      this.ctx.lineTo(screenX, this.ctx.canvas.height);
-    }
-    
-    // Horizontal lines
-    for (let y = startY; y <= endY; y++) {
-      const worldY = y * cellSize;
-      const screenY = this.camera.worldToScreen({ x: 0, y: worldY }).y;
-      this.ctx.moveTo(0, screenY);
-      this.ctx.lineTo(this.ctx.canvas.width, screenY);
-    }
-    
-    this.ctx.stroke();
-  }
-  
-  private getNeighborTypes(x: number, y: number): Map<string, CellType> {
-    const neighbors = new Map<string, CellType>();
-    const directions = [
-      ['north', 0, -1],
-      ['south', 0, 1],
-      ['east', 1, 0],
-      ['west', -1, 0],
-      ['northeast', 1, -1],
-      ['northwest', -1, -1],
-      ['southeast', 1, 1],
-      ['southwest', -1, 1]
-    ];
-    
-    for (const [dir, dx, dy] of directions) {
-      const nx = x + (dx as number);
-      const ny = y + (dy as number);
-      const cell = this.grid.getCellData(nx, ny);
-      if (cell) {
-        neighbors.set(dir as string, cell.type);
-      }
-    }
-    
-    return neighbors;
-  }
-  
-  private renderEdgeTransitions(x: number, y: number, size: number, cellType: CellType, neighbors: Map<string, CellType>): void {
-    // Add smooth transitions to neighboring different terrain types
-    const transitionSize = size * 0.2;
-    
-    // Check each edge
-    if (neighbors.get('north') === CellType.PATH && cellType !== CellType.PATH) {
-      const gradient = this.ctx.createLinearGradient(x, y, x, y + transitionSize);
-      gradient.addColorStop(0, 'rgba(139, 115, 85, 0.3)');
-      gradient.addColorStop(1, 'rgba(139, 115, 85, 0)');
-      this.ctx.fillStyle = gradient;
-      this.ctx.fillRect(x, y, size, transitionSize);
-    }
-    
-    if (neighbors.get('south') === CellType.PATH && cellType !== CellType.PATH) {
-      const gradient = this.ctx.createLinearGradient(x, y + size, x, y + size - transitionSize);
-      gradient.addColorStop(0, 'rgba(139, 115, 85, 0.3)');
-      gradient.addColorStop(1, 'rgba(139, 115, 85, 0)');
-      this.ctx.fillStyle = gradient;
-      this.ctx.fillRect(x, y + size - transitionSize, size, transitionSize);
-    }
-    
-    if (neighbors.get('east') === CellType.PATH && cellType !== CellType.PATH) {
-      const gradient = this.ctx.createLinearGradient(x + size, y, x + size - transitionSize, y);
-      gradient.addColorStop(0, 'rgba(139, 115, 85, 0.3)');
-      gradient.addColorStop(1, 'rgba(139, 115, 85, 0)');
-      this.ctx.fillStyle = gradient;
-      this.ctx.fillRect(x + size - transitionSize, y, transitionSize, size);
-    }
-    
-    if (neighbors.get('west') === CellType.PATH && cellType !== CellType.PATH) {
-      const gradient = this.ctx.createLinearGradient(x, y, x + transitionSize, y);
-      gradient.addColorStop(0, 'rgba(139, 115, 85, 0.3)');
-      gradient.addColorStop(1, 'rgba(139, 115, 85, 0)');
-      this.ctx.fillStyle = gradient;
-      this.ctx.fillRect(x, y, transitionSize, size);
-    }
-  }
+  */
 }

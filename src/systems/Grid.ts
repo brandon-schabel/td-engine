@@ -238,13 +238,23 @@ export class Grid {
   }
 
   setBorders(): void {
-    // Set border cells
+    // Set only the outermost edge as BORDER type
+    // Keep the inner 2 tiles walkable for enemy movement
     for (let x = 0; x < this.width; x++) {
-      this.setCellType(x, 0, CellType.BORDER);
-      this.setCellType(x, this.height - 1, CellType.BORDER);
+      // Top edge
+      if (x === 0 || x === this.width - 1) {
+        this.setCellType(x, 0, CellType.BORDER);
+      }
+      // Bottom edge
+      if (x === 0 || x === this.width - 1) {
+        this.setCellType(x, this.height - 1, CellType.BORDER);
+      }
     }
-    for (let y = 0; y < this.height; y++) {
+    
+    for (let y = 1; y < this.height - 1; y++) {
+      // Left edge
       this.setCellType(0, y, CellType.BORDER);
+      // Right edge
       this.setCellType(this.width - 1, y, CellType.BORDER);
     }
   }

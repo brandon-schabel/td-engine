@@ -10,64 +10,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **UNIT TESTING ONLY**: No integration tests. Break down code until it's unit testable
 - **File Safety**: NEVER delete files outside `/Users/brandon/Programming/td-engine`
 
-
 ### OctoPrompt MCP Usage
 
 The OctoPrompt MCP provides seamless integration with the OctoPrompt project management system, allowing you to manage projects, files, prompts, and AI-powered workflows directly from Claude.
 
-**TD Engine OctoPrompt Project Details:**
+OctoPrompt is my personal project, so make heavy use of it. Write a feedback file (octo-feedback.md) on what can be improved.
+
+Use the OctoPrompt MCP for the following
+
+- Creating Tickets and Tasks when planning
+- Save and retrieve relevant prompts for later used (retrieve when it would help the context)
+- Get suggested files based on relevant context, the project is indexed and sumarized and uses that when providing suggestions
+- Retrieve compact project summary to gain quick insights into the architecture of the project.
+- Optimize a prompt using the context of the project, for example it can be helpful to upgrade a project by adding project specific context
+
+The OctoPrompt MCP provides seamless integration with the OctoPrompt project management system, allowing you to manage projects, files, prompts, and AI-powered workflows directly from Claude.
+
+**OctoPrompt Project Details:**
 
 - **Project ID**: `1750564556414`
-**Key MCP Tools Available:**
-
-- `mcp_octoprompt_project_*` - Project management (create, read, update, delete)
-- `mcp_octoprompt_file_*` - File operations (read, write, list)
-- `mcp_octoprompt_prompt_*` - Prompt management and organization
-- `mcp_octoprompt_suggest_files` - AI-powered file suggestions
-- `mcp_octoprompt_project_summary` - Generate project overviews
-- `mcp_octoprompt_optimize_user_input` - AI prompt optimization
-
-**Common Workflows:**
-
-1. **Project Management:**
-
-   ```typescript
-   // List all projects
-   mcp_octoprompt_project_list()
-   
-   // Get specific project details
-   mcp_octoprompt_project_get({ projectId: 1 })
-   
-   // Create new project
-   mcp_octoprompt_project_create({ name: "New Project", path: "/path/to/project" })
-   ```
-
-2. **File Operations:**
-
-   ```typescript
-   // List project files
-   mcp_octoprompt_file_list({ path: ".", recursive: true })
-   
-   // Read file content
-   mcp_octoprompt_file_read({ path: "src/main.ts" })
-   
-   // Write file content
-   mcp_octoprompt_file_write({ path: "new-file.ts", content: "console.log('Hello')" })
-   ```
-
-3. **AI-Powered Features:**
-
-   ```typescript
-   // Get AI file suggestions for a task
-   mcp_octoprompt_suggest_files({ prompt: "implement authentication", limit: 5 })
-   
-   // Generate project summary
-   mcp_octoprompt_project_summary({ include_files: true })
-   
-   // Optimize user prompts
-   mcp_octoprompt_optimize_user_input({ prompt: "help me build a login form" })
-   ```
-
 
 ## Environment & Commands
 
@@ -105,6 +66,7 @@ button.style.backgroundColor = 'blue';
 ```
 
 **Available Elements:**
+
 - **Buttons**: `createButton`, `createIconButton`, `createCloseButton`
 - **Cards**: `createCard`, `createStructuredCard`, `createClickableCard`  
 - **Headers**: `createHeader`, `createDialogHeader`, `createCompactHeader`
@@ -206,12 +168,14 @@ game.uiController;         // High-level UI control
 ### Entity System
 
 All game objects inherit from `Entity`:
+
 - `Tower`, `Enemy`, `Player`, `Projectile`, `Collectible`
 - Common methods: `update()`, `takeDamage()`, `distanceTo()`, `moveTo()`
 
 ### Configuration-Driven
 
 All gameplay values live in config files:
+
 - `TowerConfig.ts` - Tower stats
 - `EnemyConfig.ts` - Enemy stats  
 - `ColorTheme.ts` - Visual theme
@@ -221,12 +185,14 @@ All gameplay values live in config files:
 ## Adding Features
 
 ### New Tower Type
+
 1. Add to `TowerType` enum
 2. Add config in `TowerConfig.ts`
 3. Add icon in `SvgIcons.ts`
 4. Write unit tests
 
 ### New UI Dialog
+
 1. Create class extending pattern above
 2. Add to `UIController`
 3. Use element abstractions - NO custom CSS
