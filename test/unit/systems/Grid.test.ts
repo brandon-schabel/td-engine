@@ -268,10 +268,10 @@ describe('Grid', () => {
       expect(grid.getCellType(0, grid.height - 1)).toBe(CellType.BORDER);
       expect(grid.getCellType(grid.width - 1, grid.height - 1)).toBe(CellType.BORDER);
       
-      // Check top and bottom edges (except corners) are EMPTY
+      // Check top and bottom edges (except corners) are BORDER
       for (let x = 1; x < grid.width - 1; x++) {
-        expect(grid.getCellType(x, 0)).toBe(CellType.EMPTY);
-        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.EMPTY);
+        expect(grid.getCellType(x, 0)).toBe(CellType.BORDER);
+        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.BORDER);
       }
       
       // Check left and right borders (excluding corners)

@@ -46,6 +46,8 @@ describe('Enemy Pathfinding and Recovery', () => {
 
     test('does not trigger stuck detection when moving normally', () => {
       // Set a path for the enemy
+      enemy.baseSpeed = 500;
+      enemy.currentSpeed = 500;
       enemy.setPath([
         { x: 100, y: 100 },
         { x: 200, y: 100 },

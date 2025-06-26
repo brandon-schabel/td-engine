@@ -367,12 +367,12 @@ export class Enemy extends Entity {
               this.pathRecalculationTimer = 0;
             } else {
               // Really stuck - initiate recovery
-              this.initiateRecovery(grid);
+              this.isRecovering = true;
               return;
             }
           } else {
             // No accessible position found - initiate recovery
-            this.initiateRecovery(grid);
+            this.isRecovering = true;
             return;
           }
         }
@@ -785,7 +785,11 @@ export class Enemy extends Entity {
       this.position = newPos;
     } else {
       // Hit obstacle during recovery - try different direction
-      this.selectRecoveryStrategy(_grid);
+      const newAngle = Math.random() * Math.PI * 2;
+      this.velocity = {
+        x: Math.cos(newAngle) * this.speed * 0.7,
+        y: Math.sin(newAngle) * this.speed * 0.7
+      };
     }
     
     // End recovery after duration

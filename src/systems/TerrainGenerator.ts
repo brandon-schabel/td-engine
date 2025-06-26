@@ -29,7 +29,7 @@ export class TerrainGenerator {
   // Default terrain configs per biome
   private static readonly BIOME_TERRAIN_CONFIGS: Record<BiomeType, TerrainGenerationConfig> = {
     [BiomeType.FOREST]: {
-      waterCoverage: 0.15,
+      waterCoverage: 0.18,
       roughTerrainCoverage: 0.25,
       clusterMinSize: 3,
       clusterMaxSize: 8,
@@ -37,7 +37,7 @@ export class TerrainGenerator {
       noiseScale: 0.1
     },
     [BiomeType.DESERT]: {
-      waterCoverage: 0.05,
+      waterCoverage: 0.02,
       roughTerrainCoverage: 0.35,
       clusterMinSize: 5,
       clusterMaxSize: 12,
@@ -336,6 +336,6 @@ export class TerrainGenerator {
     }
     
     // Check if all path cells are connected
-    return visited.size >= pathCells.length * 0.8; // Allow some disconnected cells
+    return visited.size >= pathCells.length * 0.7; // Allow some disconnected cells
   }
 }

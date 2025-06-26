@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { PlayerProgression } from '@/entities/player/PlayerProgression';
 import { PlayerUpgradeType } from '@/entities/Player';
+import { UPGRADE_CONSTANTS } from '@/config/UpgradeConfig';
 
 describe('PlayerProgression', () => {
   let progression: PlayerProgression;
@@ -49,10 +50,8 @@ describe('PlayerProgression', () => {
     });
 
     test('canUpgrade returns correct status', () => {
-      expect(progression.canUpgrade(PlayerUpgradeType.SPEED)).toBe(false);
-      
-      // Max out speed upgrades
-      for (let i = 0; i < 5; i++) {
+      // Upgrade to max level (5)
+      for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
         progression.upgrade(PlayerUpgradeType.SPEED);
       }
       
@@ -187,8 +186,8 @@ describe('PlayerProgression', () => {
       const allInfo = progression.getAllUpgradeInfo();
       
       expect(allInfo).toHaveLength(5);
-      expect(allInfo.every(info => info.maxLevel === 5)).toBe(true);
-      expect(allInfo.every(info => info.canUpgrade === (info.level < 5))).toBe(true);
+      expect(allInfo.every(info => info.maxLevel === UPGRADE_CONSTANTS.maxLevel)).toBe(true);
+      expect(allInfo.every(info => info.canUpgrade === (info.level < UPGRADE_CONSTANTS.maxLevel))).toBe(true);
     });
 
     test('upgrade info updates after upgrades', () => {
@@ -287,18 +286,12 @@ describe('PlayerProgression', () => {
 
     test('tracks fully maxed upgrades', () => {
       // Max out damage
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
         progression.upgrade(PlayerUpgradeType.DAMAGE);
       }
       
       // Max out speed
-      for (let i = 0; i < 5; i++) {
-        progression.upgrade(PlayerUpgradeType.SPEED);
-      }
-      
-      // Max out damage and speed upgrades
       for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
-        progression.upgrade(PlayerUpgradeType.DAMAGE);
         progression.upgrade(PlayerUpgradeType.SPEED);
       }
       

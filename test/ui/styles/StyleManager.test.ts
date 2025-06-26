@@ -10,6 +10,7 @@ describe('StyleManager', () => {
   beforeEach(() => {
     styleManager = StyleManager.getInstance();
     styleManager.cleanup(); // Ensure clean state
+    document.head.innerHTML = ''; // Clear head before each test
   });
 
   afterEach(() => {
