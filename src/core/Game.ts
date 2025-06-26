@@ -48,6 +48,7 @@ import { EquipmentManager } from "@/entities/items/Equipment";
 import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager } from "@/ui/floating";
 import { UIController } from "@/ui/UIController";
+import { ProblematicPositionCache } from "@/systems/ProblematicPositionCache";
 import { TouchGestureManager } from "@/input/TouchGestureManager";
 // import { TerrainDebug } from "@/debug/TerrainDebug"; // Commented out - unused
 import { NavigationGrid } from "@/systems/NavigationGrid";
@@ -2623,5 +2624,18 @@ export class Game {
       0,
       'critical'
     );
+  }
+  
+  // Get problematic position cache statistics
+  public getProblematicPositionStats(): { count: number, positions: string[] } {
+    const cache = ProblematicPositionCache.getInstance();
+    return cache.getStats();
+  }
+  
+  // Clear problematic position cache (useful for debugging or level transitions)
+  public clearProblematicPositionCache(): void {
+    const cache = ProblematicPositionCache.getInstance();
+    cache.clear();
+    console.log('Problematic position cache cleared');
   }
 }

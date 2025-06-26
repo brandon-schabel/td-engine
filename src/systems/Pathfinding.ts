@@ -1,5 +1,6 @@
 import type { Vector2 } from '@/utils/Vector2';
 import type { Grid } from './Grid';
+import { CellType } from './Grid';
 import { MovementSystem, MovementType } from './MovementSystem';
 
 export interface PathNode {
@@ -19,6 +20,9 @@ export interface PathfindingOptions {
   terrainCostMultiplier?: number;
   smoothPath?: boolean;
   movementType?: MovementType;
+  predictiveTarget?: boolean; // Enable predictive targeting
+  targetVelocity?: Vector2; // Target's velocity for prediction
+  predictionTime?: number; // How far ahead to predict (in seconds)
 }
 
 export interface PathfindingResult {
@@ -35,7 +39,10 @@ export class Pathfinding {
     minDistanceFromObstacles: 0,
     terrainCostMultiplier: 1.0,
     smoothPath: true,
-    movementType: MovementType.WALKING
+    movementType: MovementType.WALKING,
+    predictiveTarget: false,
+    targetVelocity: { x: 0, y: 0 },
+    predictionTime: 0.5
   };
 
   // Path cache for performance
@@ -53,9 +60,26 @@ export class Pathfinding {
   ): PathfindingResult {
     const opts = { ...this.DEFAULT_OPTIONS, ...options };
     
+    // Apply predictive targeting if enabled
+    let targetGoal = goal;
+    if (opts.predictiveTarget && opts.targetVelocity && 
+        (opts.targetVelocity.x !== 0 || opts.targetVelocity.y !== 0)) {
+      targetGoal = {
+        x: goal.x + opts.targetVelocity.x * opts.predictionTime,
+        y: goal.y + opts.targetVelocity.y * opts.predictionTime
+      };
+      
+      // Ensure predicted position is valid
+      const predictedGrid = grid.worldToGrid(targetGoal);
+      if (!grid.isInBounds(predictedGrid.x, predictedGrid.y) ||
+          !this.isWalkableForMovementType(predictedGrid.x, predictedGrid.y, grid, opts.movementType)) {
+        targetGoal = goal; // Fall back to original goal
+      }
+    }
+    
     // Convert world positions to grid coordinates
     const startGrid = grid.worldToGrid(start);
-    const goalGrid = grid.worldToGrid(goal);
+    const goalGrid = grid.worldToGrid(targetGoal);
     
     // Check if start and goal are valid
     if (!grid.isInBounds(startGrid.x, startGrid.y) || !grid.isInBounds(goalGrid.x, goalGrid.y)) {
@@ -210,7 +234,7 @@ export class Pathfinding {
           const checkY = y + dy;
           if (grid.isInBounds(checkX, checkY)) {
             const cellType = grid.getCellType(checkX, checkY);
-            if (cellType === 'OBSTACLE' || cellType === 'BLOCKED' || cellType === 'WATER') {
+            if (cellType === CellType.OBSTACLE || cellType === CellType.BLOCKED || cellType === CellType.WATER) {
               const distance = Math.sqrt(dx * dx + dy * dy);
               if (distance < opts.minDistanceFromObstacles) {
                 return false;
@@ -261,14 +285,35 @@ export class Pathfinding {
         const x = node.gridX + dir.dx;
         const y = node.gridY + dir.dy;
         
-        // Check if diagonal movement is possible (no corner cutting)
-        const xCardinal = grid.isInBounds(node.gridX + dir.dx, node.gridY) &&
-                         this.isWalkableForMovementType(node.gridX + dir.dx, node.gridY, grid, opts.movementType);
-        const yCardinal = grid.isInBounds(node.gridX, node.gridY + dir.dy) &&
-                         this.isWalkableForMovementType(node.gridX, node.gridY + dir.dy, grid, opts.movementType);
-        
-        if (grid.isInBounds(x, y) && xCardinal && yCardinal) {
-          neighbors.push({ gridX: x, gridY: y });
+        // Check if diagonal movement is possible
+        if (grid.isInBounds(x, y)) {
+          const targetWalkable = this.isWalkableForMovementType(x, y, grid, opts.movementType);
+          
+          if (targetWalkable) {
+            // Check for corner cutting - but be more lenient with bridges
+            const xCardinal = grid.isInBounds(node.gridX + dir.dx, node.gridY);
+            const yCardinal = grid.isInBounds(node.gridX, node.gridY + dir.dy);
+            
+            if (xCardinal && yCardinal) {
+              const xCell = grid.getCellType(node.gridX + dir.dx, node.gridY);
+              const yCell = grid.getCellType(node.gridX, node.gridY + dir.dy);
+              const targetCell = grid.getCellType(x, y);
+              
+              // Allow diagonal movement if:
+              // 1. Both cardinal cells are walkable, OR
+              // 2. Target is a bridge (bridges connect water/land), OR
+              // 3. One cardinal is a bridge
+              const xWalkable = this.isWalkableForMovementType(node.gridX + dir.dx, node.gridY, grid, opts.movementType);
+              const yWalkable = this.isWalkableForMovementType(node.gridX, node.gridY + dir.dy, grid, opts.movementType);
+              
+              if ((xWalkable && yWalkable) || 
+                  targetCell === CellType.BRIDGE ||
+                  xCell === CellType.BRIDGE || 
+                  yCell === CellType.BRIDGE) {
+                neighbors.push({ gridX: x, gridY: y });
+              }
+            }
+          }
         }
       }
     }
@@ -427,5 +472,196 @@ export class Pathfinding {
     }
     
     keysToDelete.forEach(key => this.pathCache.delete(key));
+  }
+  
+  
+  /**
+   * Validate if a path is still walkable
+   */
+  static validatePath(path: Vector2[], grid: Grid, movementType: MovementType = MovementType.WALKING): boolean {
+    if (!path || path.length === 0) return false;
+    
+    // Check each segment of the path
+    for (let i = 0; i < path.length - 1; i++) {
+      const current = path[i];
+      const next = path[i + 1];
+      
+      // Check if positions are walkable
+      const currentGrid = grid.worldToGrid(current);
+      const nextGrid = grid.worldToGrid(next);
+      
+      if (!this.isWalkableForMovementType(currentGrid.x, currentGrid.y, grid, movementType) ||
+          !this.isWalkableForMovementType(nextGrid.x, nextGrid.y, grid, movementType)) {
+        return false;
+      }
+      
+      // Check if there's line of sight between consecutive points
+      if (!this.hasLineOfSight(current, next, grid, {
+        ...this.DEFAULT_OPTIONS,
+        movementType
+      })) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Find alternative path when original fails - with border awareness
+   */
+  static findAlternativePath(
+    start: Vector2,
+    goal: Vector2,
+    grid: Grid,
+    options?: PathfindingOptions
+  ): PathfindingResult {
+    const opts = { ...this.DEFAULT_OPTIONS, ...options };
+    
+    // First, try relaxed pathfinding constraints
+    const relaxedResult = this.findPath(start, goal, grid, {
+      ...opts,
+      minDistanceFromObstacles: 0, // Allow closer to obstacles
+      maxIterations: opts.maxIterations * 2 // More iterations
+    });
+    
+    if (relaxedResult.success) {
+      return relaxedResult;
+    }
+    
+    // Try to find paths to nearby accessible positions
+    const searchRadii = [30, 60, 90, 120, 150];
+    const angleSteps = 16; // More angles for better coverage
+    
+    // Sort angles by proximity to goal direction
+    const goalAngle = Math.atan2(goal.y - start.y, goal.x - start.x);
+    const angles: number[] = [];
+    for (let i = 0; i < angleSteps; i++) {
+      angles.push((i / angleSteps) * Math.PI * 2);
+    }
+    angles.sort((a, b) => {
+      const diffA = Math.abs(((a - goalAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
+      const diffB = Math.abs(((b - goalAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
+      return diffA - diffB;
+    });
+    
+    for (const radius of searchRadii) {
+      for (const angle of angles) {
+        const alternativeGoal = {
+          x: goal.x + Math.cos(angle) * radius,
+          y: goal.y + Math.sin(angle) * radius
+        };
+        
+        // Check if alternative goal is valid
+        const gridPos = grid.worldToGrid(alternativeGoal);
+        if (!grid.isInBounds(gridPos.x, gridPos.y)) {
+          continue;
+        }
+        
+        // Don't go too close to borders unless necessary
+        if (radius < 120 && grid.isNearBorder(gridPos.x, gridPos.y, 1)) {
+          continue;
+        }
+        
+        // Check if the position is walkable
+        if (!this.isWalkableForMovementType(gridPos.x, gridPos.y, grid, opts.movementType)) {
+          continue;
+        }
+        
+        // Try to find path to alternative goal
+        const result = this.findPath(start, alternativeGoal, grid, {
+          ...opts,
+          maxIterations: Math.min(opts.maxIterations, 500) // Limit iterations for performance
+        });
+        
+        if (result.success) {
+          return result;
+        }
+      }
+    }
+    
+    // Last resort: try to move in the general direction
+    const emergencyPath = this.createEmergencyPath(start, goal, grid, opts);
+    if (emergencyPath.length > 0) {
+      return {
+        path: emergencyPath,
+        success: true,
+        iterations: 1,
+        cost: emergencyPath.length
+      };
+    }
+    
+    // If all else fails, return empty path
+    return {
+      path: [],
+      success: false,
+      iterations: 0,
+      cost: Infinity
+    };
+  }
+  
+  /**
+   * Create emergency path for when normal pathfinding fails
+   */
+  private static createEmergencyPath(
+    start: Vector2, 
+    goal: Vector2, 
+    grid: Grid, 
+    opts: Required<PathfindingOptions>
+  ): Vector2[] {
+    const path: Vector2[] = [start];
+    const stepSize = grid.cellSize;
+    const maxSteps = 10;
+    
+    let current = { ...start };
+    
+    for (let step = 0; step < maxSteps; step++) {
+      const dx = goal.x - current.x;
+      const dy = goal.y - current.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < stepSize) break;
+      
+      // Try to move directly toward goal
+      const direction = { x: dx / distance, y: dy / distance };
+      let nextPos = {
+        x: current.x + direction.x * stepSize,
+        y: current.y + direction.y * stepSize
+      };
+      
+      const gridPos = grid.worldToGrid(nextPos);
+      
+      // If direct path is blocked, try perpendicular directions
+      if (!grid.isInBounds(gridPos.x, gridPos.y) || 
+          !this.isWalkableForMovementType(gridPos.x, gridPos.y, grid, opts.movementType)) {
+        
+        // Try left and right perpendicular
+        const perpAngles = [Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 4];
+        let foundAlternative = false;
+        
+        for (const perpAngle of perpAngles) {
+          const newAngle = Math.atan2(direction.y, direction.x) + perpAngle;
+          const altPos = {
+            x: current.x + Math.cos(newAngle) * stepSize,
+            y: current.y + Math.sin(newAngle) * stepSize
+          };
+          
+          const altGrid = grid.worldToGrid(altPos);
+          if (grid.isInBounds(altGrid.x, altGrid.y) && 
+              this.isWalkableForMovementType(altGrid.x, altGrid.y, grid, opts.movementType)) {
+            nextPos = altPos;
+            foundAlternative = true;
+            break;
+          }
+        }
+        
+        if (!foundAlternative) break;
+      }
+      
+      path.push(nextPos);
+      current = nextPos;
+    }
+    
+    return path.length > 1 ? path : [];
   }
 }

@@ -23,6 +23,8 @@ export interface CellData {
   movementSpeed?: number;  // For rough terrain (0-1 multiplier)
   height?: number;         // For 3D-like effects (0-1)
   biomeVariant?: string;   // Specific biome variant for this cell
+  nearBorder?: boolean;    // Whether this cell is near the border
+  borderDistance?: number; // Distance to nearest border (in cells)
 }
 
 export class Grid {
@@ -122,6 +124,11 @@ export class Grid {
 
   canPlaceTower(x: number, y: number): boolean {
     if (!this.isInBounds(x, y)) {
+      return false;
+    }
+    
+    // Prevent tower placement near borders
+    if (this.isNearBorder(x, y, 2)) {
       return false;
     }
     
@@ -238,25 +245,36 @@ export class Grid {
   }
 
   setBorders(): void {
-    // Set only the outermost edge as BORDER type
-    // Keep the inner 2 tiles walkable for enemy movement
+    // First pass: Set actual borders - only the very edge
     for (let x = 0; x < this.width; x++) {
-      // Top edge
-      if (x === 0 || x === this.width - 1) {
-        this.setCellType(x, 0, CellType.BORDER);
-      }
-      // Bottom edge
-      if (x === 0 || x === this.width - 1) {
-        this.setCellType(x, this.height - 1, CellType.BORDER);
+      for (let y = 0; y < this.height; y++) {
+        if (x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1) {
+          this.setCellType(x, y, CellType.BORDER);
+        }
       }
     }
     
-    for (let y = 1; y < this.height - 1; y++) {
-      // Left edge
-      this.setCellType(0, y, CellType.BORDER);
-      // Right edge
-      this.setCellType(this.width - 1, y, CellType.BORDER);
+    // Second pass: Mark cells near borders with safety zone data but keep them walkable
+    for (let x = 1; x < this.width - 1; x++) {
+      for (let y = 1; y < this.height - 1; y++) {
+        const borderDistance = Math.min(x, y, this.width - 1 - x, this.height - 1 - y);
+        
+        // Mark cells within 2 blocks of border but don't change their type
+        if (borderDistance > 0 && borderDistance <= 2) {
+          const cellData = this.getCellData(x, y) || { type: this.getCellType(x, y) };
+          cellData.nearBorder = true;
+          cellData.borderDistance = borderDistance;
+          this.setCellData(x, y, cellData);
+        }
+      }
     }
+  }
+  
+  // New method to check if a position is near the border
+  isNearBorder(x: number, y: number, distance: number = 2): boolean {
+    const cellData = this.getCellData(x, y);
+    if (!cellData) return false;
+    return cellData.nearBorder === true && (cellData.borderDistance ?? Infinity) <= distance;
   }
 
   setSpawnZones(spawnZones: Vector2[]): void {
