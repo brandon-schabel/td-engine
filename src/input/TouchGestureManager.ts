@@ -96,6 +96,18 @@ export class TouchGestureManager extends EventEmitter {
   private handleTouchStart(event: TouchEvent): void {
     if (!this.isEnabled) return;
     
+    // Check if mobile controls are active (joysticks being used)
+    const mobileControls = this.game.getMobileControls();
+    if (mobileControls && mobileControls.isJoystickActive()) {
+      // Check if any of the touches belong to joysticks
+      const joystickTouchIds = mobileControls.getActiveTouchIds();
+      for (let i = 0; i < event.changedTouches.length; i++) {
+        if (joystickTouchIds.includes(event.changedTouches[i].identifier)) {
+          return; // Don't process this touch for gestures
+        }
+      }
+    }
+    
     event.preventDefault();
     
     // Update active touches
@@ -127,6 +139,21 @@ export class TouchGestureManager extends EventEmitter {
   
   private handleTouchMove(event: TouchEvent): void {
     if (!this.isEnabled) return;
+    
+    // Check if mobile controls are active
+    const mobileControls = this.game.getMobileControls();
+    if (mobileControls && mobileControls.isJoystickActive()) {
+      // Filter out touches that belong to joysticks
+      const joystickTouchIds = mobileControls.getActiveTouchIds();
+      const hasJoystickTouch = Array.from(event.touches).some(touch => 
+        joystickTouchIds.includes(touch.identifier)
+      );
+      
+      if (hasJoystickTouch) {
+        // If any touch belongs to a joystick, don't process gestures
+        return;
+      }
+    }
     
     event.preventDefault();
     

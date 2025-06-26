@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PlayerProgression } from '@/entities/player/PlayerProgression';
 import { PlayerUpgradeType } from '@/entities/Player';
+import { UPGRADE_CONSTANTS } from '@/config/UpgradeConfig';
 
 describe('PlayerProgression', () => {
   let progression: PlayerProgression;
@@ -41,15 +42,15 @@ describe('PlayerProgression', () => {
     });
 
     it('should fail to upgrade at max level', () => {
-      // Upgrade to max level (5)
-      for (let i = 0; i < 5; i++) {
+      // Upgrade to max level (UPGRADE_CONSTANTS.maxLevel)
+      for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
         progression.upgrade(PlayerUpgradeType.DAMAGE);
       }
       
       const success = progression.upgrade(PlayerUpgradeType.DAMAGE);
       
       expect(success).toBe(false);
-      expect(progression.getUpgradeLevel(PlayerUpgradeType.DAMAGE)).toBe(5);
+      expect(progression.getUpgradeLevel(PlayerUpgradeType.DAMAGE)).toBe(UPGRADE_CONSTANTS.maxLevel);
     });
 
     it('should track upgrades independently', () => {
@@ -82,13 +83,13 @@ describe('PlayerProgression', () => {
     });
 
     it('should correctly report canUpgrade', () => {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel - 1; i++) {
         expect(progression.canUpgrade(PlayerUpgradeType.DAMAGE)).toBe(true);
         progression.upgrade(PlayerUpgradeType.DAMAGE);
       }
       
       expect(progression.canUpgrade(PlayerUpgradeType.DAMAGE)).toBe(true);
-      progression.upgrade(PlayerUpgradeType.DAMAGE); // 5th upgrade
+      progression.upgrade(PlayerUpgradeType.DAMAGE); // Max upgrade
       expect(progression.canUpgrade(PlayerUpgradeType.DAMAGE)).toBe(false);
     });
   });
@@ -203,7 +204,7 @@ describe('PlayerProgression', () => {
       expect(damageInfo).toEqual({
         type: PlayerUpgradeType.DAMAGE,
         level: 0,
-        maxLevel: 5,
+        maxLevel: UPGRADE_CONSTANTS.maxLevel,
         canUpgrade: true
       });
     });
@@ -304,7 +305,7 @@ describe('PlayerProgression', () => {
 
     it('should track fully maxed upgrades', () => {
       // Max out damage upgrade
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
         progression.upgrade(PlayerUpgradeType.DAMAGE);
       }
       
@@ -379,7 +380,7 @@ describe('PlayerProgression', () => {
     it('should handle all upgrades at max level', () => {
       // Max out all upgrades
       Object.values(PlayerUpgradeType).forEach(type => {
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
           progression.upgrade(type);
         }
       });
@@ -387,7 +388,7 @@ describe('PlayerProgression', () => {
       const allInfo = progression.getAllUpgradeInfo();
       allInfo.forEach(info => {
         expect(info.canUpgrade).toBe(false);
-        expect(info.level).toBe(5);
+        expect(info.level).toBe(UPGRADE_CONSTANTS.maxLevel);
       });
     });
 

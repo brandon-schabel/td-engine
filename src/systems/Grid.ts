@@ -271,10 +271,11 @@ export class Grid {
   }
   
   // New method to check if a position is near the border
-  isNearBorder(x: number, y: number, distance: number = 2): boolean {
-    const cellData = this.getCellData(x, y);
-    if (!cellData) return false;
-    return cellData.nearBorder === true && (cellData.borderDistance ?? Infinity) <= distance;
+  isNearBorder(x: number, y: number, distance: number = 1): boolean {
+    if (!this.isInBounds(x, y)) {
+      return true; // Out of bounds is considered near border
+    }
+    return x < distance || x >= this.width - distance || y < distance || y >= this.height - distance;
   }
 
   setSpawnZones(spawnZones: Vector2[]): void {

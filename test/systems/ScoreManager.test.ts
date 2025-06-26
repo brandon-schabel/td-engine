@@ -3,6 +3,7 @@
  * Tests score persistence and statistics with mocked localStorage
  */
 
+import '../setup';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ScoreManager } from '@/systems/ScoreManager';
 import { createMockGameStats } from '../helpers/mockData';

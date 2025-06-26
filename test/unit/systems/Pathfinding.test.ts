@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'bun:test';
+import { describe, test, expect, beforeEach } from 'vitest';
 import { Pathfinding } from '@/systems/Pathfinding';
 import { Grid, CellType } from '@/systems/Grid';
 import { MovementType } from '@/systems/MovementSystem';

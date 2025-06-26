@@ -145,7 +145,7 @@ export class Player extends Entity implements ShootingCapable {
     
     // Use base speed for velocity calculation
     // The Entity.update() will apply terrain modifiers
-    const speed = this.getCurrentSpeed();
+    const speed = this.getCurrentSpeed() * (this.lastTerrainSpeed ?? 1.0);
     
     this.velocity.x = normalized.x * speed;
     this.velocity.y = normalized.y * speed;

@@ -62,6 +62,7 @@ export class Game {
   private spawnZoneManager: SpawnZoneManager;
   private canvas: HTMLCanvasElement;
   private touchGestureManager: TouchGestureManager | null = null;
+  private mobileControls: any | null = null; // Reference to MobileControls instance
 
   // Inlined resource management for better performance
   private currency: number = GAME_INIT.startingCurrency;
@@ -1841,6 +1842,19 @@ export class Game {
 
   setPlayerLevelDisplay(playerLevelDisplay: any): void {
     this.playerLevelDisplay = playerLevelDisplay;
+  }
+
+  // Set MobileControls reference for touch gesture coordination
+  setMobileControls(mobileControls: any): void {
+    this.mobileControls = mobileControls;
+  }
+
+  getMobileControls(): any | null {
+    return this.mobileControls;
+  }
+  
+  getTouchGestureManager(): TouchGestureManager | null {
+    return this.touchGestureManager;
   }
 
   // Map generation methods

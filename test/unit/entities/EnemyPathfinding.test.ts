@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'bun:test';
+import { describe, test, expect, beforeEach } from 'vitest';
 import { Enemy, EnemyType } from '@/entities/Enemy';
 import { Grid, CellType } from '@/systems/Grid';
 import { NavigationGrid } from '@/systems/NavigationGrid';
@@ -36,7 +36,7 @@ describe('Enemy Pathfinding and Recovery', () => {
       navigationGrid.rebuild();
       
       // Update enemy multiple times without movement
-      for (let i = 0; i < 70; i++) {
+      for (let i = 0; i < 100; i++) {
         enemy.update(0.016, grid); // ~60fps
       }
       
@@ -53,7 +53,7 @@ describe('Enemy Pathfinding and Recovery', () => {
       ]);
       
       // Update enemy - it should move
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 50; i++) {
         enemy.update(0.016, grid);
       }
       

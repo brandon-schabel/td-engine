@@ -41,7 +41,6 @@ export class PlayerProgression {
     }
     
     this.upgradeLevels.set(upgradeType, currentLevel + 1);
-    // Removed updateLevel() - upgrades no longer affect player level
     
     return true;
   }

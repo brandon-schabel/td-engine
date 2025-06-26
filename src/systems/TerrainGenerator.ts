@@ -317,7 +317,7 @@ export class TerrainGenerator {
     
     // Simple connectivity check
     const visited = new Set<string>();
-    const toVisit: Vector2[] = [pathCells[0]];
+    const toVisit: Vector2[] = pathCells.length > 0 ? [pathCells[0]] : [];
     
     while (toVisit.length > 0) {
       const current = toVisit.pop()!;

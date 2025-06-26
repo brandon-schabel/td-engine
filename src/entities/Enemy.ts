@@ -401,6 +401,8 @@ export class Enemy extends Entity {
           this.position = newPos;
         }
       }
+    } else {
+      this.velocity = { x: 0, y: 0 };
     }
   }
 
@@ -783,11 +785,7 @@ export class Enemy extends Entity {
       this.position = newPos;
     } else {
       // Hit obstacle during recovery - try different direction
-      const newAngle = Math.random() * Math.PI * 2;
-      this.velocity = {
-        x: Math.cos(newAngle) * this.speed * 0.7,
-        y: Math.sin(newAngle) * this.speed * 0.7
-      };
+      this.selectRecoveryStrategy(_grid);
     }
     
     // End recovery after duration

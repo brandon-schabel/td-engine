@@ -45,6 +45,34 @@ export class MobileControls {
   private safeAreaBottom = 0;
 
   private options: MobileControlsOptions;
+  
+  /**
+   * Check if any joystick is currently active
+   */
+  public isJoystickActive(): boolean {
+    return this.isAimActive || this.isMoveActive;
+  }
+  
+  /**
+   * Get active touch IDs for joysticks
+   */
+  public getActiveTouchIds(): number[] {
+    const ids: number[] = [];
+    if (this.moveTouchId !== null) ids.push(this.moveTouchId);
+    if (this.aimTouchId !== null) ids.push(this.aimTouchId);
+    return ids;
+  }
+  
+  /**
+   * Notify touch gesture manager about joystick state changes
+   */
+  private notifyGestureManager(): void {
+    const touchGestureManager = this.game.getTouchGestureManager();
+    if (touchGestureManager) {
+      // Disable gestures when any joystick is active
+      touchGestureManager.setEnabled(!this.isJoystickActive());
+    }
+  }
 
   constructor(options: MobileControlsOptions) {
     this.options = options;
@@ -295,6 +323,9 @@ export class MobileControls {
     }
 
     this.isAimActive = true;
+    
+    // Notify touch gesture manager to disable gestures
+    this.notifyGestureManager();
     this.aimJoystick.classList.add('active', 'opacity-80');
     this.aimJoystick.classList.remove('opacity-60');
 
@@ -366,6 +397,9 @@ export class MobileControls {
 
     this.isAimActive = false;
     this.aimTouchId = null;
+    
+    // Re-enable gestures if no joysticks are active
+    this.notifyGestureManager();
     this.aimJoystick.classList.remove('active', 'opacity-80');
     this.aimJoystick.classList.add('opacity-60');
 
@@ -427,6 +461,9 @@ export class MobileControls {
     }
 
     this.isMoveActive = true;
+    
+    // Notify touch gesture manager to disable gestures
+    this.notifyGestureManager();
     this.moveJoystick.classList.add('active', 'opacity-80');
     this.moveJoystick.classList.remove('opacity-60');
 
@@ -483,6 +520,9 @@ export class MobileControls {
 
     this.isMoveActive = false;
     this.moveTouchId = null;
+    
+    // Re-enable gestures if no joysticks are active
+    this.notifyGestureManager();
     this.moveJoystick.classList.remove('active', 'opacity-80');
     this.moveJoystick.classList.add('opacity-60');
 

@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createProgressBar, createTimerProgressBar } from '../ProgressBar';
 import { IconType } from '@/ui/icons/SvgIcons';
@@ -22,7 +24,7 @@ describe('ProgressBar', () => {
         progress: 0.5
       });
 
-      expect(progressBar).toBeInstanceOf(HTMLElement);
+      expect(progressBar).toBeInstanceOf(HTMLDivElement);
       expect(progressBar.className).toContain('progress-bar-container');
       
       const fillElement = progressBar.querySelector('.progress-bar-fill');
@@ -126,7 +128,7 @@ describe('ProgressBar', () => {
         startTime: Date.now()
       });
 
-      expect(progressBar).toBeInstanceOf(HTMLElement);
+      expect(progressBar).toBeInstanceOf(HTMLDivElement);
       expect(progressBar.className).toContain('timer-progress');
     });
 
@@ -142,7 +144,7 @@ describe('ProgressBar', () => {
       const fillElement = progressBar.querySelector('.progress-bar-fill') as HTMLElement;
       
       // Initial state
-      expect(fillElement.style.width).toBe('100%');
+      expect(fillElement?.style.width).toBe('100%');
 
       // After 5 seconds (50% time elapsed)
       vi.advanceTimersByTime(5000);
@@ -183,7 +185,7 @@ describe('ProgressBar', () => {
       const labelElement = progressBar.querySelector('.progress-bar-label');
       expect(labelElement).toBeTruthy();
       // Initial label should show full duration
-      expect(labelElement?.textContent).toMatch(/\d+:\d+/);
+      expect(labelElement?.textContent).toMatch(/1:00/);
     });
 
     it('should apply power-up specific styling', () => {

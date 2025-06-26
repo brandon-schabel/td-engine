@@ -153,6 +153,14 @@ export class Entity {
     this.health = Math.min(this.maxHealth, this.health + amount);
   }
 
+  dispatchEvent(event: Event): boolean {
+    // This is a mock implementation. In a real scenario, this would be a proper event system.
+    if (typeof window !== 'undefined') {
+      return window.dispatchEvent(event);
+    }
+    return true;
+  }
+
   moveTo(target: Vector2, speed: number, _grid?: Grid): void {
     const distance = this.distanceTo(target);
 
@@ -166,9 +174,9 @@ export class Entity {
     const direction = Vector2Utils.subtract(target, this.position);
     const normalizedDirection = Vector2Utils.normalize(direction);
 
-    // Use base speed - terrain modifier will be applied in update()
-    // This prevents double-applying terrain effects
-    this.velocity = Vector2Utils.multiply(normalizedDirection, speed);
+    // Use currentSpeed if available (terrain-adjusted), otherwise use provided speed
+    const moveSpeed = this.currentSpeed > 0 ? this.currentSpeed : speed;
+    this.velocity = Vector2Utils.multiply(normalizedDirection, moveSpeed);
   }
 
   // Helper method for terrain-aware movement

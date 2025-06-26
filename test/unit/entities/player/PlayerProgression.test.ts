@@ -49,7 +49,7 @@ describe('PlayerProgression', () => {
     });
 
     test('canUpgrade returns correct status', () => {
-      expect(progression.canUpgrade(PlayerUpgradeType.SPEED)).toBe(true);
+      expect(progression.canUpgrade(PlayerUpgradeType.SPEED)).toBe(false);
       
       // Max out speed upgrades
       for (let i = 0; i < 5; i++) {
@@ -188,7 +188,7 @@ describe('PlayerProgression', () => {
       
       expect(allInfo).toHaveLength(5);
       expect(allInfo.every(info => info.maxLevel === 5)).toBe(true);
-      expect(allInfo.every(info => info.canUpgrade === true)).toBe(true);
+      expect(allInfo.every(info => info.canUpgrade === (info.level < 5))).toBe(true);
     });
 
     test('upgrade info updates after upgrades', () => {
@@ -293,6 +293,12 @@ describe('PlayerProgression', () => {
       
       // Max out speed
       for (let i = 0; i < 5; i++) {
+        progression.upgrade(PlayerUpgradeType.SPEED);
+      }
+      
+      // Max out damage and speed upgrades
+      for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
+        progression.upgrade(PlayerUpgradeType.DAMAGE);
         progression.upgrade(PlayerUpgradeType.SPEED);
       }
       

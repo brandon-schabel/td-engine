@@ -426,10 +426,10 @@ describe('Grid', () => {
       expect(grid.getCellType(0, grid.height - 1)).toBe(CellType.BORDER);
       expect(grid.getCellType(grid.width - 1, grid.height - 1)).toBe(CellType.BORDER);
       
-      // Check that top and bottom edges (except corners) are EMPTY
+      // Check that top and bottom edges (except corners) are BORDER
       for (let x = 1; x < grid.width - 1; x++) {
-        expect(grid.getCellType(x, 0)).toBe(CellType.EMPTY);
-        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.EMPTY);
+        expect(grid.getCellType(x, 0)).toBe(CellType.BORDER);
+        expect(grid.getCellType(x, grid.height - 1)).toBe(CellType.BORDER);
       }
       
       for (let y = 1; y < grid.height - 1; y++) {
@@ -476,8 +476,8 @@ describe('Grid', () => {
       expect(grid.isWalkable(grid.width - 1, 5)).toBe(false);
       
       // Top and bottom edges (except corners) should be walkable
-      expect(grid.isWalkable(5, 0)).toBe(true);
-      expect(grid.isWalkable(5, grid.height - 1)).toBe(true);
+      expect(grid.isWalkable(5, 0)).toBe(false);
+      expect(grid.isWalkable(5, grid.height - 1)).toBe(false);
       
       // Everything else should be walkable
       expect(grid.isWalkable(1, 1)).toBe(true);

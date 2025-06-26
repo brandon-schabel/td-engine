@@ -29,6 +29,7 @@
     }
   },
   "include": [
-    "src", "src/test/entities/player", "src/test/helpers", "src/test/systems", "src/test/ui", "src/test/unit", "src/test/utils", "src/test/setup.ts",
+    "src",
+    "test"
   ]
 }
