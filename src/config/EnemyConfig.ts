@@ -14,7 +14,7 @@ export enum EnemyBehavior {
 export const ENEMY_STATS = {
   BASIC: {
     health: 75,
-    speed: 50,
+    speed: 30,  // Reduced from 50 (40% reduction)
     radius: 8,
     reward: 7,
     damage: 13,
@@ -26,7 +26,7 @@ export const ENEMY_STATS = {
   },
   FAST: {
     health: 45,
-    speed: 100,
+    speed: 60,  // Reduced from 100 (40% reduction)
     radius: 6,
     reward: 10,
     damage: 7,
@@ -38,7 +38,7 @@ export const ENEMY_STATS = {
   },
   TANK: {
     health: 300,
-    speed: 25,
+    speed: 15,  // Reduced from 25 (40% reduction)
     radius: 12,
     reward: 35,
     damage: 26,
@@ -50,7 +50,7 @@ export const ENEMY_STATS = {
   },
   FLYING: {
     health: 60,
-    speed: 75,
+    speed: 45,  // Reduced from 75 (40% reduction)
     radius: 10,
     reward: 17,
     damage: 20,
@@ -62,7 +62,7 @@ export const ENEMY_STATS = {
   },
   BOSS: {
     health: 1500,
-    speed: 20,
+    speed: 12,  // Reduced from 20 (40% reduction)
     radius: 20,
     reward: 70,
     damage: 65,
@@ -80,7 +80,18 @@ export const ENEMY_BEHAVIOR = {
   towerAttackPriorityMultiplier: 1.2, // Prioritize enemies within tower range * this multiplier
   pathfindingUpdateInterval: 500, // milliseconds
   stuckDetectionThreshold: 2, // pixels moved in update interval
-  stuckRetryAttempts: 3
+  stuckRetryAttempts: 3,
+  // Smooth movement parameters
+  steeringRate: 5.0, // How quickly enemies adjust their velocity
+  arrivalSlowingDistance: 50, // Distance at which enemies start slowing down
+  maxSteeringForce: 150, // Maximum steering force for smooth movement
+  wallFollowAngle: Math.PI / 4, // Angle to follow walls when stuck
+  obstacleAvoidanceDistance: 40, // Distance to check for obstacles (increased from 30)
+  obstacleAvoidanceAngles: 12, // Number of directions to check for obstacles (increased from 8)
+  // Pathfinding obstacle avoidance
+  minObstacleDistanceMultiplier: 5.0, // Multiply enemy radius by this for min distance (increased from 2.5)
+  obstacleProximityPenalty: 0.98, // Cost penalty for paths near obstacles (0-1) (increased from 0.95)
+  obstacleProximityRange: 8 // Range in grid cells to check for proximity (increased from 6)
 } as const;
 
 // Enemy visual configuration

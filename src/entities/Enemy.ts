@@ -4,14 +4,14 @@ import { Tower } from './Tower';
 import type { Vector2 } from '@/utils/Vector2';
 import type { Grid } from '@/systems/Grid';
 import { CellType } from '@/systems/Grid';
-import { MovementType, MovementSystem } from '@/systems/MovementSystem';
+import { MovementType } from '@/systems/MovementSystem';
 import { CooldownManager } from '@/utils/CooldownManager';
 import { ENEMY_STATS, ENEMY_BEHAVIOR, EnemyBehavior } from '../config/EnemyConfig';
 import { COLOR_THEME } from '@/config/ColorTheme';
 import { ENEMY_RENDER } from '@/config/RenderingConfig';
 import { DestructionEffect } from '@/effects/DestructionEffect';
 import { Pathfinding } from '@/systems/Pathfinding';
-import { NavigationGrid } from '@/systems/NavigationGrid';
+
 import { ProblematicPositionCache } from '@/systems/ProblematicPositionCache';
 
 export enum EnemyType {
@@ -38,37 +38,42 @@ export class Enemy extends Entity {
   private currentPathIndex: number = 0;
   private availableTowers: Tower[] = [];
   private grid: Grid | null = null;
-  private navigationGrid: NavigationGrid | null = null;
+  
+  
   
   // Pathfinding properties
   private currentPath: Vector2[] = [];
   private currentPathTarget: Vector2 | null = null;
   private pathRecalculationTimer: number = 0;
-  private readonly PATH_RECALCULATION_INTERVAL = 1000; // Recalculate path every second
-  private readonly WAYPOINT_REACHED_DISTANCE = 10; // Distance to consider waypoint reached
+  private readonly PATH_RECALCULATION_INTERVAL = 2000; // Recalculate path every 2 seconds (increased from 1)
+  private readonly WAYPOINT_REACHED_DISTANCE = 20; // Distance to consider waypoint reached (increased for smoother paths)
   
   // Stuck detection and recovery
   private positionHistory: Vector2[] = [];
+  private velocityHistory: Vector2[] = [];
   private stuckCounter: number = 0;
-  private readonly STUCK_THRESHOLD = 10; // Movement less than 10 units/sec means stuck
-  private readonly STUCK_DETECTION_TIME = 1.0; // seconds
+  private readonly STUCK_THRESHOLD = 20; // Movement less than 20 units/sec means stuck (increased from 10)
+  private readonly STUCK_DETECTION_TIME = 1.5; // seconds (increased from 1.0)
   private isRecovering: boolean = false;
   private recoveryTimer: number = 0;
-  private readonly RECOVERY_DURATION = 0.5; // seconds
+  private readonly RECOVERY_DURATION = 1.0; // seconds (increased for smoother recovery)
   private lastValidPosition: Vector2 | null = null;
-  private emergencyTeleportCounter: number = 0;
-  private readonly EMERGENCY_TELEPORT_THRESHOLD = 3; // After 3 recovery attempts
+  
+  
+  
+  
 
   constructor(
     position: Vector2, 
     health: number,
-    enemyType: EnemyType = EnemyType.BASIC
+    enemyType: EnemyType = EnemyType.BASIC,
+    speedMultiplier: number = 1.0
   ) {
     const stats = ENEMY_STATS[enemyType];
     super(EntityType.ENEMY, position, health || stats.health, stats.radius);
     
     this.enemyType = enemyType;
-    this.speed = stats.speed;
+    this.speed = stats.speed * speedMultiplier;
     this.reward = stats.reward;
     this.damage = stats.damage;
     this.attackRange = stats.attackRange;
@@ -77,8 +82,8 @@ export class Enemy extends Entity {
     this.behavior = stats.behavior;
     
     // Set up terrain-aware movement
-    this.baseSpeed = stats.speed;
-    this.currentSpeed = stats.speed;
+    this.baseSpeed = stats.speed * speedMultiplier;
+    this.currentSpeed = stats.speed * speedMultiplier;
     
     // Set movement type based on enemy type
     switch (enemyType) {
@@ -91,7 +96,14 @@ export class Enemy extends Entity {
       default:
         this.movementType = MovementType.WALKING;
     }
+    
+    // Calculate a unique path offset for this enemy to create lanes
+    
   }
+  
+  
+  
+  
 
   setPath(path: Vector2[]): void {
     this.path = [...path];
@@ -102,13 +114,13 @@ export class Enemy extends Entity {
     this.availableTowers = towers;
   }
 
+  
+
   setGrid(grid: Grid): void {
     this.grid = grid;
   }
 
-  setNavigationGrid(navGrid: NavigationGrid): void {
-    this.navigationGrid = navGrid;
-  }
+  
 
   setPlayerTarget(player: Player): void {
     this.playerTarget = player;
@@ -190,12 +202,12 @@ export class Enemy extends Entity {
         this.tryAttack();
       } else {
         // Use pathfinding to move towards target
-        this.moveToWithPathfinding(this.target.position, activeGrid);
+        this.moveToWithPathfinding(this.target.position, activeGrid, deltaTime);
       }
     } else if (this.playerTarget && this.playerTarget.isAlive) {
       // No towers to attack, move toward player
       if (this.playerTarget.position) {
-        this.moveToWithPathfinding(this.playerTarget.position, activeGrid);
+        this.moveToWithPathfinding(this.playerTarget.position, activeGrid, deltaTime);
       }
     } else if (this.path.length > 0) {
       // Fallback to original path movement if no target
@@ -283,8 +295,8 @@ export class Enemy extends Entity {
   }
 
   // Pathfinding movement
-  private moveToWithPathfinding(targetPos: Vector2, grid?: Grid): void {
-    if (!grid || !this.navigationGrid) {
+  private moveToWithPathfinding(targetPos: Vector2, grid?: Grid, deltaTime: number = 16): void {
+    if (!grid) {
       console.warn(`Enemy ${this.id} missing grid or navigation grid for pathfinding`);
       // Stop movement if we can't pathfind
       this.velocity = { x: 0, y: 0 };
@@ -304,8 +316,10 @@ export class Enemy extends Entity {
       const pathOptions: any = {
         movementType: this.movementType || MovementType.WALKING,
         allowDiagonal: true,
-        minDistanceFromObstacles: this.radius / grid.cellSize * 2,
-        smoothPath: true
+        minDistanceFromObstacles: Math.max(1, Math.ceil(this.radius / grid.cellSize * ENEMY_BEHAVIOR.minObstacleDistanceMultiplier)),
+        smoothPath: true,
+        obstacleProximityPenalty: ENEMY_BEHAVIOR.obstacleProximityPenalty,
+        obstacleProximityRange: ENEMY_BEHAVIOR.obstacleProximityRange
       };
       
       // Enable predictive targeting for moving entities
@@ -319,7 +333,11 @@ export class Enemy extends Entity {
         this.position,
         targetPos,
         grid,
-        pathOptions
+        {
+          movementType: this.movementType || MovementType.WALKING,
+          allowDiagonal: true,
+          smoothPath: true,
+        }
       );
 
       if (pathResult.success && pathResult.path.length > 0) {
@@ -327,55 +345,9 @@ export class Enemy extends Entity {
         this.currentPathTarget = targetPos;
         this.pathRecalculationTimer = 0;
       } else {
-        // No path found - try alternative path finding
-        const alternativeResult = Pathfinding.findAlternativePath(
-          this.position,
-          targetPos,
-          grid,
-          {
-            movementType: this.movementType || MovementType.WALKING,
-            allowDiagonal: true,
-            minDistanceFromObstacles: this.radius / grid.cellSize * 2,
-            smoothPath: true
-          }
-        );
-        
-        if (alternativeResult.success && alternativeResult.path.length > 0) {
-          this.currentPath = alternativeResult.path;
-          this.currentPathTarget = alternativeResult.path[alternativeResult.path.length - 1];
-          this.pathRecalculationTimer = 0;
-        } else {
-          // Still no path - try our own nearby position search
-          const nearbyPos = this.findNearbyAccessiblePosition(targetPos, grid);
-          if (nearbyPos) {
-            const fallbackPath = Pathfinding.findPath(
-              this.position,
-              nearbyPos,
-              grid,
-              {
-                movementType: this.movementType || MovementType.WALKING,
-                allowDiagonal: true,
-                minDistanceFromObstacles: this.radius / grid.cellSize,
-                smoothPath: true,
-                maxIterations: 500 // Limit iterations
-              }
-            );
-            
-            if (fallbackPath.success && fallbackPath.path.length > 0) {
-              this.currentPath = fallbackPath.path;
-              this.currentPathTarget = nearbyPos;
-              this.pathRecalculationTimer = 0;
-            } else {
-              // Really stuck - initiate recovery
-              this.isRecovering = true;
-              return;
-            }
-          } else {
-            // No accessible position found - initiate recovery
-            this.isRecovering = true;
-            return;
-          }
-        }
+        // No path found - initiate recovery
+        this.isRecovering = true;
+        return;
       }
     }
 
@@ -386,20 +358,18 @@ export class Enemy extends Entity {
         this.currentPath.shift();
       }
 
-      // Move towards next waypoint with smooth movement
+      // Move towards next waypoint with smooth movement and obstacle avoidance
       if (this.currentPath.length > 0) {
-        // Use smooth movement for better visuals
-        this.smoothMoveTo(this.currentPath[0], this.speed, 0.016); // Assume ~60fps
         
-        // Apply velocity with collision detection
-        const newPos = {
-          x: this.position.x + this.velocity.x * 0.016,
-          y: this.position.y + this.velocity.y * 0.016
-        };
         
-        if (!grid || MovementSystem.canEntityMoveTo(this, newPos, grid)) {
-          this.position = newPos;
-        }
+        // Use smooth movement with proper deltaTime
+        this.smoothMoveTo(this.currentPath[0], this.speed, deltaTime);
+        
+        
+        
+        
+        
+        // Movement is handled by Entity.update() which applies velocity
       }
     } else {
       this.velocity = { x: 0, y: 0 };
@@ -407,47 +377,7 @@ export class Enemy extends Entity {
   }
 
   // Find a nearby accessible position when target is unreachable
-  private findNearbyAccessiblePosition(targetPos: Vector2, grid: Grid): Vector2 | null {
-    const cache = ProblematicPositionCache.getInstance();
-    
-    // Search in expanding circles around the target
-    const searchRadii = [50, 100, 150, 200];
-    const angleStep = Math.PI / 4; // Check 8 directions
-    
-    for (const radius of searchRadii) {
-      for (let angle = 0; angle < Math.PI * 2; angle += angleStep) {
-        const testX = targetPos.x + Math.cos(angle) * radius;
-        const testY = targetPos.y + Math.sin(angle) * radius;
-        const testPos = { x: testX, y: testY };
-        
-        // Skip positions known to be problematic
-        if (cache.isPositionBad(testPos)) {
-          continue;
-        }
-        
-        // Check if this position is accessible
-        if (MovementSystem.canEntityMoveTo(this, testPos, grid)) {
-          // Try to find a path to this position
-          const testPath = Pathfinding.findPath(
-            this.position,
-            testPos,
-            grid,
-            {
-              movementType: this.movementType || MovementType.WALKING,
-              allowDiagonal: true,
-              maxIterations: 500 // Limit iterations for performance
-            }
-          );
-          
-          if (testPath.success) {
-            return testPos;
-          }
-        }
-      }
-    }
-    
-    return null;
-  }
+  
 
   // Rendering method (moved from Renderer class)
   render(ctx: CanvasRenderingContext2D, screenPos: Vector2, textureManager?: any, zoom: number = 1): void {
@@ -605,44 +535,52 @@ export class Enemy extends Entity {
   
   // Stuck detection system
   private detectStuck(deltaTime: number): boolean {
-    // Update position history
+    // Update position and velocity history
     this.positionHistory.push({ ...this.position });
+    this.velocityHistory.push({ ...this.velocity });
     
-    // Keep only last 5 positions (about 0.5 seconds of history at 60fps)
-    if (this.positionHistory.length > 30) {
+    // Keep only last 60 frames (about 1 second of history at 60fps)
+    if (this.positionHistory.length > 60) {
       this.positionHistory.shift();
+    }
+    if (this.velocityHistory.length > 60) {
+      this.velocityHistory.shift();
     }
     
     // Need enough history to detect stuck
-    if (this.positionHistory.length < 30) {
+    if (this.positionHistory.length < 60) {
       return false;
     }
     
-    // Calculate total distance moved in the history window
+    // Calculate movement metrics
     const oldestPos = this.positionHistory[0];
     const totalDistance = this.distanceTo(oldestPos);
     const timeWindow = this.positionHistory.length * deltaTime;
     const averageSpeed = totalDistance / timeWindow;
     
-    // Check if moving too slowly (stuck)
-    if (averageSpeed < this.STUCK_THRESHOLD && this.speed > 0) {
+    // Calculate average velocity magnitude
+    let avgVelocityMag = 0;
+    for (const vel of this.velocityHistory) {
+      avgVelocityMag += Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+    }
+    avgVelocityMag /= this.velocityHistory.length;
+    
+    // Check if stuck: low movement despite having velocity
+    const isPositionStuck = averageSpeed < this.STUCK_THRESHOLD && this.speed > 0;
+    const isVelocityStuck = avgVelocityMag > this.STUCK_THRESHOLD && averageSpeed < this.STUCK_THRESHOLD * 0.5;
+    
+    if (isPositionStuck || isVelocityStuck) {
       this.stuckCounter += deltaTime;
       
-      // Faster stuck detection near water/bridges
-      const detectionTime = this.isNearWaterOrBridge() ? 
-        this.STUCK_DETECTION_TIME * 0.5 : 
-        this.STUCK_DETECTION_TIME;
-      
-      if (this.stuckCounter >= detectionTime) {
+      // Use consistent detection time (no aggressive detection near water)
+      if (this.stuckCounter >= this.STUCK_DETECTION_TIME) {
         return true;
       }
     } else {
-      this.stuckCounter = 0;
+      this.stuckCounter = Math.max(0, this.stuckCounter - deltaTime * 0.5); // Gradual recovery
       // Save last known good position
-      if (averageSpeed > this.STUCK_THRESHOLD * 2) {
+      if (averageSpeed > this.STUCK_THRESHOLD * 1.5) {
         this.lastValidPosition = { ...this.position };
-        // Reset emergency counter on good movement
-        this.emergencyTeleportCounter = Math.max(0, this.emergencyTeleportCounter - 0.1);
       }
     }
     
@@ -650,104 +588,38 @@ export class Enemy extends Entity {
   }
   
   // Check if enemy is near water or bridge tiles
-  private isNearWaterOrBridge(): boolean {
-    if (!this.grid) return false;
-    
-    const gridPos = this.grid.worldToGrid(this.position);
-    const checkRadius = 2;
-    
-    for (let dx = -checkRadius; dx <= checkRadius; dx++) {
-      for (let dy = -checkRadius; dy <= checkRadius; dy++) {
-        const x = gridPos.x + dx;
-        const y = gridPos.y + dy;
-        
-        if (this.grid.isInBounds(x, y)) {
-          const cellType = this.grid.getCellType(x, y);
-          if (cellType === CellType.WATER || cellType === CellType.BRIDGE) {
-            return true;
-          }
-        }
-      }
-    }
-    
-    return false;
-  }
+  
   
   // Initiate recovery when stuck
   private initiateRecovery(grid?: Grid): void {
-    console.log(`Enemy ${this.id} is stuck! Initiating recovery...`);
+    console.log(`Enemy ${this.id} is stuck! Initiating smooth recovery...`);
     
     // Mark current position as problematic
     const cache = ProblematicPositionCache.getInstance();
     cache.addBadPosition(this.position);
-    console.log(`Marked position ${this.position.x}, ${this.position.y} as problematic`);
-    
-    this.emergencyTeleportCounter++;
-    
-    // If we've tried recovery too many times, do emergency teleport
-    if (this.emergencyTeleportCounter >= this.EMERGENCY_TELEPORT_THRESHOLD) {
-      this.performEmergencyTeleport(grid);
-      return;
-    }
     
     this.isRecovering = true;
     this.recoveryTimer = 0;
     this.stuckCounter = 0;
     this.positionHistory = [];
+    this.velocityHistory = [];
     
     // Clear current path - it's not working
     this.currentPath = [];
     this.currentPathTarget = null;
     
-    // Try different recovery strategies
+    // Choose wall following direction based on obstacle positions
+    
+    
+    // Apply initial recovery force
     this.selectRecoveryStrategy(grid);
   }
   
+  
+  
   // Select and apply recovery strategy
   private selectRecoveryStrategy(_grid?: Grid): void {
-    // Special strategy for water/bridge areas
-    if (this.isNearWaterOrBridge() && _grid) {
-      // Try to find nearest bridge or solid ground
-      const gridPos = _grid.worldToGrid(this.position);
-      const searchRadius = 3;
-      
-      let nearestBridge: Vector2 | null = null;
-      let nearestLand: Vector2 | null = null;
-      let minBridgeDist = Infinity;
-      let minLandDist = Infinity;
-      
-      for (let dx = -searchRadius; dx <= searchRadius; dx++) {
-        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
-          const x = gridPos.x + dx;
-          const y = gridPos.y + dy;
-          
-          if (_grid.isInBounds(x, y)) {
-            const cellType = _grid.getCellType(x, y);
-            const worldPos = _grid.gridToWorld(x, y);
-            const dist = this.distanceTo(worldPos);
-            
-            if (cellType === CellType.BRIDGE && dist < minBridgeDist) {
-              nearestBridge = worldPos;
-              minBridgeDist = dist;
-            } else if ((cellType === CellType.EMPTY || cellType === CellType.PATH) && dist < minLandDist) {
-              nearestLand = worldPos;
-              minLandDist = dist;
-            }
-          }
-        }
-      }
-      
-      // Move towards bridge or land
-      const target = nearestBridge || nearestLand;
-      if (target) {
-        const angle = Math.atan2(target.y - this.position.y, target.x - this.position.x);
-        this.velocity = {
-          x: Math.cos(angle) * this.speed * 0.8,
-          y: Math.sin(angle) * this.speed * 0.8
-        };
-        return;
-      }
-    }
+    
     
     // Strategy 1: Try to move to last valid position
     if (this.lastValidPosition && this.distanceTo(this.lastValidPosition) > 20) {
@@ -770,143 +642,79 @@ export class Enemy extends Entity {
     };
   }
   
-  // Perform recovery movement
-  private performRecoveryMovement(deltaTime: number, _grid?: Grid): void {
+  // Perform recovery movement with smooth steering
+  private performRecoveryMovement(deltaTime: number, grid?: Grid): void {
     this.recoveryTimer += deltaTime;
+
+    // Placeholder for recoveryForce - actual calculation needs to be implemented
+    const recoveryForce = { x: 0, y: 0 }; 
+
+    // Apply steering force to velocity (with damping)
+    const steeringInfluence = Math.min(1.0, this.recoveryTimer / 0.5); // Gradual influence
+    this.velocity.x += recoveryForce.x * steeringInfluence * deltaTime;
+    this.velocity.y += recoveryForce.y * steeringInfluence * deltaTime;
     
-    // Apply recovery velocity with collision detection
-    const newPos = {
-      x: this.position.x + this.velocity.x * deltaTime,
-      y: this.position.y + this.velocity.y * deltaTime
-    };
-    
-    // Check if new position is valid
-    if (_grid && MovementSystem.canEntityMoveTo(this, newPos, _grid)) {
-      this.position = newPos;
-    } else {
-      // Hit obstacle during recovery - try different direction
-      const newAngle = Math.random() * Math.PI * 2;
-      this.velocity = {
-        x: Math.cos(newAngle) * this.speed * 0.7,
-        y: Math.sin(newAngle) * this.speed * 0.7
-      };
+    // Limit velocity to max speed
+    const currentSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
+    if (currentSpeed > this.speed) {
+      this.velocity.x = (this.velocity.x / currentSpeed) * this.speed;
+      this.velocity.y = (this.velocity.y / currentSpeed) * this.speed;
     }
     
     // End recovery after duration
     if (this.recoveryTimer >= this.RECOVERY_DURATION) {
       this.isRecovering = false;
       this.recoveryTimer = 0;
-      this.emergencyTeleportCounter = Math.max(0, this.emergencyTeleportCounter - 1); // Reduce counter on successful recovery
+      
+      
       // Force path recalculation after recovery
       this.pathRecalculationTimer = this.PATH_RECALCULATION_INTERVAL;
     }
   }
   
+  
+  
+  
+
+  
+  
   // Smooth movement implementation
-  private smoothMoveTo(target: Vector2, speed: number, _deltaTime: number): void {
+  // Smooth movement implementation with steering behaviors
+  private smoothMoveTo(target: Vector2, speed: number, deltaTime: number): void {
     const distance = this.distanceTo(target);
     if (distance < 1) return;
     
-    const direction = {
-      x: (target.x - this.position.x) / distance,
-      y: (target.y - this.position.y) / distance
+    // Calculate desired velocity
+    const desiredVelocity = {
+      x: ((target.x - this.position.x) / distance) * speed,
+      y: ((target.y - this.position.y) / distance) * speed
     };
     
-    // Calculate desired speed with deceleration near target
-    const targetSpeed = Math.min(speed, distance * 3);
-    const currentSpeed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+    // Calculate steering force (desired - current)
+    const steerX = desiredVelocity.x - this.velocity.x;
+    const steerY = desiredVelocity.y - this.velocity.y;
     
-    // Smooth speed interpolation
-    const smoothingFactor = 0.2;
-    const smoothSpeed = currentSpeed * (1 - smoothingFactor) + targetSpeed * smoothingFactor;
-    
-    // Apply smooth velocity
-    this.velocity = {
-      x: direction.x * smoothSpeed,
-      y: direction.y * smoothSpeed
-    };
-  }
-  
-  // Emergency teleport when completely stuck
-  private performEmergencyTeleport(grid?: Grid): void {
-    console.log(`Enemy ${this.id} performing emergency teleport!`);
-    
-    const cache = ProblematicPositionCache.getInstance();
-    
-    this.emergencyTeleportCounter = 0;
-    this.isRecovering = false;
-    this.recoveryTimer = 0;
-    this.positionHistory = [];
-    
-    if (!grid) return;
-    
-    // Find nearest walkable cell in expanding circles
-    const searchRadii = [50, 100, 150, 200, 300];
-    
-    for (const radius of searchRadii) {
-      // Try 16 directions
-      for (let i = 0; i < 16; i++) {
-        const angle = (i / 16) * Math.PI * 2;
-        const testPos = {
-          x: this.position.x + Math.cos(angle) * radius,
-          y: this.position.y + Math.sin(angle) * radius
-        };
-        
-        // Skip known bad positions
-        if (cache.isPositionBad(testPos)) {
-          continue;
-        }
-        
-        // Check if position is valid and walkable
-        const gridPos = grid.worldToGrid(testPos);
-        if (grid.isInBounds(gridPos.x, gridPos.y) && 
-            !grid.isNearBorder(gridPos.x, gridPos.y, 1)) {
-          
-          const cellType = grid.getCellType(gridPos.x, gridPos.y);
-          
-          // For walking enemies, avoid water areas completely
-          if (this.movementType === MovementType.WALKING) {
-            // Check surrounding area for water
-            let hasNearbyWater = false;
-            for (let dx = -1; dx <= 1; dx++) {
-              for (let dy = -1; dy <= 1; dy++) {
-                const checkX = gridPos.x + dx;
-                const checkY = gridPos.y + dy;
-                if (grid.isInBounds(checkX, checkY)) {
-                  const nearbyCell = grid.getCellType(checkX, checkY);
-                  if (nearbyCell === CellType.WATER) {
-                    hasNearbyWater = true;
-                    break;
-                  }
-                }
-              }
-              if (hasNearbyWater) break;
-            }
-            
-            // Skip positions near water for walking enemies
-            if (hasNearbyWater && cellType !== CellType.BRIDGE) {
-              continue;
-            }
-          }
-          
-          // Check if we can actually move there
-          if (MovementSystem.canEntityMoveTo(this, testPos, grid)) {
-            // Teleport!
-            this.position = testPos;
-            this.velocity = { x: 0, y: 0 };
-            
-            // Clear path and force recalculation
-            this.currentPath = [];
-            this.currentPathTarget = null;
-            this.pathRecalculationTimer = this.PATH_RECALCULATION_INTERVAL;
-            
-            console.log(`Enemy ${this.id} teleported to ${testPos.x}, ${testPos.y}`);
-            return;
-          }
-        }
-      }
+    // Apply arrival behavior (slow down near target)
+    const slowingDistance = ENEMY_BEHAVIOR.arrivalSlowingDistance;
+    if (distance < slowingDistance) {
+      const scaleFactor = distance / slowingDistance;
+      desiredVelocity.x *= scaleFactor;
+      desiredVelocity.y *= scaleFactor;
     }
     
-    console.warn(`Enemy ${this.id} could not find emergency teleport location!`);
+    // Smooth velocity interpolation with steering
+    const steeringRate = ENEMY_BEHAVIOR.steeringRate;
+    const dt = deltaTime / 1000;
+    
+    this.velocity.x += steerX * steeringRate * dt;
+    this.velocity.y += steerY * steeringRate * dt;
+    
+    // Limit velocity to max speed
+    const currentSpeed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+    if (currentSpeed > speed) {
+      this.velocity.x = (this.velocity.x / currentSpeed) * speed;
+      this.velocity.y = (this.velocity.y / currentSpeed) * speed;
+    }
   }
+  
 }

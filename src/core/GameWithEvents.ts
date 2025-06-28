@@ -37,8 +37,13 @@ export class GameWithEvents extends Game {
   };
   private firstUpdate: boolean = true;
 
-  constructor(canvas: HTMLCanvasElement, mapConfig?: MapGenerationConfig, autoStart: boolean = true) {
-    super(canvas, mapConfig, autoStart);
+  constructor(
+    canvas: HTMLCanvasElement, 
+    mapConfig?: MapGenerationConfig, 
+    autoStart: boolean = true,
+    difficultyConfig?: { enemyHealthMultiplier?: number; enemySpeedMultiplier?: number }
+  ) {
+    super(canvas, mapConfig, autoStart, difficultyConfig);
     
     this.eventEmitter = new EventEmitter<GameEvents>();
     

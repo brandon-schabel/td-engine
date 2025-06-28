@@ -16,13 +16,8 @@ export interface PathNode {
 export interface PathfindingOptions {
   maxIterations?: number;
   allowDiagonal?: boolean;
-  minDistanceFromObstacles?: number;
-  terrainCostMultiplier?: number;
   smoothPath?: boolean;
   movementType?: MovementType;
-  predictiveTarget?: boolean; // Enable predictive targeting
-  targetVelocity?: Vector2; // Target's velocity for prediction
-  predictionTime?: number; // How far ahead to predict (in seconds)
 }
 
 export interface PathfindingResult {
@@ -32,17 +27,31 @@ export interface PathfindingResult {
   cost: number;
 }
 
+export interface SpawnPointValidationResult {
+  isValid: boolean;
+  spawnPoint: Vector2;
+  targetPosition: Vector2;
+  path?: Vector2[];
+  pathCost?: number;
+  issue?: string;
+  distance?: number;
+}
+
+export interface MapConnectivityValidation {
+  allSpawnPointsValid: boolean;
+  validSpawnPoints: Vector2[];
+  invalidSpawnPoints: Vector2[];
+  spawnValidations: SpawnPointValidationResult[];
+  warnings: string[];
+  errors: string[];
+}
+
 export class Pathfinding {
   private static readonly DEFAULT_OPTIONS: Required<PathfindingOptions> = {
     maxIterations: 1000,
     allowDiagonal: true,
-    minDistanceFromObstacles: 0,
-    terrainCostMultiplier: 1.0,
     smoothPath: true,
-    movementType: MovementType.WALKING,
-    predictiveTarget: false,
-    targetVelocity: { x: 0, y: 0 },
-    predictionTime: 0.5
+    movementType: MovementType.WALKING
   };
 
   // Path cache for performance
@@ -59,52 +68,29 @@ export class Pathfinding {
     options: PathfindingOptions = {}
   ): PathfindingResult {
     const opts = { ...this.DEFAULT_OPTIONS, ...options };
-    
-    // Apply predictive targeting if enabled
-    let targetGoal = goal;
-    if (opts.predictiveTarget && opts.targetVelocity && 
-        (opts.targetVelocity.x !== 0 || opts.targetVelocity.y !== 0)) {
-      targetGoal = {
-        x: goal.x + opts.targetVelocity.x * opts.predictionTime,
-        y: goal.y + opts.targetVelocity.y * opts.predictionTime
-      };
-      
-      // Ensure predicted position is valid
-      const predictedGrid = grid.worldToGrid(targetGoal);
-      if (!grid.isInBounds(predictedGrid.x, predictedGrid.y) ||
-          !this.isWalkableForMovementType(predictedGrid.x, predictedGrid.y, grid, opts.movementType)) {
-        targetGoal = goal; // Fall back to original goal
-      }
-    }
-    
-    // Convert world positions to grid coordinates
+
     const startGrid = grid.worldToGrid(start);
-    const goalGrid = grid.worldToGrid(targetGoal);
-    
-    // Check if start and goal are valid
+    const goalGrid = grid.worldToGrid(goal);
+
     if (!grid.isInBounds(startGrid.x, startGrid.y) || !grid.isInBounds(goalGrid.x, goalGrid.y)) {
       return { path: [], success: false, iterations: 0, cost: 0 };
     }
-    
-    // Check cache
+
     const cacheKey = `${startGrid.x},${startGrid.y}-${goalGrid.x},${goalGrid.y}-${opts.movementType}`;
     const cached = this.pathCache.get(cacheKey);
     if (cached) {
       return cached;
     }
-    
-    // Check if goal is walkable
+
     if (!this.isWalkableForMovementType(goalGrid.x, goalGrid.y, grid, opts.movementType)) {
       return { path: [], success: false, iterations: 0, cost: 0 };
     }
-    
-    // A* algorithm
+
     const openSet: PathNode[] = [];
     const closedSet = new Set<string>();
     const nodeMap = new Map<string, PathNode>();
-    
-    // Create start node
-    const startH = this.heuristic({ gridX: startGrid.x, gridY: startGrid.y }, { gridX: goalGrid.x, gridY: goalGrid.y });
+
+    const startH = this.heuristic(start, goal);
     const startNode: PathNode = {
       position: start,
       gridX: startGrid.x,
@@ -114,46 +100,43 @@ export class Pathfinding {
       f: startH,
       parent: null
     };
-    
+
     openSet.push(startNode);
     nodeMap.set(`${startGrid.x},${startGrid.y}`, startNode);
-    
+
     let iterations = 0;
     let currentNode: PathNode | null = null;
-    
+
     while (openSet.length > 0 && iterations < opts.maxIterations) {
       iterations++;
-      
-      // Get node with lowest f score
+
       currentNode = this.getLowestFNode(openSet);
-      
-      // Check if we reached the goal
+
       if (currentNode.gridX === goalGrid.x && currentNode.gridY === goalGrid.y) {
         break;
       }
-      
-      // Move current node from open to closed set
+
       const currentIndex = openSet.indexOf(currentNode);
       openSet.splice(currentIndex, 1);
       closedSet.add(`${currentNode.gridX},${currentNode.gridY}`);
-      
-      // Check all neighbors
+
       const neighbors = this.getNeighbors(currentNode, grid, opts);
-      
+
       for (const neighbor of neighbors) {
         const neighborKey = `${neighbor.gridX},${neighbor.gridY}`;
-        
-        // Skip if in closed set
+
         if (closedSet.has(neighborKey)) continue;
-        
-        // Skip if not walkable or too close to obstacles
-        if (!this.isValidPosition(neighbor.gridX, neighbor.gridY, grid, opts)) continue;
-        
-        // Calculate tentative g score
-        const movementCost = this.getMovementCost(currentNode, neighbor, grid, opts);
+
+        if (!this.isWalkableForMovementType(neighbor.gridX, neighbor.gridY, grid, opts.movementType)) continue;
+
+        const movementCost = MovementSystem.getMovementCost(
+          currentNode.position,
+          grid.gridToWorld(neighbor.gridX, neighbor.gridY),
+          grid,
+          opts.movementType
+        );
         const tentativeG = currentNode.g + movementCost;
-        
-        // Get or create neighbor node
+
         let neighborNode = nodeMap.get(neighborKey);
         if (!neighborNode) {
           neighborNode = {
@@ -161,51 +144,46 @@ export class Pathfinding {
             gridX: neighbor.gridX,
             gridY: neighbor.gridY,
             g: Infinity,
-            h: this.heuristic({ gridX: neighbor.gridX, gridY: neighbor.gridY }, { gridX: goalGrid.x, gridY: goalGrid.y }),
+            h: this.heuristic(grid.gridToWorld(neighbor.gridX, neighbor.gridY), goal),
             f: Infinity,
             parent: null
           };
           nodeMap.set(neighborKey, neighborNode);
         }
-        
-        // Check if this path to neighbor is better
+
         if (tentativeG < neighborNode.g) {
           neighborNode.parent = currentNode;
           neighborNode.g = tentativeG;
           neighborNode.f = neighborNode.g + neighborNode.h;
-          
-          // Add to open set if not already there
+
           if (!openSet.includes(neighborNode)) {
             openSet.push(neighborNode);
           }
         }
       }
     }
-    
-    // Reconstruct path if we found the goal
+
     let path: Vector2[] = [];
     let totalCost = 0;
-    
+
     if (currentNode && currentNode.gridX === goalGrid.x && currentNode.gridY === goalGrid.y) {
       path = this.reconstructPath(currentNode);
       totalCost = currentNode.g;
-      
-      // Smooth the path if requested
+
       if (opts.smoothPath && path.length > 2) {
         path = this.smoothPath(path, grid, opts);
       }
     }
-    
+
     const result: PathfindingResult = {
       path,
       success: path.length > 0,
       iterations,
       cost: totalCost
     };
-    
-    // Cache the result
+
     this.cacheResult(cacheKey, result);
-    
+
     return result;
   }
 
@@ -220,33 +198,7 @@ export class Pathfinding {
   /**
    * Check if a position is valid (walkable and respects obstacle distance)
    */
-  private static isValidPosition(x: number, y: number, grid: Grid, opts: Required<PathfindingOptions>): boolean {
-    if (!this.isWalkableForMovementType(x, y, grid, opts.movementType)) {
-      return false;
-    }
-    
-    // Check minimum distance from obstacles
-    if (opts.minDistanceFromObstacles > 0) {
-      const radius = Math.ceil(opts.minDistanceFromObstacles);
-      for (let dx = -radius; dx <= radius; dx++) {
-        for (let dy = -radius; dy <= radius; dy++) {
-          const checkX = x + dx;
-          const checkY = y + dy;
-          if (grid.isInBounds(checkX, checkY)) {
-            const cellType = grid.getCellType(checkX, checkY);
-            if (cellType === CellType.OBSTACLE || cellType === CellType.BLOCKED || cellType === CellType.WATER) {
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              if (distance < opts.minDistanceFromObstacles) {
-                return false;
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    return true;
-  }
+  
 
   /**
    * Get valid neighbors for a node
@@ -324,25 +276,19 @@ export class Pathfinding {
   /**
    * Calculate movement cost between two nodes
    */
-  private static getMovementCost(from: PathNode, to: {gridX: number, gridY: number}, grid: Grid, opts: Required<PathfindingOptions>): number {
-    // Base cost is distance
-    const dx = to.gridX - from.gridX;
-    const dy = to.gridY - from.gridY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    // Get terrain cost multiplier
-    const speedMultiplier = grid.getMovementSpeed(to.gridX, to.gridY);
-    const terrainCost = speedMultiplier > 0 ? 1.0 / speedMultiplier : 10.0;
-    
-    return distance * terrainCost * opts.terrainCostMultiplier;
-  }
+  
+  
+  /**
+   * Calculate penalty for being near obstacles
+   */
+  
 
   /**
    * Heuristic function for A* (Euclidean distance)
    */
-  private static heuristic(a: { gridX: number, gridY: number }, b: { gridX: number, gridY: number }): number {
-    const dx = Math.abs(a.gridX - b.gridX);
-    const dy = Math.abs(a.gridY - b.gridY);
+  private static heuristic(a: Vector2, b: Vector2): number {
+    const dx = Math.abs(a.x - b.x);
+    const dy = Math.abs(a.y - b.y);
     return Math.sqrt(dx * dx + dy * dy);
   }
 
@@ -375,30 +321,34 @@ export class Pathfinding {
   }
 
   /**
-   * Smooth the path using line-of-sight checks
+   * Smooth the path using line-of-sight checks and spline interpolation
    */
   private static smoothPath(path: Vector2[], grid: Grid, opts: Required<PathfindingOptions>): Vector2[] {
     if (path.length < 3) return path;
-    
-    const smoothed: Vector2[] = [path[0]];
+
+    const optimized: Vector2[] = [path[0]];
     let currentIndex = 0;
-    
+
     while (currentIndex < path.length - 1) {
       let furthestVisible = currentIndex + 1;
-      
-      // Find the furthest point we can see from current position
+
       for (let i = currentIndex + 2; i < path.length; i++) {
         if (this.hasLineOfSight(path[currentIndex], path[i], grid, opts)) {
           furthestVisible = i;
         }
       }
-      
-      smoothed.push(path[furthestVisible]);
+
+      optimized.push(path[furthestVisible]);
       currentIndex = furthestVisible;
     }
-    
-    return smoothed;
+
+    return optimized;
   }
+  
+  /**
+   * Apply Catmull-Rom spline interpolation for smoother paths
+   */
+  
 
   /**
    * Check if there's a clear line of sight between two points
@@ -406,22 +356,21 @@ export class Pathfinding {
   private static hasLineOfSight(start: Vector2, end: Vector2, grid: Grid, opts: Required<PathfindingOptions>): boolean {
     const startGrid = grid.worldToGrid(start);
     const endGrid = grid.worldToGrid(end);
-    
-    // Use Bresenham's line algorithm
+
     const dx = Math.abs(endGrid.x - startGrid.x);
     const dy = Math.abs(endGrid.y - startGrid.y);
     const sx = startGrid.x < endGrid.x ? 1 : -1;
     const sy = startGrid.y < endGrid.y ? 1 : -1;
     let err = dx - dy;
-    
+
     let x = startGrid.x;
     let y = startGrid.y;
-    
+
     while (x !== endGrid.x || y !== endGrid.y) {
-      if (!this.isValidPosition(x, y, grid, opts)) {
+      if (!this.isWalkableForMovementType(x, y, grid, opts.movementType)) {
         return false;
       }
-      
+
       const e2 = 2 * err;
       if (e2 > -dy) {
         err -= dy;
@@ -432,7 +381,7 @@ export class Pathfinding {
         y += sy;
       }
     }
-    
+
     return true;
   }
 
@@ -510,158 +459,152 @@ export class Pathfinding {
   /**
    * Find alternative path when original fails - with border awareness
    */
-  static findAlternativePath(
-    start: Vector2,
-    goal: Vector2,
-    grid: Grid,
-    options?: PathfindingOptions
-  ): PathfindingResult {
-    const opts = { ...this.DEFAULT_OPTIONS, ...options };
-    
-    // First, try relaxed pathfinding constraints
-    const relaxedResult = this.findPath(start, goal, grid, {
-      ...opts,
-      minDistanceFromObstacles: 0, // Allow closer to obstacles
-      maxIterations: opts.maxIterations * 2 // More iterations
-    });
-    
-    if (relaxedResult.success) {
-      return relaxedResult;
-    }
-    
-    // Try to find paths to nearby accessible positions
-    const searchRadii = [30, 60, 90, 120, 150];
-    const angleSteps = 16; // More angles for better coverage
-    
-    // Sort angles by proximity to goal direction
-    const goalAngle = Math.atan2(goal.y - start.y, goal.x - start.x);
-    const angles: number[] = [];
-    for (let i = 0; i < angleSteps; i++) {
-      angles.push((i / angleSteps) * Math.PI * 2);
-    }
-    angles.sort((a, b) => {
-      const diffA = Math.abs(((a - goalAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
-      const diffB = Math.abs(((b - goalAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
-      return diffA - diffB;
-    });
-    
-    for (const radius of searchRadii) {
-      for (const angle of angles) {
-        const alternativeGoal = {
-          x: goal.x + Math.cos(angle) * radius,
-          y: goal.y + Math.sin(angle) * radius
-        };
-        
-        // Check if alternative goal is valid
-        const gridPos = grid.worldToGrid(alternativeGoal);
-        if (!grid.isInBounds(gridPos.x, gridPos.y)) {
-          continue;
-        }
-        
-        // Don't go too close to borders unless necessary
-        if (radius < 120 && grid.isNearBorder(gridPos.x, gridPos.y, 1)) {
-          continue;
-        }
-        
-        // Check if the position is walkable
-        if (!this.isWalkableForMovementType(gridPos.x, gridPos.y, grid, opts.movementType)) {
-          continue;
-        }
-        
-        // Try to find path to alternative goal
-        const result = this.findPath(start, alternativeGoal, grid, {
-          ...opts,
-          maxIterations: Math.min(opts.maxIterations, 500) // Limit iterations for performance
-        });
-        
-        if (result.success) {
-          return result;
-        }
-      }
-    }
-    
-    // Last resort: try to move in the general direction
-    const emergencyPath = this.createEmergencyPath(start, goal, grid, opts);
-    if (emergencyPath.length > 0) {
-      return {
-        path: emergencyPath,
-        success: true,
-        iterations: 1,
-        cost: emergencyPath.length
-      };
-    }
-    
-    // If all else fails, return empty path
-    return {
-      path: [],
-      success: false,
-      iterations: 0,
-      cost: Infinity
-    };
-  }
   
   /**
-   * Create emergency path for when normal pathfinding fails
+   * Validate that a spawn point has a valid path to the target position
    */
-  private static createEmergencyPath(
-    start: Vector2, 
-    goal: Vector2, 
-    grid: Grid, 
-    opts: Required<PathfindingOptions>
-  ): Vector2[] {
-    const path: Vector2[] = [start];
-    const stepSize = grid.cellSize;
-    const maxSteps = 10;
-    
-    let current = { ...start };
-    
-    for (let step = 0; step < maxSteps; step++) {
-      const dx = goal.x - current.x;
-      const dy = goal.y - current.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < stepSize) break;
-      
-      // Try to move directly toward goal
-      const direction = { x: dx / distance, y: dy / distance };
-      let nextPos = {
-        x: current.x + direction.x * stepSize,
-        y: current.y + direction.y * stepSize
-      };
-      
-      const gridPos = grid.worldToGrid(nextPos);
-      
-      // If direct path is blocked, try perpendicular directions
-      if (!grid.isInBounds(gridPos.x, gridPos.y) || 
-          !this.isWalkableForMovementType(gridPos.x, gridPos.y, grid, opts.movementType)) {
+  static validateSpawnPointConnectivity(
+    spawnPoint: Vector2,
+    targetPosition: Vector2,
+    grid: Grid,
+    movementType: MovementType = MovementType.WALKING
+  ): SpawnPointValidationResult {
+    const result: SpawnPointValidationResult = {
+      isValid: false,
+      spawnPoint,
+      targetPosition,
+      distance: Math.sqrt(
+        Math.pow(targetPosition.x - spawnPoint.x, 2) + 
+        Math.pow(targetPosition.y - spawnPoint.y, 2)
+      )
+    };
+
+    // Check if spawn point is within bounds
+    const spawnGrid = grid.worldToGrid(spawnPoint);
+    if (!grid.isInBounds(spawnGrid.x, spawnGrid.y)) {
+      result.issue = 'Spawn point is out of bounds';
+      return result;
+    }
+
+    // Check if spawn point is walkable
+    if (!this.isWalkableForMovementType(spawnGrid.x, spawnGrid.y, grid, movementType)) {
+      result.issue = 'Spawn point is not walkable';
+      return result;
+    }
+
+    // Check if target is within bounds
+    const targetGrid = grid.worldToGrid(targetPosition);
+    if (!grid.isInBounds(targetGrid.x, targetGrid.y)) {
+      result.issue = 'Target position is out of bounds';
+      return result;
+    }
+
+    // Find path from spawn to target
+    const pathResult = this.findPath(spawnPoint, targetPosition, grid, {
+      movementType,
+      maxIterations: 2000, // Allow more iterations for validation
+      smoothPath: false // Don't smooth for validation
+    });
+
+    if (pathResult.success && pathResult.path.length > 0) {
+      result.isValid = true;
+      result.path = pathResult.path;
+      result.pathCost = pathResult.cost;
+    } else {
+      result.issue = 'No valid path from spawn point to target';
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate all spawn points for connectivity to a target position
+   */
+  static validateAllSpawnPoints(
+    spawnPoints: Vector2[],
+    targetPosition: Vector2,
+    grid: Grid,
+    movementType: MovementType = MovementType.WALKING
+  ): MapConnectivityValidation {
+    const validation: MapConnectivityValidation = {
+      allSpawnPointsValid: true,
+      validSpawnPoints: [],
+      invalidSpawnPoints: [],
+      spawnValidations: [],
+      warnings: [],
+      errors: []
+    };
+
+    if (spawnPoints.length === 0) {
+      validation.allSpawnPointsValid = false;
+      validation.errors.push('No spawn points defined');
+      return validation;
+    }
+
+    // Validate each spawn point
+    for (const spawnPoint of spawnPoints) {
+      const result = this.validateSpawnPointConnectivity(
+        spawnPoint,
+        targetPosition,
+        grid,
+        movementType
+      );
+
+      validation.spawnValidations.push(result);
+
+      if (result.isValid) {
+        validation.validSpawnPoints.push(spawnPoint);
         
-        // Try left and right perpendicular
-        const perpAngles = [Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 4];
-        let foundAlternative = false;
-        
-        for (const perpAngle of perpAngles) {
-          const newAngle = Math.atan2(direction.y, direction.x) + perpAngle;
-          const altPos = {
-            x: current.x + Math.cos(newAngle) * stepSize,
-            y: current.y + Math.sin(newAngle) * stepSize
-          };
-          
-          const altGrid = grid.worldToGrid(altPos);
-          if (grid.isInBounds(altGrid.x, altGrid.y) && 
-              this.isWalkableForMovementType(altGrid.x, altGrid.y, grid, opts.movementType)) {
-            nextPos = altPos;
-            foundAlternative = true;
-            break;
+        // Check if path is unusually long
+        if (result.pathCost && result.distance) {
+          const costRatio = result.pathCost / result.distance;
+          if (costRatio > 3) {
+            validation.warnings.push(
+              `Spawn point at (${spawnPoint.x}, ${spawnPoint.y}) has an unusually long path (${costRatio.toFixed(1)}x direct distance)`
+            );
           }
         }
-        
-        if (!foundAlternative) break;
+      } else {
+        validation.invalidSpawnPoints.push(spawnPoint);
+        validation.allSpawnPointsValid = false;
+        validation.errors.push(
+          `Spawn point at (${spawnPoint.x}, ${spawnPoint.y}): ${result.issue}`
+        );
       }
-      
-      path.push(nextPos);
-      current = nextPos;
     }
+
+    // Add summary warnings
+    if (validation.invalidSpawnPoints.length > 0) {
+      const percentage = (validation.invalidSpawnPoints.length / spawnPoints.length) * 100;
+      validation.warnings.push(
+        `${validation.invalidSpawnPoints.length} of ${spawnPoints.length} spawn points (${percentage.toFixed(0)}%) are inaccessible`
+      );
+    }
+
+    if (validation.validSpawnPoints.length < 2) {
+      validation.warnings.push(
+        'Less than 2 valid spawn points available - gameplay may be too predictable'
+      );
+    }
+
+    return validation;
+  }
+
+  /**
+   * Check if there's a connected region containing both points
+   */
+  static arePointsConnected(
+    point1: Vector2,
+    point2: Vector2,
+    grid: Grid,
+    movementType: MovementType = MovementType.WALKING
+  ): boolean {
+    const pathResult = this.findPath(point1, point2, grid, {
+      movementType,
+      maxIterations: 2000,
+      smoothPath: false
+    });
     
-    return path.length > 1 ? path : [];
+    return pathResult.success;
   }
 }

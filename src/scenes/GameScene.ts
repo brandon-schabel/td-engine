@@ -328,8 +328,56 @@ export class GameScene extends Scene {
       };
     }
 
+    // Get difficulty settings
+    let difficultyConfig: { enemyHealthMultiplier?: number; enemySpeedMultiplier?: number } | undefined;
+    
+    if (preGameConfig) {
+      // Use settings from pre-game config
+      const gameSettings = {
+        difficulty: preGameConfig.difficulty === 'EASY' ? 'CASUAL' : 
+                   preGameConfig.difficulty === 'HARD' ? 'CHALLENGE' : 
+                   'NORMAL' as any,
+        masterVolume: 0.7,
+        sfxVolume: 0.7,
+        musicVolume: 0.5,
+        soundEnabled: true,
+        visualQuality: 'MEDIUM' as any,
+        showFPS: false,
+        showFps: false,
+        particleEffects: true,
+        autoPause: true,
+        mapSize: preGameConfig.mapSize as any,
+        terrain: preGameConfig.biome as any,
+        pathComplexity: 'SIMPLE' as any,
+        mobileJoystickEnabled: true,
+        hapticFeedbackEnabled: true,
+        touchControlsLayout: 'default' as any
+      };
+      const config = applySettingsToGame(gameSettings);
+      difficultyConfig = {
+        enemyHealthMultiplier: config.enemyHealthMultiplier,
+        enemySpeedMultiplier: config.enemySpeedMultiplier
+      };
+    } else {
+      // Use default settings
+      const config = applySettingsToGame((window as any).gameSettings || {
+        difficulty: "NORMAL",
+        masterVolume: 0.7,
+        soundEnabled: true,
+        visualQuality: "MEDIUM",
+        showFPS: false,
+        mapSize: "MEDIUM",
+        terrain: "FOREST",
+        pathComplexity: "SIMPLE",
+      });
+      difficultyConfig = {
+        enemyHealthMultiplier: config.enemyHealthMultiplier,
+        enemySpeedMultiplier: config.enemySpeedMultiplier
+      };
+    }
+
     // Create game instance
-    this.game = new GameWithEvents(this.canvas, mapGenConfig);
+    this.game = new GameWithEvents(this.canvas, mapGenConfig, true, difficultyConfig);
 
     // Store globally for debugging
     if (typeof window !== 'undefined') {

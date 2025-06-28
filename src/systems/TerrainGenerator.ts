@@ -29,7 +29,7 @@ export class TerrainGenerator {
   // Default terrain configs per biome
   private static readonly BIOME_TERRAIN_CONFIGS: Record<BiomeType, TerrainGenerationConfig> = {
     [BiomeType.FOREST]: {
-      waterCoverage: 0.18,
+      waterCoverage: 0.08,  // Reduced from 0.18
       roughTerrainCoverage: 0.25,
       clusterMinSize: 3,
       clusterMaxSize: 8,
@@ -37,7 +37,7 @@ export class TerrainGenerator {
       noiseScale: 0.1
     },
     [BiomeType.DESERT]: {
-      waterCoverage: 0.02,
+      waterCoverage: 0.01,  // Reduced from 0.02
       roughTerrainCoverage: 0.35,
       clusterMinSize: 5,
       clusterMaxSize: 12,
@@ -45,7 +45,7 @@ export class TerrainGenerator {
       noiseScale: 0.08
     },
     [BiomeType.ARCTIC]: {
-      waterCoverage: 0.25,
+      waterCoverage: 0.12,  // Reduced from 0.25
       roughTerrainCoverage: 0.15,
       clusterMinSize: 4,
       clusterMaxSize: 10,
@@ -53,7 +53,7 @@ export class TerrainGenerator {
       noiseScale: 0.12
     },
     [BiomeType.VOLCANIC]: {
-      waterCoverage: 0.20,
+      waterCoverage: 0.05,  // Reduced from 0.20
       roughTerrainCoverage: 0.30,
       clusterMinSize: 3,
       clusterMaxSize: 7,
@@ -61,8 +61,8 @@ export class TerrainGenerator {
       noiseScale: 0.15
     },
     [BiomeType.GRASSLAND]: {
-      waterCoverage: 0.20,      // Increased from 0.10
-      roughTerrainCoverage: 0.30, // Increased from 0.20
+      waterCoverage: 0.10,  // Reduced from 0.20
+      roughTerrainCoverage: 0.30,
       clusterMinSize: 4,
       clusterMaxSize: 9,
       bridgeWidth: 1,

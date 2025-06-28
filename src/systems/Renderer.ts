@@ -18,7 +18,7 @@ import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
 import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
 import { DestructionEffect } from '@/effects/DestructionEffect';
 import { PathfindingDebug } from '@/debug/PathfindingDebug';
-import type { NavigationGrid } from './NavigationGrid';
+
 import { TerrainRenderer } from './TerrainRenderer';
 
 // Legacy render config for backward compatibility
@@ -1729,7 +1729,7 @@ export class Renderer {
     });
   }
 
-  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null, navGrid?: NavigationGrid): void {
+  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
@@ -1755,9 +1755,7 @@ export class Renderer {
     this.renderEntities(towers, enemies, projectiles, collectibles, destructionEffects, aimerLine, player, selectedTower);
     
     // Render pathfinding debug if enabled
-    if (navGrid) {
-      PathfindingDebug.render(this.ctx, this.grid, navGrid, enemies, this.camera);
-    }
+    PathfindingDebug.render(this.ctx, enemies, this.camera);
     
     // Render debug overlay if enabled
     if (this.debugMode) {

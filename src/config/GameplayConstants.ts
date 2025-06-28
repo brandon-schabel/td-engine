@@ -164,26 +164,26 @@ export const GAMEPLAY_CONSTANTS = {
   // Difficulty scaling
   difficulty: {
     easy: {
-      enemyHealthMultiplier: 0.7,
-      enemySpeedMultiplier: 0.8,
+      enemyHealthMultiplier: 0.49,  // Reduced by 30% from 0.7
+      enemySpeedMultiplier: 0.56,   // Reduced by 30% from 0.8
       towerDamageMultiplier: 1.3,
       currencyMultiplier: 1.5,
     },
     normal: {
-      enemyHealthMultiplier: 1.0,
-      enemySpeedMultiplier: 1.0,
+      enemyHealthMultiplier: 0.7,   // Reduced by 30% from 1.0
+      enemySpeedMultiplier: 0.7,    // Reduced by 30% from 1.0
       towerDamageMultiplier: 1.0,
       currencyMultiplier: 1.0,
     },
     hard: {
-      enemyHealthMultiplier: 1.5,
-      enemySpeedMultiplier: 1.2,
+      enemyHealthMultiplier: 1.05,  // Reduced by 30% from 1.5
+      enemySpeedMultiplier: 0.84,   // Reduced by 30% from 1.2
       towerDamageMultiplier: 0.8,
       currencyMultiplier: 0.7,
     },
     endless: {
-      enemyHealthMultiplier: 2.0,
-      enemySpeedMultiplier: 1.5,
+      enemyHealthMultiplier: 1.4,   // Reduced by 30% from 2.0
+      enemySpeedMultiplier: 1.05,   // Reduced by 30% from 1.5
       towerDamageMultiplier: 0.7,
       currencyMultiplier: 0.5,
     },

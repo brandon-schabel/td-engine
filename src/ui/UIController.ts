@@ -14,6 +14,7 @@ import { PlayerUpgradeUI } from '@/ui/floating/PlayerUpgradeUI';
 import { InventoryUI } from '@/ui/floating/InventoryUI';
 import { BuildMenuUI } from '@/ui/floating/BuildMenuUI';
 import { PauseMenuUI } from '@/ui/floating/PauseMenuUI';
+import { UpgradeUI } from '@/ui/UpgradeUI';
 import { UIStateManager, UIPanelType } from './UIStateManager';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
@@ -39,6 +40,7 @@ export class UIController {
   // UI Component instances
   private towerUpgradeUI: TowerUpgradeUI | null = null;
   private playerUpgradeUI: PlayerUpgradeUI | null = null;
+  private upgradeUI: UpgradeUI | null = null;
   private inventoryUI: InventoryUI | null = null;
   private buildMenuUI: BuildMenuUI | null = null;
   private pauseMenuUI: PauseMenuUI | null = null;
@@ -157,6 +159,7 @@ export class UIController {
       this.buildMenuUI = null;
     } else if (id === 'player-upgrade') {
       this.playerUpgradeUI = null;
+      this.upgradeUI = null;
     } else if (id === 'inventory') {
       this.inventoryUI = null;
     } else if (id === 'pause-menu') {
@@ -234,9 +237,26 @@ export class UIController {
     // Close any existing player upgrade UI
     this.close('player-upgrade');
 
-    // Always create a new instance to ensure fresh state
-    this.playerUpgradeUI = new PlayerUpgradeUI(player, this.game, screenPos, anchorElement);
-    this.register('player-upgrade', this.playerUpgradeUI, 'dialog');
+    // Use the new UpgradeUI for the points-based upgrade system
+    const upgradeManager = player.getPlayerUpgradeManager();
+    this.upgradeUI = new UpgradeUI(this.game, upgradeManager);
+    this.upgradeUI.show();
+    
+    // Register with a custom wrapper that matches the expected interface
+    const uiWrapper = {
+      element: this.upgradeUI,
+      destroy: () => this.upgradeUI?.destroy(),
+      disable: () => this.upgradeUI?.hide(),
+      enable: () => this.upgradeUI?.show()
+    };
+    
+    this.activeElements.set('player-upgrade', {
+      id: 'player-upgrade',
+      type: 'dialog',
+      element: uiWrapper,
+      closeable: true,
+      persistent: false
+    });
   }
 
   /**

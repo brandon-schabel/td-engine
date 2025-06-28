@@ -3,6 +3,7 @@ import type { Vector2 } from '@/utils/Vector2';
 import type { SpawnZoneManager, GameStateSnapshot } from './SpawnZoneManager';
 import { InfiniteWaveGenerator, type InfiniteWaveGeneratorConfig } from './InfiniteWaveGenerator';
 import { ENEMY_STATS } from '@/config/EnemyConfig';
+import type { Grid } from './Grid';
 
 export type EnemySpawnConfig = {
   type: EnemyType;
@@ -52,6 +53,14 @@ export class WaveManager {
   private infiniteWaveGenerator?: InfiniteWaveGenerator;
   private infiniteWavesEnabled: boolean = false;
   private infiniteWaveStartAt: number = 11;
+  private gridWidth: number = 30;
+  private gridHeight: number = 30;
+  private cellSize: number = 32;
+  private grid?: Grid;
+  
+  // Difficulty multipliers
+  private enemyHealthMultiplier: number = 1.0;
+  private enemySpeedMultiplier: number = 1.0;
   
   public currentWave: number = 0;
 
@@ -69,8 +78,24 @@ export class WaveManager {
     this.useDynamicSpawning = true;
   }
 
+  setGridDimensions(width: number, height: number, cellSize: number): void {
+    this.gridWidth = width;
+    this.gridHeight = height;
+    this.cellSize = cellSize;
+  }
+  
+  setGrid(grid: Grid): void {
+    this.grid = grid;
+  }
+  
+
   enableDynamicSpawning(enable: boolean): void {
     this.useDynamicSpawning = enable;
+  }
+
+  setDifficultyMultipliers(healthMultiplier: number, speedMultiplier: number): void {
+    this.enemyHealthMultiplier = healthMultiplier;
+    this.enemySpeedMultiplier = speedMultiplier;
   }
 
   enableInfiniteWaves(enable: boolean, startAt: number = 11, config?: Partial<InfiniteWaveGeneratorConfig>): void {
@@ -308,18 +333,85 @@ export class WaveManager {
       
       const spawnPoint = this.selectSpawnPoint(spawnItem.spawnPointIndex, wavePattern);
       
+      // Apply spawn offset to prevent enemies from getting stuck on edges
+      const spawnOffset = this.cellSize * 1.5; // 1.5 cells offset from spawn point
+      let adjustedSpawnPoint = { ...spawnPoint };
+      
+      // Calculate world dimensions
+      const worldWidth = this.gridWidth * this.cellSize;
+      const worldHeight = this.gridHeight * this.cellSize;
+      
+      // Calculate grid position of spawn point (removed - not used)
+      
+      // Determine offset direction based on which edge the spawn point is near
+      // Move enemies toward the center of the map
+      const centerX = worldWidth / 2;
+      const centerY = worldHeight / 2;
+      
+      // Calculate direction vector toward center
+      const dirX = centerX - spawnPoint.x;
+      const dirY = centerY - spawnPoint.y;
+      
+      // Normalize and apply offset
+      const length = Math.sqrt(dirX * dirX + dirY * dirY);
+      if (length > 0) {
+        adjustedSpawnPoint.x += (dirX / length) * spawnOffset;
+        adjustedSpawnPoint.y += (dirY / length) * spawnOffset;
+      }
+      
+      // Validate the adjusted spawn point is walkable
+      if (this.grid) {
+        const adjustedGridPos = this.grid.worldToGrid(adjustedSpawnPoint);
+        
+        // If adjusted position is not walkable, try to find a nearby walkable position
+        if (!this.grid.isWalkable(adjustedGridPos.x, adjustedGridPos.y)) {
+          // Search in a spiral pattern for a walkable position
+          let foundWalkable = false;
+          const maxSearchRadius = 3;
+          
+          for (let radius = 1; radius <= maxSearchRadius && !foundWalkable; radius++) {
+            for (let dx = -radius; dx <= radius && !foundWalkable; dx++) {
+              for (let dy = -radius; dy <= radius && !foundWalkable; dy++) {
+                // Only check positions on the edge of the current radius
+                if (Math.abs(dx) === radius || Math.abs(dy) === radius) {
+                  const checkX = adjustedGridPos.x + dx;
+                  const checkY = adjustedGridPos.y + dy;
+                  
+                  if (this.grid.isInBounds(checkX, checkY) && this.grid.isWalkable(checkX, checkY)) {
+                    // Found a walkable position
+                    adjustedSpawnPoint = this.grid.gridToWorld(checkX, checkY);
+                    foundWalkable = true;
+                  }
+                }
+              }
+            }
+          }
+          
+          // If still no walkable position found, use the original spawn point
+          if (!foundWalkable) {
+            adjustedSpawnPoint = { ...spawnPoint };
+          }
+        }
+      }
+      
       // Calculate health based on scaling
-      let spawnHealth = 0; // Use default
+      const stats = this.getEnemyStats(spawnItem.type);
+      let spawnHealth = stats.health;
+      
+      // Apply difficulty multiplier
+      spawnHealth = Math.floor(spawnHealth * this.enemyHealthMultiplier);
+      
+      // Apply infinite wave multiplier if applicable
       if (this.infiniteWavesEnabled && this.currentWave >= this.infiniteWaveStartAt && this.infiniteWaveGenerator) {
-        const healthMultiplier = this.infiniteWaveGenerator.getEnemyHealthMultiplier(this.currentWave);
-        const stats = this.getEnemyStats(spawnItem.type);
-        spawnHealth = Math.floor(stats.health * healthMultiplier);
+        const infiniteHealthMultiplier = this.infiniteWaveGenerator.getEnemyHealthMultiplier(this.currentWave);
+        spawnHealth = Math.floor(spawnHealth * infiniteHealthMultiplier);
       }
       
       const enemy = new Enemy(
-        { ...spawnPoint },
+        adjustedSpawnPoint,
         spawnHealth,
-        spawnItem.type
+        spawnItem.type,
+        this.enemySpeedMultiplier  // Pass speed multiplier
       );
       
       this.enemiesInWave.push(enemy);
@@ -377,6 +469,7 @@ export class WaveManager {
   setSpawnPoints(spawnPoints: Vector2[]): void {
     this.spawnPoints = spawnPoints.map(p => ({ ...p }));
   }
+  
   
   updateWithGameState(_gameState: GameStateSnapshot): void {
     // Pass game state to SpawnZoneManager if available

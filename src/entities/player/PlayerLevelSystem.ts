@@ -3,7 +3,7 @@
  * Manages player progression through 50 levels with experience and upgrade points
  */
 
-import { PlayerUpgradeType } from '../Player';
+import { UpgradeType } from '@/config/PlayerUpgradeConfig';
 
 export interface LevelSystemState {
   level: number;
@@ -11,7 +11,7 @@ export interface LevelSystemState {
   totalExperience: number;
   availableUpgradePoints: number;
   totalUpgradePointsEarned: number;
-  upgradeDistribution: Record<PlayerUpgradeType, number>;
+  upgradeDistribution: Record<UpgradeType, number>;
 }
 
 export interface LevelStatistics {
@@ -44,7 +44,7 @@ export class PlayerLevelSystem {
   private totalExperience: number = 0;
   private availableUpgradePoints: number = 0;
   private totalUpgradePointsEarned: number = 0;
-  private upgradeDistribution: Map<PlayerUpgradeType, number> = new Map();
+  private upgradeDistribution: Map<UpgradeType, number> = new Map();
   private experienceRequirements: Map<number, number> = new Map();
 
   constructor() {
@@ -53,7 +53,7 @@ export class PlayerLevelSystem {
   }
 
   private initializeUpgradeDistribution(): void {
-    Object.values(PlayerUpgradeType).forEach(type => {
+    Object.values(UpgradeType).forEach(type => {
       this.upgradeDistribution.set(type, 0);
     });
   }
@@ -115,7 +115,7 @@ export class PlayerLevelSystem {
   /**
    * Spend an upgrade point
    */
-  spendUpgradePoint(upgradeType?: PlayerUpgradeType): boolean {
+  spendUpgradePoint(upgradeType?: UpgradeType): boolean {
     if (this.availableUpgradePoints <= 0) {
       return false;
     }
@@ -190,12 +190,12 @@ export class PlayerLevelSystem {
   /**
    * Get upgrade distribution
    */
-  getUpgradeDistribution(): Record<PlayerUpgradeType, number> {
+  getUpgradeDistribution(): Record<UpgradeType, number> {
     const distribution: Record<string, number> = {};
     this.upgradeDistribution.forEach((count, type) => {
       distribution[type] = count;
     });
-    return distribution as Record<PlayerUpgradeType, number>;
+    return distribution as Record<UpgradeType, number>;
   }
 
   /**
@@ -260,7 +260,7 @@ export class PlayerLevelSystem {
     
     this.upgradeDistribution.clear();
     Object.entries(state.upgradeDistribution).forEach(([type, count]) => {
-      this.upgradeDistribution.set(type as PlayerUpgradeType, count);
+      this.upgradeDistribution.set(type as UpgradeType, count);
     });
   }
 }

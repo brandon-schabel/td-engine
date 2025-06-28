@@ -2,6 +2,7 @@ import type { Vector2 } from '@/utils/Vector2';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
 import type { Grid } from './Grid';
+import { MovementSystem, MovementType } from './MovementSystem';
 
 export enum EdgeType {
   TOP = 'TOP',
@@ -90,44 +91,78 @@ export class SpawnZoneManager {
   }
   
   private generateInitialSpawnZones(): void {
-    // Top edge
+    // Helper to check if a position is valid for spawning
+    const isValidSpawnPosition = (x: number, y: number): boolean => {
+      if (!this.grid.isInBounds(x, y)) return false;
+      const cellType = this.grid.getCellType(x, y);
+      // Only allow spawning on walkable terrain (not water, obstacles, or borders)
+      return MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType);
+    };
+    
+    // Top edge - start from 1 to avoid border cells
     for (let x = 1; x < this.grid.width - 1; x += 2) {
-      const zone = this.createSpawnZone(
-        { x, y: 0 },
-        x <= 2 || x >= this.grid.width - 3 ? 
-          (x <= 2 ? EdgeType.TOP_LEFT : EdgeType.TOP_RIGHT) : EdgeType.TOP
-      );
-      this.spawnZones.set(zone.id, zone);
+      // Check a few cells inward to find walkable terrain
+      for (let yOffset = 1; yOffset <= 3; yOffset++) {
+        if (isValidSpawnPosition(x, yOffset)) {
+          const zone = this.createSpawnZone(
+            { x, y: yOffset },
+            x <= 2 || x >= this.grid.width - 3 ? 
+              (x <= 2 ? EdgeType.TOP_LEFT : EdgeType.TOP_RIGHT) : EdgeType.TOP
+          );
+          this.spawnZones.set(zone.id, zone);
+          break; // Found valid position, move to next x
+        }
+      }
     }
     
     // Bottom edge
     for (let x = 1; x < this.grid.width - 1; x += 2) {
-      const zone = this.createSpawnZone(
-        { x, y: this.grid.height - 1 },
-        x <= 2 || x >= this.grid.width - 3 ? 
-          (x <= 2 ? EdgeType.BOTTOM_LEFT : EdgeType.BOTTOM_RIGHT) : EdgeType.BOTTOM
-      );
-      this.spawnZones.set(zone.id, zone);
+      // Check a few cells inward to find walkable terrain
+      for (let yOffset = 1; yOffset <= 3; yOffset++) {
+        const y = this.grid.height - 1 - yOffset;
+        if (isValidSpawnPosition(x, y)) {
+          const zone = this.createSpawnZone(
+            { x, y },
+            x <= 2 || x >= this.grid.width - 3 ? 
+              (x <= 2 ? EdgeType.BOTTOM_LEFT : EdgeType.BOTTOM_RIGHT) : EdgeType.BOTTOM
+          );
+          this.spawnZones.set(zone.id, zone);
+          break;
+        }
+      }
     }
     
     // Left edge
     for (let y = 1; y < this.grid.height - 1; y += 2) {
-      const zone = this.createSpawnZone(
-        { x: 0, y },
-        y <= 2 || y >= this.grid.height - 3 ? 
-          (y <= 2 ? EdgeType.TOP_LEFT : EdgeType.BOTTOM_LEFT) : EdgeType.LEFT
-      );
-      this.spawnZones.set(zone.id, zone);
+      // Check a few cells inward to find walkable terrain
+      for (let xOffset = 1; xOffset <= 3; xOffset++) {
+        if (isValidSpawnPosition(xOffset, y)) {
+          const zone = this.createSpawnZone(
+            { x: xOffset, y },
+            y <= 2 || y >= this.grid.height - 3 ? 
+              (y <= 2 ? EdgeType.TOP_LEFT : EdgeType.BOTTOM_LEFT) : EdgeType.LEFT
+          );
+          this.spawnZones.set(zone.id, zone);
+          break;
+        }
+      }
     }
     
     // Right edge
     for (let y = 1; y < this.grid.height - 1; y += 2) {
-      const zone = this.createSpawnZone(
-        { x: this.grid.width - 1, y },
-        y <= 2 || y >= this.grid.height - 3 ? 
-          (y <= 2 ? EdgeType.TOP_RIGHT : EdgeType.BOTTOM_RIGHT) : EdgeType.RIGHT
-      );
-      this.spawnZones.set(zone.id, zone);
+      // Check a few cells inward to find walkable terrain
+      for (let xOffset = 1; xOffset <= 3; xOffset++) {
+        const x = this.grid.width - 1 - xOffset;
+        if (isValidSpawnPosition(x, y)) {
+          const zone = this.createSpawnZone(
+            { x, y },
+            y <= 2 || y >= this.grid.height - 3 ? 
+              (y <= 2 ? EdgeType.TOP_RIGHT : EdgeType.BOTTOM_RIGHT) : EdgeType.RIGHT
+          );
+          this.spawnZones.set(zone.id, zone);
+          break;
+        }
+      }
     }
   }
   
@@ -248,8 +283,12 @@ export class SpawnZoneManager {
   private activateZone(zoneId: string): void {
     const zone = this.spawnZones.get(zoneId);
     if (zone && !zone.isActive) {
-      zone.isActive = true;
-      this.activeZones.add(zoneId);
+      // Validate that the zone position is still walkable
+      const cellType = this.grid.getCellType(zone.gridPosition.x, zone.gridPosition.y);
+      if (MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType)) {
+        zone.isActive = true;
+        this.activeZones.add(zoneId);
+      }
     }
   }
   
@@ -267,11 +306,22 @@ export class SpawnZoneManager {
       .map(id => this.spawnZones.get(id))
       .filter(zone => zone !== undefined) as SpawnZone[];
     
-    if (activeZoneArray.length === 0) {
-      // Fallback: activate a random zone
+    // Filter out zones that are no longer walkable
+    const validActiveZones = activeZoneArray.filter(zone => {
+      const cellType = this.grid.getCellType(zone.gridPosition.x, zone.gridPosition.y);
+      return MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType);
+    });
+    
+    if (validActiveZones.length === 0) {
+      // Fallback: try to find and activate a valid zone
       const allZones = Array.from(this.spawnZones.values());
-      if (allZones.length > 0) {
-        const randomZone = allZones[Math.floor(Math.random() * allZones.length)];
+      const validZones = allZones.filter(zone => {
+        const cellType = this.grid.getCellType(zone.gridPosition.x, zone.gridPosition.y);
+        return MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType);
+      });
+      
+      if (validZones.length > 0) {
+        const randomZone = validZones[Math.floor(Math.random() * validZones.length)];
         this.activateZone(randomZone.id);
         
         // Record spawn
@@ -290,14 +340,14 @@ export class SpawnZoneManager {
     
     if (this.config.chaosMode || pattern === 'CHAOS') {
       // Pure random selection
-      selectedZone = activeZoneArray[Math.floor(Math.random() * activeZoneArray.length)];
+      selectedZone = validActiveZones[Math.floor(Math.random() * validActiveZones.length)];
     } else {
       // Weighted random selection based on priority
-      const totalPriority = activeZoneArray.reduce((sum, zone) => sum + zone.priority, 0);
+      const totalPriority = validActiveZones.reduce((sum, zone) => sum + zone.priority, 0);
       let random = Math.random() * totalPriority;
       
-      selectedZone = activeZoneArray[0];
-      for (const zone of activeZoneArray) {
+      selectedZone = validActiveZones[0];
+      for (const zone of validActiveZones) {
         random -= zone.priority;
         if (random <= 0) {
           selectedZone = zone;
@@ -326,7 +376,12 @@ export class SpawnZoneManager {
         
         edges.forEach(edge => {
           const edgeZones = Array.from(this.spawnZones.values())
-            .filter(zone => zone.edgeType === edge && zone.cooldownRemaining === 0)
+            .filter(zone => {
+              if (zone.edgeType !== edge || zone.cooldownRemaining > 0) return false;
+              // Validate terrain is walkable
+              const cellType = this.grid.getCellType(zone.gridPosition.x, zone.gridPosition.y);
+              return MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType);
+            })
             .sort((a, b) => b.priority - a.priority)
             .slice(0, zonesPerEdge);
           
@@ -353,7 +408,12 @@ export class SpawnZoneManager {
         
         selectedPair.forEach((edge, index) => {
           const edgeZones = Array.from(this.spawnZones.values())
-            .filter(zone => zone.edgeType === edge && zone.cooldownRemaining === 0)
+            .filter(zone => {
+              if (zone.edgeType !== edge || zone.cooldownRemaining > 0) return false;
+              // Validate terrain is walkable
+              const cellType = this.grid.getCellType(zone.gridPosition.x, zone.gridPosition.y);
+              return MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType);
+            })
             .sort((a, b) => b.priority - a.priority)
             .slice(0, index === 0 ? halfCount : count - halfCount);
           
@@ -397,6 +457,12 @@ export class SpawnZoneManager {
       return; // Don't create duplicate zones
     }
     
+    // Validate terrain is walkable before creating zone
+    const cellType = this.grid.getCellType(gridPos.x, gridPos.y);
+    if (!MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType)) {
+      return; // Don't create zones on non-walkable terrain
+    }
+    
     const detectedEdge = edgeType || this.detectEdgeType(gridPos);
     const zone = this.createSpawnZone(gridPos, detectedEdge);
     zone.temporaryDuration = duration;
@@ -407,10 +473,10 @@ export class SpawnZoneManager {
   }
   
   private detectEdgeType(pos: Vector2): EdgeType {
-    const isTop = pos.y === 0;
-    const isBottom = pos.y === this.grid.height - 1;
-    const isLeft = pos.x === 0;
-    const isRight = pos.x === this.grid.width - 1;
+    const isTop = pos.y <= 1;
+    const isBottom = pos.y >= this.grid.height - 2;
+    const isLeft = pos.x <= 1;
+    const isRight = pos.x >= this.grid.width - 2;
     
     if (isTop && isLeft) return EdgeType.TOP_LEFT;
     if (isTop && isRight) return EdgeType.TOP_RIGHT;

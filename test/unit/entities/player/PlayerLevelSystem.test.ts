@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PlayerLevelSystem } from '@/entities/player/PlayerLevelSystem';
-import { PlayerUpgradeType } from '@/entities/Player';
+import { UpgradeType } from '@/config/PlayerUpgradeConfig';
 
 describe('PlayerLevelSystem', () => {
   let levelSystem: PlayerLevelSystem;
@@ -109,14 +109,14 @@ describe('PlayerLevelSystem', () => {
     it('should track spent upgrade points by type', () => {
       levelSystem.addExperience(500); // Get some points
       
-      levelSystem.spendUpgradePoint(PlayerUpgradeType.DAMAGE);
-      levelSystem.spendUpgradePoint(PlayerUpgradeType.DAMAGE);
-      levelSystem.spendUpgradePoint(PlayerUpgradeType.HEALTH);
+      levelSystem.spendUpgradePoint(UpgradeType.DAMAGE);
+      levelSystem.spendUpgradePoint(UpgradeType.DAMAGE);
+      levelSystem.spendUpgradePoint(UpgradeType.MAX_HEALTH);
       
       const distribution = levelSystem.getUpgradeDistribution();
-      expect(distribution[PlayerUpgradeType.DAMAGE]).toBe(2);
-      expect(distribution[PlayerUpgradeType.HEALTH]).toBe(1);
-      expect(distribution[PlayerUpgradeType.SPEED]).toBe(0);
+      expect(distribution[UpgradeType.DAMAGE]).toBe(2);
+      expect(distribution[UpgradeType.MAX_HEALTH]).toBe(1);
+      expect(distribution[UpgradeType.MOVEMENT_SPEED]).toBe(0);
     });
   });
 
@@ -181,7 +181,7 @@ describe('PlayerLevelSystem', () => {
   describe('Save/Load State', () => {
     it('should save and restore state', () => {
       levelSystem.addExperience(250);
-      levelSystem.spendUpgradePoint(PlayerUpgradeType.DAMAGE);
+      levelSystem.spendUpgradePoint(UpgradeType.DAMAGE);
       
       const state = levelSystem.getState();
       

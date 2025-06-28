@@ -96,24 +96,24 @@ export const DIFFICULTY_PRESETS = {
     startingCurrency: 100,
     startingLives: 17,
     towerCostMultiplier: 1.2,
-    enemyHealthMultiplier: 1.2,
-    enemySpeedMultiplier: 1.2,
+    enemyHealthMultiplier: 0.84,  // Reduced by 30% from 1.2
+    enemySpeedMultiplier: 0.84,   // Reduced by 30% from 1.2
     waveDelayMultiplier: 1.0
   },
   NORMAL: {
     startingCurrency: 70,
     startingLives: 13,
     towerCostMultiplier: 1.5,
-    enemyHealthMultiplier: 1.5,
-    enemySpeedMultiplier: 1.3,
+    enemyHealthMultiplier: 1.05,  // Reduced by 30% from 1.5
+    enemySpeedMultiplier: 0.91,   // Reduced by 30% from 1.3
     waveDelayMultiplier: 0.7
   },
   CHALLENGE: {
     startingCurrency: 50,
     startingLives: 10,
     towerCostMultiplier: 1.8,
-    enemyHealthMultiplier: 2.0,
-    enemySpeedMultiplier: 1.5,
+    enemyHealthMultiplier: 1.4,   // Reduced by 30% from 2.0
+    enemySpeedMultiplier: 1.05,   // Reduced by 30% from 1.5
     waveDelayMultiplier: 0.5
   }
 } as const;

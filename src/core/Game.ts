@@ -27,6 +27,8 @@ import { COLLECTIBLE_DROP_CHANCES } from "@/config/ItemConfig";
 import { TextureManager } from "@/systems/TextureManager";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { CAMERA_CONFIG } from "@/config/UIConfig";
+import { Pathfinding } from "@/systems/Pathfinding";
+import { MovementType } from "@/systems/MovementSystem";
 import {
   BiomeType,
   MapDifficulty,
@@ -51,18 +53,22 @@ import { UIController } from "@/ui/UIController";
 import { ProblematicPositionCache } from "@/systems/ProblematicPositionCache";
 import { TouchGestureManager } from "@/input/TouchGestureManager";
 // import { TerrainDebug } from "@/debug/TerrainDebug"; // Commented out - unused
-import { NavigationGrid } from "@/systems/NavigationGrid";
+
 
 export class Game {
   private engine: GameEngine;
   private grid: Grid;
-  private navigationGrid: NavigationGrid;
+  
   // private pathfinder: Pathfinder; // Unused - commented out to fix TypeScript error
   private waveManager: WaveManager;
   private spawnZoneManager: SpawnZoneManager;
   private canvas: HTMLCanvasElement;
   private touchGestureManager: TouchGestureManager | null = null;
   private mobileControls: any | null = null; // Reference to MobileControls instance
+
+  // Difficulty settings
+  private enemyHealthMultiplier: number = 1.0;
+  private enemySpeedMultiplier: number = 1.0;
 
   // Inlined resource management for better performance
   private currency: number = GAME_INIT.startingCurrency;
@@ -113,9 +119,16 @@ export class Game {
   constructor(
     canvas: HTMLCanvasElement,
     mapConfig?: MapGenerationConfig,
-    autoStart: boolean = true
+    autoStart: boolean = true,
+    difficultyConfig?: { enemyHealthMultiplier?: number; enemySpeedMultiplier?: number }
   ) {
     this.canvas = canvas;
+
+    // Apply difficulty settings
+    if (difficultyConfig) {
+      this.enemyHealthMultiplier = difficultyConfig.enemyHealthMultiplier ?? 1.0;
+      this.enemySpeedMultiplier = difficultyConfig.enemySpeedMultiplier ?? 1.0;
+    }
 
     // Initialize map generation systems
     this.mapGenerator = new MapGenerator();
@@ -134,8 +147,11 @@ export class Game {
     // Apply generated map to grid
     this.applyMapToGrid();
     
+    // Validate spawn point connectivity
+    this.validateSpawnConnectivity();
+    
     // Initialize navigation grid
-    this.navigationGrid = new NavigationGrid(this.grid);
+    
 
     // Calculate world size
     const worldWidth = this.grid.width * this.grid.cellSize;
@@ -182,13 +198,20 @@ export class Game {
 
     // Fallback to default position if no spawn zones
     if (spawnWorldPositions.length === 0) {
-      const defaultZone = { x: 1, y: Math.floor(config.height / 2) };
+      const defaultZone = { x: 2, y: Math.floor(config.height / 2) };
       spawnWorldPositions.push(
         this.grid.gridToWorld(defaultZone.x, defaultZone.y)
       );
     }
 
     this.waveManager = new WaveManager(spawnWorldPositions);
+    
+    // Set grid dimensions for proper spawn offset calculation
+    this.waveManager.setGridDimensions(this.grid.width, this.grid.height, this.grid.cellSize);
+    this.waveManager.setGrid(this.grid);
+    
+    // Apply difficulty multipliers
+    this.waveManager.setDifficultyMultipliers(this.enemyHealthMultiplier, this.enemySpeedMultiplier);
 
     // Initialize SpawnZoneManager
     const spawnZoneConfig = {
@@ -354,6 +377,68 @@ export class Game {
     if (this.currentMapData.terrainCells && this.currentMapData.terrainCells.length > 0) {
       this.currentMapData.terrainCells.forEach(terrainCell => {
         this.grid.setCellType(terrainCell.x, terrainCell.y, terrainCell.type as CellType);
+      });
+    }
+  }
+  
+  private validateSpawnConnectivity(): void {
+    if (!this.currentMapData.playerStart || this.currentMapData.spawnZones.length === 0) {
+      console.warn('[Game] Cannot validate spawn connectivity: missing player start or spawn zones');
+      return;
+    }
+    
+    // Convert player start grid position to world position
+    const playerWorldPos = this.grid.gridToWorld(
+      this.currentMapData.playerStart.x, 
+      this.currentMapData.playerStart.y
+    );
+    
+    // Convert spawn zones to world positions
+    const spawnWorldPositions = this.currentMapData.spawnZones.map(spawnZone => 
+      this.grid.gridToWorld(spawnZone.x, spawnZone.y)
+    );
+    
+    // Validate all spawn points
+    const validation = Pathfinding.validateAllSpawnPoints(
+      spawnWorldPositions,
+      playerWorldPos,
+      this.grid,
+      MovementType.WALKING
+    );
+    
+    // Log validation results
+    if (!validation.allSpawnPointsValid) {
+      console.error('[Game] Spawn point validation failed:', {
+        totalSpawnPoints: spawnWorldPositions.length,
+        validSpawnPoints: validation.validSpawnPoints.length,
+        invalidSpawnPoints: validation.invalidSpawnPoints.length,
+        errors: validation.errors
+      });
+      
+      // Show warning to player
+      if (validation.invalidSpawnPoints.length > 0) {
+        console.warn(`[Game] ${validation.invalidSpawnPoints.length} spawn points are inaccessible to the player!`);
+        
+        // Optionally show a notification to the player
+        const warningMessage = `Warning: ${validation.invalidSpawnPoints.length} of ${spawnWorldPositions.length} spawn points may be inaccessible. Game may not function properly.`;
+        
+        // Dispatch a custom event that UI can listen to
+        const warningEvent = new CustomEvent('mapValidationWarning', {
+          detail: { 
+            message: warningMessage,
+            validation: validation
+          }
+        });
+        document.dispatchEvent(warningEvent);
+      }
+    } else {
+      console.log('[Game] All spawn points validated successfully');
+    }
+    
+    // Log any warnings
+    if (validation.warnings.length > 0) {
+      validation.warnings.forEach(warning => {
+        console.warn(`[Game] Spawn validation warning: ${warning}`);
       });
     }
   }
@@ -543,7 +628,7 @@ export class Game {
       enemy.setTarget(this.player);
       
       // Provide navigation grid for pathfinding
-      enemy.setNavigationGrid(this.navigationGrid);
+      
 
       // Add damage callback for floating damage numbers
       enemy.onDamage = (event) => {
@@ -566,6 +651,18 @@ export class Game {
     this.enemies.forEach((enemy) => {
       // Provide tower information to enemies for targeting decisions
       enemy.setTowers(this.towers);
+      
+      // Provide nearby enemies for separation
+      const nearbyEnemies = this.enemies.filter(other => {
+        if (other === enemy || !other.isAlive) return false;
+        const distance = Math.sqrt(
+          Math.pow(enemy.position.x - other.position.x, 2) + 
+          Math.pow(enemy.position.y - other.position.y, 2)
+        );
+        return distance < 60; // Only consider enemies within 60 pixels (reduced from 100)
+      });
+      
+      
       enemy.update(deltaTime, this.grid);
     });
 
@@ -773,7 +870,7 @@ export class Game {
         this.grid.setCellType(gridPos.x, gridPos.y, CellType.EMPTY);
         
         // Remove from navigation grid
-        this.navigationGrid.removeDynamicObstacle(tower.position);
+        
         
         return false;
       }
@@ -881,8 +978,7 @@ export class Game {
       this.destructionEffects, // Pass destruction effects
       this.getPlayerAimerLine(),
       this.player,
-      this.selectedTower,
-      this.navigationGrid
+      this.selectedTower
     );
 
     // Render tower range if hovering
@@ -980,7 +1076,7 @@ export class Game {
     }
     
     // Update navigation grid for pathfinding
-    this.navigationGrid.addDynamicObstacle(worldPosition, tower.radius);
+    
 
     // Spend currency
     this.spendCurrency(cost);
@@ -1897,13 +1993,18 @@ export class Game {
 
     // Fallback to default position if no spawn zones
     if (spawnWorldPositions.length === 0) {
-      const defaultZone = { x: 1, y: Math.floor(newConfig.height / 2) };
+      const defaultZone = { x: 2, y: Math.floor(newConfig.height / 2) };
       spawnWorldPositions.push(
         this.grid.gridToWorld(defaultZone.x, defaultZone.y)
       );
     }
 
     this.waveManager = new WaveManager(spawnWorldPositions);
+    
+    // Set grid dimensions for proper spawn offset calculation
+    this.waveManager.setGridDimensions(newConfig.width, newConfig.height, newConfig.cellSize);
+    this.waveManager.setGrid(this.grid);
+    
     this.loadWaveConfigurations();
 
     // Reset player position

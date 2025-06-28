@@ -11,6 +11,7 @@ import { CooldownManager } from '@/utils/CooldownManager';
 import { ShootingUtils, type ShootingCapable } from '../interfaces/ShootingCapable';
 import { PlayerPowerUps } from './player/PlayerPowerUps';
 import { PlayerLevelSystem } from './player/PlayerLevelSystem';
+import { PlayerUpgradeManager } from './player/PlayerUpgradeManager';
 import { calculateUpgradeCost, normalizeMovement } from '@/utils/MathUtils';
 
 export enum PlayerUpgradeType {
@@ -55,6 +56,9 @@ export class Player extends Entity implements ShootingCapable {
   
   // Level system
   private levelSystem: PlayerLevelSystem;
+  
+  // Upgrade manager
+  private upgradeManager: PlayerUpgradeManager;
 
   constructor(position: Vector2) {
     super(EntityType.PLAYER, position, BASE_PLAYER_STATS.health, BASE_PLAYER_STATS.radius);
@@ -81,6 +85,9 @@ export class Player extends Entity implements ShootingCapable {
     
     // Initialize level system
     this.levelSystem = new PlayerLevelSystem();
+    
+    // Initialize upgrade manager
+    this.upgradeManager = new PlayerUpgradeManager(this.levelSystem);
   }
 
   setGrid(grid: Grid): void {
@@ -298,30 +305,30 @@ export class Player extends Entity implements ShootingCapable {
 
   // Computed properties based on upgrades, level bonuses, and power-ups
   get damage(): number {
-    const damageLevel = this.getUpgradeLevel(PlayerUpgradeType.DAMAGE);
+    const upgradeMultiplier = this.upgradeManager.getDamageMultiplier();
     const levelBonus = this.levelSystem.getLevelBonus('damage');
-    const baseDamage = Math.floor(this.baseDamage * (1 + damageLevel * 0.4) * (1 + levelBonus));
+    const baseDamage = Math.floor(this.baseDamage * upgradeMultiplier * (1 + levelBonus));
     return Math.floor(baseDamage * this.powerUps.getDamageMultiplier());
   }
 
   get speed(): number {
-    const speedLevel = this.getUpgradeLevel(PlayerUpgradeType.SPEED);
+    const upgradeMultiplier = this.upgradeManager.getMovementSpeedMultiplier();
     const levelBonus = this.levelSystem.getLevelBonus('speed');
-    const baseSpeed = Math.floor(this.playerBaseSpeed * (1 + speedLevel * 0.3) * (1 + levelBonus));
+    const baseSpeed = Math.floor(this.playerBaseSpeed * upgradeMultiplier * (1 + levelBonus));
     return Math.floor(baseSpeed * this.powerUps.getSpeedMultiplier());
   }
 
   get fireRate(): number {
-    const fireRateLevel = this.getUpgradeLevel(PlayerUpgradeType.FIRE_RATE);
+    const upgradeMultiplier = this.upgradeManager.getFireRateMultiplier();
     const levelBonus = this.levelSystem.getLevelBonus('fireRate');
-    const baseFireRate = this.baseFireRate * (1 + fireRateLevel * 0.25) * (1 + levelBonus);
+    const baseFireRate = this.baseFireRate * upgradeMultiplier * (1 + levelBonus);
     return baseFireRate * this.powerUps.getFireRateMultiplier();
   }
 
   getMaxHealth(): number {
-    const healthLevel = this.getUpgradeLevel(PlayerUpgradeType.HEALTH);
+    const upgradeMultiplier = this.upgradeManager.getMaxHealthMultiplier();
     const levelBonus = this.levelSystem.getLevelBonus('health');
-    return Math.floor(BASE_PLAYER_STATS.health * (1 + healthLevel * 0.5) * (1 + levelBonus));
+    return Math.floor(BASE_PLAYER_STATS.health * upgradeMultiplier * (1 + levelBonus));
   }
 
   getCooldownTime(): number {
@@ -338,6 +345,10 @@ export class Player extends Entity implements ShootingCapable {
 
   getPlayerLevelSystem(): PlayerLevelSystem {
     return this.levelSystem;
+  }
+
+  getPlayerUpgradeManager(): PlayerUpgradeManager {
+    return this.upgradeManager;
   }
 
   // Experience and leveling
@@ -361,14 +372,14 @@ export class Player extends Entity implements ShootingCapable {
 
   // Healing mechanics
   hasRegeneration(): boolean {
-    return this.getUpgradeLevel(PlayerUpgradeType.REGENERATION) > 0;
+    return this.upgradeManager.getRegenerationBonus() > 0;
   }
 
   getRegenerationRate(): number {
-    const regenLevel = this.getUpgradeLevel(PlayerUpgradeType.REGENERATION);
-    if (regenLevel === 0) return 0;
+    const upgradeBonus = this.upgradeManager.getRegenerationBonus();
+    if (upgradeBonus === 0) return 0;
     const levelBonus = this.levelSystem.getLevelBonus('regeneration');
-    const baseRate = PLAYER_ABILITIES.regeneration.baseRate + regenLevel * PLAYER_ABILITIES.regeneration.levelBonus;
+    const baseRate = PLAYER_ABILITIES.regeneration.baseRate + upgradeBonus;
     return baseRate * (1 + levelBonus);
   }
 

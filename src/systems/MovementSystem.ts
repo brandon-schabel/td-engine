@@ -170,60 +170,38 @@ export class MovementSystem {
     return baseSpeed * speedMultiplier;
   }
 
-  static getMovementCost(fromPos: Vector2, toPos: Vector2, grid: Grid, movementType: MovementType): number {
-    const fromGrid = grid.worldToGrid(fromPos);
+  static getTerrainProperties(cellType: CellType | string): TerrainProperties {
+    return TERRAIN_DEFINITIONS[cellType] || TERRAIN_DEFINITIONS[CellType.EMPTY];
+  }
+
+  static getMovementCost(
+    _fromPos: Vector2,
+    toPos: Vector2,
+    grid: Grid,
+    movementType: MovementType
+  ): number {
     const toGrid = grid.worldToGrid(toPos);
-    
-    // Base cost is distance
-    const distance = Math.sqrt(
-      Math.pow(toGrid.x - fromGrid.x, 2) + 
-      Math.pow(toGrid.y - fromGrid.y, 2)
-    );
-    
-    // Check if movement type can traverse this terrain
     const cellType = grid.getCellType(toGrid.x, toGrid.y);
-    const terrainProps = TERRAIN_DEFINITIONS[cellType];
-    
-    if (!terrainProps) {
-      return Infinity; // Unknown terrain
-    }
-    
-    // Check if this movement type can traverse this terrain
-    let canTraverse = false;
-    switch (movementType) {
-      case MovementType.WALKING:
-        canTraverse = terrainProps.walkable;
-        break;
-      case MovementType.FLYING:
-        canTraverse = terrainProps.flyable;
-        break;
-      case MovementType.SWIMMING:
-        canTraverse = terrainProps.swimmable;
-        break;
-      case MovementType.AMPHIBIOUS:
-        canTraverse = terrainProps.walkable || terrainProps.swimmable;
-        break;
-      case MovementType.ALL_TERRAIN:
-        canTraverse = terrainProps.walkable || terrainProps.flyable || terrainProps.swimmable;
-        break;
-    }
-    
-    if (!canTraverse) {
+    const terrainProps = this.getTerrainProperties(cellType);
+
+    if (!this.canMoveOnTerrain(movementType, cellType)) {
       return Infinity;
     }
-    
-    // Get terrain speed multiplier based on movement type
+
     let speedMultiplier = terrainProps.speedMultiplier;
-    
-    // Flying entities ignore terrain speed penalties (fly at normal speed)
     if (movementType === MovementType.FLYING && terrainProps.flyable) {
       speedMultiplier = 1.0;
     }
-    
-    // Cost is inversely proportional to speed (slower = higher cost)
-    const cost = speedMultiplier > 0 ? distance / speedMultiplier : Infinity;
-    
-    return cost;
+
+    // Cost should be high for slow terrain, so we invert the multiplier.
+    // A speed multiplier of 0.5 (slow) should result in a cost multiplier of 2.
+    const costMultiplier = speedMultiplier > 0 ? 1 / speedMultiplier : Infinity;
+
+    // Simple distance calculation, assuming grid cells are uniform.
+    // This is a basic heuristic and could be replaced with actual distance if needed.
+    const distance = 1; // Cost per grid cell
+
+    return distance * costMultiplier;
   }
 
   static applyTerrainEffects(entity: Entity, deltaTime: number, grid: Grid): void {

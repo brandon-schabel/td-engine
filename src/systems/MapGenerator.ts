@@ -14,6 +14,8 @@ import { Grid, CellType } from './Grid';
 import { PathGenerator } from './PathGenerator';
 import { TerrainGenerator } from './TerrainGenerator';
 import { EdgeType } from './SpawnZoneManager';
+import { Pathfinding } from './Pathfinding';
+import { MovementType } from './MovementSystem';
 
 export class MapGenerator {
   private pathGenerator: PathGenerator;
@@ -35,93 +37,117 @@ export class MapGenerator {
     this.pathGenerator = new PathGenerator(tempGrid, this.seed);
   }
 
-  generate(config: MapGenerationConfig): MapData {
-    // Use config seed if provided, otherwise use instance seed
-    const useSeed = config.seed ?? this.seed;
+  generate(config: MapGenerationConfig, maxAttempts: number = 5): MapData {
+    let attempts = 0;
+    let mapData: MapData | null = null;
     
-    // Update random generator with the seed
-    let seedValue = useSeed;
-    this.random = () => {
-      seedValue = (seedValue * 9301 + 49297) % 233280;
-      return seedValue / 233280;
-    };
-    
-    // Create grid for generation
-    const grid = new Grid(config.width, config.height, config.cellSize);
-    grid.setBiome(config.biome);
-    this.pathGenerator = new PathGenerator(grid, useSeed);
+    while (attempts < maxAttempts) {
+      attempts++;
+      
+      // Use config seed if provided, otherwise use instance seed
+      const useSeed = (config.seed ?? this.seed) + attempts - 1; // Modify seed for each attempt
+      
+      // Update random generator with the seed
+      let seedValue = useSeed;
+      this.random = () => {
+        seedValue = (seedValue * 9301 + 49297) % 233280;
+        return seedValue / 233280;
+      };
+      
+      // Create grid for generation
+      const grid = new Grid(config.width, config.height, config.cellSize);
+      grid.setBiome(config.biome);
+      this.pathGenerator = new PathGenerator(grid, useSeed);
 
-    // Get biome configuration
-    const biomeConfig = BIOME_PRESETS[config.biome];
+      // Get biome configuration
+      const biomeConfig = BIOME_PRESETS[config.biome];
 
-    // Generate metadata 
-    const metadata = this.generateMetadata(config);
+      // Generate metadata 
+      const metadata = this.generateMetadata(config);
 
-    // Generate paths
-    const mainPath = this.pathGenerator.generateMainPath(config);
-    const branchPaths = this.pathGenerator.generateBranchPaths(mainPath, 0); // No branches for now
-    const paths = [mainPath, ...branchPaths];
+      // Generate paths
+      const mainPath = this.pathGenerator.generateMainPath(config);
+      const branchPaths = this.pathGenerator.generateBranchPaths(mainPath, 0); // No branches for now
+      const paths = [mainPath, ...branchPaths];
 
-    // Apply paths to grid
-    this.applyPathsToGrid(grid, paths);
+      // Apply paths to grid
+      this.applyPathsToGrid(grid, paths);
 
-    // Generate terrain features (water, rough terrain, etc.)
-    const terrainGenerator = new TerrainGenerator(grid, config.biome, useSeed);
-    terrainGenerator.generateTerrain(config);
+      // Generate terrain features (water, rough terrain, etc.)
+      const terrainGenerator = new TerrainGenerator(grid, config.biome, useSeed);
+      terrainGenerator.generateTerrain(config);
 
-    // Generate spawn zones
-    const spawnZones = this.generateSpawnZones(grid, mainPath, config);
+      // Generate spawn zones
+      const spawnZones = this.generateSpawnZones(grid, mainPath, config);
 
-    // Generate player start position
-    const playerStart = this.generatePlayerStartPosition(grid, mainPath, config);
+      // Generate player start position
+      const playerStart = this.generatePlayerStartPosition(grid, mainPath, config);
 
-    // Generate obstacles and decorations
-    const decorations = this.generateDecorations(grid, biomeConfig, config);
-    
-    // Apply decorations to grid
-    grid.addDecorations(decorations);
+      // Generate obstacles and decorations
+      const decorations = this.generateDecorations(grid, biomeConfig, config);
+      
+      // Apply decorations to grid
+      grid.addDecorations(decorations);
 
-    // Generate environmental effects
-    const effects = this.generateEnvironmentalEffects(grid, biomeConfig, config);
+      // Generate environmental effects
+      const effects = this.generateEnvironmentalEffects(grid, biomeConfig, config);
 
-    // Set borders
-    grid.setBorders();
+      // Set borders
+      grid.setBorders();
 
-    // Generate height map for 3D effects
-    const heightMap = this.generateHeightMap(grid, biomeConfig);
+      // Generate height map for 3D effects
+      const heightMap = this.generateHeightMap(grid, biomeConfig);
 
-    // Capture terrain cells (water, rough terrain, bridges)
-    const terrainCells: MapData['terrainCells'] = [];
-    const terrainTypes = [CellType.WATER, CellType.ROUGH_TERRAIN, CellType.BRIDGE];
-    
-    for (let y = 0; y < grid.height; y++) {
-      for (let x = 0; x < grid.width; x++) {
-        const cellType = grid.getCellType(x, y);
-        if (terrainTypes.includes(cellType)) {
-          terrainCells.push({ x, y, type: cellType });
+      // Capture terrain cells (water, rough terrain, bridges)
+      const terrainCells: MapData['terrainCells'] = [];
+      const terrainTypes = [CellType.WATER, CellType.ROUGH_TERRAIN, CellType.BRIDGE];
+      
+      for (let y = 0; y < grid.height; y++) {
+        for (let x = 0; x < grid.width; x++) {
+          const cellType = grid.getCellType(x, y);
+          if (terrainTypes.includes(cellType)) {
+            terrainCells.push({ x, y, type: cellType });
+          }
         }
       }
+      
+      mapData = {
+        metadata,
+        biomeConfig,
+        paths,
+        decorations,
+        effects,
+        spawnZones,
+        spawnZonesWithMetadata: (this as any)._generatedSpawnZoneMetadata || undefined,
+        playerStart,
+        heightMap,
+        terrainCells,
+        customProperties: {}
+      };
+      
+      // Clean up temporary storage
+      delete (this as any)._generatedSpawnZoneMetadata;
+
+      // Validate the generated map
+      const validation = this.validate(mapData, { 
+        validateSpawnConnectivity: true, 
+        cellSize: config.cellSize 
+      });
+      
+      // If map is valid or we've reached max attempts, return it
+      if (validation.isValid || attempts >= maxAttempts) {
+        if (!validation.isValid && attempts >= maxAttempts) {
+          console.warn(`Map generation reached max attempts (${maxAttempts}) with validation errors:`, validation.errors);
+        }
+        return mapData;
+      }
+      
+      // Log validation issues
+      console.warn(`Map generation attempt ${attempts} failed validation:`, validation.errors);
     }
-    
 
-    const mapData: MapData = {
-      metadata,
-      biomeConfig,
-      paths,
-      decorations,
-      effects,
-      spawnZones,
-      spawnZonesWithMetadata: (this as any)._generatedSpawnZoneMetadata || undefined,
-      playerStart,
-      heightMap,
-      terrainCells,
-      customProperties: {}
-    };
-    
-    // Clean up temporary storage
-    delete (this as any)._generatedSpawnZoneMetadata;
-
-    return mapData;
+    // Should never reach here, but return the last attempt
+    return mapData!;
   }
 
   private generateMetadata(config: MapGenerationConfig): MapMetadata {
@@ -169,12 +195,16 @@ export class MapGenerator {
     const spawnZones: Vector2[] = [];
     const spawnZonesWithMetadata: MapData['spawnZonesWithMetadata'] = [];
     
-    // Helper to determine edge type (spawn zones are now 1 tile inward)
+    // Get player start position for validation
+    const playerStart = this.generatePlayerStartPosition(grid, mainPath, _config);
+    const playerWorldPos = grid.gridToWorld(playerStart.x, playerStart.y);
+    
+    // Helper to determine edge type (spawn zones are now 2 tiles inward for better pathfinding)
     const getEdgeType = (pos: Vector2): EdgeType => {
-      const isTop = pos.y === 1;
-      const isBottom = pos.y === grid.height - 2;
-      const isLeft = pos.x === 1;
-      const isRight = pos.x === grid.width - 2;
+      const isTop = pos.y === 2;
+      const isBottom = pos.y === grid.height - 3;
+      const isLeft = pos.x === 2;
+      const isRight = pos.x === grid.width - 3;
       
       if (isTop && isLeft) return EdgeType.TOP_LEFT;
       if (isTop && isRight) return EdgeType.TOP_RIGHT;
@@ -188,10 +218,22 @@ export class MapGenerator {
       return EdgeType.TOP; // Default
     };
     
-    // Primary spawn at path start
+    // Helper to validate spawn point accessibility
+    const isSpawnPointAccessible = (gridPos: Vector2): boolean => {
+      const worldPos = grid.gridToWorld(gridPos.x, gridPos.y);
+      const validation = Pathfinding.validateSpawnPointConnectivity(
+        worldPos,
+        playerWorldPos,
+        grid,
+        MovementType.WALKING
+      );
+      return validation.isValid;
+    };
+    
+    // Primary spawn at path start - but validate it
     if (mainPath.waypoints.length > 0) {
       const firstWaypoint = mainPath.waypoints[0];
-      if (firstWaypoint) {
+      if (firstWaypoint && isSpawnPointAccessible(firstWaypoint)) {
         spawnZones.push({ ...firstWaypoint });
         spawnZonesWithMetadata.push({
           position: { ...firstWaypoint },
@@ -214,29 +256,29 @@ export class MapGenerator {
     // Define edge positions (excluding corners initially)
     const edgePositions: Array<{pos: Vector2, edge: EdgeType}> = [];
     
-    // Top edge (1 tile inward from border, excluding corners)
-    for (let x = 2; x < grid.width - 2; x++) {
-      edgePositions.push({ pos: { x, y: 1 }, edge: EdgeType.TOP });
+    // Top edge (2 tiles inward from border, excluding corners)
+    for (let x = 3; x < grid.width - 3; x++) {
+      edgePositions.push({ pos: { x, y: 2 }, edge: EdgeType.TOP });
     }
-    // Bottom edge (1 tile inward from border, excluding corners)
-    for (let x = 2; x < grid.width - 2; x++) {
-      edgePositions.push({ pos: { x, y: grid.height - 2 }, edge: EdgeType.BOTTOM });
+    // Bottom edge (2 tiles inward from border, excluding corners)
+    for (let x = 3; x < grid.width - 3; x++) {
+      edgePositions.push({ pos: { x, y: grid.height - 3 }, edge: EdgeType.BOTTOM });
     }
-    // Left edge (1 tile inward from border, excluding corners)
-    for (let y = 2; y < grid.height - 2; y++) {
-      edgePositions.push({ pos: { x: 1, y }, edge: EdgeType.LEFT });
+    // Left edge (2 tiles inward from border, excluding corners)
+    for (let y = 3; y < grid.height - 3; y++) {
+      edgePositions.push({ pos: { x: 2, y }, edge: EdgeType.LEFT });
     }
-    // Right edge (1 tile inward from border, excluding corners)
-    for (let y = 2; y < grid.height - 2; y++) {
-      edgePositions.push({ pos: { x: grid.width - 2, y }, edge: EdgeType.RIGHT });
+    // Right edge (2 tiles inward from border, excluding corners)
+    for (let y = 3; y < grid.height - 3; y++) {
+      edgePositions.push({ pos: { x: grid.width - 3, y }, edge: EdgeType.RIGHT });
     }
     
-    // Add corner positions separately (prioritized) - 1 tile inward from actual corners
+    // Add corner positions separately (prioritized) - 2 tiles inward from actual corners
     const cornerPositions: Array<{pos: Vector2, edge: EdgeType}> = [
-      { pos: { x: 1, y: 1 }, edge: EdgeType.TOP_LEFT },
-      { pos: { x: grid.width - 2, y: 1 }, edge: EdgeType.TOP_RIGHT },
-      { pos: { x: 1, y: grid.height - 2 }, edge: EdgeType.BOTTOM_LEFT },
-      { pos: { x: grid.width - 2, y: grid.height - 2 }, edge: EdgeType.BOTTOM_RIGHT }
+      { pos: { x: 2, y: 2 }, edge: EdgeType.TOP_LEFT },
+      { pos: { x: grid.width - 3, y: 2 }, edge: EdgeType.TOP_RIGHT },
+      { pos: { x: 2, y: grid.height - 3 }, edge: EdgeType.BOTTOM_LEFT },
+      { pos: { x: grid.width - 3, y: grid.height - 3 }, edge: EdgeType.BOTTOM_RIGHT }
     ];
     
     // Shuffle positions for randomness
@@ -259,8 +301,12 @@ export class MapGenerator {
 
     // Add additional spawn zones
     let addedCount = 0;
-    for (let i = 0; i < candidatePositions.length && addedCount < additionalSpawns; i++) {
+    let attemptedCount = 0;
+    const maxAttempts = candidatePositions.length * 2; // Allow retrying with relaxed constraints
+    
+    for (let i = 0; i < candidatePositions.length && addedCount < additionalSpawns && attemptedCount < maxAttempts; i++) {
       const candidate = candidatePositions[i];
+      attemptedCount++;
       
       // Check if position is valid and not too close to existing spawns
       const minDistance = _config.difficulty === MapDifficulty.EXTREME ? 3 : 4;
@@ -273,28 +319,66 @@ export class MapGenerator {
         // Check if the position is accessible (not blocked)
         const cellType = grid.getCellType(candidate.pos.x, candidate.pos.y);
         if (cellType === CellType.EMPTY || cellType === CellType.PATH) {
-          spawnZones.push(candidate.pos);
-          
-          // Create metadata for enhanced spawn zones
-          const metadata: SpawnZoneMetadata = {
-            position: candidate.pos,
-            edgeType: candidate.edge,
-            priority: candidate.edge.includes('CORNER') ? 1.5 : 1.0
-          };
-          
-          // Add conditional activation for some spawn zones
-          if (_config.difficulty === MapDifficulty.EXTREME && addedCount > 3) {
-            metadata.conditional = {
-              minWave: 3 + Math.floor(addedCount / 2)
+          // Validate spawn point connectivity
+          if (isSpawnPointAccessible(candidate.pos)) {
+            spawnZones.push(candidate.pos);
+            
+            // Create metadata for enhanced spawn zones
+            const metadata: SpawnZoneMetadata = {
+              position: candidate.pos,
+              edgeType: candidate.edge,
+              priority: candidate.edge.includes('CORNER') ? 1.5 : 1.0
             };
-          } else if (_config.difficulty === MapDifficulty.HARD && addedCount > 2) {
-            metadata.conditional = {
-              minWave: 5 + addedCount
-            };
+            
+            // Add conditional activation for some spawn zones
+            if (_config.difficulty === MapDifficulty.EXTREME && addedCount > 3) {
+              metadata.conditional = {
+                minWave: 3 + Math.floor(addedCount / 2)
+              };
+            } else if (_config.difficulty === MapDifficulty.HARD && addedCount > 2) {
+              metadata.conditional = {
+                minWave: 5 + addedCount
+              };
+            }
+            
+            spawnZonesWithMetadata.push(metadata);
+            addedCount++;
           }
+        }
+      }
+    }
+    
+    // If we couldn't add enough spawn zones, try with relaxed constraints
+    if (addedCount < additionalSpawns) {
+      console.warn(`Only ${addedCount} of ${additionalSpawns} additional spawn zones could be placed with validation`);
+      
+      // Try to add more spawn zones with relaxed distance constraints
+      const relaxedMinDistance = 2;
+      for (let i = 0; i < candidatePositions.length && addedCount < additionalSpawns; i++) {
+        const candidate = candidatePositions[i];
+        
+        const alreadyAdded = spawnZones.some(spawn => 
+          spawn.x === candidate.pos.x && spawn.y === candidate.pos.y
+        );
+        
+        if (!alreadyAdded) {
+          const tooClose = spawnZones.some(spawn => {
+            const distance = Math.max(Math.abs(spawn.x - candidate.pos.x), Math.abs(spawn.y - candidate.pos.y));
+            return distance < relaxedMinDistance;
+          });
           
-          spawnZonesWithMetadata.push(metadata);
-          addedCount++;
+          if (!tooClose && isSpawnPointAccessible(candidate.pos)) {
+            spawnZones.push(candidate.pos);
+            
+            const metadata: SpawnZoneMetadata = {
+              position: candidate.pos,
+              edgeType: candidate.edge,
+              priority: candidate.edge.includes('CORNER') ? 1.2 : 0.8 // Lower priority for relaxed spawns
+            };
+            
+            spawnZonesWithMetadata.push(metadata);
+            addedCount++;
+          }
         }
       }
     }
@@ -643,9 +727,10 @@ export class MapGenerator {
   }
 
   // Validate generated map
-  validate(mapData: MapData): MapValidationResult {
+  validate(mapData: MapData, options: { validateSpawnConnectivity?: boolean; cellSize?: number } = {}): MapValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
+    const { validateSpawnConnectivity = true, cellSize = 32 } = options;
     
     // Validate paths
     let pathReachability = true;
@@ -668,7 +753,15 @@ export class MapGenerator {
     }
     
     // Count available tower placement spaces
-    const grid = new Grid(mapData.metadata.width, mapData.metadata.height);
+    const grid = new Grid(mapData.metadata.width, mapData.metadata.height, cellSize);
+    grid.setBiome(mapData.metadata.biome);
+    
+    // Apply terrain cells first
+    if (mapData.terrainCells) {
+      mapData.terrainCells.forEach(cell => {
+        grid.setCellType(cell.x, cell.y, cell.type);
+      });
+    }
     
     // Apply map data to grid for analysis
     mapData.paths.forEach(path => {
@@ -684,6 +777,41 @@ export class MapGenerator {
         grid.setCellType(gridPos.x, gridPos.y, CellType.OBSTACLE);
       }
     });
+    
+    // Set borders
+    grid.setBorders();
+    
+    // Validate spawn point connectivity if requested and we have both spawn zones and player start
+    if (validateSpawnConnectivity && mapData.spawnZones.length > 0 && mapData.playerStart) {
+      const playerWorldPos = grid.gridToWorld(mapData.playerStart.x, mapData.playerStart.y);
+      
+      // Convert spawn zones to world positions
+      const spawnWorldPositions = mapData.spawnZones.map(spawnZone => 
+        grid.gridToWorld(spawnZone.x, spawnZone.y)
+      );
+      
+      // Validate all spawn points
+      const connectivityValidation = Pathfinding.validateAllSpawnPoints(
+        spawnWorldPositions,
+        playerWorldPos,
+        grid,
+        MovementType.WALKING
+      );
+      
+      // Add connectivity errors and warnings
+      errors.push(...connectivityValidation.errors);
+      warnings.push(...connectivityValidation.warnings);
+      
+      // Update path reachability based on spawn connectivity
+      if (!connectivityValidation.allSpawnPointsValid) {
+        pathReachability = false;
+      }
+      
+      // If too many spawn points are invalid, it's a critical error
+      if (connectivityValidation.invalidSpawnPoints.length > connectivityValidation.validSpawnPoints.length) {
+        errors.push('More than half of spawn points are inaccessible - map is unplayable');
+      }
+    }
     
     const towerPlacementSpaces = grid.countCellsOfType(CellType.EMPTY);
     const minSpacesRequired = Math.floor(grid.width * grid.height * 0.3);
