@@ -37,8 +37,8 @@ describe('PlayerProgression', () => {
     });
 
     test('cannot exceed max level', () => {
-      // Upgrade to max level (5)
-      for (let i = 0; i < 5; i++) {
+      // Upgrade to max level (30)
+      for (let i = 0; i < UPGRADE_CONSTANTS.maxLevel; i++) {
         progression.upgrade(PlayerUpgradeType.DAMAGE);
       }
       
@@ -46,7 +46,7 @@ describe('PlayerProgression', () => {
       const result = progression.upgrade(PlayerUpgradeType.DAMAGE);
       
       expect(result).toBe(false);
-      expect(progression.getUpgradeLevel(PlayerUpgradeType.DAMAGE)).toBe(5);
+      expect(progression.getUpgradeLevel(PlayerUpgradeType.DAMAGE)).toBe(UPGRADE_CONSTANTS.maxLevel);
     });
 
     test('canUpgrade returns correct status', () => {

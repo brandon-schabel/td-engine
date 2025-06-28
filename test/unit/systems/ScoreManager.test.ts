@@ -1,7 +1,6 @@
+import '../../setup';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ScoreManager, type GameStats, type ScoreboardEntry } from '@/systems/ScoreManager';
-
-// Mock localStorage is already set up in test/setup.ts
 
 describe('ScoreManager', () => {
   const createMockStats = (overrides: Partial<GameStats> = {}): GameStats => ({
@@ -257,17 +256,28 @@ describe('ScoreManager', () => {
 
     test('handles localStorage errors gracefully', () => {
       // Mock localStorage.setItem to throw
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
-        .mockImplementation(() => {
-          throw new Error('Storage full');
-        });
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = vi.fn(() => {
+        throw new Error('Storage full');
+      });
+      
+      // Mock console.warn to verify error handling
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       
       // Should not throw
       expect(() => {
         ScoreManager.saveScore(createMockStats());
       }).not.toThrow();
       
-      setItemSpy.mockRestore();
+      // Should have logged a warning
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to save scores'),
+        expect.any(Error)
+      );
+      
+      // Restore mocks
+      localStorage.setItem = originalSetItem;
+      warnSpy.mockRestore();
     });
   });
 

@@ -304,7 +304,7 @@ export class Enemy extends Entity {
       const pathOptions: any = {
         movementType: this.movementType || MovementType.WALKING,
         allowDiagonal: true,
-        minDistanceFromObstacles: this.radius / grid.cellSize,
+        minDistanceFromObstacles: this.radius / grid.cellSize * 2,
         smoothPath: true
       };
       
@@ -335,7 +335,7 @@ export class Enemy extends Entity {
           {
             movementType: this.movementType || MovementType.WALKING,
             allowDiagonal: true,
-            minDistanceFromObstacles: this.radius / grid.cellSize,
+            minDistanceFromObstacles: this.radius / grid.cellSize * 2,
             smoothPath: true
           }
         );
