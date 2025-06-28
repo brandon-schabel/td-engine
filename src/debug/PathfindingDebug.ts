@@ -45,14 +45,25 @@ export class PathfindingDebug {
 
     ctx.save();
 
-    
-
     // Render enemy paths
     if (this.showPaths) {
       this.renderEnemyPaths(ctx, enemies, camera);
     }
 
     ctx.restore();
+  }
+  
+  static isEnabled(): boolean {
+    return this.enabled;
+  }
+  
+  static getDebugState() {
+    return {
+      enabled: this.enabled,
+      showPaths: this.showPaths,
+      showNavGrid: this.showNavGrid,
+      showCosts: this.showCosts
+    };
   }
 
   
@@ -66,13 +77,17 @@ export class PathfindingDebug {
     ctx.globalAlpha = 1.0;
     ctx.strokeStyle = '#00FFFF';
     ctx.lineWidth = 2;
+    
+    let pathsRendered = 0;
 
     enemies.forEach((enemy) => {
       if (!enemy.isAlive) return;
 
-      // Access the enemy's current path (if exposed)
-      const path = (enemy as any).currentPath;
+      // Access the enemy's current path through the debug getter
+      const path = enemy.debugPath;
       if (!path || path.length < 2) return;
+      
+      pathsRendered++;
 
       // Draw path
       ctx.beginPath();

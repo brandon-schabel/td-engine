@@ -7,11 +7,11 @@ import type { Game } from '@/core/Game';
 import type { FloatingUIElement } from '@/ui/floating/FloatingUIElement';
 import { UpgradeType, getNextLevelDescription } from '@/config/PlayerUpgradeConfig';
 import type { PlayerUpgradeManager } from '@/entities/player/PlayerUpgradeManager';
+import { SoundType } from '@/audio/AudioManager';
 import { 
   createButton, 
   createHeader, 
-  createStatDisplay,
-  createStructuredCard,
+  createCard,
   createIconContainer,
   cn 
 } from '@/ui/elements';
@@ -135,24 +135,25 @@ export class UpgradeUI {
       variant: 'compact'
     });
 
-    const card = createStructuredCard({
-      header: headerElement,
-      sections: [
-        {
-          content: [
-            {
-              type: 'text',
-              content: getNextLevelDescription(type, currentLevel)
-            },
-            {
-              type: 'stat',
-              label: 'Cost',
-              value: isMaxLevel ? 'MAX' : `${definition.costPerLevel} point${definition.costPerLevel > 1 ? 's' : ''}`
-            }
-          ]
-        }
-      ]
+    const card = createCard({
+      variant: 'default',
+      className: cn('space-y-3')
     });
+
+    // Add header
+    card.appendChild(headerElement);
+
+    // Add description
+    const descriptionDiv = document.createElement('div');
+    descriptionDiv.className = cn('text-sm', 'text-secondary', 'px-4');
+    descriptionDiv.textContent = getNextLevelDescription(type, currentLevel);
+    card.appendChild(descriptionDiv);
+
+    // Add cost
+    const costDiv = document.createElement('div');
+    costDiv.className = cn('text-sm', 'text-secondary', 'px-4');
+    costDiv.textContent = `Cost: ${isMaxLevel ? 'MAX' : `${definition.costPerLevel} point${definition.costPerLevel > 1 ? 's' : ''}`}`;
+    card.appendChild(costDiv);
 
     // Add upgrade button
     const buttonContainer = document.createElement('div');
@@ -180,7 +181,7 @@ export class UpgradeUI {
       this.refresh();
       
       // Play sound effect
-      this.game.getAudioManager().playUpgrade();
+      this.game.getAudioManager().playSound(SoundType.UI_SELECT, 1);
       
       // Notify any callbacks
       if (this.refreshCallback) {

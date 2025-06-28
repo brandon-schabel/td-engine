@@ -103,6 +103,7 @@ export function getCurrentGameConfig(): SimpleGameConfig {
     showFps: false,
     particleEffects: true,
     autoPause: true,
+    showPathDebug: false,
     mapSize: 'MEDIUM',
     terrain: 'FOREST',
     pathComplexity: 'SIMPLE',

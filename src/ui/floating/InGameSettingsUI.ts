@@ -162,6 +162,27 @@ export class InGameSettingsUI {
     fpsToggleContainer.appendChild(fpsToggle);
     gameplaySection.appendChild(fpsToggleContainer);
 
+    // Show Path Debug Toggle
+    const pathDebugToggleContainer = document.createElement('div');
+    pathDebugToggleContainer.className = cn('flex', 'items-center', 'justify-between', 'py-2');
+    
+    const pathDebugLabel = document.createElement('label');
+    pathDebugLabel.className = cn('text-sm', 'font-medium', 'text-white');
+    pathDebugLabel.textContent = 'Show Path Debug';
+    
+    const pathDebugToggle = createToggle({
+      checked: this.settings.showPathDebug ?? false,
+      onChange: (checked) => {
+        this.settings.showPathDebug = checked;
+        this.isDirty = true;
+        this.applyPathDebugSetting(checked);
+      }
+    });
+
+    pathDebugToggleContainer.appendChild(pathDebugLabel);
+    pathDebugToggleContainer.appendChild(pathDebugToggle);
+    gameplaySection.appendChild(pathDebugToggleContainer);
+
     // Add sections to container
     container.appendChild(audioSection);
     container.appendChild(gameplaySection);
@@ -188,6 +209,23 @@ export class InGameSettingsUI {
     if (audioManager) {
       audioManager.setMasterVolume(this.settings.masterVolume);
       audioManager.setEnabled(this.settings.soundEnabled);
+    }
+  }
+
+  private applyPathDebugSetting(enabled: boolean): void {
+    const PathfindingDebug = (window as any).PathfindingDebug;
+    if (PathfindingDebug) {
+      if (enabled) {
+        PathfindingDebug.enable();
+        console.log("=== PATHFINDING DEBUG ENABLED ===");
+        console.log("Press 'P' to toggle enemy paths visualization");
+        console.log("Press 'G' to toggle navigation grid visualization");
+      } else {
+        PathfindingDebug.disable();
+        console.log("=== PATHFINDING DEBUG DISABLED ===");
+      }
+    } else {
+      console.warn("PathfindingDebug not found on window object");
     }
   }
 

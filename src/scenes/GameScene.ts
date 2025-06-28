@@ -346,6 +346,7 @@ export class GameScene extends Scene {
         showFps: false,
         particleEffects: true,
         autoPause: true,
+        showPathDebug: false,
         mapSize: preGameConfig.mapSize as any,
         terrain: preGameConfig.biome as any,
         pathComplexity: 'SIMPLE' as any,

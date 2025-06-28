@@ -1,5 +1,34 @@
 # OctoPrompt Feedback
 
+## Path Debugging Toggle Implementation
+
+**Date**: 2025-01-06
+**Changes Made**:
+1. Added `showPathDebug` property to GameSettings interface
+2. Updated default settings to have path debugging OFF by default
+3. Modified Game.ts to check settings before enabling path debugging
+4. Added toggle switch in InGameSettingsUI to control path debugging
+5. Updated SettingsManager to include the new property
+
+**Implementation Details**:
+- Path debugging is now controlled by a persistent setting
+- Users can toggle it on/off from the in-game settings menu
+- The setting persists across game sessions via localStorage
+- Default is OFF for production use
+
+**Files Modified**:
+- `/src/config/GameSettings.ts` - Added showPathDebug property
+- `/src/ui/floating/InGameSettingsUI.ts` - Added toggle UI control
+- `/src/core/Game.ts` - Check setting on initialization
+- `/src/config/SettingsIntegration.ts` - Added property to default config
+- `/src/scenes/GameScene.ts` - Added property to game settings object
+- `/src/entities/Enemy.ts` - Added debugPath getter to expose private currentPath
+- `/src/debug/PathfindingDebug.ts` - Updated to use debugPath getter
+
+**Issue Fixed**: Path debugging wasn't showing because the Enemy's currentPath property was private. Added a public getter `debugPath` to expose it for debug visualization.
+
+---
+
 ## Enemy Pathfinding Smooth Movement Implementation
 
 ### Summary
@@ -238,3 +267,41 @@ The OctoPrompt MCP integration was invaluable for:
 - Breaking down the problem into manageable tasks
 - Managing the implementation progress
 - However, the file suggestion feature could be enhanced to better identify related systems when debugging cross-system issues
+
+## PathfindingDebug Implementation Analysis (2025-01-28)
+
+### Current State
+1. **PathfindingDebug is enabled by default** in `Game.ts` at line 332:
+   ```typescript
+   PathfindingDebug.enable();
+   ```
+   This happens automatically during game initialization, about 500ms after the game starts.
+
+2. **Location of implementation**:
+   - Main debug class: `/src/debug/PathfindingDebug.ts`
+   - Enabled in: `/src/core/Game.ts` (line 332)
+   - Rendered in: `/src/systems/Renderer.ts` (line 1758)
+   - Enemy path property: `/src/entities/Enemy.ts` (line 45: `private currentPath: Vector2[] = []`)
+
+3. **Debug features**:
+   - Shows enemy paths with cyan lines
+   - Shows waypoints as dots
+   - Labels first 3 waypoints with numbers
+   - Can toggle with 'P' key (paths) and 'G' key (nav grid)
+
+### Issue
+The pathfinding debug visualization is enabled by default in production, which:
+- May impact performance
+- Shows debug information to end users
+- Is not appropriate for production builds
+
+### Recommendation
+1. Make PathfindingDebug conditional based on development/debug mode
+2. Add a configuration flag to control whether debug features are enabled
+3. Consider using environment variables or build flags to control debug features
+
+### Code Location Reference
+- Enable call: `src/core/Game.ts:332`
+- Debug class: `src/debug/PathfindingDebug.ts`
+- Render call: `src/systems/Renderer.ts:1758`
+- Enemy path data: `src/entities/Enemy.ts:45`

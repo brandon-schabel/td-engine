@@ -24,6 +24,7 @@ import { GAME_INIT } from "@/config/GameConfig";
 import { GAMEPLAY_CONSTANTS } from "@/config/GameplayConstants";
 import { INVENTORY_CONFIG, INVENTORY_UPGRADES } from "@/config/InventoryConfig";
 import { COLLECTIBLE_DROP_CHANCES } from "@/config/ItemConfig";
+import { loadSettings } from "@/config/GameSettings";
 import { TextureManager } from "@/systems/TextureManager";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { CAMERA_CONFIG } from "@/config/UIConfig";
@@ -326,13 +327,16 @@ export class Game {
         console.log("Camera follow mode:", cameraInfo.followTarget ? "ENABLED" : "DISABLED");
         console.log("Press 'B' to check camera, 'N' to fix camera, 'Shift+V' to toggle visual debug");
         
-        // Enable pathfinding debug
+        // Enable pathfinding debug based on settings
         const PathfindingDebug = (window as any).PathfindingDebug;
         if (PathfindingDebug) {
-          PathfindingDebug.enable();
-          console.log("=== PATHFINDING DEBUG ENABLED ===");
-          console.log("Press 'P' to toggle enemy paths visualization");
-          console.log("Press 'G' to toggle navigation grid visualization");
+          const settings = loadSettings();
+          if (settings.showPathDebug) {
+            PathfindingDebug.enable();
+            console.log("=== PATHFINDING DEBUG ENABLED ===");
+            console.log("Press 'P' to toggle enemy paths visualization");
+            console.log("Press 'G' to toggle navigation grid visualization");
+          }
         }
       }, ANIMATION_CONFIG.durations.slowest);
     }

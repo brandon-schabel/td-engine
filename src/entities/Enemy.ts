@@ -44,6 +44,11 @@ export class Enemy extends Entity {
   // Pathfinding properties
   private currentPath: Vector2[] = [];
   private currentPathTarget: Vector2 | null = null;
+  
+  // Getter for debug visualization
+  get debugPath(): Vector2[] {
+    return this.currentPath;
+  }
   private pathRecalculationTimer: number = 0;
   private readonly PATH_RECALCULATION_INTERVAL = 2000; // Recalculate path every 2 seconds (increased from 1)
   private readonly WAYPOINT_REACHED_DISTANCE = 20; // Distance to consider waypoint reached (increased for smoother paths)

@@ -18,6 +18,9 @@ export interface GameSettings {
   // Gameplay settings
   autoPause: boolean;
 
+  // Debug settings
+  showPathDebug: boolean;
+
   // Map preferences
   mapSize: 'SMALL' | 'MEDIUM' | 'LARGE';
   terrain: 'FOREST' | 'DESERT' | 'ARCTIC';
@@ -49,6 +52,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   showFps: false,
   particleEffects: true,
   autoPause: true,
+  showPathDebug: false,
   mapSize: 'MEDIUM',
   terrain: 'FOREST',
   pathComplexity: 'SIMPLE',
@@ -184,6 +188,9 @@ export class SettingsManager implements GameSettings {
 
   get autoPause() { return this._settings.autoPause; }
   set autoPause(value) { this._settings.autoPause = value; }
+
+  get showPathDebug() { return this._settings.showPathDebug; }
+  set showPathDebug(value) { this._settings.showPathDebug = value; }
 
   get mapSize() { return this._settings.mapSize; }
   set mapSize(value) { this._settings.mapSize = value; }

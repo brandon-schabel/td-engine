@@ -64,9 +64,9 @@ export const UPGRADE_CONSTANTS = {
 export const TOWER_UPGRADE_CONFIG = {
   // Base costs for each upgrade type (adjusted for 10 levels)
   baseCosts: {
-    DAMAGE: 50,
-    RANGE: 60,
-    FIRE_RATE: 70
+    DAMAGE: 25,
+    RANGE: 30,
+    FIRE_RATE: 35
   },
 
   // Cost multipliers for towers (higher due to fewer levels)
