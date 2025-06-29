@@ -1,48 +1,68 @@
+import { vec2 } from 'gl-matrix';
+
 export type Vector2 = {
   x: number;
   y: number;
 };
 
+/**
+ * Vector2Utils - Now powered by gl-matrix for optimized performance
+ * Maintains the same API but uses gl-matrix under the hood
+ */
 export class Vector2Utils {
+  // Temporary vec2 arrays to avoid allocations
+  private static tempA: vec2 = vec2.create();
+  private static tempB: vec2 = vec2.create();
+  private static tempResult: vec2 = vec2.create();
+  
   static distance(a: Vector2, b: Vector2): number {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    return Math.sqrt(dx * dx + dy * dy);
+    vec2.set(this.tempA, a.x, a.y);
+    vec2.set(this.tempB, b.x, b.y);
+    return vec2.distance(this.tempA, this.tempB);
   }
 
   static normalize(v: Vector2): Vector2 {
-    const length = Math.sqrt(v.x * v.x + v.y * v.y);
-    if (length === 0) {
-      return { x: 0, y: 0 };
-    }
+    vec2.set(this.tempA, v.x, v.y);
+    vec2.normalize(this.tempResult, this.tempA);
     return {
-      x: v.x / length,
-      y: v.y / length
+      x: this.tempResult[0],
+      y: this.tempResult[1]
     };
   }
 
   static multiply(v: Vector2, scalar: number): Vector2 {
+    vec2.set(this.tempA, v.x, v.y);
+    vec2.scale(this.tempResult, this.tempA, scalar);
     return {
-      x: v.x * scalar,
-      y: v.y * scalar
+      x: this.tempResult[0],
+      y: this.tempResult[1]
     };
   }
 
   static add(a: Vector2, b: Vector2): Vector2 {
+    vec2.set(this.tempA, a.x, a.y);
+    vec2.set(this.tempB, b.x, b.y);
+    vec2.add(this.tempResult, this.tempA, this.tempB);
     return {
-      x: a.x + b.x,
-      y: a.y + b.y
+      x: this.tempResult[0],
+      y: this.tempResult[1]
     };
   }
 
   static subtract(a: Vector2, b: Vector2): Vector2 {
+    vec2.set(this.tempA, a.x, a.y);
+    vec2.set(this.tempB, b.x, b.y);
+    vec2.subtract(this.tempResult, this.tempA, this.tempB);
     return {
-      x: a.x - b.x,
-      y: a.y - b.y
+      x: this.tempResult[0],
+      y: this.tempResult[1]
     };
   }
 
   static length(v: Vector2): number {
-    return Math.sqrt(v.x * v.x + v.y * v.y);
+    vec2.set(this.tempA, v.x, v.y);
+    return vec2.length(this.tempA);
   }
+  
+  
 }

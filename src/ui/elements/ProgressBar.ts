@@ -1,10 +1,12 @@
 /**
  * Progress Bar UI Element
  * Provides visual feedback for progress, timers, and power-ups
+ * Now powered by GSAP for smooth animations
  */
 
 import { cn } from '@/ui/styles/UtilityStyles';
 import { IconType, createSvgIcon } from '@/ui/icons/SvgIcons';
+import { gsap } from '@/utils/AnimationUtils';
 
 export interface CreateProgressBarOptions {
   width: number;
@@ -106,10 +108,21 @@ export function createProgressBar(options: CreateProgressBarOptions): ProgressBa
 
   container.appendChild(fill);
 
-  // Update function
+  // Update function with GSAP animation
   container.updateProgress = (newProgress: number) => {
     const clampedProgress = Math.min(1, Math.max(0, newProgress));
-    fill.style.width = `${clampedProgress * 100}%`;
+    const targetWidth = `${clampedProgress * 100}%`;
+    
+    if (animated) {
+      gsap.to(fill, {
+        width: targetWidth,
+        duration: 0.3,
+        ease: 'power2.out'
+      });
+    } else {
+      fill.style.width = targetWidth;
+    }
+    
     if (label) {
       const labelElement = container.querySelector('.progress-bar-label');
       if (labelElement) {
@@ -242,14 +255,19 @@ export function createTimerProgressBar(options: CreateTimerProgressBarOptions): 
     const remaining = Math.max(0, duration - elapsed);
     const progress = remaining / duration;
 
-    // Update progress bar
+    // Update progress bar with smooth animation
     if (progressBar.updateProgress) {
       progressBar.updateProgress(progress);
     } else {
-      // Fallback: directly update the fill width if updateProgress is not available
+      // Fallback: use GSAP to animate the fill
       const fill = progressBar.querySelector('.progress-bar-fill') as HTMLDivElement;
       if (fill) {
-        fill.style.width = `${progress * 100}%`;
+        gsap.to(fill, {
+          width: `${progress * 100}%`,
+          duration: 0.1,
+          ease: 'none',
+          overwrite: 'auto'
+        });
       }
     }
 
@@ -282,6 +300,8 @@ export function createTimerProgressBar(options: CreateTimerProgressBarOptions): 
       cancelAnimationFrame(animationFrameId);
       animationFrameId = null;
     }
+    // Kill any GSAP animations on the progress bar
+    gsap.killTweensOf(progressBar.querySelector('.progress-bar-fill'));
   };
 
   return wrapper;

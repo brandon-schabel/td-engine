@@ -18,7 +18,7 @@ import { Collectible } from "@/entities/Collectible";
 import { CollectibleType } from "@/entities/items/ItemTypes";
 import { DestructionEffect } from "@/effects/DestructionEffect";
 import type { Vector2 } from "@/utils/Vector2";
-import { AudioManager, SoundType } from "../audio/AudioManager";
+import { SoundType, AudioManager } from "../audio/AudioManager";
 import { MapGenerator } from "@/systems/MapGenerator";
 import { GAME_INIT } from "@/config/GameConfig";
 import { GAMEPLAY_CONSTANTS } from "@/config/GameplayConstants";
@@ -52,7 +52,7 @@ import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager } from "@/ui/floating";
 import { UIController } from "@/ui/UIController";
 import { ProblematicPositionCache } from "@/systems/ProblematicPositionCache";
-import { TouchGestureManager } from "@/input/TouchGestureManager";
+import { HammerGestureManager } from "@/input/HammerGestureManager";
 // import { TerrainDebug } from "@/debug/TerrainDebug"; // Commented out - unused
 
 
@@ -64,7 +64,7 @@ export class Game {
   private waveManager: WaveManager;
   private spawnZoneManager: SpawnZoneManager;
   private canvas: HTMLCanvasElement;
-  private touchGestureManager: TouchGestureManager | null = null;
+  private touchGestureManager: HammerGestureManager | null = null;
   private mobileControls: any | null = null; // Reference to MobileControls instance
 
   // Difficulty settings
@@ -296,7 +296,7 @@ export class Game {
     
     // Initialize touch gesture manager for mobile/touch devices
     if ('ontouchstart' in window) {
-      this.touchGestureManager = new TouchGestureManager(this, canvas);
+      this.touchGestureManager = new HammerGestureManager(this, canvas);
       
       // Listen for gesture events
       this.touchGestureManager.on('swipe', (data) => {
@@ -1963,7 +1963,7 @@ export class Game {
     return this.mobileControls;
   }
   
-  getTouchGestureManager(): TouchGestureManager | null {
+  getTouchGestureManager(): HammerGestureManager | null {
     return this.touchGestureManager;
   }
 

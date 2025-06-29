@@ -5,8 +5,10 @@
 // 3. Mobile-responsive viewport handling
 // 4. Better zoom system that maintains centering
 // 5. Added debug mode for visualizing camera center
+// 6. GSAP integration for smooth animations
 
 import type { Vector2 } from "@/utils/Vector2";
+import { gsap } from '@/utils/AnimationUtils';
 
 export interface CameraOptions {
   minZoom?: number;
@@ -66,21 +68,31 @@ export class Camera {
   }
 
   update(targetPosition: Vector2): void {
-    // Update zoom with smoothing
-    this.zoom += (this.targetZoom - this.zoom) * this.zoomSmoothing;
+    // Update zoom with GSAP for smoother animation
+    if (Math.abs(this.targetZoom - this.zoom) > 0.001) {
+      gsap.to(this, {
+        zoom: this.targetZoom,
+        duration: this.zoomSmoothing,
+        ease: 'power2.out',
+        overwrite: 'auto'
+      });
+    }
 
     if (this.followTarget) {
       // Calculate where the camera should be to center the target
       const targetCameraX = targetPosition.x - (this.viewportWidth / 2) / this.zoom;
       const targetCameraY = targetPosition.y - (this.viewportHeight / 2) / this.zoom;
 
-      // Apply smoothing to camera movement
-      this.position.x += (targetCameraX - this.position.x) * this.smoothing;
-      this.position.y += (targetCameraY - this.position.y) * this.smoothing;
+      // Use GSAP for smooth camera movement
+      gsap.to(this.position, {
+        x: targetCameraX,
+        y: targetCameraY,
+        duration: this.smoothing,
+        ease: 'none',
+        overwrite: 'auto',
+        onUpdate: () => this.clampCameraPosition()
+      });
     }
-
-    // Clamp camera position to world bounds
-    this.clampCameraPosition();
   }
 
   private clampCameraPosition(): void {

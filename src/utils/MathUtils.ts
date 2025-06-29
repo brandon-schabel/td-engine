@@ -92,29 +92,6 @@ export function normalizeMovement(x: number, y: number): { x: number; y: number 
 }
 
 /**
- * Linear interpolation between two values
- * @param start Start value
- * @param end End value
- * @param t Interpolation factor (0-1)
- * @returns Interpolated value
- */
-export function lerp(start: number, end: number, t: number): number {
-  return start + (end - start) * Math.max(0, Math.min(1, t));
-}
-
-/**
- * Smooth interpolation using ease-in-out curve
- * @param start Start value
- * @param end End value
- * @param t Interpolation factor (0-1)
- * @returns Smoothly interpolated value
- */
-export function smoothLerp(start: number, end: number, t: number): number {
-  const smoothT = t * t * (3 - 2 * t); // Smooth step function
-  return lerp(start, end, smoothT);
-}
-
-/**
  * Clamp a value between min and max
  * @param value Value to clamp
  * @param min Minimum value

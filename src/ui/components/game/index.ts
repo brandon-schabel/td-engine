@@ -1,7 +1,7 @@
 // Game UI Components
 export { MobileControls } from './MobileControls';
 export { PowerUpDisplay } from './SimplePowerUpDisplay';
-export { TouchIndicator } from './TouchIndicator';
+
 export { IconButton } from './IconButton';
 
 // Re-export FloatingUIElement from the correct location

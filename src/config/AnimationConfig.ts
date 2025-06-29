@@ -30,6 +30,7 @@ export const ANIMATION_CONFIG = {
     powerUpCollect: 500,
     towerPlace: 300,
     towerUpgrade: 400,
+    towerDestruction: 300,
     enemySpawn: 500,
     enemyDeath: 300,
     projectileImpact: 150,
@@ -148,11 +149,4 @@ export type AnimationConfig = typeof ANIMATION_CONFIG;
 // Helper function to get duration value
 export function getAnimationDuration(key: keyof typeof ANIMATION_CONFIG.durations): number {
   return ANIMATION_CONFIG.durations[key];
-}
-
-// Helper function for interpolation
-export function interpolate(start: number, end: number, t: number, curve?: (t: number) => number): number {
-  const normalizedT = Math.max(0, Math.min(1, t));
-  const curvedT = curve ? curve(normalizedT) : normalizedT;
-  return start + (end - start) * curvedT;
 }

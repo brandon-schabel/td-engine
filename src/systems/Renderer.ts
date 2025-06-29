@@ -5,21 +5,19 @@ import { Player } from '@/entities/Player';
 import { Collectible } from '@/entities/Collectible';
 import { HealthPickup } from '@/entities/HealthPickup';
 import { Entity } from '@/entities/Entity';
-import { Grid, CellType } from './Grid';
+import { Grid } from './Grid';
 import { Camera } from './Camera';
 import { UpgradeType } from '@/entities/Tower';
 import { TextureManager, type Texture } from './TextureManager';
 import type { Vector2 } from '@/utils/Vector2';
 import { COLOR_CONFIG } from '../config/GameConfig';
-import { GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER, ZOOM_RENDER_CONFIG, RENDER_OPTIMIZATION } from '../config/RenderingConfig';
+import { GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER, RENDER_OPTIMIZATION } from '../config/RenderingConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
 import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
-import { adjustColorBrightness, coordinateVariation } from '@/utils/MathUtils';
+import { adjustColorBrightness } from '@/utils/MathUtils';
 import { DestructionEffect } from '@/effects/DestructionEffect';
 import { PathfindingDebug } from '@/debug/PathfindingDebug';
-import { IconType } from '@/ui/icons/SvgIcons';
-
 import { TerrainRenderer } from './TerrainRenderer';
 
 // Legacy render config for backward compatibility
@@ -134,7 +132,7 @@ export class Renderer {
   }
 
   // Calculate LOD level for an entity based on camera zoom level
-  private calculateLOD(entity: Entity): number {
+  private calculateLOD(_entity: Entity): number {
     if (!this.renderSettings.lodEnabled || !RENDER_OPTIMIZATION.LOD.enabled) {
       return RENDER_OPTIMIZATION.LOD.levels.FULL;
     }

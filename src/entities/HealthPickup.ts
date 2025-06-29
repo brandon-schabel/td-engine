@@ -1,29 +1,35 @@
 import { Entity, EntityType } from './Entity';
 import { Player } from './Player';
 import type { Vector2 } from '@/utils/Vector2';
+import { animateHealthPickupBob } from '@/utils/AnimationUtils';
+import type { gsap } from 'gsap';
 
 export class HealthPickup extends Entity {
   public healAmount: number;
   public isActive: boolean;
-  private bobOffset: number = 0;
-  private bobTime: number = 0;
-  private rotation: number = 0;
+  public bobOffset: number = 0;
+  public rotation: number = 0;
+  private animationTimeline: gsap.core.Timeline | null = null;
 
   constructor(position: Vector2, healAmount: number = 25) {
     super(EntityType.HEALTH_PICKUP, position, 1, 10);
     this.healAmount = healAmount;
     this.isActive = true;
+    
+    // Start bobbing animation
+    this.animationTimeline = animateHealthPickupBob(this);
   }
 
-  update(deltaTime: number): void {
-    if (!this.isActive) return;
-
-    // Update bobbing animation
-    this.bobTime += deltaTime;
-    this.bobOffset = Math.sin(this.bobTime / 200) * 5; // Bob up and down
-
-    // Update rotation
-    this.rotation += deltaTime * 0.002; // Slow rotation
+  update(_deltaTime: number): void {
+    if (!this.isActive) {
+      // Kill animations when inactive
+      if (this.animationTimeline) {
+        this.animationTimeline.kill();
+        this.animationTimeline = null;
+      }
+      return;
+    }
+    // GSAP handles all animations now
   }
 
   checkCollisionWithPlayer(player: Player): boolean {
@@ -51,6 +57,14 @@ export class HealthPickup extends Entity {
 
   getRotation(): number {
     return this.rotation;
+  }
+  
+  destroy(): void {
+    // Clean up animations
+    if (this.animationTimeline) {
+      this.animationTimeline.kill();
+      this.animationTimeline = null;
+    }
   }
 
   // Static methods for spawn system

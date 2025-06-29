@@ -14,7 +14,7 @@ import { InventoryUI } from '@/ui/floating/InventoryUI';
 import { BuildMenuUI } from '@/ui/floating/BuildMenuUI';
 import { PauseMenuUI } from '@/ui/floating/PauseMenuUI';
 import { UpgradeUI } from '@/ui/UpgradeUI';
-import { UIStateManager, UIPanelType } from './UIStateManager';
+import { uiStore, getUIState, UIPanelType } from '@/stores/uiStore';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
 import type { Entity } from '@/entities/Entity';
@@ -32,7 +32,6 @@ export interface UIElementInfo {
 export class UIController {
   private game: Game;
   private floatingUI: FloatingUIManager;
-  private stateManager: UIStateManager;
   private activeElements = new Map<string, UIElementInfo>();
   private escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -49,7 +48,6 @@ export class UIController {
   constructor(game: Game) {
     this.game = game;
     this.floatingUI = game.getFloatingUIManager();
-    this.stateManager = new UIStateManager(this);
     this.setupEscapeHandler();
     this.setupStateListeners();
   }
@@ -65,43 +63,54 @@ export class UIController {
 
   private setupStateListeners(): void {
     // Listen for panel close events to sync with UI components
-    this.stateManager.on('panelClosed', ({ panel }) => {
-      // Ensure UI component is properly cleaned up when state manager closes panel
-      const mappings: Partial<Record<UIPanelType, string>> = {
-        [UIPanelType.PAUSE_MENU]: 'pause-menu',
-        [UIPanelType.TOWER_UPGRADE]: 'tower-upgrade',
-        [UIPanelType.PLAYER_UPGRADE]: 'player-upgrade',
-        [UIPanelType.INVENTORY]: 'inventory',
-        [UIPanelType.BUILD_MENU]: 'build-menu',
-        [UIPanelType.BUILD_MODE]: 'build-mode'
-      };
-
-      const elementId = mappings[panel];
-      if (elementId && this.activeElements.has(elementId)) {
-        this.close(elementId);
+    const unsubscribe = uiStore.subscribe(
+      (state) => state.panels,
+      (panels, prevPanels) => {
+        // Check for closed panels
+        for (const [panelType, prevState] of Object.entries(prevPanels)) {
+          if (prevState.isOpen && !panels[panelType as UIPanelType].isOpen) {
+            this.handlePanelClosed(panelType as UIPanelType);
+          }
+        }
       }
-    });
+    );
 
-    // Listen for build mode changes to hide/show UI elements
-    this.stateManager.on('panelOpened', ({ panel }) => {
-      if (panel === UIPanelType.BUILD_MODE) {
-        this.hideBuildModeUI();
+    // Handle build mode changes
+    const buildModeUnsub = uiStore.subscribe(
+      (state) => state.isPanelOpen(UIPanelType.BUILD_MODE),
+      (isOpen) => {
+        if (isOpen) {
+          this.hideBuildModeUI();
+        } else {
+          this.showBuildModeUI();
+        }
       }
-    });
+    );
+  }
 
-    this.stateManager.on('panelClosed', ({ panel }) => {
-      if (panel === UIPanelType.BUILD_MODE) {
-        this.showBuildModeUI();
-      }
-    });
+  private handlePanelClosed(panel: UIPanelType): void {
+    // Ensure UI component is properly cleaned up when state manager closes panel
+    const mappings: Partial<Record<UIPanelType, string>> = {
+      [UIPanelType.PAUSE_MENU]: 'pause-menu',
+      [UIPanelType.TOWER_UPGRADE]: 'tower-upgrade',
+      [UIPanelType.PLAYER_UPGRADE]: 'player-upgrade',
+      [UIPanelType.INVENTORY]: 'inventory',
+      [UIPanelType.BUILD_MENU]: 'build-menu',
+      [UIPanelType.BUILD_MODE]: 'build-mode'
+    };
+
+    const elementId = mappings[panel];
+    if (elementId && this.activeElements.has(elementId)) {
+      this.close(elementId);
+    }
   }
 
   /**
    * Close all non-persistent dialogs and popups
    */
   public closeAllDialogs(): void {
-    // Use state manager to close all transient panels
-    this.stateManager.closeTransientPanels();
+    // Use UI store to close all transient panels
+    getUIState().closeAllPanels(false);
   }
 
   /**
@@ -140,7 +149,7 @@ export class UIController {
 
       const panelType = panelMappings[id];
       if (panelType) {
-        this.stateManager.closePanel(panelType);
+        getUIState().closePanel(panelType);
       }
 
       // Call destroy on the element if it exists
@@ -199,10 +208,9 @@ export class UIController {
       this.buildMenuUI = null;
     }
 
-    // Use state manager to handle panel opening
-    if (!this.stateManager.openPanel(UIPanelType.BUILD_MENU, { screenX, screenY, onTowerSelect })) {
-      return;
-    }
+    // Use UI store to handle panel opening
+    const store = getUIState();
+    store.openPanel(UIPanelType.BUILD_MENU, { screenX, screenY, onTowerSelect });
 
     // Create new instance
     this.buildMenuUI = new BuildMenuUI(this.game);
@@ -220,10 +228,9 @@ export class UIController {
    * Show tower upgrade UI for selected tower
    */
   public showTowerUpgrade(tower: Tower): void {
-    // Use state manager to handle panel opening
-    if (!this.stateManager.openPanel(UIPanelType.TOWER_UPGRADE, { towerId: tower.id })) {
-      return;
-    }
+    // Use UI store to handle panel opening
+    const store = getUIState();
+    store.openPanel(UIPanelType.TOWER_UPGRADE, { towerId: tower.id });
 
     // Close any existing tower upgrade UI
     this.close('tower-upgrade');
@@ -238,10 +245,9 @@ export class UIController {
    * Show player upgrade UI
    */
   public showPlayerUpgrade(player: Player, screenPos?: { x: number; y: number }): void {
-    // Use state manager to handle panel opening
-    if (!this.stateManager.openPanel(UIPanelType.PLAYER_UPGRADE, { playerId: player.id, screenPos })) {
-      return;
-    }
+    // Use UI store to handle panel opening
+    const store = getUIState();
+    store.openPanel(UIPanelType.PLAYER_UPGRADE, { playerId: player.id, screenPos });
 
     // Close any existing player upgrade UI
     this.close('player-upgrade');
@@ -272,13 +278,12 @@ export class UIController {
    * Show inventory UI
    */
   public showInventory(screenPos?: { x: number; y: number }): void {
-    // Toggle inventory using state manager
-    if (!this.stateManager.togglePanel(UIPanelType.INVENTORY, { screenPos })) {
-      return;
-    }
+    // Toggle inventory using UI store
+    const store = getUIState();
+    store.togglePanel(UIPanelType.INVENTORY, { screenPos });
 
     // If inventory is now closed, clean up
-    if (!this.stateManager.isPanelOpen(UIPanelType.INVENTORY)) {
+    if (!store.isPanelOpen(UIPanelType.INVENTORY)) {
       this.close('inventory');
       return;
     }
@@ -299,10 +304,9 @@ export class UIController {
     onRestart?: () => void;
     onQuit?: () => void;
   }): void {
-    // Use state manager to handle panel opening
-    if (!this.stateManager.openPanel(UIPanelType.PAUSE_MENU, options)) {
-      return;
-    }
+    // Use UI store to handle panel opening
+    const store = getUIState();
+    store.openPanel(UIPanelType.PAUSE_MENU, options);
 
     // Close any existing pause menu
     this.close('pause-menu');
@@ -393,8 +397,8 @@ export class UIController {
     this.buildMenuUI = null;
     this.pauseMenuUI = null;
 
-    // Reset state manager
-    this.stateManager.reset();
+    // Reset UI store
+    getUIState().closeAllPanels(true);
   }
 
   /**
@@ -411,46 +415,27 @@ export class UIController {
     return this.activeElements.has(id);
   }
 
-  /**
-   * Get the UI state manager
-   */
-  public getStateManager(): UIStateManager {
-    return this.stateManager;
-  }
 
-  /**
-   * Restore UI state from a snapshot
-   */
-  public restoreUIState(snapshot: Record<string, any>): void {
-    this.stateManager.restoreStateSnapshot(snapshot);
-  }
-
-  /**
-   * Get current UI state snapshot
-   */
-  public getUIStateSnapshot(): Record<string, any> {
-    return this.stateManager.getStateSnapshot();
-  }
 
   /**
    * Enter build mode (for tower placement)
    */
   public enterBuildMode(towerType: TowerType): void {
-    this.stateManager.enterBuildMode({ towerType });
+    getUIState().enterBuildMode({ towerType });
   }
 
   /**
    * Exit build mode
    */
   public exitBuildMode(): void {
-    this.stateManager.exitBuildMode();
+    getUIState().exitBuildMode();
   }
 
   /**
    * Check if in build mode
    */
   public isInBuildMode(): boolean {
-    return this.stateManager.isInBuildMode();
+    return getUIState().isInBuildMode();
   }
 
   /**

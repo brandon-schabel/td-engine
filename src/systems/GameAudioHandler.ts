@@ -1,4 +1,5 @@
-import { AudioManager, SoundType } from '../audio/AudioManager';
+import { SoundType } from '../audio/AudioManager';
+import { AudioManager } from '../audio/AudioManager';
 import { Camera } from './Camera';
 import { Enemy } from '@/entities/Enemy';
 import type { Vector2 } from '@/utils/Vector2';
@@ -34,8 +35,8 @@ export class GameAudioHandler {
    * Play positioned sound effect
    */
   private playPositionedSound(soundType: SoundType, worldPosition: Vector2): void {
-    const listenerPosition = this.getAudioListenerPosition();
-    this.audioManager.playSoundAtPosition(soundType, worldPosition, listenerPosition);
+    const listenerPos = this.getAudioListenerPosition();
+    this.audioManager.playSoundAtPosition(soundType, worldPosition, listenerPos);
   }
 
   /**

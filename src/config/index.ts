@@ -101,8 +101,7 @@ export {
 
 export {
   ANIMATION_CONFIG,
-  getAnimationDuration,
-  interpolate
+  getAnimationDuration
 } from './AnimationConfig';
 
 export {

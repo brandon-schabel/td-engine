@@ -91,9 +91,3 @@ export function formatMultiplier(value: number, decimals: number = 1): string {
   return `${value.toFixed(decimals)}x`;
 }
 
-/**
- * Format distance in game units
- */
-export function formatDistance(value: number, units: string = 'units'): string {
-  return `${value.toFixed(1)} ${units}`;
-}

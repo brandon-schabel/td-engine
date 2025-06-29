@@ -1,8 +1,10 @@
 /**
  * Handles transitions between scenes with various effects
+ * Now powered by GSAP for smoother animations
  */
 
 import { cn } from '@/ui/styles/UtilityStyles';
+import { gsap } from '@/utils/AnimationUtils';
 
 export enum TransitionType {
   FADE = 'fade',
@@ -88,7 +90,11 @@ export class SceneTransition {
     document.body.appendChild(this.overlay);
 
     // Fade in overlay
-    await this.animateOpacity(this.overlay, 0, 1, duration / 2);
+    await gsap.to(this.overlay, {
+      opacity: 1,
+      duration: duration / 2000, // Convert to seconds
+      ease: 'power2.inOut'
+    });
 
     // Switch scenes
     if (fromElement) {
@@ -97,7 +103,11 @@ export class SceneTransition {
     toElement.style.display = 'flex';
 
     // Fade out overlay
-    await this.animateOpacity(this.overlay, 1, 0, duration / 2);
+    await gsap.to(this.overlay, {
+      opacity: 0,
+      duration: duration / 2000,
+      ease: 'power2.inOut'
+    });
 
     // Remove overlay
     this.overlay.remove();
@@ -110,81 +120,77 @@ export class SceneTransition {
     duration: number,
     easing: string
   ): Promise<void> {
-    // Set up transition styles
-    toElement.style.transition = `transform ${duration}ms ${easing}`;
-    if (fromElement) {
-      fromElement.style.transition = `transform ${duration}ms ${easing}`;
-    }
-
     // Determine transform values based on transition type
-    let fromTransform = '';
-    let toInitialTransform = '';
-    let toFinalTransform = 'translateX(0) translateY(0)';
+    let fromX = 0, fromY = 0;
+    let toStartX = 0, toStartY = 0;
 
     switch (type) {
       case TransitionType.SLIDE_LEFT:
-        fromTransform = 'translateX(-100%)';
-        toInitialTransform = 'translateX(100%)';
+        fromX = -100;
+        toStartX = 100;
         break;
       case TransitionType.SLIDE_RIGHT:
-        fromTransform = 'translateX(100%)';
-        toInitialTransform = 'translateX(-100%)';
+        fromX = 100;
+        toStartX = -100;
         break;
       case TransitionType.SLIDE_UP:
-        fromTransform = 'translateY(-100%)';
-        toInitialTransform = 'translateY(100%)';
+        fromY = -100;
+        toStartY = 100;
         break;
       case TransitionType.SLIDE_DOWN:
-        fromTransform = 'translateY(100%)';
-        toInitialTransform = 'translateY(-100%)';
+        fromY = 100;
+        toStartY = -100;
         break;
     }
 
     // Set initial positions
-    toElement.style.transform = toInitialTransform;
-    toElement.style.display = 'flex';
+    gsap.set(toElement, {
+      xPercent: toStartX,
+      yPercent: toStartY,
+      display: 'flex'
+    });
 
-    // Force layout update
-    void toElement.offsetHeight;
+    // Create timeline for synchronized animations
+    const tl = gsap.timeline();
 
-    // Start transition
+    // Animate both elements simultaneously
     if (fromElement) {
-      fromElement.style.transform = fromTransform;
+      tl.to(fromElement, {
+        xPercent: fromX,
+        yPercent: fromY,
+        duration: duration / 1000,
+        ease: this.convertEasing(easing)
+      }, 0);
     }
-    toElement.style.transform = toFinalTransform;
 
-    // Wait for transition to complete
-    await this.wait(duration);
+    tl.to(toElement, {
+      xPercent: 0,
+      yPercent: 0,
+      duration: duration / 1000,
+      ease: this.convertEasing(easing)
+    }, 0);
+
+    // Wait for animation to complete
+    await tl;
 
     // Clean up
     if (fromElement) {
       fromElement.style.display = 'none';
-      fromElement.style.transform = '';
-      fromElement.style.transition = '';
+      gsap.set(fromElement, { clearProps: 'all' });
     }
-    toElement.style.transform = '';
-    toElement.style.transition = '';
+    gsap.set(toElement, { clearProps: 'transform' });
   }
 
-  private async animateOpacity(
-    element: HTMLElement,
-    from: number,
-    to: number,
-    duration: number
-  ): Promise<void> {
-    element.style.opacity = from.toString();
-    
-    // Force layout update
-    void element.offsetHeight;
-    
-    element.style.transition = `opacity ${duration}ms ease-in-out`;
-    element.style.opacity = to.toString();
-    
-    await this.wait(duration);
-  }
-
-  private wait(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  private convertEasing(cssEasing: string): string {
+    // Convert CSS easing to GSAP easing
+    const easingMap: Record<string, string> = {
+      'ease': 'power1.inOut',
+      'ease-in': 'power2.in',
+      'ease-out': 'power2.out',
+      'ease-in-out': 'power2.inOut',
+      'linear': 'none'
+    };
+    return easingMap[cssEasing] || 'power2.inOut';
   }
 
   public destroy(): void {
