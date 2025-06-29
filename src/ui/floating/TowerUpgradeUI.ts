@@ -1,18 +1,17 @@
 /**
  * TowerUpgradeUI.ts - Tower upgrade interface using FloatingUIManager
- * Recent changes:
- * 1. Complete refactor to use UI element abstractions and utility classes
- * 2. Eliminated manual DOM construction in favor of declarative element creation
- * 3. Replaced all ui-* classes with utility classes
- * 4. Improved readability and maintainability
- * 5. Mobile-responsive with proper touch support
+ * Refactored to extend BaseEntityUI for cleaner architecture while maintaining:
+ * - Complex click event handling to prevent canvas interaction
+ * - Sell button safety delay (500ms)
+ * - Minimum open duration (300ms)
+ * - Dynamic upgrade options based on tower state
+ * - Lifecycle fully managed by UIController
  */
 
 import type { Tower } from '@/entities/Tower';
 import { UpgradeType, TowerType } from '@/entities/Tower';
 import type { Game } from '@/core/Game';
-import type { FloatingUIManager } from './FloatingUIManager';
-import type { FloatingUIElement } from './FloatingUIElement';
+import { BaseEntityUI } from './BaseEntityUI';
 import { IconType } from '@/ui/icons/SvgIcons';
 import { formatNumber } from '@/utils/formatters';
 import { SoundType } from '@/audio/AudioManager';
@@ -39,37 +38,47 @@ interface UpgradeOption {
   effect: string;
 }
 
-export class TowerUpgradeUI {
-  private static activeUI: TowerUpgradeUI | null = null;
+interface TowerUpgradeState {
+  currency: number;
+  upgradeOptions: UpgradeOption[];
+}
 
+/**
+ * Tower upgrade UI that follows a tower entity.
+ * Manages upgrades and tower selling with safety features.
+ */
+export class TowerUpgradeUI extends BaseEntityUI {
   private tower: Tower;
-  private game: Game;
-  private floatingUI: FloatingUIManager;
-  private element: FloatingUIElement | null = null;
   private upgradeOptions: UpgradeOption[] = [];
   private sellButtonEnabled: boolean = false;
   private sellButtonTimeout: number | null = null;
-  private isDestroyed: boolean = false;
-  private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
-  private currencyDisplay: HTMLDivElement | null = null;
   private openTime: number = 0;
   private minOpenDuration: number = 300; // Minimum time UI must stay open (ms)
+  private clickOutsideSetupTimeout: number | null = null;
+  
+  // Smart updaters for efficient DOM updates
+  private stateUpdater = this.setupSmartUpdater<TowerUpgradeState>('state', {
+    currency: () => this.updateCurrencyAndAffordability(),
+    upgradeOptions: () => this.rebuildUpgradeContent()
+  });
+  
+  // UI element references
+  private currencyDisplay: HTMLDivElement | null = null;
 
   constructor(tower: Tower, game: Game) {
-    // Destroy any existing UI
-    if (TowerUpgradeUI.activeUI) {
-      TowerUpgradeUI.activeUI.destroy();
-    }
+    super(game, {
+      className: 'tower-upgrade-ui compact',
+      offset: { x: 0, y: -20 },
+      smoothing: 0.1,
+      zIndex: 1000,
+      excludeSelectors: ['.ui-control-bar button', '.build-menu-popup']
+    });
 
     this.tower = tower;
-    this.game = game;
-    this.floatingUI = game.getFloatingUIManager();
-
     this.setupUpgradeOptions();
-    this.create();
-
-    // Register as active UI
-    TowerUpgradeUI.activeUI = this;
+    
+    // Show for this tower
+    this.showForEntity(tower);
   }
 
   private setupUpgradeOptions(): void {
@@ -126,30 +135,21 @@ export class TowerUpgradeUI {
     }
   }
 
-  private create(): void {
-    const elementId = `tower-upgrade-${this.tower.id}`;
-
-    this.element = this.floatingUI.create(elementId, 'custom', {
-      offset: { x: 0, y: -20 },
-      anchor: 'top',
-      smoothing: 0.1,
-      autoHide: false,
-      persistent: true,
-      zIndex: 1000,
-      className: 'tower-upgrade-ui compact'
-    });
-
-    this.element.setTarget(this.tower);
-    this.updateContent();
-    this.element.enable();
-
+  protected getEntityUIId(): string {
+    return `tower-upgrade-${this.tower.id}`;
+  }
+  
+  protected onEntityUICreated(): void {
     // Record when the UI was opened
     this.openTime = Date.now();
-
-    // Prevent clicks on the UI from propagating to the canvas
-    this.setupClickHandling();
-
-    // Enable sell button after 0.5 seconds
+    
+    // Set up periodic updates for dynamic content
+    this.setupPeriodicUpdate(100);
+    
+    // Set up special click handling for this UI
+    this.setupSpecialClickHandling();
+    
+    // Enable sell button after 0.5 seconds (safety delay)
     this.sellButtonTimeout = window.setTimeout(() => {
       if (!this.isDestroyed) {
         this.sellButtonEnabled = true;
@@ -157,8 +157,12 @@ export class TowerUpgradeUI {
       }
     }, 500);
   }
+  
+  protected createEntityUIContent(): HTMLElement {
+    return this.createUpgradePanel();
+  }
 
-  private setupClickHandling(): void {
+  private setupSpecialClickHandling(): void {
     if (!this.element || this.isDestroyed) return;
 
     const element = this.element.getElement();
@@ -168,7 +172,8 @@ export class TowerUpgradeUI {
       const target = e.target as HTMLElement;
 
       // Allow events on interactive elements to process normally
-      if (target.matches('button, input, select, textarea, a, [role="button"]')) {
+      if (target.matches('button, input, select, textarea, a, [role="button"]') || 
+          target.closest('button, input, select, textarea, a, [role="button"]')) {
         return;
       }
 
@@ -192,43 +197,41 @@ export class TowerUpgradeUI {
     // Store handler for cleanup
     (element as any).__handleMouseEvent = handleMouseEvent;
 
-    // Handle click outside to close
-    if (!this.clickOutsideHandler) {
-      this.clickOutsideHandler = (e: MouseEvent) => {
-        // Don't close if UI was just opened
-        const timeSinceOpen = Date.now() - this.openTime;
-        if (timeSinceOpen < this.minOpenDuration) {
-          return;
-        }
+    // Override the base click outside handler with special timing logic
+    this.cleanupClickOutside();
+    const clickOutsideHandler = (e: MouseEvent) => {
+      // Don't close if UI was just opened (minimum open duration)
+      const timeSinceOpen = Date.now() - this.openTime;
+      if (timeSinceOpen < this.minOpenDuration) {
+        return;
+      }
 
-        // Check if the click is outside the upgrade UI
-        if (!element.contains(e.target as Node)) {
-          // Check if we clicked on another tower
-          const clickedElement = e.target as HTMLElement;
-          const isCanvasClick = clickedElement.tagName === 'CANVAS' || clickedElement.id === 'game-canvas';
-          
-          // If we clicked on the canvas (not another UI element), close this UI
-          if (isCanvasClick) {
-            e.stopPropagation();
-            this.game.deselectTower();
-          }
+      // Check if the click is outside the upgrade UI
+      if (!element.contains(e.target as Node)) {
+        // Check if we clicked on another tower
+        const clickedElement = e.target as HTMLElement;
+        const isCanvasClick = clickedElement.tagName === 'CANVAS' || clickedElement.id === 'game-canvas';
+        
+        // If we clicked on the canvas (not another UI element), close this UI
+        if (isCanvasClick) {
+          // Use game.deselectTower() to properly close through the game flow
+          this.game.deselectTower();
         }
-      };
+      }
+    };
 
-      // Add with a slight delay to avoid catching the same click that opened the UI
-      setTimeout(() => {
-        if (!this.isDestroyed) {
-          document.addEventListener('mousedown', this.clickOutsideHandler!, true);
-          document.addEventListener('mouseup', this.clickOutsideHandler!, true);
-          document.addEventListener('click', this.clickOutsideHandler!, true);
-        }
-      }, 50);
-    }
+    // Add with a slight delay to avoid catching the same click that opened the UI
+    this.clickOutsideSetupTimeout = window.setTimeout(() => {
+      if (!this.isDestroyed) {
+        document.addEventListener('mousedown', clickOutsideHandler, true);
+        document.addEventListener('mouseup', clickOutsideHandler, true);
+        document.addEventListener('click', clickOutsideHandler, true);
+        this.clickOutsideHandler = clickOutsideHandler;
+      }
+    }, 50);
   }
 
-  private updateContent(): void {
-    if (!this.element || this.isDestroyed) return;
-
+  private createUpgradePanel(): HTMLElement {
     // Create main panel card
     const panel = createCard({
       variant: 'elevated',
@@ -247,13 +250,28 @@ export class TowerUpgradeUI {
     // Add action buttons
     panel.appendChild(this.createCompactActionButtons());
 
-    // Clear and append the actual DOM element to preserve event handlers
-    const container = this.element.getElement();
-    container.innerHTML = '';
-    container.appendChild(panel);
-
+    return panel;
+  }
+  
+  updateContent(): void {
+    // Use smart updater to efficiently update state
+    const state: TowerUpgradeState = {
+      currency: this.game.getCurrency(),
+      upgradeOptions: this.upgradeOptions
+    };
+    
+    this.stateUpdater.update(state);
+  }
+  
+  private rebuildUpgradeContent(): void {
+    if (!this.element || this.isDestroyed) return;
+    
+    // Rebuild the entire content when upgrade options change
+    const newContent = this.createUpgradePanel();
+    this.element.setContent(newContent);
+    
     // Re-setup click handling after content update
-    this.setupClickHandling();
+    this.setupSpecialClickHandling();
   }
 
   private createCompactHeader(): HTMLElement {
@@ -324,7 +342,10 @@ export class TowerUpgradeUI {
     const closeButton = createCloseButton({
       size: 'sm',
       variant: 'ghost',
-      onClick: () => this.game.deselectTower(),
+      onClick: () => {
+        // Use game.deselectTower() to properly close through the game flow
+        this.game.deselectTower();
+      },
       ariaLabel: 'Close (Esc)'
     });
     
@@ -381,6 +402,10 @@ export class TowerUpgradeUI {
         ]
       }
     );
+    
+    // Add data attributes for smart updates
+    card.setAttribute('data-upgrade-type', option.type);
+    card.setAttribute('data-upgrade-cost', String(option.cost));
 
     // Card content wrapper - use flex-col for better mobile layout
     const content = document.createElement('div');
@@ -465,6 +490,8 @@ export class TowerUpgradeUI {
         disabled: this.game.getCurrency() < repairInfo.cost,
         customClasses: ['flex-1']
       });
+      repairButton.setAttribute('data-repair-button', 'true');
+      repairButton.setAttribute('data-repair-cost', String(repairInfo.cost));
       container.appendChild(repairButton);
     }
 
@@ -485,8 +512,54 @@ export class TowerUpgradeUI {
   private updateSellButton(): void {
     if (this.isDestroyed || !this.element) return;
 
-    // Re-render to update sell button state
-    this.updateContent();
+    // Force a rebuild to update sell button state
+    this.rebuildUpgradeContent();
+  }
+  
+  private updateCurrencyAndAffordability(): void {
+    if (!this.element) return;
+    
+    const element = this.element.getElement();
+    if (!element) return;
+    
+    const currency = this.game.getCurrency();
+    
+    // Update currency display
+    if (this.currencyDisplay) {
+      const updateValue = (this.currencyDisplay as any).updateValue;
+      if (updateValue) {
+        updateValue(currency);
+      }
+    }
+    
+    // Update upgrade card affordability
+    const upgradeCards = element.querySelectorAll('.tower-upgrade-card[data-upgrade-cost]');
+    upgradeCards.forEach((card) => {
+      const cardEl = card as HTMLDivElement;
+      const cost = parseInt(cardEl.getAttribute('data-upgrade-cost') || '0');
+      const isMaxed = cardEl.classList.contains('maxed');
+      const canAfford = currency >= cost && !isMaxed;
+      
+      // Update visual state
+      if (!isMaxed) {
+        if (canAfford) {
+          cardEl.classList.add('can-afford');
+          cardEl.classList.remove('ui-disabled');
+          cardEl.style.pointerEvents = '';
+        } else {
+          cardEl.classList.remove('can-afford');
+          cardEl.classList.add('ui-disabled');
+          cardEl.style.pointerEvents = 'none';
+        }
+      }
+    });
+    
+    // Update repair button if it exists
+    const repairButton = element.querySelector('[data-repair-button]') as HTMLButtonElement;
+    if (repairButton) {
+      const repairCost = parseInt(repairButton.getAttribute('data-repair-cost') || '0');
+      repairButton.disabled = currency < repairCost;
+    }
   }
 
   private handleSell(): void {
@@ -542,29 +615,41 @@ export class TowerUpgradeUI {
   public updateState(): void {
     if (this.isDestroyed) return;
     this.setupUpgradeOptions();
-    
-    // Update currency display if it exists
-    if (this.currencyDisplay) {
-      const updateValue = (this.currencyDisplay as any).updateValue;
-      if (updateValue) {
-        updateValue(this.game.getCurrency());
-      }
-    }
-    
     this.updateContent();
   }
 
-  public destroy(): void {
-    if (this.isDestroyed) return;
-    this.isDestroyed = true;
-
-    // Clear timeout
+  close(): void {
+    // Just call parent close() to avoid recursion
+    // The destroy() method will handle the full cleanup
+    super.close();
+  }
+  
+  destroy(): void {
+    // Clear all timeouts
     if (this.sellButtonTimeout) {
       clearTimeout(this.sellButtonTimeout);
       this.sellButtonTimeout = null;
     }
+    
+    if (this.clickOutsideSetupTimeout) {
+      clearTimeout(this.clickOutsideSetupTimeout);
+      this.clickOutsideSetupTimeout = null;
+    }
 
-    // Remove click outside handler
+    // Remove special mouse event handlers
+    if (this.element) {
+      const element = this.element.getElement();
+      if (element) {
+        const handleMouseEvent = (element as any).__handleMouseEvent;
+        if (handleMouseEvent) {
+          element.removeEventListener('mousedown', handleMouseEvent);
+          element.removeEventListener('click', handleMouseEvent);
+          delete (element as any).__handleMouseEvent;
+        }
+      }
+    }
+
+    // Remove click-outside handlers that were added in setupSpecialClickHandling
     if (this.clickOutsideHandler) {
       document.removeEventListener('mousedown', this.clickOutsideHandler, true);
       document.removeEventListener('mouseup', this.clickOutsideHandler, true);
@@ -572,40 +657,13 @@ export class TowerUpgradeUI {
       this.clickOutsideHandler = null;
     }
 
-    // Remove mouse event handlers
-    if (this.element) {
-      const element = this.element.getElement();
-      const handleMouseEvent = (element as any).__handleMouseEvent;
-      if (handleMouseEvent) {
-        element.removeEventListener('mousedown', handleMouseEvent);
-        element.removeEventListener('click', handleMouseEvent);
-        delete (element as any).__handleMouseEvent;
-      }
-    }
-
-    // Remove from FloatingUIManager
-    if (this.element) {
-      this.floatingUI.remove(`tower-upgrade-${this.tower.id}`);
-      this.element = null;
-    }
-
-    // Clear static reference
-    if (TowerUpgradeUI.activeUI === this) {
-      TowerUpgradeUI.activeUI = null;
-    }
-
-    // Clear currency display reference
+    // Clear references
     this.currencyDisplay = null;
-  }
-
-  public static destroyActiveUI(): void {
-    if (TowerUpgradeUI.activeUI) {
-      TowerUpgradeUI.activeUI.destroy();
-      TowerUpgradeUI.activeUI = null;
-    }
-  }
-
-  public static getActiveUI(): TowerUpgradeUI | null {
-    return TowerUpgradeUI.activeUI;
+    
+    // Note: We don't call clearSelectedTower here to avoid circular dependencies
+    // The game should handle tower selection state separately
+    
+    // Call parent destroy - this will handle the FloatingUIElement cleanup
+    super.destroy();
   }
 }

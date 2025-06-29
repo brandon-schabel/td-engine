@@ -4,8 +4,7 @@
  */
 
 import { Game } from "@/core/Game";
-import type { FloatingUIElement } from "./FloatingUIElement";
-import type { FloatingUIManager } from "./FloatingUIManager";
+import { BaseDialogUI } from "./BaseDialogUI";
 import { 
   createButton, 
   createSlider,
@@ -13,55 +12,81 @@ import {
   cn 
 } from "@/ui/elements";
 import { loadSettings, saveSettings, type GameSettings } from "@/config/GameSettings";
+import { createSectionContainer } from "./floatingUIUtils";
 
-export class InGameSettingsUI {
-  private game: Game;
-  private element: FloatingUIElement | null = null;
-  private floatingUI: FloatingUIManager;
+export class InGameSettingsUI extends BaseDialogUI {
   private settings: GameSettings;
   private isDirty: boolean = false;
 
   constructor(game: Game) {
-    this.game = game;
-    this.floatingUI = game.getFloatingUIManager();
+    super(game, {
+      title: 'Settings',
+      closeable: true,
+      className: cn('max-w-md')
+    });
     this.settings = loadSettings();
   }
 
-  show(): void {
-    // Close any existing instance
-    this.close();
-
-    // Create the dialog
-    this.element = this.floatingUI.createDialog(
-      'in-game-settings',
-      this.createContent(),
-      {
-        title: 'Settings',
-        closeable: true,
-        onClose: () => this.handleClose(),
-        className: cn('max-w-md')
-      }
-    );
+  protected getDialogId(): string {
+    return 'in-game-settings';
   }
 
-  private createContent(): HTMLElement {
+  protected onDialogCreated(): void {
+    // Apply initial settings
+    this.applyAudioSettings();
+  }
+
+  // Override close to handle saving
+  public close(): void {
+    if (this.isDirty) {
+      saveSettings(this.settings);
+    }
+    super.close();
+  }
+
+  protected createDialogContent(): HTMLElement {
     const container = document.createElement('div');
     container.className = cn('space-y-6', 'p-4');
 
     // Audio Settings Section
-    const audioSection = document.createElement('div');
-    audioSection.className = cn('space-y-4');
+    const audioSection = this.createAudioSection();
+    container.appendChild(audioSection);
 
-    // Audio header
-    const audioHeader = document.createElement('div');
-    audioHeader.className = cn('flex', 'items-center', 'gap-2', 'mb-4');
-    audioHeader.innerHTML = `
-      <svg class="${cn('w-5', 'h-5', 'text-white')}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-      </svg>
-      <h3 class="${cn('text-lg', 'font-semibold', 'text-white')}">Audio Settings</h3>
-    `;
-    audioSection.appendChild(audioHeader);
+    // Gameplay Settings Section
+    const gameplaySection = this.createGameplaySection();
+    container.appendChild(gameplaySection);
+
+    // Resume button
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = cn('pt-4', 'border-t', 'border-border-primary', 'flex', 'justify-center');
+    
+    const resumeButton = createButton({
+      text: 'Resume Game',
+      variant: 'primary',
+      size: 'md',
+      onClick: () => this.close()
+    });
+    
+    buttonContainer.appendChild(resumeButton);
+    container.appendChild(buttonContainer);
+
+    return container;
+  }
+
+  private createAudioSection(): HTMLElement {
+    const { container: audioSection, content } = createSectionContainer('Audio Settings', cn('space-y-4'));
+
+    // Audio header icon
+    const header = audioSection.querySelector('h3');
+    if (header) {
+      const icon = document.createElement('span');
+      icon.innerHTML = `
+        <svg class="${cn('w-5', 'h-5', 'text-white', 'inline-block', 'mr-2')}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+      `;
+      header.insertBefore(icon, header.firstChild);
+    }
 
     // Master Volume
     const volumeContainer = document.createElement('div');
@@ -83,8 +108,7 @@ export class InGameSettingsUI {
       }
     });
     volumeContainer.appendChild(volumeSlider);
-
-    audioSection.appendChild(volumeContainer);
+    content.appendChild(volumeContainer);
 
     // Sound Effects Toggle
     const soundToggleContainer = document.createElement('div');
@@ -105,9 +129,12 @@ export class InGameSettingsUI {
 
     soundToggleContainer.appendChild(soundLabel);
     soundToggleContainer.appendChild(soundToggle);
-    audioSection.appendChild(soundToggleContainer);
+    content.appendChild(soundToggleContainer);
 
-    // Gameplay Settings Section
+    return audioSection;
+  }
+
+  private createGameplaySection(): HTMLElement {
     const gameplaySection = document.createElement('div');
     gameplaySection.className = cn('space-y-4', 'pt-4', 'border-t', 'border-border-primary');
 
@@ -123,84 +150,55 @@ export class InGameSettingsUI {
     gameplaySection.appendChild(gameplayHeader);
 
     // Auto-pause Toggle
-    const pauseToggleContainer = document.createElement('div');
-    pauseToggleContainer.className = cn('flex', 'items-center', 'justify-between', 'py-2');
-    
-    const pauseLabel = document.createElement('label');
-    pauseLabel.className = cn('text-sm', 'font-medium', 'text-white');
-    pauseLabel.textContent = 'Auto-pause on Focus Loss';
-    
-    const pauseToggle = createToggle({
-      checked: this.settings.autoPause ?? true,
-      onChange: (checked) => {
+    const pauseToggleContainer = this.createToggleOption(
+      'Auto-pause on Focus Loss',
+      this.settings.autoPause ?? true,
+      (checked) => {
         this.settings.autoPause = checked;
         this.isDirty = true;
       }
-    });
-
-    pauseToggleContainer.appendChild(pauseLabel);
-    pauseToggleContainer.appendChild(pauseToggle);
+    );
     gameplaySection.appendChild(pauseToggleContainer);
 
     // Show FPS Toggle
-    const fpsToggleContainer = document.createElement('div');
-    fpsToggleContainer.className = cn('flex', 'items-center', 'justify-between', 'py-2');
-    
-    const fpsLabel = document.createElement('label');
-    fpsLabel.className = cn('text-sm', 'font-medium', 'text-white');
-    fpsLabel.textContent = 'Show FPS Counter';
-    
-    const fpsToggle = createToggle({
-      checked: this.settings.showFPS,
-      onChange: (checked) => {
+    const fpsToggleContainer = this.createToggleOption(
+      'Show FPS Counter',
+      this.settings.showFPS,
+      (checked) => {
         this.settings.showFPS = checked;
         this.isDirty = true;
       }
-    });
-
-    fpsToggleContainer.appendChild(fpsLabel);
-    fpsToggleContainer.appendChild(fpsToggle);
+    );
     gameplaySection.appendChild(fpsToggleContainer);
 
     // Show Path Debug Toggle
-    const pathDebugToggleContainer = document.createElement('div');
-    pathDebugToggleContainer.className = cn('flex', 'items-center', 'justify-between', 'py-2');
-    
-    const pathDebugLabel = document.createElement('label');
-    pathDebugLabel.className = cn('text-sm', 'font-medium', 'text-white');
-    pathDebugLabel.textContent = 'Show Path Debug';
-    
-    const pathDebugToggle = createToggle({
-      checked: this.settings.showPathDebug ?? false,
-      onChange: (checked) => {
+    const pathDebugToggleContainer = this.createToggleOption(
+      'Show Path Debug',
+      this.settings.showPathDebug ?? false,
+      (checked) => {
         this.settings.showPathDebug = checked;
         this.isDirty = true;
         this.applyPathDebugSetting(checked);
       }
-    });
-
-    pathDebugToggleContainer.appendChild(pathDebugLabel);
-    pathDebugToggleContainer.appendChild(pathDebugToggle);
+    );
     gameplaySection.appendChild(pathDebugToggleContainer);
 
-    // Add sections to container
-    container.appendChild(audioSection);
-    container.appendChild(gameplaySection);
+    return gameplaySection;
+  }
 
-    // Resume button
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = cn('pt-4', 'border-t', 'border-border-primary', 'flex', 'justify-center');
+  private createToggleOption(label: string, checked: boolean, onChange: (checked: boolean) => void): HTMLElement {
+    const container = document.createElement('div');
+    container.className = cn('flex', 'items-center', 'justify-between', 'py-2');
     
-    const resumeButton = createButton({
-      text: 'Resume Game',
-      variant: 'primary',
-      size: 'md',
-      onClick: () => this.close()
-    });
+    const labelElement = document.createElement('label');
+    labelElement.className = cn('text-sm', 'font-medium', 'text-white');
+    labelElement.textContent = label;
     
-    buttonContainer.appendChild(resumeButton);
-    container.appendChild(buttonContainer);
+    const toggle = createToggle({ checked, onChange });
 
+    container.appendChild(labelElement);
+    container.appendChild(toggle);
+    
     return container;
   }
 
@@ -229,21 +227,4 @@ export class InGameSettingsUI {
     }
   }
 
-  private handleClose(): void {
-    if (this.isDirty) {
-      saveSettings(this.settings);
-    }
-    this.destroy();
-  }
-
-  close(): void {
-    if (this.element) {
-      this.floatingUI.remove('in-game-settings');
-      this.element = null;
-    }
-  }
-
-  private destroy(): void {
-    this.close();
-  }
 }

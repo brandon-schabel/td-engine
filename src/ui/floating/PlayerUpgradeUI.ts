@@ -1,160 +1,128 @@
 import type { Player } from '@/entities/Player';
 import type { Game } from '@/core/Game';
-import type { Entity } from '@/entities/Entity';
-import type { FloatingUIElement } from './index';
-import { FloatingUIManager } from './index';
+import { BaseDialogUI } from './BaseDialogUI';
 import { SoundType } from '@/audio/AudioManager';
 import {
   createButton,
-  createDialogHeader,
   createStatGrid,
   createResourceDisplay,
   createStructuredCard,
+  cn,
   type Stat
 } from '@/ui/elements';
-import { cn } from '@/ui/styles/UtilityStyles';
 import { IconType } from '@/ui/icons/SvgIcons';
 
-export class PlayerUpgradeUI {
-  private floatingUI: FloatingUIManager;
-  private element: FloatingUIElement | null = null;
+interface PlayerStats {
+  health: number;
+  maxHealth: number;
+  speed: string;
+  currency: number;
+}
+
+interface Ability {
+  key: string;
+  name: string;
+  description: string;
+  level: number;
+  maxLevel: number;
+  cost: number;
+}
+
+/**
+ * Player upgrade UI for managing player stats and abilities.
+ * Shows current stats and available upgrades.
+ */
+export class PlayerUpgradeUI extends BaseDialogUI {
   private player: Player;
-  private game: Game;
-  private updateInterval: number | null = null;
-  private contentInitialized = false;
-  private lastCurrency = -1;
-  private lastStats: any = {};
-  private screenPos?: { x: number; y: number };
-  private anchorElement?: HTMLElement;
-  private clickOutsideCleanup: (() => void) | null = null;
-
+  private statsUpdater = this.setupSmartUpdater<PlayerStats>('stats', {
+    health: (value) => this.updateHealthDisplay(value),
+    maxHealth: (value) => this.updateHealthDisplay(this.player.health, value),
+    speed: (value) => this.updateSpeedDisplay(value),
+    currency: (value) => this.updateCurrencyDisplay(value)
+  });
+  
+  // UI Elements
+  private currencyElement: HTMLElement | null = null;
+  private healthElement: HTMLElement | null = null;
+  private speedElement: HTMLElement | null = null;
+  
   constructor(player: Player, game: Game, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement) {
-    this.floatingUI = game.getFloatingUIManager();
-    this.player = player;
-    this.game = game;
-    this.screenPos = screenPos;
-    this.anchorElement = anchorElement;
-    this.create();
-  }
-
-  private create(): void {
-    const elementId = `player-upgrade-${this.player.id}`;
-
-    if (this.anchorElement) {
-      // Use DOM element anchoring
-      this.element = this.floatingUI.create(elementId, 'dialog', {
-        anchorElement: this.anchorElement,
-        anchor: 'top',
-        offset: { x: 0, y: -10 },
-        smoothing: 0,
-        autoHide: false,
-        persistent: true,
-        zIndex: 1000,
-        className: '',
-        screenSpace: true
-      });
-    } else {
-      // Fallback to position-based approach
-      let position = this.screenPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-
-      // If we have a screen position (from button), position above control bar
-      if (this.screenPos) {
-        const controlBarHeight = 60;
-        const menuHeight = 500; // Approximate height
-        const menuWidth = 400; // Approximate width
-        const padding = 10;
-
-        // Center horizontally on the button, constrain to screen
-        position.x = Math.max(
-          menuWidth / 2 + padding,
-          Math.min(this.screenPos.x, window.innerWidth - menuWidth / 2 - padding)
-        );
-
-        // Position above control bar
-        position.y = window.innerHeight - controlBarHeight - menuHeight / 2 - padding;
-      }
-
-      this.element = this.floatingUI.create(elementId, 'dialog', {
-        offset: { x: 0, y: 0 },
-        anchor: 'center',
-        smoothing: 0,
-        autoHide: false,
-        persistent: true,
-        zIndex: 1000,
-        className: '',
-        screenSpace: true
-      });
-
-      // Set target position
-      const positionEntity = {
-        position: position,
-        getPosition: () => position
-      };
-
-      this.element.setTarget(positionEntity as unknown as Entity);
-    }
-
-    this.updateContent();
-    this.element.enable();
-
-    // Update content periodically
-    this.updateInterval = window.setInterval(() => {
-      this.updateContent();
-    }, 100);
+    // Calculate dialog position
+    let position = screenPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     
-    // Add click outside handler
-    this.clickOutsideCleanup = this.floatingUI.addClickOutsideHandler(
-      this.element,
-      () => this.close(),
-      ['.ui-control-bar button', '.ui-button-player-upgrade'] // Exclude upgrade button clicks
-    );
-  }
-
-  private updateContent(): void {
-    if (!this.element) return;
-
-    // Only create the full content on first render
-    if (!this.contentInitialized) {
-      this.createInitialContent();
-      this.contentInitialized = true;
+    if (screenPos) {
+      const controlBarHeight = 60;
+      const menuHeight = 500;
+      const menuWidth = 400;
+      const padding = 10;
+      
+      position.x = Math.max(
+        menuWidth / 2 + padding,
+        Math.min(screenPos.x, window.innerWidth - menuWidth / 2 - padding)
+      );
+      position.y = window.innerHeight - controlBarHeight - menuHeight / 2 - padding;
     }
-
-    // Perform smart updates for dynamic values
-    this.updateDynamicValues();
+    
+    super(game, {
+      title: 'Player Upgrades',
+      closeable: true,
+      modal: false,
+      width: 'min-w-[400px]'
+    });
+    
+    this.player = player;
+    
+    // Handle positioning if needed
+    if (anchorElement) {
+      // Will be handled by dialog creation
+    }
   }
-
-  private createInitialContent(): void {
-    const currency = this.game.getCurrency();
-
-    const content = document.createElement('div');
-    content.className = cn('bg-surface-primary', 'rounded-lg', 'border', 'border-white/10', 'min-w-[400px]');
-
-    // Create header with close button
-    const header = createDialogHeader('Player Upgrades', () => this.close());
-    content.appendChild(header);
-
-    // Create scrollable content area
+  
+  protected getDialogId(): string {
+    return `player-upgrade-${this.player.id}`;
+  }
+  
+  protected onDialogCreated(): void {
+    // Set up periodic updates
+    this.setupPeriodicUpdate(100);
+    
+    // Set up click outside exclusions
+    this.setupClickOutside(['.ui-control-bar button', '.ui-button-player-upgrade']);
+  }
+  
+  protected createDialogContent(): HTMLElement {
     const dialogContent = document.createElement('div');
     dialogContent.className = cn('p-6', 'space-y-6', 'max-h-[500px]', 'overflow-y-auto');
-
-    // Create currency display
-    const currencyDisplay = createResourceDisplay({
+    
+    // Currency display
+    this.currencyElement = createResourceDisplay({
       icon: IconType.COINS,
-      value: currency,
+      value: this.game.getCurrency(),
       label: '',
       customClasses: ['mb-4']
     });
-    dialogContent.appendChild(currencyDisplay);
-
-    // Create stats section
+    dialogContent.appendChild(this.currencyElement);
+    
+    // Stats section
+    const statsSection = this.createStatsSection();
+    dialogContent.appendChild(statsSection);
+    
+    // Abilities section
+    const abilitiesSection = this.createAbilitiesSection();
+    dialogContent.appendChild(abilitiesSection);
+    
+    return dialogContent;
+  }
+  
+  private createStatsSection(): HTMLElement {
     const statsSection = document.createElement('div');
     statsSection.className = cn('space-y-3');
-
+    
     const statsTitle = document.createElement('h3');
     statsTitle.className = cn('text-lg', 'font-semibold', 'text-primary', 'mb-3');
     statsTitle.textContent = 'STATS';
     statsSection.appendChild(statsTitle);
-
+    
     // Create stats grid
     const stats: Stat[] = [
       {
@@ -173,108 +141,56 @@ export class PlayerUpgradeUI {
         valueColor: 'warning'
       }
     ];
-
+    
     const statsGrid = createStatGrid(stats, {
       columns: 3,
       customClasses: ['player-stats']
     });
-
-    // Add data-stat attributes to each stat item for easy querying
+    
+    // Store references to stat elements
     const statItems = statsGrid.querySelectorAll('.stat-item');
-    const statLabels = ['health', 'shield', 'speed'];
     statItems.forEach((item, index) => {
-      if (statLabels[index]) {
-        item.setAttribute('data-stat', statLabels[index]);
+      const valueEl = item.querySelector('.stat-value');
+      if (index === 0 && valueEl) this.healthElement = valueEl as HTMLElement;
+      if (index === 2 && valueEl) this.speedElement = valueEl as HTMLElement;
+      
+      // Add data attribute for identification
+      const labels = ['health', 'shield', 'speed'];
+      if (labels[index]) {
+        item.setAttribute('data-stat', labels[index]);
       }
     });
-
+    
     statsSection.appendChild(statsGrid);
-    dialogContent.appendChild(statsSection);
-
-    // Create abilities section
+    return statsSection;
+  }
+  
+  private createAbilitiesSection(): HTMLElement {
     const abilitiesSection = document.createElement('div');
     abilitiesSection.className = cn('space-y-3');
-
+    
     const abilitiesTitle = document.createElement('h3');
     abilitiesTitle.className = cn('text-lg', 'font-semibold', 'text-primary', 'mb-3');
     abilitiesTitle.textContent = 'ABILITIES';
     abilitiesSection.appendChild(abilitiesTitle);
-
+    
     const upgradeTree = document.createElement('div');
     upgradeTree.className = cn('space-y-3');
-
-    // Render abilities using DOM elements
-    this.renderAbilitiesDOM(upgradeTree);
-
+    upgradeTree.id = 'ability-tree';
+    
+    // Initial render of abilities
+    this.renderAbilities(upgradeTree);
+    
     abilitiesSection.appendChild(upgradeTree);
-    dialogContent.appendChild(abilitiesSection);
-
-    content.appendChild(dialogContent);
-    this.element!.setContent(content);
+    return abilitiesSection;
   }
-
-  private updateDynamicValues(): void {
-    const element = this.element?.getElement();
-    if (!element) return;
-
-    const currency = this.game.getCurrency();
-
-    // Only update currency if it changed
-    if (currency !== this.lastCurrency) {
-      const currencyElement = element.querySelector('.resource-value');
-      if (currencyElement) {
-        currencyElement.textContent = String(currency);
-      }
-      this.lastCurrency = currency;
-    }
-
-    // Update player stats
-    const currentStats = {
-      health: this.player.health,
-      maxHealth: this.player.maxHealth,
-      speed: this.player.speed.toFixed(1)
-    };
-
-    // Update health if changed
-    if (currentStats.health !== this.lastStats.health || currentStats.maxHealth !== this.lastStats.maxHealth) {
-      const healthElement = element.querySelector('[data-stat="health"] .stat-value');
-      if (healthElement) {
-        healthElement.textContent = `${currentStats.health}/${currentStats.maxHealth}`;
-      }
-    }
-
-    // Update speed if changed
-    if (currentStats.speed !== this.lastStats.speed) {
-      const speedElement = element.querySelector('[data-stat="speed"] .stat-value');
-      if (speedElement) {
-        speedElement.textContent = currentStats.speed;
-      }
-    }
-
-    this.lastStats = currentStats;
-
-    // Update ability buttons (only if element exists)
-    if (!element) return;
-
-    // Update ability buttons
-    const abilityButtons = element.querySelectorAll('[data-ability]');
-    abilityButtons.forEach((button) => {
-      const btn = button as HTMLButtonElement;
-      const cost = parseInt(btn.dataset.cost || '0');
-      const canAfford = currency >= cost;
-      const isMaxLevel = btn.closest('.upgrade-node')?.classList.contains('unlocked');
-
-      if (!isMaxLevel) {
-        btn.disabled = !canAfford;
-        btn.classList.toggle('disabled', !canAfford);
-      }
-    });
-  }
-
-  private renderAbilitiesDOM(container: HTMLElement): void {
-    // Simplified abilities display for now
-    // TODO: Integrate with actual player ability system when available
-    const abilities = [
+  
+  private renderAbilities(container: HTMLElement): void {
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Simplified abilities display
+    const abilities: Ability[] = [
       {
         key: 'heal',
         name: 'Heal',
@@ -292,117 +208,143 @@ export class PlayerUpgradeUI {
         cost: 150
       }
     ];
-
+    
     const currency = this.game.getCurrency();
-
+    
     abilities.forEach(ability => {
-      const isMaxLevel = ability.level >= ability.maxLevel;
-      const canAfford = currency >= ability.cost;
-      const canUpgrade = !isMaxLevel && canAfford;
-
-      // Create the ability card header
-      const headerDiv = document.createElement('div');
-      headerDiv.className = cn('flex', 'justify-between', 'items-center', 'mb-2');
-
-      const nameSpan = document.createElement('span');
-      nameSpan.className = cn('font-medium', 'text-primary');
-      nameSpan.textContent = `${ability.name}Level ${ability.level}/${ability.maxLevel}`;
-      headerDiv.appendChild(nameSpan);
-
-      // Create the ability card
-      const card = createStructuredCard({
-        header: headerDiv,
-        body: ability.description,
-        bodyClasses: ['text-secondary'],
-        customClasses: [
-          'bg-surface-secondary',
-          'border',
-          isMaxLevel ? 'border-success' : canUpgrade ? 'border-white/20' : 'border-white/10',
-          'hover:border-primary',
-          'transition-all'
-        ]
-      });
-
-      // Add footer content
-      if (!isMaxLevel) {
-        const footer = document.createElement('div');
-        footer.className = cn('flex', 'justify-between', 'items-center', 'mt-3', 'pt-3', 'border-t', 'border-white/10');
-
-        const costSpan = document.createElement('span');
-        costSpan.className = cn('text-sm', canAfford ? 'text-success' : 'text-secondary');
-        costSpan.textContent = `Cost: ${ability.cost}`;
-        footer.appendChild(costSpan);
-
-        const upgradeButton = createButton({
-          text: 'Upgrade',
-          size: 'sm',
-          disabled: !canUpgrade,
-          onClick: () => this.handleUpgrade(ability.key)
-        });
-        upgradeButton.dataset.ability = ability.key;
-        upgradeButton.dataset.cost = String(ability.cost);
-        footer.appendChild(upgradeButton);
-
-        card.appendChild(footer);
-      } else {
-        const maxLevelText = document.createElement('div');
-        maxLevelText.className = cn('text-center', 'mt-3', 'text-success', 'text-sm', 'font-medium');
-        maxLevelText.textContent = 'Max Level';
-        card.appendChild(maxLevelText);
-      }
-
+      const card = this.createAbilityCard(ability, currency);
       container.appendChild(card);
     });
   }
-
-  // Not used in simplified version
-  /*
-  private getEffectValue(abilityKey: string, level: number): string {
-    if (level === 0) return 'Not unlocked';
+  
+  private createAbilityCard(ability: Ability, currency: number): HTMLElement {
+    const isMaxLevel = ability.level >= ability.maxLevel;
+    const canAfford = currency >= ability.cost;
+    const canUpgrade = !isMaxLevel && canAfford;
     
-    // Simplified effect values for now
-    switch (abilityKey) {
-      case 'heal':
-        return `${30 + (level - 1) * 10} health`;
-      case 'regeneration':
-        return `${1 + (level - 1) * 1.5} HP/s`;
-      default:
-        return `Level ${level}`;
-    }
-  }
-  */
-
-  private handleUpgrade(_abilityType: string): void {
-    // const abilities = this.player.getAbilityManager();
-    // const result = abilities.upgradeAbility(abilityType);
-    const result = { success: false, error: 'Abilities not implemented' };
-
-    if (result.success) {
-      this.game.getAudioManager()?.playUISound(SoundType.UPGRADE);
-      this.updateContent();
+    // Create header
+    const headerDiv = document.createElement('div');
+    headerDiv.className = cn('flex', 'justify-between', 'items-center', 'mb-2');
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.className = cn('font-medium', 'text-primary');
+    nameSpan.textContent = `${ability.name} Level ${ability.level}/${ability.maxLevel}`;
+    headerDiv.appendChild(nameSpan);
+    
+    // Create card
+    const card = createStructuredCard({
+      header: headerDiv,
+      body: ability.description,
+      bodyClasses: ['text-secondary'],
+      customClasses: [
+        'bg-surface-secondary',
+        'border',
+        isMaxLevel ? 'border-success' : canUpgrade ? 'border-white/20' : 'border-white/10',
+        'hover:border-primary',
+        'transition-all'
+      ]
+    });
+    
+    // Add footer
+    if (!isMaxLevel) {
+      const footer = document.createElement('div');
+      footer.className = cn('flex', 'justify-between', 'items-center', 'mt-3', 'pt-3', 'border-t', 'border-white/10');
+      
+      const costSpan = document.createElement('span');
+      costSpan.className = cn('text-sm', canAfford ? 'text-success' : 'text-secondary');
+      costSpan.textContent = `Cost: ${ability.cost}`;
+      footer.appendChild(costSpan);
+      
+      const upgradeButton = createButton({
+        text: 'Upgrade',
+        size: 'sm',
+        disabled: !canUpgrade,
+        onClick: () => this.handleUpgrade(ability.key)
+      });
+      upgradeButton.dataset.ability = ability.key;
+      upgradeButton.dataset.cost = String(ability.cost);
+      footer.appendChild(upgradeButton);
+      
+      card.appendChild(footer);
     } else {
-      console.warn('Failed to upgrade ability:', result.error);
-    }
-  }
-
-  private close(): void {
-    this.destroy();
-  }
-
-  public destroy(): void {
-    if (this.updateInterval !== null) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
+      const maxLevelText = document.createElement('div');
+      maxLevelText.className = cn('text-center', 'mt-3', 'text-success', 'text-sm', 'font-medium');
+      maxLevelText.textContent = 'Max Level';
+      card.appendChild(maxLevelText);
     }
     
-    if (this.clickOutsideCleanup) {
-      this.clickOutsideCleanup();
-      this.clickOutsideCleanup = null;
+    return card;
+  }
+  
+  updateContent(): void {
+    const stats: PlayerStats = {
+      health: this.player.health,
+      maxHealth: this.player.maxHealth,
+      speed: this.player.speed.toFixed(1),
+      currency: this.game.getCurrency()
+    };
+    
+    // Update stats with smart updater
+    this.statsUpdater.update(stats);
+    
+    // Update ability affordability
+    this.updateAbilityButtons(stats.currency);
+  }
+  
+  private updateHealthDisplay(health: number, maxHealth?: number): void {
+    if (this.healthElement) {
+      const max = maxHealth ?? this.player.maxHealth;
+      this.healthElement.textContent = `${health}/${max}`;
     }
-
-    if (this.element) {
-      this.floatingUI.remove(this.element.id);
-      this.element = null;
+  }
+  
+  private updateSpeedDisplay(speed: string): void {
+    if (this.speedElement) {
+      this.speedElement.textContent = speed;
+    }
+  }
+  
+  private updateCurrencyDisplay(currency: number): void {
+    if (this.currencyElement) {
+      const valueEl = this.currencyElement.querySelector('.resource-value');
+      if (valueEl) {
+        valueEl.textContent = String(currency);
+      }
+    }
+  }
+  
+  private updateAbilityButtons(currency: number): void {
+    if (!this.element) return;
+    
+    const element = this.element.getElement();
+    if (!element) return;
+    
+    // Update each ability button's state
+    const abilityButtons = element.querySelectorAll('[data-ability]');
+    abilityButtons.forEach((button) => {
+      const btn = button as HTMLButtonElement;
+      const cost = parseInt(btn.dataset.cost || '0');
+      const canAfford = currency >= cost;
+      const isMaxLevel = btn.closest('.border-success') !== null;
+      
+      if (!isMaxLevel) {
+        btn.disabled = !canAfford;
+        btn.classList.toggle('disabled', !canAfford);
+      }
+    });
+  }
+  
+  private handleUpgrade(abilityKey: string): void {
+    // TODO: Integrate with actual player ability system when available
+    console.log('Upgrading ability:', abilityKey);
+    
+    // For now, just play sound
+    this.game.getAudioManager()?.playUISound(SoundType.UPGRADE);
+    
+    // Refresh abilities display
+    const container = this.element?.getElement()?.querySelector('#ability-tree');
+    if (container) {
+      this.renderAbilities(container as HTMLElement);
     }
   }
 }

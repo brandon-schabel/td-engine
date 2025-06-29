@@ -113,34 +113,46 @@ export class PowerUpDisplay {
       autoHide: false,
       smoothing: 0,
       className: cn(
-        'bg-surface-secondary',
-        'border',
-        'border-surface-border',
-        'rounded-lg',
-        'px-3',
-        'py-2',
-        'shadow-md',
+        'bg-gradient-to-br', // Gradient background
+        'from-surface-primary/95',
+        'to-surface-secondary/95',
+        'backdrop-blur-sm', // Blur effect
+        'border-2', // Thicker border
+        'border-primary/60', // More visible border
+        'rounded-xl', // More rounded corners
+        'px-4', // More horizontal padding
+        'py-3', // More vertical padding
+        'shadow-2xl', // Stronger shadow
+        'shadow-black/40', // Shadow color
         'transition-all',
         'duration-300',
-        'min-w-[240px]'
+        'min-w-[280px]', // Increased width
+        'ring-2', // Add ring effect
+        'ring-white/10' // Subtle white ring
       )
     });
 
     // Position relative to the main container
-    const topOffset = UI_CONSTANTS.powerUpDisplay.position.top + (index * 60);
+    const topOffset = UI_CONSTANTS.powerUpDisplay.position.top + (index * 80); // Increased spacing from 60 to 80
 
     const element = powerUpElement.getElement();
     element.className = cn(
-      'bg-surface-secondary',
-      'border',
-      'border-surface-border',
-      'rounded-lg',
-      'px-3',
-      'py-2',
-      'shadow-md',
+      'bg-gradient-to-br', // Gradient background
+      'from-surface-primary/95',
+      'to-surface-secondary/95',
+      'backdrop-blur-sm', // Blur effect
+      'border-2', // Thicker border
+      'border-primary/60', // More visible border
+      'rounded-xl', // More rounded corners
+      'px-4', // More horizontal padding
+      'py-3', // More vertical padding
+      'shadow-2xl', // Stronger shadow
+      'shadow-black/40', // Shadow color
       'transition-all',
       'duration-300',
-      'min-w-[240px]'
+      'min-w-[280px]', // Increased width
+      'ring-2', // Add ring effect
+      'ring-white/10' // Subtle white ring
     );
     element.style.top = `${topOffset}px`;
 
@@ -153,27 +165,45 @@ export class PowerUpDisplay {
 
   private createPowerUpContent(type: string, powerUp: ActivePowerUp): HTMLDivElement {
     const container = document.createElement('div');
-    container.className = cn('flex', 'flex-col', 'gap-2');
+    container.className = cn('flex', 'flex-col', 'gap-3'); // Increased gap
 
     // Header with icon and name
     const header = document.createElement('div');
-    header.className = cn('flex', 'items-center', 'gap-2');
+    header.className = cn('flex', 'items-center', 'gap-3'); // Increased gap
     
     const iconType = this.getPowerUpIcon(type);
     const iconColor = this.getPowerUpIconColor(type);
-    const icon = createSvgIcon(iconType, { size: 20, className: iconColor });
+    // Larger icon with better visibility
+    const icon = createSvgIcon(iconType, { 
+      size: 28, // Increased from 20
+      className: cn(iconColor, 'filter', 'drop-shadow-md') // Add drop shadow
+    });
     const name = this.getPowerUpName(type);
     
     header.innerHTML = `
       ${icon}
-      <span class="${cn('text-sm', 'font-medium', 'text-primary')}">${name}</span>
+      <span class="${cn(
+        'text-base', // Increased from text-sm
+        'font-bold', // Changed from font-medium
+        'text-white', // Changed to white for better contrast
+        'tracking-wide',
+        'drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' // Text shadow for readability
+      )}">${name}</span>
     `;
 
-    // Progress bar
+    // Progress bar with improved visibility
     const remainingTime = powerUp.endTime - Date.now();
+    const progressBarWrapper = document.createElement('div');
+    progressBarWrapper.className = cn(
+      'p-1.5', // Padding around progress bar
+      'bg-black/30', // Semi-transparent dark background
+      'rounded-md',
+      'shadow-inner'
+    );
+    
     const progressBar = createTimerProgressBar({
-      width: 200,
-      height: 8,
+      width: 220, // Increased from 200
+      height: 16, // Doubled from 8 for better visibility
       duration: remainingTime,
       startTime: Date.now(),
       powerUpType: type,
@@ -187,8 +217,10 @@ export class PowerUpDisplay {
     const powerUpId = `powerup-${type}-${Array.from(this.activePowerUpIds).filter(id => id.startsWith(`powerup-${type}`)).length}`;
     this.powerUpProgressBars.set(powerUpId, progressBar);
 
+    progressBarWrapper.appendChild(progressBar);
+    
     container.appendChild(header);
-    container.appendChild(progressBar);
+    container.appendChild(progressBarWrapper);
 
     return container;
   }

@@ -1,23 +1,23 @@
 import type { Game } from '@/core/Game';
-import type { FloatingUIElement } from './index';
-import { FloatingUIManager } from './index';
+import { BaseDialogUI } from './BaseDialogUI';
 import { IconType } from '@/ui/icons/SvgIcons';
 import { SoundType } from '@/audio/AudioManager';
 import { createButton } from '@/ui/elements';
 import { cn } from '@/ui/styles/UtilityStyles';
 
-export class PauseMenuUI {
-  private floatingUI: FloatingUIManager;
-  private element: FloatingUIElement | null = null;
-  private game: Game;
+export class PauseMenuUI extends BaseDialogUI {
   private onResume: (() => void) | null = null;
   private onRestart: (() => void) | null = null;
   private onSettings: (() => void) | null = null;
   private onMainMenu: (() => void) | null = null;
 
   constructor(game: Game) {
-    this.floatingUI = game.getFloatingUIManager();
-    this.game = game;
+    super(game, {
+      title: 'Game Paused',
+      modal: true,
+      closeable: false,
+      className: cn('min-w-[400px]', 'text-center', 'sm:min-w-[280px]')
+    });
   }
 
   public show(callbacks: {
@@ -31,29 +31,14 @@ export class PauseMenuUI {
     this.onSettings = callbacks.onSettings || null;
     this.onMainMenu = callbacks.onMainMenu || null;
 
-    if (this.element) {
-      this.element.enable();
-      return;
-    }
-
-    this.create();
+    super.show();
   }
 
-  private create(): void {
-    const elementId = 'pause-menu-ui';
-
-    // Create dialog with modal overlay
-    this.element = this.floatingUI.createDialog(elementId, this.createContent(), {
-      title: 'Game Paused',
-      modal: true,
-      closeable: false,
-      className: cn('min-w-[400px]', 'text-center', 'sm:min-w-[280px]')
-    });
-
-    // Note: Escape key handling removed to avoid conflict with tower placement cancellation
+  protected getDialogId(): string {
+    return 'pause-menu-ui';
   }
 
-  private createContent(): HTMLElement {
+  protected createDialogContent(): HTMLElement {
     const content = document.createElement('div');
     content.className = cn('py-4');
 
@@ -182,16 +167,9 @@ export class PauseMenuUI {
     this.close();
   }
 
-  public close(): void {
-    this.destroy();
-  }
-
+  // Override destroy to clear callbacks
   public destroy(): void {
-    if (this.element) {
-      this.floatingUI.remove(this.element.id);
-      this.element = null;
-    }
-
+    super.destroy();
     this.onResume = null;
     this.onRestart = null;
     this.onSettings = null;

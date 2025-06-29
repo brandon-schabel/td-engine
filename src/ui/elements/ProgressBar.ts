@@ -80,7 +80,9 @@ export function createProgressBar(options: CreateProgressBarOptions): ProgressBa
     `bg-${fillColor}`,
     animated && 'transition-width',
     'duration-300',
-    'ease-out'
+    'ease-out',
+    'h-full', // Ensure fill takes full height
+    'z-10' // Ensure fill is above background
   );
   fill.style.width = `${Math.min(100, Math.max(0, progress * 100))}%`;
 
@@ -149,7 +151,7 @@ export function createTimerProgressBar(options: CreateTimerProgressBarOptions): 
         fillColor = 'warning';
         break;
       case 'SHIELD':
-        fillColor = 'secondary';
+        fillColor = 'primary'; // Use blue primary color for shield
         break;
       case 'HEALTH_REGEN':
         fillColor = 'success';
@@ -211,10 +213,13 @@ export function createTimerProgressBar(options: CreateTimerProgressBarOptions): 
       'flex',
       'items-center',
       'justify-center',
-      'text-xs',
-      'font-medium',
-      'text-content-primary',
-      'pointer-events-none'
+      'text-sm', // Increased from text-xs
+      'font-bold', // Changed from font-medium
+      'text-white', // Changed to white for better contrast
+      'drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]', // Strong shadow for readability
+      'pointer-events-none',
+      'tracking-wider', // Better letter spacing
+      'z-20' // Ensure label is above fill
     );
     progressBar.appendChild(label);
   }
@@ -237,8 +242,15 @@ export function createTimerProgressBar(options: CreateTimerProgressBarOptions): 
     const remaining = Math.max(0, duration - elapsed);
     const progress = remaining / duration;
 
+    // Update progress bar
     if (progressBar.updateProgress) {
       progressBar.updateProgress(progress);
+    } else {
+      // Fallback: directly update the fill width if updateProgress is not available
+      const fill = progressBar.querySelector('.progress-bar-fill') as HTMLDivElement;
+      if (fill) {
+        fill.style.width = `${progress * 100}%`;
+      }
     }
 
     if (showTimeRemaining) {

@@ -126,50 +126,59 @@ export class UIController {
     const info = this.activeElements.get(id);
     if (!info) return;
 
-    // Map element ID to panel type and notify state manager
-    const panelMappings: Record<string, UIPanelType> = {
-      'pause-menu': UIPanelType.PAUSE_MENU,
-      'settings': UIPanelType.SETTINGS,
-      'tower-upgrade': UIPanelType.TOWER_UPGRADE,
-      'player-upgrade': UIPanelType.PLAYER_UPGRADE,
-      'inventory': UIPanelType.INVENTORY,
-      'build-menu': UIPanelType.BUILD_MENU,
-      'game-over': UIPanelType.GAME_OVER,
-      'build-mode': UIPanelType.BUILD_MODE,
-      'pre-game-config': UIPanelType.PRE_GAME_CONFIG
-    };
+    try {
+      // Map element ID to panel type and notify state manager
+      const panelMappings: Record<string, UIPanelType> = {
+        'pause-menu': UIPanelType.PAUSE_MENU,
+        'settings': UIPanelType.SETTINGS,
+        'tower-upgrade': UIPanelType.TOWER_UPGRADE,
+        'player-upgrade': UIPanelType.PLAYER_UPGRADE,
+        'inventory': UIPanelType.INVENTORY,
+        'build-menu': UIPanelType.BUILD_MENU,
+        'game-over': UIPanelType.GAME_OVER,
+        'build-mode': UIPanelType.BUILD_MODE,
+        'pre-game-config': UIPanelType.PRE_GAME_CONFIG
+      };
 
-    const panelType = panelMappings[id];
-    if (panelType) {
-      this.stateManager.closePanel(panelType);
-    }
-
-    // Call destroy on the element if it exists
-    if (info.element && typeof info.element.destroy === 'function') {
-      info.element.destroy();
-    } else if (info.element && typeof info.element.close === 'function') {
-      info.element.close();
-    }
-
-    this.activeElements.delete(id);
-    this.updateCache.delete(id);
-
-    // Clear UI component references
-    if (id === 'build-menu') {
-      this.buildMenuUI = null;
-    } else if (id === 'player-upgrade') {
-      this.playerUpgradeUI = null;
-      this.upgradeUI = null;
-    } else if (id === 'inventory') {
-      this.inventoryUI = null;
-    } else if (id === 'pause-menu') {
-      this.pauseMenuUI = null;
-    } else if (id === 'tower-upgrade') {
-      this.towerUpgradeUI = null;
-      // Clear selected tower without calling close again
-      if (this.game.getSelectedTower()) {
-        this.game.clearSelectedTower();
+      const panelType = panelMappings[id];
+      if (panelType) {
+        this.stateManager.closePanel(panelType);
       }
+
+      // Call destroy on the element if it exists
+      try {
+        if (info.element && typeof info.element.destroy === 'function') {
+          info.element.destroy();
+        } else if (info.element && typeof info.element.close === 'function') {
+          info.element.close();
+        }
+      } catch (error) {
+        console.error(`[UIController] Error destroying element ${id}:`, error);
+      }
+
+      // Always remove from tracking, even if destroy failed
+      this.activeElements.delete(id);
+      this.updateCache.delete(id);
+
+      // Clear UI component references
+      if (id === 'build-menu') {
+        this.buildMenuUI = null;
+      } else if (id === 'player-upgrade') {
+        this.playerUpgradeUI = null;
+        this.upgradeUI = null;
+      } else if (id === 'inventory') {
+        this.inventoryUI = null;
+      } else if (id === 'pause-menu') {
+        this.pauseMenuUI = null;
+      } else if (id === 'tower-upgrade') {
+        this.towerUpgradeUI = null;
+        // Note: We don't call clearSelectedTower here to avoid circular dependencies
+      }
+    } catch (error) {
+      console.error(`[UIController] Fatal error in close(${id}):`, error);
+      // Ensure cleanup happens even on fatal error
+      this.activeElements.delete(id);
+      this.updateCache.delete(id);
     }
   }
 
@@ -181,7 +190,8 @@ export class UIController {
     if (this.isOpen('build-menu')) {
       // Build menu is already open, just update position if needed
       if (this.buildMenuUI) {
-        this.buildMenuUI.show(screenX, screenY, onTowerSelect, anchorElement);
+        this.buildMenuUI.setTowerSelectCallback(onTowerSelect);
+        this.buildMenuUI.show(screenX, screenY, anchorElement);
       }
       return;
     }
@@ -200,9 +210,12 @@ export class UIController {
     // Create new instance
     this.buildMenuUI = new BuildMenuUI(this.game);
 
+    // Set the callback first
+    this.buildMenuUI.setTowerSelectCallback(onTowerSelect);
+    
     // For build menu, we'll pass the screen coordinates as world coordinates
     // The BuildMenuUI will handle the proper positioning above the control bar
-    this.buildMenuUI.show(screenX, screenY, onTowerSelect, anchorElement);
+    this.buildMenuUI.show(screenX, screenY, anchorElement);
     this.register('build-menu', this.buildMenuUI, 'popup');
   }
 
@@ -219,7 +232,6 @@ export class UIController {
     this.close('tower-upgrade');
 
     // Always create a new TowerUpgradeUI instance
-    // The TowerUpgradeUI class handles singleton behavior internally
     this.towerUpgradeUI = new TowerUpgradeUI(tower, this.game);
 
     this.register('tower-upgrade', this.towerUpgradeUI, 'dialog');
@@ -276,6 +288,7 @@ export class UIController {
 
     // Always create a new instance to ensure fresh state
     this.inventoryUI = new InventoryUI(this.game, screenPos, anchorElement);
+    this.inventoryUI.show();
     this.register('inventory', this.inventoryUI, 'dialog');
   }
 
