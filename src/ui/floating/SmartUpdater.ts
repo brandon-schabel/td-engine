@@ -159,8 +159,7 @@ export class SmartUpdater<T extends Record<string, any>> {
  * Create a simple updater for a single value.
  */
 export function createSimpleUpdater<T>(
-  updateFn: (value: T) => void,
-  element?: HTMLElement
+  updateFn: (value: T) => void
 ): {
   update: (value: T) => void;
   forceUpdate: (value: T) => void;

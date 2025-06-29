@@ -1,5 +1,4 @@
 import { cn } from '@/ui/styles/UtilityStyles';
-import { createButton } from '@/ui/elements';
 
 export interface TabConfig {
   id: string;
@@ -26,7 +25,6 @@ export class TabManager {
   private activeTab: string;
   private onTabChange?: (tabId: string) => void;
   private container: HTMLElement | null = null;
-  private tabBar: HTMLElement | null = null;
   
   constructor(options: TabManagerOptions) {
     options.tabs.forEach(tab => this.tabs.set(tab.id, tab));
@@ -54,7 +52,6 @@ export class TabManager {
       tabBar.appendChild(button);
     });
     
-    this.tabBar = tabBar;
     this.updateActiveTab();
     
     return tabBar;
@@ -293,7 +290,6 @@ export class TabManager {
     this.tabElements.clear();
     this.contentElements.clear();
     this.container = null;
-    this.tabBar = null;
     this.onTabChange = undefined;
   }
 }

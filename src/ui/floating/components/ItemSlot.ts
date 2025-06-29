@@ -1,6 +1,6 @@
 import { cn } from '@/ui/styles/UtilityStyles';
 import { IconType, createIconElement } from '@/ui/icons/SvgIcons';
-import { ItemRarity, ItemType, type InventoryItem } from '@/systems/Inventory';
+import { ItemRarity, type InventoryItem } from '@/systems/Inventory';
 
 export interface ItemSlotOptions {
   size?: 'sm' | 'md' | 'lg';

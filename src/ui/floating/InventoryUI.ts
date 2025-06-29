@@ -40,7 +40,7 @@ export class InventoryUI extends BaseDialogUI {
   private useButton: HTMLElement | null = null;
   private upgradeButton: HTMLElement | null = null;
   
-  constructor(game: Game, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement) {
+  constructor(game: Game, screenPos?: { x: number; y: number }) {
     // Calculate dialog position
     let position = screenPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     
@@ -223,20 +223,20 @@ export class InventoryUI extends BaseDialogUI {
         size: 'md',
         showQuantity: true,
         interactive: true,
-        onClick: (item) => this.handleSlotClick(i),
-        onRightClick: (item) => this.handleSlotRightClick(i)
+        onClick: () => this.handleSlotClick(i),
+        onRightClick: () => this.handleSlotRightClick(i)
       });
       
       // Enable drag & drop
       slot.enableDragDrop({
-        onDragStart: (item) => {
+        onDragStart: () => {
           this.draggedFromSlot = i;
           this.game.getAudioManager()?.playUISound(SoundType.UI_TICK);
         },
         onDragEnd: () => {
           this.draggedFromSlot = null;
         },
-        onDrop: (e) => {
+        onDrop: () => {
           if (this.draggedFromSlot !== null && this.draggedFromSlot !== i) {
             this.handleSlotDrop(this.draggedFromSlot, i);
           }
@@ -253,8 +253,8 @@ export class InventoryUI extends BaseDialogUI {
     const state: InventoryState = {
       usedSlots: inventory.getStatistics().usedSlots,
       totalSlots: inventory.getStatistics().totalSlots,
-      upgradeCost: inventory.getUpgradeCost(),
-      canAffordUpgrade: this.game.getCurrency() >= inventory.getUpgradeCost(),
+      upgradeCost: this.game.getInventoryUpgradeCost(),
+      canAffordUpgrade: this.game.canUpgradeInventory(),
       selectedItem: this.selectedSlotIndex !== null ? 
         inventory.getSlots()[this.selectedSlotIndex]?.item || null : null
     };
@@ -306,7 +306,7 @@ export class InventoryUI extends BaseDialogUI {
     
     // Get current values if not provided
     if (cost === -1) {
-      cost = this.game.getInventory().getUpgradeCost();
+      cost = this.game.getInventoryUpgradeCost();
     }
     if (!canAfford) {
       canAfford = this.game.getCurrency() >= cost;
@@ -333,15 +333,12 @@ export class InventoryUI extends BaseDialogUI {
     (this.useButton as HTMLButtonElement).disabled = !canUse;
   }
   
-  private handleTabChange(tabId: string): void {
+  private handleTabChange(_tabId: string): void {
     this.game.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
     this.updateItemSlots();
   }
   
   private handleSlotClick(index: number): void {
-    const inventory = this.game.getInventory();
-    const item = inventory.getSlots()[index]?.item || null;
-    
     if (this.selectedSlotIndex === index) {
       // Deselect if clicking same slot
       this.selectedSlotIndex = null;
@@ -397,12 +394,8 @@ export class InventoryUI extends BaseDialogUI {
   }
   
   private handleUpgrade(): void {
-    const inventory = this.game.getInventory();
-    const cost = inventory.getUpgradeCost();
-    
-    if (this.game.getCurrency() >= cost) {
-      inventory.upgradeCapacity();
-      this.game.spendCurrency(cost);
+    const success = this.game.purchaseInventoryUpgrade();
+    if (success) {
       this.game.getAudioManager()?.playUISound(SoundType.UPGRADE);
       
       // Recreate slots with new capacity

@@ -137,7 +137,7 @@ export class UpgradeUI {
 
     const card = createCard({
       variant: 'default',
-      className: cn('space-y-3')
+      customClasses: ['space-y-3']
     });
 
     // Add header
@@ -181,7 +181,7 @@ export class UpgradeUI {
       this.refresh();
       
       // Play sound effect
-      this.game.getAudioManager().playSound(SoundType.UI_SELECT, 1);
+      this.game.getAudioManager().playSound(SoundType.SELECT, 1);
       
       // Notify any callbacks
       if (this.refreshCallback) {

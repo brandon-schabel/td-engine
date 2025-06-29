@@ -1,5 +1,5 @@
 import { cn } from '@/ui/styles/UtilityStyles';
-import { type InventoryItem, ItemRarity, ItemType, EquipmentSlot } from '@/systems/Inventory';
+import { type InventoryItem, ItemRarity, ItemType } from '@/systems/Inventory';
 import { FloatingUIManager, type FloatingUIElement } from '@/ui/floating/index';
 
 /**
@@ -9,7 +9,6 @@ import { FloatingUIManager, type FloatingUIElement } from '@/ui/floating/index';
 export class ItemTooltipUI {
   private floatingUI: FloatingUIManager;
   private element: FloatingUIElement | null = null;
-  private currentItem: InventoryItem | null = null;
   
   constructor(floatingUI: FloatingUIManager) {
     this.floatingUI = floatingUI;
@@ -20,13 +19,12 @@ export class ItemTooltipUI {
    */
   show(item: InventoryItem, x: number, y: number): void {
     this.hide();
-    this.currentItem = item;
     
     const content = this.createTooltipContent(item);
     
     this.element = this.floatingUI.create('item-tooltip', 'tooltip', {
       offset: { x: 10, y: 10 },
-      anchor: 'cursor',
+      anchor: 'top-left',
       smoothing: 0,
       autoHide: false,
       persistent: false,
@@ -67,7 +65,6 @@ export class ItemTooltipUI {
       this.floatingUI.remove('item-tooltip');
       this.element = null;
     }
-    this.currentItem = null;
   }
   
   /**

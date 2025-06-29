@@ -31,10 +31,15 @@ export abstract class BasePopupUI extends BaseFloatingUI {
   
   /**
    * Show the popup at specified coordinates or anchored to an element.
+   * Parameters are optional to match parent class signature.
    */
-  show(x: number, y: number, anchorElement?: HTMLElement): void {
-    this.position = { x, y };
-    this.anchorElement = anchorElement;
+  show(x?: number, y?: number, anchorElement?: HTMLElement): void {
+    if (x !== undefined && y !== undefined) {
+      this.position = { x, y };
+    }
+    if (anchorElement !== undefined) {
+      this.anchorElement = anchorElement;
+    }
     super.show();
   }
   
@@ -73,7 +78,7 @@ export abstract class BasePopupUI extends BaseFloatingUI {
       
       this.element = this.floatingUI.create(elementId, 'popup', {
         offset: this.options.offset || { x: 0, y: 0 },
-        anchor: 'custom',
+        anchor: 'center',
         smoothing: 0,
         autoHide: false,
         persistent: true,

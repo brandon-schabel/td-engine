@@ -396,7 +396,7 @@ export class WaveManager {
       
       // Calculate health based on scaling
       const stats = this.getEnemyStats(spawnItem.type);
-      let spawnHealth = stats.health;
+      let spawnHealth: number = stats.health;
       
       // Apply difficulty multiplier
       spawnHealth = Math.floor(spawnHealth * this.enemyHealthMultiplier);

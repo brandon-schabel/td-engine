@@ -22,6 +22,9 @@ export enum SoundType {
   DESELECT = 'deselect',
   ERROR = 'error',
   SUCCESS = 'success',
+  UI_TICK = 'ui_tick',
+  ITEM_USE = 'item_use',
+  ITEM_PICKUP = 'item_pickup',
 
   // Game state sounds
   WAVE_START = 'wave_start',

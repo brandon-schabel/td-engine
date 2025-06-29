@@ -759,7 +759,7 @@ export class MapGenerator {
     // Apply terrain cells first
     if (mapData.terrainCells) {
       mapData.terrainCells.forEach(cell => {
-        grid.setCellType(cell.x, cell.y, cell.type);
+        grid.setCellType(cell.x, cell.y, cell.type as CellType);
       });
     }
     

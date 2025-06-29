@@ -10,7 +10,6 @@
 import { FloatingUIManager, FloatingUIElement } from '@/ui/floating';
 import type { Game } from '@/core/Game';
 import { TowerUpgradeUI } from '@/ui/floating/TowerUpgradeUI';
-import { PlayerUpgradeUI } from '@/ui/floating/PlayerUpgradeUI';
 import { InventoryUI } from '@/ui/floating/InventoryUI';
 import { BuildMenuUI } from '@/ui/floating/BuildMenuUI';
 import { PauseMenuUI } from '@/ui/floating/PauseMenuUI';
@@ -39,7 +38,6 @@ export class UIController {
 
   // UI Component instances
   private towerUpgradeUI: TowerUpgradeUI | null = null;
-  private playerUpgradeUI: PlayerUpgradeUI | null = null;
   private upgradeUI: UpgradeUI | null = null;
   private inventoryUI: InventoryUI | null = null;
   private buildMenuUI: BuildMenuUI | null = null;
@@ -164,7 +162,6 @@ export class UIController {
       if (id === 'build-menu') {
         this.buildMenuUI = null;
       } else if (id === 'player-upgrade') {
-        this.playerUpgradeUI = null;
         this.upgradeUI = null;
       } else if (id === 'inventory') {
         this.inventoryUI = null;
@@ -212,7 +209,7 @@ export class UIController {
 
     // Set the callback first
     this.buildMenuUI.setTowerSelectCallback(onTowerSelect);
-    
+
     // For build menu, we'll pass the screen coordinates as world coordinates
     // The BuildMenuUI will handle the proper positioning above the control bar
     this.buildMenuUI.show(screenX, screenY, anchorElement);
@@ -240,7 +237,7 @@ export class UIController {
   /**
    * Show player upgrade UI
    */
-  public showPlayerUpgrade(player: Player, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement): void {
+  public showPlayerUpgrade(player: Player, screenPos?: { x: number; y: number }): void {
     // Use state manager to handle panel opening
     if (!this.stateManager.openPanel(UIPanelType.PLAYER_UPGRADE, { playerId: player.id, screenPos })) {
       return;
@@ -253,7 +250,7 @@ export class UIController {
     const upgradeManager = player.getPlayerUpgradeManager();
     this.upgradeUI = new UpgradeUI(this.game, upgradeManager);
     this.upgradeUI.show();
-    
+
     // Register with a custom wrapper that matches the expected interface
     const uiWrapper = {
       element: this.upgradeUI,
@@ -261,7 +258,7 @@ export class UIController {
       disable: () => this.upgradeUI?.hide(),
       enable: () => this.upgradeUI?.show()
     };
-    
+
     this.activeElements.set('player-upgrade', {
       id: 'player-upgrade',
       type: 'dialog',
@@ -274,7 +271,7 @@ export class UIController {
   /**
    * Show inventory UI
    */
-  public showInventory(screenPos?: { x: number; y: number }, anchorElement?: HTMLElement): void {
+  public showInventory(screenPos?: { x: number; y: number }): void {
     // Toggle inventory using state manager
     if (!this.stateManager.togglePanel(UIPanelType.INVENTORY, { screenPos })) {
       return;
@@ -287,7 +284,7 @@ export class UIController {
     }
 
     // Always create a new instance to ensure fresh state
-    this.inventoryUI = new InventoryUI(this.game, screenPos, anchorElement);
+    this.inventoryUI = new InventoryUI(this.game, screenPos);
     this.inventoryUI.show();
     this.register('inventory', this.inventoryUI, 'dialog');
   }
@@ -392,11 +389,10 @@ export class UIController {
 
     // Cleanup component instances
     this.towerUpgradeUI = null;
-    this.playerUpgradeUI = null;
     this.inventoryUI = null;
     this.buildMenuUI = null;
     this.pauseMenuUI = null;
-    
+
     // Reset state manager
     this.stateManager.reset();
   }
@@ -480,9 +476,9 @@ export class UIController {
     if (!indicator) {
       const buildIndicator = document.createElement('div');
       buildIndicator.id = 'build-mode-indicator';
-      
+
       const isMobile = 'ontouchstart' in window;
-      
+
       if (isMobile) {
         // Mobile version with cancel button
         buildIndicator.className = cn(
@@ -503,11 +499,11 @@ export class UIController {
           'px-4',
           'py-3'
         );
-        
+
         const text = document.createElement('span');
         text.className = cn('text-primary', 'text-sm');
         text.textContent = 'Tap to place tower';
-        
+
         const cancelButton = document.createElement('button');
         cancelButton.className = cn(
           'bg-danger',
@@ -525,7 +521,7 @@ export class UIController {
         cancelButton.onclick = () => {
           this.exitBuildMode();
         };
-        
+
         buildIndicator.appendChild(text);
         buildIndicator.appendChild(cancelButton);
       } else {
@@ -546,7 +542,7 @@ export class UIController {
         );
         buildIndicator.textContent = 'Place tower or press ESC to cancel';
       }
-      
+
       document.body.appendChild(buildIndicator);
     }
   }

@@ -118,7 +118,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     // Use UIController to show the player upgrade menu with anchor element
     const player = game.getPlayer();
     if (player) {
-      uiController.showPlayerUpgrade(player, screenPos, playerUpgradeBtnElement || undefined);
+      uiController.showPlayerUpgrade(player, screenPos);
     }
   };
 
@@ -139,7 +139,7 @@ export async function setupSimpleGameUI(game: Game, audioManager: AudioManager) 
     }
 
     // Use UIController to show the inventory with anchor element
-    uiController.showInventory(screenPos, inventoryBtnElement || undefined);
+    uiController.showInventory(screenPos);
   };
 
   // Show build menu using UIController

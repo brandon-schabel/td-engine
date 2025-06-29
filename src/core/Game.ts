@@ -656,15 +656,7 @@ export class Game {
       // Provide tower information to enemies for targeting decisions
       enemy.setTowers(this.towers);
       
-      // Provide nearby enemies for separation
-      const nearbyEnemies = this.enemies.filter(other => {
-        if (other === enemy || !other.isAlive) return false;
-        const distance = Math.sqrt(
-          Math.pow(enemy.position.x - other.position.x, 2) + 
-          Math.pow(enemy.position.y - other.position.y, 2)
-        );
-        return distance < 60; // Only consider enemies within 60 pixels (reduced from 100)
-      });
+      // Removed unused nearbyEnemies calculation for separation
       
       
       enemy.update(deltaTime, this.grid);
