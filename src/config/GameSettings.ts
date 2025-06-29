@@ -14,6 +14,12 @@ export interface GameSettings {
   showFPS: boolean;
   showFps: boolean; // Alias for compatibility
   particleEffects: boolean;
+  
+  // Advanced rendering options
+  enableShadows: boolean;
+  enableAntialiasing: boolean;
+  enableGlowEffects: boolean;
+  useLowQualityMode: boolean; // Single toggle for low quality
 
   // Gameplay settings
   autoPause: boolean;
@@ -51,6 +57,10 @@ export const DEFAULT_SETTINGS: GameSettings = {
   showFPS: false,
   showFps: false,
   particleEffects: true,
+  enableShadows: true,
+  enableAntialiasing: true,
+  enableGlowEffects: true,
+  useLowQualityMode: false,
   autoPause: true,
   showPathDebug: false,
   mapSize: 'MEDIUM',
@@ -132,22 +142,31 @@ export const MAP_SIZE_CONFIGS = {
 // Visual quality settings
 export const VISUAL_QUALITY_CONFIGS = {
   LOW: {
-    particleCount: 0.5,
+    particleCount: 0.3,  // Further reduced for better performance
     animationDetails: false,
     glowEffects: false,
-    targetFPS: 30
+    shadows: false,
+    antialiasing: false,
+    targetFPS: 30,
+    lodBias: 0.5  // More aggressive LOD
   },
   MEDIUM: {
     particleCount: 1.0,
     animationDetails: true,
     glowEffects: true,
-    targetFPS: 60
+    shadows: true,
+    antialiasing: true,
+    targetFPS: 60,
+    lodBias: 1.0  // Normal LOD
   },
   HIGH: {
     particleCount: 1.5,
     animationDetails: true,
     glowEffects: true,
-    targetFPS: 60
+    shadows: true,
+    antialiasing: true,
+    targetFPS: 60,
+    lodBias: 1.5  // Less aggressive LOD
   }
 } as const;
 
@@ -185,6 +204,18 @@ export class SettingsManager implements GameSettings {
 
   get particleEffects() { return this._settings.particleEffects; }
   set particleEffects(value) { this._settings.particleEffects = value; }
+
+  get enableShadows() { return this._settings.enableShadows; }
+  set enableShadows(value) { this._settings.enableShadows = value; }
+
+  get enableAntialiasing() { return this._settings.enableAntialiasing; }
+  set enableAntialiasing(value) { this._settings.enableAntialiasing = value; }
+
+  get enableGlowEffects() { return this._settings.enableGlowEffects; }
+  set enableGlowEffects(value) { this._settings.enableGlowEffects = value; }
+
+  get useLowQualityMode() { return this._settings.useLowQualityMode; }
+  set useLowQualityMode(value) { this._settings.useLowQualityMode = value; }
 
   get autoPause() { return this._settings.autoPause; }
   set autoPause(value) { this._settings.autoPause = value; }

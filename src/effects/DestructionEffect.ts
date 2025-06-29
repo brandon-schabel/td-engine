@@ -22,18 +22,21 @@ export class DestructionEffect {
   public age: number = 0;
   public maxAge: number;
   public isComplete: boolean = false;
+  private particleMultiplier: number = 1.0;
 
-  constructor(position: Vector2, type: EnemyType | 'tower') {
+  constructor(position: Vector2, type: EnemyType | 'tower', particleMultiplier: number = 1.0) {
     this.position = { ...position };
     this.type = type;
     this.maxAge = 1000; // 1 second
+    this.particleMultiplier = Math.max(0.1, particleMultiplier); // Ensure at least 10% particles
     
     this.createParticles();
   }
 
   private createParticles(): void {
-    const particleCount = this.type === EnemyType.TANK ? 20 : 
-                         this.type === EnemyType.FAST ? 10 : 15;
+    const baseParticleCount = this.type === EnemyType.TANK ? 20 : 
+                             this.type === EnemyType.FAST ? 10 : 15;
+    const particleCount = Math.max(1, Math.floor(baseParticleCount * this.particleMultiplier));
     
     for (let i = 0; i < particleCount; i++) {
       const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.5;
@@ -81,7 +84,8 @@ export class DestructionEffect {
     // Add special effects for specific types
     if (this.type === EnemyType.TANK) {
       // Add debris chunks for tank
-      for (let i = 0; i < 5; i++) {
+      const debrisCount = Math.max(1, Math.floor(5 * this.particleMultiplier));
+      for (let i = 0; i < debrisCount; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 30 + Math.random() * 50;
         

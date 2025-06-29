@@ -24,7 +24,7 @@ import { GAME_INIT } from "@/config/GameConfig";
 import { GAMEPLAY_CONSTANTS } from "@/config/GameplayConstants";
 import { INVENTORY_CONFIG, INVENTORY_UPGRADES } from "@/config/InventoryConfig";
 import { COLLECTIBLE_DROP_CHANCES } from "@/config/ItemConfig";
-import { loadSettings } from "@/config/GameSettings";
+import { loadSettings, VISUAL_QUALITY_CONFIGS } from "@/config/GameSettings";
 import { TextureManager } from "@/systems/TextureManager";
 import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { CAMERA_CONFIG } from "@/config/UIConfig";
@@ -240,6 +240,18 @@ export class Game {
       this.textureManager
     );
     this.renderer.setEnvironmentalEffects(this.currentMapData.effects);
+    
+    // Apply render settings from game settings
+    const settings = loadSettings();
+    const qualityConfig = VISUAL_QUALITY_CONFIGS[settings.visualQuality] || VISUAL_QUALITY_CONFIGS.MEDIUM;
+    this.renderer.updateRenderSettings({
+      enableShadows: settings.enableShadows,
+      enableAntialiasing: settings.enableAntialiasing,
+      enableGlowEffects: settings.enableGlowEffects,
+      enableParticles: settings.particleEffects,
+      useLowQualityMode: settings.useLowQualityMode,
+      lodBias: qualityConfig.lodBias || 1.0
+    });
     this.audioManager = new AudioManager();
     this.audioHandler = new GameAudioHandler(this.audioManager, this.camera);
     this.engine = new GameEngine();
@@ -820,8 +832,11 @@ export class Game {
     // Clean up dead entities (inlined from EntityCleaner)
     this.enemies = this.enemies.filter((enemy) => {
       if (!enemy.isAlive) {
-        // Create destruction effect
-        this.destructionEffects.push(enemy.createDestructionEffect());
+        // Create destruction effect with particle multiplier from visual quality settings
+        const settings = loadSettings();
+        const qualityConfig = VISUAL_QUALITY_CONFIGS[settings.visualQuality] || VISUAL_QUALITY_CONFIGS.MEDIUM;
+        const particleMultiplier = qualityConfig.particleCount || 1.0;
+        this.destructionEffects.push(enemy.createDestructionEffect(particleMultiplier));
         
         // Remove health bar when enemy dies
         const healthBarId = `healthbar_${enemy.id}`;
@@ -847,8 +862,11 @@ export class Game {
         // Play destruction sound
         this.audioHandler.playTowerDestroy(tower.position);
         
-        // Create destruction visual effect
-        this.createTowerDestructionEffect(tower);
+        // Create destruction visual effect with particle multiplier
+        const settings = loadSettings();
+        const qualityConfig = VISUAL_QUALITY_CONFIGS[settings.visualQuality] || VISUAL_QUALITY_CONFIGS.MEDIUM;
+        const particleMultiplier = qualityConfig.particleCount || 1.0;
+        this.destructionEffects.push(new DestructionEffect(tower.position, 'tower', particleMultiplier));
         
         // Remove health bar when tower dies
         const healthBarId = `healthbar_${tower.id}`;
@@ -2600,142 +2618,6 @@ export class Game {
     return this.uiController;
   }
 
-  /**
-   * Create visual destruction effect for tower
-   */
-  private createTowerDestructionEffect(tower: Tower): void {
-    // Create explosion particles
-    const particleCount = 15;
-    const colors = ['#ff6b6b', '#ffd166', '#f4a261', '#e76f51'];
-    
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 * i) / particleCount;
-      const speed = 100 + Math.random() * 100;
-      const lifetime = 500 + Math.random() * 500;
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      
-      // Create particle element
-      const particle = this.floatingUIManager.create(
-        `destruction-particle-${tower.id}-${i}`,
-        'custom',
-        {
-          persistent: false,
-          autoHide: false,
-          smoothing: 0,
-          className: 'destruction-particle'
-        }
-      );
-      
-      // Create particle visual
-      const particleEl = document.createElement('div');
-      particleEl.style.cssText = `
-        width: 8px;
-        height: 8px;
-        background-color: ${color};
-        border-radius: 50%;
-        position: absolute;
-        pointer-events: none;
-      `;
-      
-      particle.setContent(particleEl);
-      particle.setTarget(tower as any);
-      particle.enable();
-      
-      // Animate particle
-      let elapsed = 0;
-      const startTime = Date.now();
-      const velocity = {
-        x: Math.cos(angle) * speed,
-        y: Math.sin(angle) * speed
-      };
-      
-      const updateParticle = () => {
-        elapsed = Date.now() - startTime;
-        if (elapsed >= lifetime) {
-          this.floatingUIManager.remove(particle.id);
-          return;
-        }
-        
-        const progress = elapsed / lifetime;
-        const currentPos = {
-          x: tower.position.x + (velocity.x * elapsed) / 1000,
-          y: tower.position.y + (velocity.y * elapsed) / 1000
-        };
-        
-        // Update position
-        particle.setTarget({
-          position: currentPos,
-          getPosition: () => currentPos
-        } as any);
-        
-        // Fade out and shrink
-        particleEl.style.opacity = String(1 - progress);
-        particleEl.style.transform = `scale(${1 - progress * 0.5})`;
-        
-        requestAnimationFrame(updateParticle);
-      };
-      
-      requestAnimationFrame(updateParticle);
-    }
-    
-    // Create shockwave effect
-    const shockwave = this.floatingUIManager.create(
-      `destruction-shockwave-${tower.id}`,
-      'custom',
-      {
-        persistent: false,
-        autoHide: false,
-        smoothing: 0,
-        className: 'destruction-shockwave'
-      }
-    );
-    
-    const shockwaveEl = document.createElement('div');
-    shockwaveEl.style.cssText = `
-      width: ${tower.radius * 2}px;
-      height: ${tower.radius * 2}px;
-      border: 3px solid #ff6b6b;
-      border-radius: 50%;
-      position: absolute;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      opacity: 0.8;
-    `;
-    
-    shockwave.setContent(shockwaveEl);
-    shockwave.setTarget(tower as any);
-    shockwave.enable();
-    
-    // Animate shockwave
-    let shockwaveElapsed = 0;
-    const shockwaveStartTime = Date.now();
-    const shockwaveDuration = 600;
-    
-    const updateShockwave = () => {
-      shockwaveElapsed = Date.now() - shockwaveStartTime;
-      if (shockwaveElapsed >= shockwaveDuration) {
-        this.floatingUIManager.remove(shockwave.id);
-        return;
-      }
-      
-      const progress = shockwaveElapsed / shockwaveDuration;
-      const scale = 1 + progress * 2;
-      
-      shockwaveEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
-      shockwaveEl.style.opacity = String(0.8 * (1 - progress));
-      
-      requestAnimationFrame(updateShockwave);
-    };
-    
-    requestAnimationFrame(updateShockwave);
-    
-    // Show damage number indicating tower was destroyed
-    this.floatingUIManager.createDamageNumber(
-      tower,
-      0,
-      'critical'
-    );
-  }
   
   // Get problematic position cache statistics
   public getProblematicPositionStats(): { count: number, positions: string[] } {

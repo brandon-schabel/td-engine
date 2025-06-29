@@ -11,7 +11,15 @@ export const RENDER_SETTINGS = {
   enableParticles: true,
   enablePostProcessing: false,
   pixelPerfectRendering: false,
-  debugMode: false
+  debugMode: false,
+  // Dynamic settings that can be adjusted based on quality
+  dynamicSettings: {
+    shadows: true,
+    antialiasing: true,
+    particles: true,
+    glowEffects: true,
+    detailedAnimations: true
+  }
 } as const;
 
 // Zoom-aware rendering configuration
@@ -286,27 +294,27 @@ export const GRID_RENDER_DETAILS = {
 
 // Particle system configuration
 export const PARTICLE_CONFIG = {
-  maxParticles: 100,
-  defaultLifetime: 1000, // ms
+  maxParticles: 50, // Reduced from 100 for better performance
+  defaultLifetime: 800, // ms - reduced from 1000
   defaultSize: 3,
   defaultSpeed: 50,
   effects: {
     explosion: {
-      count: 20,
+      count: 10, // Reduced from 20
       speed: 100,
-      lifetime: 500,
+      lifetime: 400, // Reduced from 500
       colors: ['#FF4444', '#FF8844', '#FFAA44']
     },
     heal: {
-      count: 10,
+      count: 5, // Reduced from 10
       speed: 30,
-      lifetime: 1000,
+      lifetime: 800, // Reduced from 1000
       colors: ['#44FF44', '#88FF88']
     },
     powerUp: {
-      count: 15,
+      count: 8, // Reduced from 15
       speed: 40,
-      lifetime: 800,
+      lifetime: 600, // Reduced from 800
       colors: ['#4444FF', '#8888FF', '#AAAAFF']
     }
   }
@@ -340,15 +348,25 @@ export const ANIMATION_CONFIG = {
 export const RENDER_OPTIMIZATION = {
   culling: {
     enabled: true,
-    margin: 50 // pixels outside viewport to still render
+    margin: 25 // pixels outside viewport to still render (reduced from 50 for better performance)
   },
   batching: {
     enabled: true,
     maxBatchSize: 1000
   },
   LOD: {
-    enabled: false,
-    distances: [100, 300, 600]
+    enabled: true,
+    // Zoom-based LOD thresholds (defined in Renderer)
+    // high: 0.8x zoom = FULL detail
+    // medium: 0.5x zoom = MEDIUM detail  
+    // low: 0.35x zoom = LOW detail
+    // below 0.35x zoom = CULLED
+    levels: {
+      FULL: 0,      // Full detail (textures/SVGs, all effects)
+      MEDIUM: 1,    // Reduced detail (textures/SVGs, no target lines)
+      LOW: 2,       // Minimal detail (simple colored circles only)
+      CULLED: 3     // Not rendered
+    }
   }
 } as const;
 

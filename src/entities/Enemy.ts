@@ -294,8 +294,8 @@ export class Enemy extends Entity {
   }
 
   // Create destruction effect when enemy dies
-  createDestructionEffect(): DestructionEffect {
-    return new DestructionEffect(this.position, this.enemyType);
+  createDestructionEffect(particleMultiplier: number = 1.0): DestructionEffect {
+    return new DestructionEffect(this.position, this.enemyType, particleMultiplier);
   }
 
   // Pathfinding movement
