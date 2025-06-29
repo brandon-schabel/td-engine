@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-td",
+  "productName": "Wave TD",
   "version": "0.1.0",
-  "identifier": "com.tauri-td.app",
+  "identifier": "com.wavetd.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,9 +13,11 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "tauri-td",
-        "width": 800,
-        "height": 600
+        "title": "Wave TD",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
       }
     ],
     "security": {
@@ -31,6 +33,23 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "signingIdentity": "Developer ID Application: Brandon Schabel (H4AH97G9BM)",
+      "entitlements": "./entitlements.plist",
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "10.13",
+      "dmg": {
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        }
+      }
+    },
+    "iOS": {
+      "bundleVersion": "1",
+      "developmentTeam": "Developer ID Application: Brandon Schabel (H4AH97G9BM)",
+      "minimumSystemVersion": "13.0"
+    }
   }
 }

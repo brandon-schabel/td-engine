@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The OctoPrompt MCP provides comprehensive integration with the OctoPrompt project management system, offering 30+ specialized tools for managing projects, files, prompts, tickets, tasks, and AI-powered workflows directly from Claude.
 
-**TD Engine OctoPrompt Project Details:**
+**Wave TD OctoPrompt Project Details:**
 
 - **Project ID**: `1750564556414`
 
@@ -554,7 +554,7 @@ All gameplay values live in config files:
 ## Linear Integration
 
 - **Workspace**: BS Projects
-- **Projects**: TD Engine, OctoPrompt
+- **Projects**: Wave TD, OctoPrompt
 - Use MCP commands: `mcp__linear__list_issues`, `mcp__linear__create_issue`, etc.
 - Branch format: `username/td-123-feature-name`
 

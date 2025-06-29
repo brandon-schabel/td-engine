@@ -1,0 +1,196 @@
+name: 'Release'
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release-id: ${{ steps.create-release.outputs.id }}
+      upload-url: ${{ steps.create-release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: 'Wave TD ${{ steps.get_version.outputs.VERSION }}'
+          draft: true
+          prerelease: false
+          body: |
+            ## What's Changed
+            
+            ### Features
+            - 
+            
+            ### Bug Fixes
+            - 
+            
+            ### Full Changelog
+            https://github.com/${{ github.repository }}/compare/previous-tag...${{ steps.get_version.outputs.VERSION }}
+
+  build-macos:
+    needs: create-release
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+          
+      - name: Import macOS certificate
+        if: env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          
+          # Import certificate from secrets
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode --output $CERTIFICATE_PATH
+          
+          # Create temporary keychain
+          security create-keychain -p "$APPLE_CERTIFICATE_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$APPLE_CERTIFICATE_PASSWORD" $KEYCHAIN_PATH
+          
+          # Import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Allow codesign to access the certificate
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CERTIFICATE_PASSWORD" $KEYCHAIN_PATH
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Tauri app (Universal Binary)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENABLE_CODE_SIGNING: ${{ secrets.APPLE_CERTIFICATE != '' }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release-id }}
+          args: --target universal-apple-darwin
+          
+      - name: Clean up keychain
+        if: always() && env.APPLE_CERTIFICATE != ''
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
+          rm -f $RUNNER_TEMP/build_certificate.p12
+
+  build-ios:
+    needs: create-release
+    runs-on: macos-latest
+    if: false # Disabled until iOS is fully configured
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install iOS targets
+        run: |
+          rustup target add aarch64-apple-ios
+          rustup target add x86_64-apple-ios
+          rustup target add aarch64-apple-ios-sim
+          
+      - name: Import iOS certificates
+        if: env.IOS_CERTIFICATE != ''
+        env:
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/ios_certificate.p12
+          PROVISION_PATH=$RUNNER_TEMP/ios_provision.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/ios-signing.keychain-db
+          
+          # Import certificate
+          echo -n "$IOS_CERTIFICATE" | base64 --decode --output $CERTIFICATE_PATH
+          
+          # Import provisioning profile
+          echo -n "$IOS_MOBILE_PROVISION" | base64 --decode --output $PROVISION_PATH
+          
+          # Create temporary keychain
+          security create-keychain -p "ios-temp" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "ios-temp" $KEYCHAIN_PATH
+          
+          # Import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PROVISION_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Initialize iOS
+        run: npm run tauri ios init
+        
+      - name: Build iOS app
+        run: npm run tauri ios build
+        
+      - name: Upload iOS build
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload-url }}
+          asset_path: ./src-tauri/gen/apple/build/arm64/tauri-td.ipa
+          asset_name: Wave-TD-iOS.ipa
+          asset_content_type: application/octet-stream
+          
+      - name: Clean up keychain
+        if: always() && env.IOS_CERTIFICATE != ''
+        run: |
+          security delete-keychain $RUNNER_TEMP/ios-signing.keychain-db
+          rm -f $RUNNER_TEMP/ios_certificate.p12
+          rm -f $RUNNER_TEMP/ios_provision.mobileprovision
