@@ -23,9 +23,15 @@ interface GameStore {
   lives: number;
   score: number;
   
+  // Player state
+  playerHealth: number;
+  playerMaxHealth: number;
+  
   // Wave state
   currentWave: number;
   isWaveActive: boolean;
+  waveInProgress: boolean;
+  enemiesRemaining: number;
   nextWaveTime: number;
   
   // Game state
@@ -46,6 +52,10 @@ interface GameStore {
   startWave: (waveNumber: number) => void;
   endWave: () => void;
   setNextWaveTime: (time: number) => void;
+  setEnemiesRemaining: (count: number) => void;
+  
+  // Player actions
+  setPlayerHealth: (health: number, maxHealth?: number) => void;
   
   // Game control actions
   pauseGame: () => void;
@@ -75,8 +85,13 @@ export const gameStore = createStore<GameStore>()(
         lives: GAME_INIT.startingLives,
         score: GAME_INIT.startingScore,
         
+        playerHealth: 100,
+        playerMaxHealth: 100,
+        
         currentWave: 0,
         isWaveActive: false,
+        waveInProgress: false,
+        enemiesRemaining: 0,
         nextWaveTime: 0,
         
         isPaused: false,
@@ -131,6 +146,7 @@ export const gameStore = createStore<GameStore>()(
           set({
             currentWave: waveNumber,
             isWaveActive: true,
+            waveInProgress: true,
             nextWaveTime: 0
           });
         },
@@ -138,6 +154,8 @@ export const gameStore = createStore<GameStore>()(
         endWave: () => {
           set((state) => ({
             isWaveActive: false,
+            waveInProgress: false,
+            enemiesRemaining: 0,
             stats: {
               ...state.stats,
               wavesSurvived: state.stats.wavesSurvived + 1
@@ -147,6 +165,18 @@ export const gameStore = createStore<GameStore>()(
         
         setNextWaveTime: (time) => {
           set({ nextWaveTime: time });
+        },
+        
+        setEnemiesRemaining: (count) => {
+          set({ enemiesRemaining: count });
+        },
+        
+        // Player actions
+        setPlayerHealth: (health, maxHealth) => {
+          set((state) => ({
+            playerHealth: health,
+            playerMaxHealth: maxHealth !== undefined ? maxHealth : state.playerMaxHealth
+          }));
         },
         
         // Game control actions
@@ -171,8 +201,12 @@ export const gameStore = createStore<GameStore>()(
             currency: GAME_INIT.startingCurrency,
             lives: GAME_INIT.startingLives,
             score: GAME_INIT.startingScore,
+            playerHealth: 100,
+            playerMaxHealth: 100,
             currentWave: 0,
             isWaveActive: false,
+            waveInProgress: false,
+            enemiesRemaining: 0,
             nextWaveTime: 0,
             isPaused: false,
             isGameOver: false,

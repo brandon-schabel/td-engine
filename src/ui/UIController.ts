@@ -9,11 +9,6 @@
 
 import { FloatingUIManager, FloatingUIElement } from '@/ui/floating';
 import type { Game } from '@/core/Game';
-import { TowerUpgradeUI } from '@/ui/floating/TowerUpgradeUI';
-import { InventoryUI } from '@/ui/floating/InventoryUI';
-import { BuildMenuUI } from '@/ui/floating/BuildMenuUI';
-import { PauseMenuUI } from '@/ui/floating/PauseMenuUI';
-import { UpgradeUI } from '@/ui/UpgradeUI';
 import { uiStore, getUIState, UIPanelType } from '@/stores/uiStore';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
@@ -30,23 +25,14 @@ export interface UIElementInfo {
 }
 
 export class UIController {
-  private game: Game;
   private floatingUI: FloatingUIManager;
   private activeElements = new Map<string, UIElementInfo>();
   private escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  // UI Component instances
-  private towerUpgradeUI: TowerUpgradeUI | null = null;
-  private upgradeUI: UpgradeUI | null = null;
-  private inventoryUI: InventoryUI | null = null;
-  private buildMenuUI: BuildMenuUI | null = null;
-  private pauseMenuUI: PauseMenuUI | null = null;
-
   // Update tracking to prevent flickering
   private updateCache = new Map<string, any>();
 
-  constructor(game: Game) {
-    this.game = game;
+  constructor(private game: Game) {
     this.floatingUI = game.getFloatingUIManager();
     this.setupEscapeHandler();
     this.setupStateListeners();
@@ -63,7 +49,7 @@ export class UIController {
 
   private setupStateListeners(): void {
     // Listen for panel close events to sync with UI components
-    const unsubscribe = uiStore.subscribe(
+    uiStore.subscribe(
       (state) => state.panels,
       (panels, prevPanels) => {
         // Check for closed panels
@@ -76,7 +62,7 @@ export class UIController {
     );
 
     // Handle build mode changes
-    const buildModeUnsub = uiStore.subscribe(
+    uiStore.subscribe(
       (state) => state.isPanelOpen(UIPanelType.BUILD_MODE),
       (isOpen) => {
         if (isOpen) {
@@ -166,20 +152,6 @@ export class UIController {
       // Always remove from tracking, even if destroy failed
       this.activeElements.delete(id);
       this.updateCache.delete(id);
-
-      // Clear UI component references
-      if (id === 'build-menu') {
-        this.buildMenuUI = null;
-      } else if (id === 'player-upgrade') {
-        this.upgradeUI = null;
-      } else if (id === 'inventory') {
-        this.inventoryUI = null;
-      } else if (id === 'pause-menu') {
-        this.pauseMenuUI = null;
-      } else if (id === 'tower-upgrade') {
-        this.towerUpgradeUI = null;
-        // Note: We don't call clearSelectedTower here to avoid circular dependencies
-      }
     } catch (error) {
       console.error(`[UIController] Fatal error in close(${id}):`, error);
       // Ensure cleanup happens even on fatal error
@@ -194,51 +166,30 @@ export class UIController {
   public showBuildMenu(screenX: number, screenY: number, onTowerSelect: (type: TowerType) => void, anchorElement?: HTMLElement): void {
     // Check if build menu is already open
     if (this.isOpen('build-menu')) {
-      // Build menu is already open, just update position if needed
-      if (this.buildMenuUI) {
-        this.buildMenuUI.setTowerSelectCallback(onTowerSelect);
-        this.buildMenuUI.show(screenX, screenY, anchorElement);
-      }
+      // Build menu is already open, React will handle updates
       return;
     }
 
-    // Close any existing build menu UI first
-    if (this.buildMenuUI) {
-      this.buildMenuUI.destroy();
-      this.buildMenuUI = null;
-    }
-
-    // Use UI store to handle panel opening
+    // Use UI store to handle panel opening with metadata
     const store = getUIState();
-    store.openPanel(UIPanelType.BUILD_MENU, { screenX, screenY, onTowerSelect });
-
-    // Create new instance
-    this.buildMenuUI = new BuildMenuUI(this.game);
-
-    // Set the callback first
-    this.buildMenuUI.setTowerSelectCallback(onTowerSelect);
-
-    // For build menu, we'll pass the screen coordinates as world coordinates
-    // The BuildMenuUI will handle the proper positioning above the control bar
-    this.buildMenuUI.show(screenX, screenY, anchorElement);
-    this.register('build-menu', this.buildMenuUI, 'popup');
+    store.openPanel(UIPanelType.BUILD_MENU, { 
+      position: { x: screenX, y: screenY }, 
+      onTowerSelect,
+      anchorElement 
+    });
+    
+    // No need to create old UI instance - React will handle it
   }
 
   /**
    * Show tower upgrade UI for selected tower
    */
   public showTowerUpgrade(tower: Tower): void {
-    // Use UI store to handle panel opening
+    // Use UI store to handle panel opening with tower metadata
     const store = getUIState();
-    store.openPanel(UIPanelType.TOWER_UPGRADE, { towerId: tower.id });
-
-    // Close any existing tower upgrade UI
-    this.close('tower-upgrade');
-
-    // Always create a new TowerUpgradeUI instance
-    this.towerUpgradeUI = new TowerUpgradeUI(tower, this.game);
-
-    this.register('tower-upgrade', this.towerUpgradeUI, 'dialog');
+    store.openPanel(UIPanelType.TOWER_UPGRADE, { tower });
+    
+    // No need to create old UI instance - React will handle it
   }
 
   /**
@@ -247,31 +198,9 @@ export class UIController {
   public showPlayerUpgrade(player: Player, screenPos?: { x: number; y: number }): void {
     // Use UI store to handle panel opening
     const store = getUIState();
-    store.openPanel(UIPanelType.PLAYER_UPGRADE, { playerId: player.id, screenPos });
-
-    // Close any existing player upgrade UI
-    this.close('player-upgrade');
-
-    // Use the new UpgradeUI for the points-based upgrade system
-    const upgradeManager = player.getPlayerUpgradeManager();
-    this.upgradeUI = new UpgradeUI(this.game, upgradeManager);
-    this.upgradeUI.show();
-
-    // Register with a custom wrapper that matches the expected interface
-    const uiWrapper = {
-      element: this.upgradeUI,
-      destroy: () => this.upgradeUI?.destroy(),
-      disable: () => this.upgradeUI?.hide(),
-      enable: () => this.upgradeUI?.show()
-    };
-
-    this.activeElements.set('player-upgrade', {
-      id: 'player-upgrade',
-      type: 'dialog',
-      element: uiWrapper,
-      closeable: true,
-      persistent: false
-    });
+    store.openPanel(UIPanelType.PLAYER_UPGRADE, { player, screenPos });
+    
+    // No need to create old UI instance - React will handle it
   }
 
   /**
@@ -280,18 +209,9 @@ export class UIController {
   public showInventory(screenPos?: { x: number; y: number }): void {
     // Toggle inventory using UI store
     const store = getUIState();
-    store.togglePanel(UIPanelType.INVENTORY, { screenPos });
-
-    // If inventory is now closed, clean up
-    if (!store.isPanelOpen(UIPanelType.INVENTORY)) {
-      this.close('inventory');
-      return;
-    }
-
-    // Always create a new instance to ensure fresh state
-    this.inventoryUI = new InventoryUI(this.game, screenPos);
-    this.inventoryUI.show();
-    this.register('inventory', this.inventoryUI, 'dialog');
+    store.togglePanel(UIPanelType.INVENTORY, { position: screenPos });
+    
+    // No need to create old UI instance - React will handle it
   }
 
 
@@ -307,18 +227,19 @@ export class UIController {
     // Use UI store to handle panel opening
     const store = getUIState();
     store.openPanel(UIPanelType.PAUSE_MENU, options);
-
-    // Close any existing pause menu
-    this.close('pause-menu');
-
-    if (!this.pauseMenuUI) {
-      this.pauseMenuUI = new PauseMenuUI(this.game);
-    }
-
-    this.pauseMenuUI.show(options);
-    this.register('pause-menu', this.pauseMenuUI, 'dialog');
+    
+    // No need to create old UI instance - React will handle it
   }
 
+
+  /**
+   * Show game over UI
+   */
+  public showGameOver(): void {
+    // Use UI store to handle panel opening
+    const store = getUIState();
+    store.openPanel(UIPanelType.GAME_OVER);
+  }
 
   /**
    * Create a health bar for an entity
@@ -391,11 +312,7 @@ export class UIController {
       window.removeEventListener('keydown', this.escapeHandler);
     }
 
-    // Cleanup component instances
-    this.towerUpgradeUI = null;
-    this.inventoryUI = null;
-    this.buildMenuUI = null;
-    this.pauseMenuUI = null;
+    // React components handle their own cleanup
 
     // Reset UI store
     getUIState().closeAllPanels(true);

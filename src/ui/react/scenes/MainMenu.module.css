@@ -1,0 +1,92 @@
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes particleFloat {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-50px, -50px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1.5); }
+  50% { opacity: 0.3; transform: scale(1.8); }
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.backgroundGradient {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #16213e 75%, #1a1a2e 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+.particleOverlay {
+  background-image: radial-gradient(circle, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: particleFloat 20s linear infinite;
+}
+
+.logoFloat {
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.6));
+}
+
+.glowPulse {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+  animation: pulse 2s ease-in-out infinite;
+  transform: scale(1.5);
+}
+
+.titleGradient {
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.subtitleAnimate {
+  letter-spacing: 0.1em;
+  animation: fadeInUp 1s ease-out;
+}
+
+.buttonContainer {
+  animation: fadeInUp 0.8s ease-out 0.3s both;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.primaryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.secondaryButton {
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.secondaryButton:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  background-color: rgba(59, 130, 246, 0.1);
+}

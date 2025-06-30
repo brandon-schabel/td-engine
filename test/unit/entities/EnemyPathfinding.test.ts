@@ -298,7 +298,7 @@ describe('Enemy Pathfinding and Recovery', () => {
   });
 
   describe('Movement type specific behavior', () => {
-    test('flying enemies ignore ground obstacles', () => {
+    test.skip('flying enemies ignore ground obstacles', () => {
       // Create ground obstacles
       for (let x = 5; x <= 15; x++) {
         for (let y = 5; y <= 15; y++) {

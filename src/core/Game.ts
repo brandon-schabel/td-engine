@@ -20,7 +20,6 @@ import { DestructionEffect } from "@/effects/DestructionEffect";
 import type { Vector2 } from "@/utils/Vector2";
 import { SoundType, AudioManager } from "../audio/AudioManager";
 import { MapGenerator } from "@/systems/MapGenerator";
-import { GAME_INIT } from "@/config/GameConfig";
 import { GAMEPLAY_CONSTANTS } from "@/config/GameplayConstants";
 import { INVENTORY_CONFIG, INVENTORY_UPGRADES } from "@/config/InventoryConfig";
 import { COLLECTIBLE_DROP_CHANCES } from "@/config/ItemConfig";
@@ -48,10 +47,12 @@ import { ScoreManager, type GameStats } from "@/systems/ScoreManager";
 import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
 // Removed unused UIManager and PopupManager imports
-import { TowerUpgradeUI } from "@/ui/floating/TowerUpgradeUI";
 import { FloatingUIManager } from "@/ui/floating";
 import { UIController } from "@/ui/UIController";
 import { ProblematicPositionCache } from "@/systems/ProblematicPositionCache";
+import { gameStore } from "@/stores/gameStore";
+import { uiStore, UIPanelType } from "@/stores/uiStore";
+import { setupGameStoreEventBridge } from "@/stores/gameStoreEvents";
 import { HammerGestureManager } from "@/input/HammerGestureManager";
 // import { TerrainDebug } from "@/debug/TerrainDebug"; // Commented out - unused
 
@@ -71,10 +72,7 @@ export class Game {
   private enemyHealthMultiplier: number = 1.0;
   private enemySpeedMultiplier: number = 1.0;
 
-  // Inlined resource management for better performance
-  private currency: number = GAME_INIT.startingCurrency;
-  private lives: number = GAME_INIT.startingLives;
-  private score: number = GAME_INIT.startingScore;
+  // Resource management is now handled by gameStore
 
   // Game statistics tracking
   private gameStartTime: number = Date.now();
@@ -103,11 +101,11 @@ export class Game {
   private uiController: UIController;
   private powerUpDisplay: any = null; // Reference to PowerUpDisplay for notifications
   private playerLevelDisplay: any = null; // Reference to PlayerLevelDisplay for notifications
+  private cleanupStoreEvents: (() => void) | null = null; // Cleanup function for store event bridge
 
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
   private selectedTower: Tower | null = null;
-  private currentTowerUpgradeUI: TowerUpgradeUI | null = null;
   private mousePosition: Vector2 = { x: 0, y: 0 };
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
@@ -294,6 +292,12 @@ export class Game {
     this.floatingUIManager = new FloatingUIManager(canvas, this.camera);
     this.uiController = new UIController(this);
     
+    // Set up event bridge to dispatch DOM events when store changes
+    this.cleanupStoreEvents = setupGameStoreEventBridge();
+    
+    // Set up store subscriptions for game state
+    this.setupStoreSubscriptions();
+    
     // Initialize touch gesture manager for mobile/touch devices
     if ('ontouchstart' in window) {
       this.touchGestureManager = new HammerGestureManager(this, canvas);
@@ -326,6 +330,11 @@ export class Game {
     // Set up game loop callbacks
     this.engine.onUpdate(this.update.bind(this));
     this.engine.onRender(this.render.bind(this));
+
+    // Expose game instance to window for React UI access
+    if (typeof window !== 'undefined') {
+      (window as any).currentGame = this;
+    }
 
     // Start the game engine (unless disabled for testing)
     if (autoStart) {
@@ -395,6 +404,40 @@ export class Game {
         this.grid.setCellType(terrainCell.x, terrainCell.y, terrainCell.type as CellType);
       });
     }
+  }
+  
+  private setupStoreSubscriptions(): void {
+    // Subscribe to pause state changes
+    gameStore.subscribe(
+      (state) => state.isPaused,
+      (isPaused) => {
+        if (isPaused && !this.engine.isPaused()) {
+          this.pause();
+        } else if (!isPaused && this.engine.isPaused()) {
+          this.resume();
+        }
+      }
+    );
+    
+    // Subscribe to game over state
+    gameStore.subscribe(
+      (state) => state.isGameOver,
+      (isGameOver) => {
+        if (isGameOver && this.engine.getState() !== GameState.GAME_OVER) {
+          // Game over is handled by update loop when lives reach 0
+          // The store's isGameOver flag is already set
+        }
+      }
+    );
+    
+    // Subscribe to game speed changes
+    gameStore.subscribe(
+      (state) => state.gameSpeed,
+      (_gameSpeed) => {
+        // Game speed changes could be handled here if GameEngine supports it
+        // For now, store the speed in the store for UI display
+      }
+    );
   }
   
   private validateSpawnConnectivity(): void {
@@ -623,8 +666,8 @@ export class Game {
 
     // Update SpawnZoneManager
     const gameStateSnapshot: GameStateSnapshot = {
-      lives: this.lives,
-      score: this.score,
+      lives: gameStore.getState().lives,
+      score: gameStore.getState().score,
       waveNumber: this.waveManager.currentWave,
       enemyCount: this.enemies.length,
       towerCount: this.towers.length,
@@ -872,11 +915,11 @@ export class Game {
         const healthBarId = `healthbar_${tower.id}`;
         this.floatingUIManager.remove(healthBarId);
 
-        // If this was the selected tower with an open UI, close it
-        if (this.selectedTower === tower && this.currentTowerUpgradeUI) {
-          this.currentTowerUpgradeUI.destroy();
-          this.currentTowerUpgradeUI = null;
+        // If this was the selected tower, deselect it
+        if (this.selectedTower === tower) {
           this.selectedTower = null;
+          // Close tower upgrade UI if open
+          this.uiController.close('tower-upgrade');
         }
         
         // Clear grid cell
@@ -939,9 +982,9 @@ export class Game {
     const playerLevel = this.calculatePlayerLevel();
 
     const stats: GameStats = {
-      score: this.score,
+      score: gameStore.getState().score,
       wave: this.waveManager.currentWave,
-      currency: this.currency,
+      currency: gameStore.getState().currency,
       enemiesKilled: this.enemiesKilled,
       towersBuilt: this.towersBuilt,
       playerLevel,
@@ -1023,9 +1066,9 @@ export class Game {
 
     // Render UI
     this.renderer.renderUI(
-      this.currency,
-      this.lives,
-      this.score,
+      gameStore.getState().currency,
+      gameStore.getState().lives,
+      gameStore.getState().score,
       this.waveManager.currentWave
     );
 
@@ -1399,62 +1442,45 @@ export class Game {
 
   // Getters for game state (inlined for performance)
   getCurrency(): number {
-    return this.currency;
+    return gameStore.getState().currency;
   }
 
   getLives(): number {
-    return this.lives;
+    return gameStore.getState().lives;
   }
 
   getScore(): number {
-    return this.score;
+    return gameStore.getState().score;
   }
 
   // Inlined resource management methods
   private canAffordCurrency(cost: number): boolean {
-    return this.currency >= cost;
+    return gameStore.getState().canAfford(cost);
   }
 
   private spendCurrency(amount: number): void {
-    const oldCurrency = this.currency;
-    this.currency = Math.max(0, this.currency - amount);
-    // Dispatch currency changed event
-    const event = new CustomEvent('currencyChanged', { 
-      detail: { currency: this.currency, change: oldCurrency - this.currency } 
-    });
-    document.dispatchEvent(event);
+    gameStore.getState().spendCurrency(amount);
   }
 
   public addCurrency(amount: number): void {
-    this.currency += amount;
-    // Dispatch currency changed event
-    const event = new CustomEvent('currencyChanged', { 
-      detail: { currency: this.currency, change: amount } 
-    });
-    document.dispatchEvent(event);
+    gameStore.getState().addCurrency(amount);
   }
 
   // Public method for testing
   public setCurrency(amount: number): void {
-    const oldCurrency = this.currency;
-    this.currency = amount;
-    // Dispatch currency changed event
-    const event = new CustomEvent('currencyChanged', { 
-      detail: { currency: this.currency, change: amount - oldCurrency } 
-    });
-    document.dispatchEvent(event);
+    gameStore.setState({ currency: amount });
   }
 
   private loseLife(): void {
-    this.lives = Math.max(0, this.lives - 1);
+    gameStore.getState().loseLife(1);
   }
 
   private addScore(points: number): void {
-    this.score += points;
+    gameStore.getState().addScore(points);
   }
 
   private isGameOver(): boolean {
-    return this.lives <= 0;
+    return !gameStore.getState().isAlive();
   }
 
   getCurrentWave(): number {
@@ -1540,7 +1566,7 @@ export class Game {
 
   canUpgradeInventory(): boolean {
     const cost = this.getInventoryUpgradeCost();
-    return cost > 0 && this.currency >= cost;
+    return cost > 0 && gameStore.getState().currency >= cost;
   }
 
   purchaseInventoryUpgrade(): boolean {
@@ -1549,7 +1575,7 @@ export class Game {
     }
 
     const cost = this.getInventoryUpgradeCost();
-    this.currency -= cost;
+    gameStore.getState().spendCurrency(cost);
     this.inventoryUpgradesPurchased++;
 
     // Expand inventory
@@ -1743,11 +1769,17 @@ export class Game {
   pause(): void {
     this.engine.pause();
     this.floatingUIManager.pause();
+    // Update store state which will trigger React UI
+    gameStore.getState().pauseGame();
+    uiStore.getState().openPanel(UIPanelType.PAUSE_MENU);
   }
 
   resume(): void {
     this.engine.resume();
     this.floatingUIManager.resume();
+    // Update store state
+    gameStore.getState().resumeGame();
+    uiStore.getState().closePanel(UIPanelType.PAUSE_MENU);
   }
 
   start(): void {
@@ -1757,6 +1789,12 @@ export class Game {
   stop(): void {
     this.engine.stop();
     this.uiController.destroy();
+    
+    // Clean up store event bridge
+    if (this.cleanupStoreEvents) {
+      this.cleanupStoreEvents();
+      this.cleanupStoreEvents = null;
+    }
     
     // Clean up touch gesture manager
     if (this.touchGestureManager) {
@@ -2226,9 +2264,9 @@ export class Game {
     const playerLevel = this.calculatePlayerLevel();
 
     return {
-      score: this.score,
+      score: gameStore.getState().score,
       wave: this.waveManager.currentWave,
-      currency: this.currency,
+      currency: gameStore.getState().currency,
       enemiesKilled: this.enemiesKilled,
       towersBuilt: this.towersBuilt,
       playerLevel,

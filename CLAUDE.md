@@ -27,51 +27,54 @@ bun build        # Production build
 
 ## UI System Architecture
 
-### UI Element Abstractions
+### React Component System (Updated Jan 2025)
 
-The UI uses a utility-first CSS system with high-level element abstractions. **Always use these abstractions instead of manual DOM creation**:
+The UI uses pure React components with Tailwind v4 for styling. **Always use React components instead of DOM manipulation**:
 
 ```typescript
-// ✅ CORRECT - Use element abstractions
-import { createButton, createCard, createHeader, cn } from '@/ui/elements';
+// ✅ CORRECT - Use React components
+import { Button, Card, Header } from '@/ui/react/components';
+import { cn } from '@/lib/utils';
 
-const button = createButton({
-  text: 'Save',
-  variant: 'primary',
-  icon: IconType.SAVE,
-  onClick: handleSave
-});
+<Button 
+  variant="primary"
+  icon={IconType.SAVE}
+  onClick={handleSave}
+>
+  Save
+</Button>
 
-// ❌ WRONG - Don't create DOM manually
-const button = document.createElement('button');
-button.className = 'ui-button';
-button.style.backgroundColor = 'blue';
+// ❌ WRONG - Don't use DOM helpers or manual creation
+const button = createButton({ text: 'Save' });
+element.appendChild(button);
 ```
 
-**Available Elements:**
+**Available Components:**
 
-- **Buttons**: `createButton`, `createIconButton`, `createCloseButton`
-- **Cards**: `createCard`, `createStructuredCard`, `createClickableCard`  
-- **Headers**: `createHeader`, `createDialogHeader`, `createCompactHeader`
-- **Forms**: `createInput`, `createSelect`, `createToggle`, `createSlider`
-- **Display**: `createStatDisplay`, `createResourceDisplay`, `createIconContainer`
-- **Navigation**: `createTabBar`, `createTooltip`
+- **Buttons**: `Button`, `IconButton`, `CloseButton`
+- **Cards**: `Card`, `StructuredCard`, `CardHeader`, `CardBody`, `CardFooter`  
+- **Headers**: `Header`, `DialogHeader`, `CompactHeader`
+- **Forms**: `Input`, `Select`, `Toggle`, `Switch`, `Checkbox`, `Slider`
+- **Display**: `StatDisplay`, `ResourceDisplay`, `IconContainer`, `ProgressBar`
+- **Navigation**: `TabBar`, `Tooltip`
 
-### Styling Rules
+### Styling Rules (Tailwind v4)
 
-1. **Use utility classes** for all styling (400+ available in `UtilityStyles.ts`)
+1. **Use Tailwind utility classes** for all styling
 2. **NO inline styles** - Never use `element.style` or `style.cssText`
-3. **Compose utilities** - Build complex styles by combining utility classes
-4. **Design tokens** - All values come from configuration as CSS variables
+3. **Compose utilities** - Use `cn()` helper to merge classes
+4. **Design tokens** - Use Tailwind theme values (`bg-ui-bg-primary`, etc.)
 
 ```typescript
-// ✅ CORRECT - Utility classes
-element.className = cn('bg-surface-primary', 'p-4', 'rounded-lg', 'shadow-md');
+// ✅ CORRECT - Tailwind utilities
+className={cn('bg-ui-bg-primary', 'p-4', 'rounded-lg', 'shadow-md')}
 
-// ❌ WRONG - Inline styles
+// ❌ WRONG - Inline styles or old classes
 element.style.backgroundColor = '#333';
-element.style.padding = '16px';
+className="bg-surface-primary" // old utility system
 ```
+
+See `docs/REACT_MIGRATION.md` for migration guide from DOM helpers.
 
 ### FloatingUIManager & UIController
 
@@ -95,41 +98,31 @@ const element = floatingUI.createDialog({
 
 ### Creating New UI Components
 
-Follow this pattern for new UI:
+Follow React patterns for new UI:
 
 ```typescript
-export class NewDialogUI {
-  private game: Game;
-  private element: FloatingUIElement | null = null;
-  
-  show(): void {
-    const content = document.createElement('div');
-    content.className = cn('p-4', 'space-y-4');
-    
-    // Use element abstractions
-    const header = createHeader({
-      title: 'Section Title',
-      icon: IconType.INFO
-    });
-    
-    const button = createButton({
-      text: 'Confirm',
-      variant: 'primary',
-      onClick: () => this.handleAction()
-    });
-    
-    content.appendChild(header);
-    content.appendChild(button);
-    
-    // Create floating dialog
-    this.element = this.game.getFloatingUIManager().createDialog({
-      id: 'new-dialog',
-      title: 'Dialog Title',
-      content,
-      onClose: () => this.destroy()
-    });
-  }
-}
+// Create a React component
+export const NewDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  return (
+    <Modal isOpen={true} onClose={onClose}>
+      <Panel title="Dialog Title" icon={IconType.INFO} onClose={onClose}>
+        <div className={cn('p-4', 'space-y-4')}>
+          <Header title="Section Title" icon={IconType.INFO} />
+          
+          <Button 
+            variant="primary"
+            onClick={() => handleAction()}
+          >
+            Confirm
+          </Button>
+        </div>
+      </Panel>
+    </Modal>
+  );
+};
+
+// Register with UIController
+game.uiController.showDialog('new-dialog', <NewDialog />);
 ```
 
 ## Game Architecture
@@ -176,18 +169,29 @@ All gameplay values live in config files:
 
 ### New UI Dialog
 
-1. Create class extending pattern above
-2. Add to `UIController`
-3. Use element abstractions - NO custom CSS
+1. Create React component using shared components
+2. Add to `UIController` or use existing panels
+3. Use Tailwind utilities - NO custom CSS
+4. Follow patterns in `src/ui/react/components`
 
 ## Recent Changes (Keep Updated)
 
 1. **UI Refactor (Dec 2024)**: Migrated to utility-first CSS with element abstractions
-2. **Removed Systems**: PopupManager, DialogManager, UIManager (use FloatingUIManager)
-3. **CSS Cleanup**: Removed 90% of custom CSS classes
-4. **TypeScript**: Strict mode enforced, no `any` types allowed
-5. **Testing**: Unit tests only, no integration tests
-6. **Touch Gestures (Jan 2025)**: Added comprehensive touch gesture system
+2. **React Migration (Jan 2025)**: Converted DOM helpers to pure React components
+   - Set up Tailwind v4
+   - Created complete React component library
+   - Migrated all components from DOM manipulation to React
+   - See `docs/REACT_MIGRATION.md` for details
+3. **Scene System Migration (Jan 2025)**: Converted scene system to React
+   - Created React-based scene infrastructure (SceneContext, SceneRouter)
+   - Migrated all scenes to React components
+   - Added Framer Motion for scene transitions
+   - See `docs/REACT_SCENES.md` for details
+4. **Removed Systems**: PopupManager, DialogManager, UIManager (use FloatingUIManager)
+5. **CSS Cleanup**: Removed 90% of custom CSS classes, now using Tailwind v4
+6. **TypeScript**: Strict mode enforced, no `any` types allowed
+7. **Testing**: Unit tests only, no integration tests
+8. **Touch Gestures (Jan 2025)**: Added comprehensive touch gesture system
    - Swipe to pan camera
    - Pinch to zoom
    - Double tap to center on player

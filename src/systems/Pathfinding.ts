@@ -1,7 +1,7 @@
 import type { Vector2 } from '@/utils/Vector2';
 import type { Grid } from './Grid';
-import { CellType } from './Grid';
 import { MovementSystem, MovementType } from './MovementSystem';
+import PF from 'pathfinding';
 
 export interface PathNode {
   position: Vector2;
@@ -69,6 +69,16 @@ export class Pathfinding {
   ): PathfindingResult {
     const opts = { ...this.DEFAULT_OPTIONS, ...options };
 
+    // Handle special case where start equals goal
+    if (start.x === goal.x && start.y === goal.y) {
+      return {
+        path: [start],
+        success: true,
+        iterations: 0,
+        cost: 0
+      };
+    }
+
     const startGrid = grid.worldToGrid(start);
     const goalGrid = grid.worldToGrid(goal);
 
@@ -86,90 +96,65 @@ export class Pathfinding {
       return { path: [], success: false, iterations: 0, cost: 0 };
     }
 
-    const openSet: PathNode[] = [];
-    const closedSet = new Set<string>();
-    const nodeMap = new Map<string, PathNode>();
-
-    const startH = this.heuristic(start, goal);
-    const startNode: PathNode = {
-      position: start,
-      gridX: startGrid.x,
-      gridY: startGrid.y,
-      g: 0,
-      h: startH,
-      f: startH,
-      parent: null
-    };
-
-    openSet.push(startNode);
-    nodeMap.set(`${startGrid.x},${startGrid.y}`, startNode);
-
-    let iterations = 0;
-    let currentNode: PathNode | null = null;
-
-    while (openSet.length > 0 && iterations < opts.maxIterations) {
-      iterations++;
-
-      currentNode = this.getLowestFNode(openSet);
-
-      if (currentNode.gridX === goalGrid.x && currentNode.gridY === goalGrid.y) {
-        break;
-      }
-
-      const currentIndex = openSet.indexOf(currentNode);
-      openSet.splice(currentIndex, 1);
-      closedSet.add(`${currentNode.gridX},${currentNode.gridY}`);
-
-      const neighbors = this.getNeighbors(currentNode, grid, opts);
-
-      for (const neighbor of neighbors) {
-        const neighborKey = `${neighbor.gridX},${neighbor.gridY}`;
-
-        if (closedSet.has(neighborKey)) continue;
-
-        if (!this.isWalkableForMovementType(neighbor.gridX, neighbor.gridY, grid, opts.movementType)) continue;
-
-        const movementCost = MovementSystem.getMovementCost(
-          currentNode.position,
-          grid.gridToWorld(neighbor.gridX, neighbor.gridY),
-          grid,
-          opts.movementType
-        );
-        const tentativeG = currentNode.g + movementCost;
-
-        let neighborNode = nodeMap.get(neighborKey);
-        if (!neighborNode) {
-          neighborNode = {
-            position: grid.gridToWorld(neighbor.gridX, neighbor.gridY),
-            gridX: neighbor.gridX,
-            gridY: neighbor.gridY,
-            g: Infinity,
-            h: this.heuristic(grid.gridToWorld(neighbor.gridX, neighbor.gridY), goal),
-            f: Infinity,
-            parent: null
-          };
-          nodeMap.set(neighborKey, neighborNode);
-        }
-
-        if (tentativeG < neighborNode.g) {
-          neighborNode.parent = currentNode;
-          neighborNode.g = tentativeG;
-          neighborNode.f = neighborNode.g + neighborNode.h;
-
-          if (!openSet.includes(neighborNode)) {
-            openSet.push(neighborNode);
+    // Create a pathfinding grid from our game grid
+    const pfGrid = new PF.Grid(grid.width, grid.height);
+    
+    // Initialize walkability and movement costs
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const isWalkable = this.isWalkableForMovementType(x, y, grid, opts.movementType);
+        pfGrid.setWalkableAt(x, y, isWalkable);
+        
+        // Set weight based on movement cost
+        if (isWalkable) {
+          const cost = MovementSystem.getMovementCost(
+            grid.gridToWorld(x, y),
+            grid.gridToWorld(x, y),
+            grid,
+            opts.movementType
+          );
+          // PF.js uses weight where higher = more expensive
+          // Access the node using getNodeAt method
+          const node = pfGrid.getNodeAt(x, y);
+          if (node) {
+            node.weight = cost;
           }
         }
       }
     }
 
+    // Create finder with options
+    const finder = new PF.AStarFinder({
+      allowDiagonal: opts.allowDiagonal,
+      dontCrossCorners: true, // Prevent corner cutting
+      heuristic: PF.Heuristic.euclidean,
+      weight: 1 // Weight of heuristic vs actual cost
+    });
+
+    // Clone grid for thread safety (library modifies the grid during search)
+    const workingGrid = pfGrid.clone();
+    
+    // Find the path
+    const pathNodes = finder.findPath(startGrid.x, startGrid.y, goalGrid.x, goalGrid.y, workingGrid);
+
     let path: Vector2[] = [];
     let totalCost = 0;
 
-    if (currentNode && currentNode.gridX === goalGrid.x && currentNode.gridY === goalGrid.y) {
-      path = this.reconstructPath(currentNode);
-      totalCost = currentNode.g;
+    if (pathNodes.length > 0) {
+      // Convert grid coordinates back to world coordinates
+      path = pathNodes.map(node => grid.gridToWorld(node[0], node[1]));
+      
+      // Calculate total cost
+      for (let i = 0; i < path.length - 1; i++) {
+        totalCost += MovementSystem.getMovementCost(
+          path[i],
+          path[i + 1],
+          grid,
+          opts.movementType
+        );
+      }
 
+      // Apply path smoothing if requested
       if (opts.smoothPath && path.length > 2) {
         path = this.smoothPath(path, grid, opts);
       }
@@ -178,7 +163,7 @@ export class Pathfinding {
     const result: PathfindingResult = {
       path,
       success: path.length > 0,
-      iterations,
+      iterations: 0, // Library doesn't expose this
       cost: totalCost
     };
 
@@ -200,125 +185,7 @@ export class Pathfinding {
    */
   
 
-  /**
-   * Get valid neighbors for a node
-   */
-  private static getNeighbors(node: PathNode, grid: Grid, opts: Required<PathfindingOptions>): Array<{gridX: number, gridY: number}> {
-    const neighbors: Array<{gridX: number, gridY: number}> = [];
-    
-    // Cardinal directions
-    const cardinalDirs = [
-      { dx: 0, dy: -1 }, // Up
-      { dx: 1, dy: 0 },  // Right
-      { dx: 0, dy: 1 },  // Down
-      { dx: -1, dy: 0 }  // Left
-    ];
-    
-    // Diagonal directions
-    const diagonalDirs = [
-      { dx: -1, dy: -1 }, // Up-Left
-      { dx: 1, dy: -1 },  // Up-Right
-      { dx: 1, dy: 1 },   // Down-Right
-      { dx: -1, dy: 1 }   // Down-Left
-    ];
-    
-    // Add cardinal neighbors
-    for (const dir of cardinalDirs) {
-      const x = node.gridX + dir.dx;
-      const y = node.gridY + dir.dy;
-      if (grid.isInBounds(x, y)) {
-        neighbors.push({ gridX: x, gridY: y });
-      }
-    }
-    
-    // Add diagonal neighbors if allowed
-    if (opts.allowDiagonal) {
-      for (const dir of diagonalDirs) {
-        const x = node.gridX + dir.dx;
-        const y = node.gridY + dir.dy;
-        
-        // Check if diagonal movement is possible
-        if (grid.isInBounds(x, y)) {
-          const targetWalkable = this.isWalkableForMovementType(x, y, grid, opts.movementType);
-          
-          if (targetWalkable) {
-            // Check for corner cutting - but be more lenient with bridges
-            const xCardinal = grid.isInBounds(node.gridX + dir.dx, node.gridY);
-            const yCardinal = grid.isInBounds(node.gridX, node.gridY + dir.dy);
-            
-            if (xCardinal && yCardinal) {
-              const xCell = grid.getCellType(node.gridX + dir.dx, node.gridY);
-              const yCell = grid.getCellType(node.gridX, node.gridY + dir.dy);
-              const targetCell = grid.getCellType(x, y);
-              
-              // Allow diagonal movement if:
-              // 1. Both cardinal cells are walkable, OR
-              // 2. Target is a bridge (bridges connect water/land), OR
-              // 3. One cardinal is a bridge
-              const xWalkable = this.isWalkableForMovementType(node.gridX + dir.dx, node.gridY, grid, opts.movementType);
-              const yWalkable = this.isWalkableForMovementType(node.gridX, node.gridY + dir.dy, grid, opts.movementType);
-              
-              if ((xWalkable && yWalkable) || 
-                  targetCell === CellType.BRIDGE ||
-                  xCell === CellType.BRIDGE || 
-                  yCell === CellType.BRIDGE) {
-                neighbors.push({ gridX: x, gridY: y });
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    return neighbors;
-  }
 
-  /**
-   * Calculate movement cost between two nodes
-   */
-  
-  
-  /**
-   * Calculate penalty for being near obstacles
-   */
-  
-
-  /**
-   * Heuristic function for A* (Euclidean distance)
-   */
-  private static heuristic(a: Vector2, b: Vector2): number {
-    const dx = Math.abs(a.x - b.x);
-    const dy = Math.abs(a.y - b.y);
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  /**
-   * Get the node with the lowest f score from the open set
-   */
-  private static getLowestFNode(openSet: PathNode[]): PathNode {
-    let lowest = openSet[0];
-    for (let i = 1; i < openSet.length; i++) {
-      if (openSet[i].f < lowest.f) {
-        lowest = openSet[i];
-      }
-    }
-    return lowest;
-  }
-
-  /**
-   * Reconstruct the path from the goal node
-   */
-  private static reconstructPath(goalNode: PathNode): Vector2[] {
-    const path: Vector2[] = [];
-    let current: PathNode | null = goalNode;
-    
-    while (current) {
-      path.unshift(current.position);
-      current = current.parent;
-    }
-    
-    return path;
-  }
 
   /**
    * Smooth the path using line-of-sight checks and spline interpolation

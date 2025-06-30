@@ -109,7 +109,11 @@ export function getCurrentGameConfig(): SimpleGameConfig {
     pathComplexity: 'SIMPLE',
     mobileJoystickEnabled: true,
     hapticFeedbackEnabled: true,
-    touchControlsLayout: 'default'
+    touchControlsLayout: 'default',
+    enableShadows: true,
+    enableAntialiasing: true,
+    enableGlowEffects: true,
+    useLowQualityMode: false
   };
 
   return applySettingsToGame(defaultSettings);

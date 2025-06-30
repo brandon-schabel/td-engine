@@ -33,6 +33,17 @@
     }
 
     
+    #app-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
     #canvas-container {
       position: relative;
       flex: 1 1 auto;
@@ -660,6 +671,7 @@
 </head>
 <body>
   <div id="app-container"></div>
-  <script type="module" src="/src/main.ts"></script>
+  <div id="react-ui-root"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

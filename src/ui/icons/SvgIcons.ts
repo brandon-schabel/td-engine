@@ -134,7 +134,7 @@ const DEFAULT_OPTIONS: Required<SvgIconOptions> = {
 /**
  * SVG icon definitions
  */
-const ICON_PATHS: Record<IconType, string> = {
+export const ICON_PATHS: Record<IconType, string> = {
   // Tower Icons
   [IconType.BASIC_TOWER]: `
     <!-- Tower base -->

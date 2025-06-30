@@ -1,0 +1,13 @@
+// Game UI components
+export { GameUI } from './GameUI';
+export { ControlBar } from './ControlBar';
+export { TowerPlacementIndicator } from './TowerPlacementIndicator';
+export { PlayerLevelDisplay } from './PlayerLevelDisplay';
+
+// Other game components
+export { CurrencyDisplay } from './CurrencyDisplay';
+export { HealthDisplay } from './HealthDisplay';
+export { ScoreDisplay } from './ScoreDisplay';
+export { SimplePowerUpDisplay } from './SimplePowerUpDisplay';
+export { WaveInfoDisplay } from './WaveInfoDisplay';
+export { MobileControls } from './MobileControls';
