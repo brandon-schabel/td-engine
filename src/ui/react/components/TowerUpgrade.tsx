@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Panel, Button } from './shared';
+import { GlassCard } from './shared/Glass';
 import { IconContainer, InlineStats, type Stat } from './index';
 import { FloatingPanel } from './floating';
 import { cn } from '@/lib/utils';
@@ -224,13 +225,15 @@ export const TowerUpgrade: React.FC = () => {
             const canUpgrade = canAfford && !isMaxLevel;
             
             return (
-              <div
+              <GlassCard
                 key={upgrade.type}
+                variant="dark"
+                blur="sm"
+                padding="sm"
+                hover={canUpgrade}
                 className={cn(
-                  'flex items-center gap-3 p-3 rounded-lg',
-                  'bg-ui-bg-primary border border-ui-border-subtle',
-                  'transition-all duration-200',
-                  canUpgrade && 'hover:border-ui-border-active'
+                  'flex items-center gap-3',
+                  'transition-all duration-200'
                 )}
               >
                 <IconContainer
@@ -277,7 +280,7 @@ export const TowerUpgrade: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+              </GlassCard>
             );
           })}
         </div>

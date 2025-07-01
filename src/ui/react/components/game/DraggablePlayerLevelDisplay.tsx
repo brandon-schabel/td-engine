@@ -102,18 +102,15 @@ export const DraggablePlayerLevelDisplay: React.FC<DraggablePlayerLevelDisplayPr
       draggable={draggable}
       defaultPosition={calculatedDefaultPosition}
       persistent={true}
+      variant="glass-dark"
       className={cn(
-        '!p-0',
+        isMobile ? 'p-2' : 'p-3',
         showGlow && 'animate-golden-pulse'
       )}
-      style={{ backgroundColor: 'transparent' }}
       zIndex={500}
     >
       <div className={cn(
-        'glass-dark rounded-lg',
-        isMobile ? 'p-2' : 'p-3',
-        isMobile ? 'min-w-[120px]' : 'min-w-[200px]',
-        'pointer-events-auto'
+        isMobile ? 'min-w-[120px]' : 'min-w-[200px]'
       )}>
         {/* Level header */}
         <div className="flex items-center justify-between mb-2">

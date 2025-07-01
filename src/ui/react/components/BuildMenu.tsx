@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Panel } from './shared';
+import { GlassCard } from './shared/Glass';
 import { ResourceDisplay, Icon } from './index';
 import { FloatingPanel } from './floating';
 import { cn } from '@/lib/utils';
@@ -131,20 +132,20 @@ export const BuildMenu: React.FC = () => {
             const canAfford = currency >= tower.cost;
             
             return (
-              <button
+              <GlassCard
                 key={tower.type}
                 onClick={() => handleTowerSelect(tower)}
-                disabled={!canAfford}
+                variant="dark"
+                blur="md"
+                padding="sm"
+                hover={canAfford}
                 className={cn(
-                  'flex flex-col items-center gap-2 p-3',
-                  'rounded-lg border-2 transition-all duration-200',
-                  'hover:scale-105 active:scale-95',
+                  'flex flex-col items-center gap-2',
+                  'transition-all duration-200',
                   canAfford ? [
-                    'bg-ui-bg-secondary border-ui-border-subtle',
-                    'hover:border-ui-border-active hover:bg-ui-bg-primary',
-                    'cursor-pointer'
+                    'cursor-pointer',
+                    'hover:scale-105 active:scale-95'
                   ] : [
-                    'bg-ui-bg-secondary/50 border-ui-border-subtle/50',
                     'cursor-not-allowed opacity-50'
                   ]
                 )}
@@ -174,7 +175,7 @@ export const BuildMenu: React.FC = () => {
                     )}
                   />
                 </div>
-              </button>
+              </GlassCard>
             );
           })}
         </div>

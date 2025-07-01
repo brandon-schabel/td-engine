@@ -12,6 +12,7 @@ export interface SelectOption {
 export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size' | 'onChange'> {
   options: SelectOption[];
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'glass';
   error?: boolean;
   errorMessage?: string;
   icon?: IconType;
@@ -45,6 +46,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       className,
       options,
       size = 'md',
+      variant = 'default',
       error = false,
       errorMessage,
       icon,
@@ -69,9 +71,20 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     const selectClasses = cn(
       // Base styles
-      'w-full appearance-none bg-ui-bg-primary text-ui-text-primary',
+      'w-full appearance-none text-ui-text-primary',
       'border rounded-md transition-all duration-200 cursor-pointer',
-      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ui-bg-secondary',
+      'focus:outline-none focus:ring-2 focus:ring-offset-2',
+      
+      // Variant styles
+      variant === 'default' && [
+        'bg-ui-bg-primary',
+        'focus:ring-offset-ui-bg-secondary',
+      ],
+      variant === 'glass' && [
+        'bg-white/10',
+        'backdrop-blur-md',
+        'focus:ring-offset-transparent',
+      ],
       
       // Size styles
       sizeConfig.select,

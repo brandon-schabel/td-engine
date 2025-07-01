@@ -30,8 +30,8 @@ export const DraggableCurrencyDisplay: React.FC<DraggableCurrencyDisplayProps> =
       draggable={draggable}
       defaultPosition={defaultPosition}
       persistent={true}
-      className={cn('!p-0', className)}
-      style={{ backgroundColor: 'transparent' }}
+      variant="glass-dark"
+      className={className}
       zIndex={500}
     >
       <ResourceDisplay
@@ -41,7 +41,6 @@ export const DraggableCurrencyDisplay: React.FC<DraggableCurrencyDisplayProps> =
         variant="large"
         showLabel={true}
         format="currency"
-        className="glass-dark rounded-lg"
         tooltip="Your currency"
       />
     </DraggablePanel>

@@ -76,6 +76,13 @@ export class Renderer {
     }
     this.ctx = ctx;
 
+    // Scale the context by pixel ratio to handle high-DPI displays
+    // This ensures all drawing operations use logical coordinates
+    if (pixelRatio !== 1) {
+      ctx.scale(pixelRatio, pixelRatio);
+      console.log('[Renderer] Applied pixel ratio scaling:', pixelRatio);
+    }
+
     // Initialize terrain renderer
     this.terrainRenderer = new TerrainRenderer(ctx, grid, camera);
 
@@ -188,11 +195,13 @@ export class Renderer {
     if (backgroundColor) {
       this.ctx.fillStyle = backgroundColor;
       if (typeof this.ctx.fillRect === 'function') {
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // Use logical viewport dimensions, not pixel dimensions
+        this.ctx.fillRect(0, 0, this.viewportWidth, this.viewportHeight);
       }
     } else {
       if (typeof this.ctx.clearRect === 'function') {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Use logical viewport dimensions, not pixel dimensions
+        this.ctx.clearRect(0, 0, this.viewportWidth, this.viewportHeight);
       }
     }
   }
@@ -1671,14 +1680,14 @@ export class Renderer {
     // Semi-transparent overlay
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.fillRect(0, 0, this.viewportWidth, this.viewportHeight);
     }
 
     // Game Over text
     this.renderText(
       'GAME OVER',
-      this.canvas.width / 2,
-      this.canvas.height / 2,
+      this.viewportWidth / 2,
+      this.viewportHeight / 2,
       COLOR_CONFIG.ui.lives,
       '48px Arial',
       'center'
@@ -1707,14 +1716,14 @@ export class Renderer {
     // Semi-transparent overlay
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.fillRect(0, 0, this.viewportWidth, this.viewportHeight);
     }
 
     // Paused text
     this.renderText(
       'PAUSED',
-      this.canvas.width / 2,
-      this.canvas.height / 2,
+      this.viewportWidth / 2,
+      this.viewportHeight / 2,
       COLOR_CONFIG.ui.currency,
       '48px Arial',
       'center'
@@ -1755,11 +1764,11 @@ export class Renderer {
   }
 
   getCanvasWidth(): number {
-    return this.canvas.width;
+    return this.viewportWidth;
   }
 
   getCanvasHeight(): number {
-    return this.canvas.height;
+    return this.viewportHeight;
   }
 
   // Toggle debug mode

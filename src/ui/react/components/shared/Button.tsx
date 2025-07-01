@@ -4,7 +4,7 @@ import { IconType } from '@/ui/icons/SvgIcons';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'ghost' | 'glass';
   size?: 'sm' | 'md' | 'lg';
   icon?: IconType;
   iconPosition?: 'left' | 'right';
@@ -62,6 +62,16 @@ const buttonVariants = {
     'border border-transparent',
     'hover:bg-white/10',
     'active:scale-95',
+  ],
+  glass: [
+    'bg-white/10',
+    'text-white',
+    'border border-white/20',
+    'backdrop-blur-md',
+    'hover:bg-white/20',
+    'hover:border-white/30',
+    'active:scale-95',
+    'shadow-sm',
   ],
 };
 

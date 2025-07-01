@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Panel, Button } from './shared';
+import { Modal, Button } from './shared';
+import { GlassPanel } from './shared/Glass';
 import { StructuredCard } from './shared/Card';
 import { Icon, IconType } from './index';
 import { cn } from '@/lib/utils';
@@ -42,10 +43,31 @@ export const PlayerUpgrade: React.FC = () => {
   
   return (
     <Modal isOpen={true} onClose={handleClose}>
-      <Panel 
-        className={cn('min-w-[400px]', 'max-w-[500px]')}
-        onClose={handleClose}
+      <GlassPanel
+        variant="dark"
+        blur="xl"
+        opacity={90}
+        border={true}
+        glow={true}
+        className={cn('min-w-[400px]', 'max-w-[500px]', 'rounded-2xl', 'overflow-hidden')}
       >
+        <GlassPanel.Header className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+            <h2 className="text-xl font-semibold text-white">Player Upgrades</h2>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </GlassPanel.Header>
+        <GlassPanel.Body className="p-0">
         <div className={cn('flex', 'flex-col', 'h-full')}>
           {/* Header with available points */}
           <PointsHeader 
@@ -78,7 +100,8 @@ export const PlayerUpgrade: React.FC = () => {
             </Button>
           </div>
         </div>
-      </Panel>
+        </GlassPanel.Body>
+      </GlassPanel>
     </Modal>
   );
 };

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'onChange'> {
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'glass';
   error?: boolean;
   errorMessage?: string;
   icon?: IconType;
@@ -46,6 +47,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     {
       className,
       size = 'md',
+      variant = 'default',
       error = false,
       errorMessage,
       icon,
@@ -69,9 +71,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const inputClasses = cn(
       // Base styles
-      'w-full bg-ui-bg-primary text-ui-text-primary placeholder-ui-text-ui-text-secondary/50',
+      'w-full text-ui-text-primary placeholder-ui-text-ui-text-secondary/50',
       'border rounded-md transition-all duration-200',
-      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ui-bg-secondary',
+      'focus:outline-none focus:ring-2 focus:ring-offset-2',
+      
+      // Variant styles
+      variant === 'default' && [
+        'bg-ui-bg-primary',
+        'focus:ring-offset-ui-bg-secondary',
+      ],
+      variant === 'glass' && [
+        'bg-white/10',
+        'backdrop-blur-md',
+        'focus:ring-offset-transparent',
+      ],
       
       // Size styles
       sizeConfig.input,

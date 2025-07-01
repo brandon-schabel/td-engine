@@ -11,7 +11,6 @@ import { GameOver } from './components/GameOver';
 import { GameHUD } from './components/hud/GameHUD';
 import { GameNotificationsProvider } from './components/game/GameNotifications';
 import { DraggablePlayerLevelDisplay } from './components/game/DraggablePlayerLevelDisplay';
-import { DebugDraggable } from './components/DebugDraggable';
 
 /**
  * Main React UI component that manages all UI panels
@@ -32,9 +31,6 @@ export const AppUI: React.FC = () => {
 
   return (
     <GameNotificationsProvider>
-      {/* Debug draggable for testing */}
-      <DebugDraggable />
-      
       {/* HUD - Always visible during gameplay */}
       <GameHUD />
       

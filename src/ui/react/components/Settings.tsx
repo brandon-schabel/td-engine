@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Panel, Button, Slider, Toggle } from './shared';
+import { Modal, Button, Slider, Toggle } from './shared';
+import { GlassPanel } from './shared/Glass';
 import { cn } from '@/lib/utils';
 import { loadSettings, saveSettings, type GameSettings } from '@/config/GameSettings';
 import { uiStore, UIPanelType } from '@/stores/uiStore';
-import { IconType } from '@/ui/icons/SvgIcons';
 
 /**
  * Settings React component - Replaces InGameSettingsUI
@@ -52,13 +52,33 @@ export const Settings: React.FC = () => {
   }, []);
   
   return (
-    <Modal isOpen={true} onClose={handleClose}>
-      <Panel 
-        title="Settings" 
-        icon={IconType.SETTINGS}
-        onClose={handleClose}
-        className={cn('max-w-md', 'min-w-[400px]')}
+    <Modal isOpen={true} onClose={handleClose} overlayClassName="backdrop-blur-sm">
+      <GlassPanel
+        variant="dark"
+        blur="xl"
+        opacity={90}
+        border={true}
+        glow={true}
+        className={cn('max-w-md', 'min-w-[400px]', 'rounded-2xl', 'overflow-hidden')}
       >
+        <GlassPanel.Header className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <h2 className="text-xl font-semibold text-white">Settings</h2>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </GlassPanel.Header>
+        <GlassPanel.Body>
         <div className={cn('space-y-6')}>
           {/* Audio Settings Section */}
           <AudioSection 
@@ -73,7 +93,7 @@ export const Settings: React.FC = () => {
           />
           
           {/* Resume button */}
-          <div className={cn('pt-4', 'border-t', 'border-ui-border-DEFAULT', 'flex', 'justify-center')}>
+          <div className={cn('pt-4', 'border-t', 'border-white/10', 'flex', 'justify-center')}>
             <Button
               variant="primary"
               size="md"
@@ -83,7 +103,8 @@ export const Settings: React.FC = () => {
             </Button>
           </div>
         </div>
-      </Panel>
+        </GlassPanel.Body>
+      </GlassPanel>
     </Modal>
   );
 };
@@ -115,6 +136,7 @@ const AudioSection: React.FC<{
           value={Math.round(settings.masterVolume * 100)}
           onChange={(value) => onUpdate('masterVolume', value / 100)}
           showValue
+          valueFormatter={(v) => `${v}%`}
         />
       </div>
       
@@ -140,7 +162,7 @@ const GameplaySection: React.FC<{
   onUpdate: <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => void;
 }> = ({ settings, onUpdate }) => {
   return (
-    <div className={cn('space-y-4', 'pt-4', 'border-t', 'border-ui-border-DEFAULT')}>
+    <div className={cn('space-y-4', 'pt-4', 'border-t', 'border-white/10')}>
       <div className={cn('flex', 'items-center', 'gap-2', 'mb-4')}>
         <svg className={cn('w-5', 'h-5', 'text-white')} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />

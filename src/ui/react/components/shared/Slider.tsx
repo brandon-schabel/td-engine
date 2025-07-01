@@ -32,6 +32,18 @@ const sliderSizes = {
   },
 };
 
+// Extract thumb dimensions for style object
+const getThumbDimensions = (size: 'sm' | 'md' | 'lg') => {
+  switch (size) {
+    case 'sm':
+      return { width: '12px', height: '12px' };
+    case 'md':
+      return { width: '16px', height: '16px' };
+    case 'lg':
+      return { width: '20px', height: '20px' };
+  }
+};
+
 export const Slider = forwardRef<HTMLInputElement, SliderProps>(
   (
     {
@@ -64,6 +76,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     }, [value]);
 
     const sizeConfig = sliderSizes[size];
+    const thumbDimensions = getThumbDimensions(size);
     const percentage = ((Number(currentValue) - Number(min)) / (Number(max) - Number(min))) * 100;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,38 +122,17 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           disabled={disabled}
           onChange={handleChange}
           className={cn(
-            'relative w-full appearance-none bg-transparent cursor-pointer',
+            'slider-input relative w-full appearance-none bg-transparent cursor-pointer',
             'focus:outline-none',
             disabled && 'cursor-not-allowed opacity-50',
-            // Custom thumb styles
-            '[&::-webkit-slider-thumb]:appearance-none',
-            `[&::-webkit-slider-thumb]:${sizeConfig.thumb.split(' ').join(' [&::-webkit-slider-thumb]:')}`,
-            '[&::-webkit-slider-thumb]:rounded-full',
-            '[&::-webkit-slider-thumb]:bg-white',
-            '[&::-webkit-slider-thumb]:border-2',
-            '[&::-webkit-slider-thumb]:border-button-primary',
-            '[&::-webkit-slider-thumb]:shadow-md',
-            '[&::-webkit-slider-thumb]:transition-all',
-            '[&::-webkit-slider-thumb]:duration-200',
-            '[&::-webkit-slider-thumb]:hover:scale-110',
-            '[&::-webkit-slider-thumb]:active:scale-95',
-            // Firefox
-            '[&::-moz-range-thumb]:appearance-none',
-            `[&::-moz-range-thumb]:${sizeConfig.thumb.split(' ').join(' [&::-moz-range-thumb]:')}`,
-            '[&::-moz-range-thumb]:rounded-full',
-            '[&::-moz-range-thumb]:bg-white',
-            '[&::-moz-range-thumb]:border-2',
-            '[&::-moz-range-thumb]:border-button-primary',
-            '[&::-moz-range-thumb]:shadow-md',
-            '[&::-moz-range-thumb]:transition-all',
-            '[&::-moz-range-thumb]:duration-200',
-            '[&::-moz-range-thumb]:hover:scale-110',
-            '[&::-moz-range-thumb]:active:scale-95',
+            sizeConfig.track,
             className
           )}
           style={{
-            height: sizeConfig.track.replace('h-', '').replace(/(\d+)/, '$1').concat('rem'),
-          }}
+            // Custom CSS variables for thumb styling
+            '--thumb-width': thumbDimensions.width,
+            '--thumb-height': thumbDimensions.height,
+          } as React.CSSProperties}
           {...props}
         />
       </div>

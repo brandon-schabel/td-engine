@@ -106,6 +106,7 @@ export class Game {
   private mousePosition: Vector2 = { x: 0, y: 0 };
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
+  private debugMode: boolean = false; // Debug mode for coordinate logging
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
   private justSelectedTowerType: boolean = false; // Flag to prevent immediate placement after menu selection
   private firstRenderLogged: boolean = false;
@@ -336,6 +337,7 @@ export class Game {
         const cameraInfo = this.camera.getCameraInfo();
         console.log("Camera follow mode:", cameraInfo.followTarget ? "ENABLED" : "DISABLED");
         console.log("Press 'B' to check camera, 'N' to fix camera, 'Shift+V' to toggle visual debug");
+        console.log("Press 'M' to toggle mouse/coordinate debug logging");
         
         // Enable pathfinding debug based on settings
         const PathfindingDebug = (window as any).PathfindingDebug;
@@ -734,6 +736,17 @@ export class Game {
 
     // Update camera to follow player
     this.camera.update(this.player.position);
+    
+    // Debug logging for camera centering
+    if (this.debugMode && Math.random() < 0.1) { // Log every ~10 frames to avoid spam
+      const cameraCenter = this.camera.getViewportCenter();
+      console.log('[Camera Debug] Player pos:', this.player.position, 
+                  'Camera center:', cameraCenter,
+                  'Diff:', {
+                    x: Math.abs(this.player.position.x - cameraCenter.x),
+                    y: Math.abs(this.player.position.y - cameraCenter.y)
+                  });
+    }
 
     // Player manual shooting (click and hold)
     const playerProjectile = this.player.updateShooting();
@@ -1246,21 +1259,23 @@ export class Game {
   }
 
   handleMouseMove(event: MouseEvent): void {
-    // Get mouse position accounting for pixel ratio
+    // Get mouse position relative to canvas
     const rect = this.canvas.getBoundingClientRect();
-    const pixelRatio = window.devicePixelRatio || 1;
-
-    // Calculate position relative to canvas
+    
+    // Calculate position relative to canvas in CSS pixels
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Convert to actual canvas coordinates (accounting for CSS scaling)
-    const screenPos = {
-      x: x * (this.canvas.width / pixelRatio) / rect.width,
-      y: y * (this.canvas.height / pixelRatio) / rect.height
-    };
+    // The camera expects logical coordinates (CSS pixels), not physical pixels
+    // This matches how touch coordinates are handled in TouchInputManager
+    const screenPos = { x, y };
 
     const worldPos = this.camera.screenToWorld(screenPos);
+
+    // Debug logging
+    if (this.debugMode) {
+      console.log('[Mouse] Screen pos:', screenPos, 'World pos:', worldPos);
+    }
 
     // Update mouse position for ghost tower rendering
     this.mousePosition = worldPos;
@@ -1340,6 +1355,16 @@ export class Game {
         // Toggle visual debug mode
         this.renderer.setDebugMode(key === "V");
         console.log(`Visual debug mode: ${key === "V" ? "ON" : "OFF"}`);
+        break;
+      
+      case "m":
+      case "M":
+        // Toggle mouse/coordinate debug mode
+        this.debugMode = !this.debugMode;
+        console.log(`Coordinate debug mode: ${this.debugMode ? "ON" : "OFF"}`);
+        if (this.debugMode) {
+          console.log("Mouse coordinates will be logged to console");
+        }
         break;
         
       // Tower selection hotkeys

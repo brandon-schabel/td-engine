@@ -319,6 +319,15 @@ export class Camera {
     this.clampCameraPosition();
   }
 
+  // Get viewport dimensions
+  getViewportWidth(): number {
+    return this.viewportWidth;
+  }
+
+  getViewportHeight(): number {
+    return this.viewportHeight;
+  }
+
   // Get camera info for debugging/UI
   getCameraInfo(): {
     position: Vector2;

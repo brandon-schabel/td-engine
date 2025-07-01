@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Panel, Button } from './shared';
+import { Button } from './shared';
+import { GlassPanel } from './shared/Glass';
 import { TabBar } from './index';
 import { cn } from '@/lib/utils';
 import { IconType } from '@/ui/icons/SvgIcons';
@@ -104,12 +105,31 @@ export const Inventory: React.FC = () => {
       className={cn('fixed', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'z-[1000]')}
       style={{ pointerEvents: 'auto' }}
     >
-      <Panel
-        title="Inventory"
-        icon={IconType.INVENTORY}
-        onClose={handleClose}
-        className={cn('min-w-[600px]', 'max-w-[800px]')}
+      <GlassPanel
+        variant="dark"
+        blur="xl"
+        opacity={90}
+        border={true}
+        glow={true}
+        className={cn('min-w-[600px]', 'max-w-[800px]', 'rounded-2xl', 'overflow-hidden')}
       >
+        <GlassPanel.Header className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <h2 className="text-xl font-semibold text-white">Inventory</h2>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </GlassPanel.Header>
+        <GlassPanel.Body className="p-6">
         {/* Tab Navigation */}
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
         
@@ -127,7 +147,7 @@ export const Inventory: React.FC = () => {
         </div>
         
         {/* Footer with stats and actions */}
-        <div className={cn('mt-6', 'pt-4', 'border-t', 'border-ui-border-DEFAULT')}>
+        <div className={cn('mt-6', 'pt-4', 'border-t', 'border-white/10')}>
           {/* Stats Display */}
           <div className={cn('flex', 'justify-between', 'items-center', 'mb-4')}>
             <div className={cn('text-sm', 'text-ui-text-secondary')}>
@@ -171,7 +191,8 @@ export const Inventory: React.FC = () => {
             </Button>
           </div>
         </div>
-      </Panel>
+        </GlassPanel.Body>
+      </GlassPanel>
     </div>
   );
 };
@@ -212,7 +233,7 @@ const ItemGrid: React.FC<{
   onDrop: (index: number) => void;
 }> = ({ slots, totalSlots, activeTab, selectedSlotIndex, onSlotClick, onDragStart, onDrop }) => {
   return (
-    <div className={cn('grid', 'grid-cols-10', 'gap-2', 'p-4', 'bg-black/30', 'rounded-md')}>
+    <div className={cn('grid', 'grid-cols-10', 'gap-2', 'p-4', 'bg-white/5', 'rounded-lg', 'border', 'border-white/10')}>
       {Array.from({ length: totalSlots }).map((_, index) => {
         const item = index < slots.length ? slots[index]?.item : null;
         const visible = activeTab === 'ALL' || (item && item.type === activeTab) || false;

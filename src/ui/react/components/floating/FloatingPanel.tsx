@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   useDismiss,
   useRole,
-  useClick,
   useInteractions,
   FloatingOverlay,
   FloatingFocusManager,
 } from '@floating-ui/react';
 import { cn } from '@/lib/utils';
+import { GlassPanel } from '../shared/Glass';
 import { useFloatingUI, floatingPresets } from '../../hooks/floating';
 import { FloatingPortal } from './FloatingPortal';
 
@@ -147,7 +147,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     transform: 'translate(-50%, -50%)',
   } : {};
 
-  const finalStyles = placement === 'center' ? centerStyles : floatingStyles;
+  const finalStyles = placement === 'center' ? centerStyles : floatingStyles as React.CSSProperties;
 
   const content = (
     <AnimatePresence>
@@ -159,7 +159,6 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             zIndex,
           }}
           className={cn(
-            'glass-dark rounded-lg',
             'max-w-[90vw] max-h-[90vh]',
             'overflow-hidden',
             className
@@ -168,7 +167,16 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
           transition={{ duration: 0.2, ease: 'easeOut' }}
           {...getFloatingProps()}
         >
-          {children}
+          <GlassPanel
+            variant="dark"
+            blur="xl"
+            opacity={90}
+            border={true}
+            glow={true}
+            className="rounded-lg h-full"
+          >
+            {children}
+          </GlassPanel>
         </motion.div>
       )}
     </AnimatePresence>

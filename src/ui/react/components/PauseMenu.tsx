@@ -3,6 +3,7 @@ import { useGameStore } from '../hooks/useGameStore';
 import { uiStore, UIPanelType } from '@/stores/uiStore';
 import { gameStore } from '@/stores/gameStore';
 import { Button, IconType } from './index';
+import { GlassPanel } from './shared/Glass';
 import { SoundType } from '@/audio/AudioManager';
 
 /**
@@ -49,10 +50,17 @@ export const PauseMenu: React.FC = () => {
   
   return (
     <div 
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[10000]"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[10000]"
       style={{ pointerEvents: 'auto' }}
     >
-      <div className="bg-ui-bg-secondary p-8 rounded-lg shadow-xl text-center min-w-[400px] sm:min-w-[280px]">
+      <GlassPanel
+        variant="dark"
+        blur="xl"
+        opacity={85}
+        border={true}
+        glow={true}
+        className="p-8 rounded-2xl text-center min-w-[400px] sm:min-w-[280px] shadow-2xl"
+      >
         <h1 className="text-3xl font-bold text-white mb-6">
           Game Paused
         </h1>
@@ -101,14 +109,14 @@ export const PauseMenu: React.FC = () => {
         </div>
         
         {/* Game info */}
-        <div className="mt-5 p-4 rounded-md text-sm text-ui-text-secondary bg-black/30">
+        <div className="mt-5 p-4 rounded-lg text-sm text-ui-text-secondary bg-white/5 border border-white/10">
           <InfoItem label="Current Wave" value={currentWave} />
           <InfoItem label="Score" value={score.toLocaleString()} />
           <InfoItem label="Lives" value={lives} />
           <InfoItem label="Enemies Killed" value={stats.enemiesKilled} />
           <InfoItem label="Time Played" value={formatTime(stats.gameTime / 1000)} />
         </div>
-      </div>
+      </GlassPanel>
     </div>
   );
 };

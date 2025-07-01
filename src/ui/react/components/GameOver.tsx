@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Button } from './shared';
+import { GlassPanel } from './shared/Glass';
 import { cn } from '@/lib/utils';
 import { useGameStore } from '../hooks/useGameStore';
 import { uiStore, UIPanelType } from '@/stores/uiStore';
@@ -41,15 +42,21 @@ export const GameOver: React.FC = () => {
   
   return (
     <Modal isOpen={true} closeOnOverlayClick={false}>
-      <div className={cn(
-        'bg-ui-bg-secondary',
-        'p-8',
-        'rounded-lg',
-        'shadow-xl',
-        'text-center',
-        'min-w-[400px]',
-        'max-w-[500px]'
-      )}>
+      <GlassPanel
+        variant="dark"
+        blur="xl"
+        opacity={90}
+        border={true}
+        glow={true}
+        className={cn(
+          'p-8',
+          'rounded-2xl',
+          'shadow-2xl',
+          'text-center',
+          'min-w-[400px]',
+          'max-w-[500px]'
+        )}
+      >
         {/* Title */}
         <h1 className={cn('text-4xl', 'font-bold', 'text-danger-DEFAULT', 'mb-6')}>
           GAME OVER
@@ -99,7 +106,7 @@ export const GameOver: React.FC = () => {
             Main Menu
           </Button>
         </div>
-      </div>
+      </GlassPanel>
     </Modal>
   );
 };
@@ -115,7 +122,7 @@ const StatsDisplay: React.FC<{
       {stats.map((stat, index) => (
         <div 
           key={index}
-          className={cn('bg-ui-bg-tertiary', 'p-3', 'rounded-md')}
+          className={cn('bg-white/5', 'backdrop-blur-sm', 'border', 'border-white/10', 'p-3', 'rounded-lg')}
         >
           <div className={cn('text-sm', 'text-ui-text-secondary', 'mb-1')}>
             {stat.label}

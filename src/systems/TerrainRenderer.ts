@@ -218,16 +218,18 @@ export class TerrainRenderer {
     for (let x = startX; x <= endX; x++) {
       const worldX = x * cellSize;
       const screenX = this.camera.worldToScreen({ x: worldX, y: 0 }).x;
+      const viewportHeight = this.camera.getViewportHeight();
       this.ctx.moveTo(screenX, 0);
-      this.ctx.lineTo(screenX, this.ctx.canvas.height);
+      this.ctx.lineTo(screenX, viewportHeight);
     }
     
     // Horizontal lines
     for (let y = startY; y <= endY; y++) {
       const worldY = y * cellSize;
       const screenY = this.camera.worldToScreen({ x: 0, y: worldY }).y;
+      const viewportWidth = this.camera.getViewportWidth();
       this.ctx.moveTo(0, screenY);
-      this.ctx.lineTo(this.ctx.canvas.width, screenY);
+      this.ctx.lineTo(viewportWidth, screenY);
     }
     
     this.ctx.stroke();

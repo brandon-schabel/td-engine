@@ -10,6 +10,8 @@ export interface DraggablePanelProps extends Omit<SimpleDraggableWrapperProps, '
   usePortal?: boolean;
   /** Drag handle element (not yet implemented) */
   dragHandle?: React.ReactNode;
+  /** Glass effect variant */
+  variant?: 'glass' | 'glass-dark' | 'none';
 }
 
 /**
@@ -20,13 +22,20 @@ export const DraggablePanel: React.FC<DraggablePanelProps> = ({
   children,
   usePortal = false,
   dragHandle,
+  variant = 'none',
   className,
   ...wrapperProps
 }) => {
+  const variantClasses = {
+    'glass': 'glass rounded-lg',
+    'glass-dark': 'glass-dark rounded-lg',
+    'none': ''
+  };
+
   const content = (
     <SimpleDraggableWrapper
       className={cn(
-        'glass-dark rounded-lg',
+        variantClasses[variant],
         className
       )}
       {...wrapperProps}

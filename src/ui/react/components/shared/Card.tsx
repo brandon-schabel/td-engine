@@ -2,7 +2,7 @@ import React, { forwardRef, HTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'elevated' | 'outlined' | 'filled';
+  variant?: 'default' | 'elevated' | 'outlined' | 'filled' | 'glass';
   padding?: 'none' | 'sm' | 'md' | 'lg';
   hoverable?: boolean;
   clickable?: boolean;
@@ -27,6 +27,12 @@ const cardVariants = {
   filled: [
     'bg-ui-bg-secondary',
     'border border-ui-border-subtle',
+  ],
+  glass: [
+    'bg-white/10',
+    'backdrop-blur-md',
+    'border border-white/20',
+    'shadow-lg',
   ],
 };
 

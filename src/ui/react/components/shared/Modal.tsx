@@ -1,13 +1,14 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface ModalProps {
+export interface ModalProps {
   isOpen: boolean;
   onClose?: () => void;
   children: React.ReactNode;
   className?: string;
   overlayClassName?: string;
   closeOnOverlayClick?: boolean;
+  blurOverlay?: boolean;
 }
 
 /**
@@ -20,7 +21,8 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   className,
   overlayClassName,
-  closeOnOverlayClick = true
+  closeOnOverlayClick = true,
+  blurOverlay = true
 }) => {
   if (!isOpen) return null;
   
@@ -35,7 +37,8 @@ export const Modal: React.FC<ModalProps> = ({
       className={cn(
         'fixed', 
         'inset-0', 
-        'bg-black/70', 
+        'bg-black/50',
+        blurOverlay && 'backdrop-blur-sm', 
         'flex', 
         'items-center', 
         'justify-center', 

@@ -59,13 +59,25 @@ export const GameScene: React.FC<GameSceneProps> = () => {
 
         console.log('[GameScene] Map config:', mapConfig);
 
-        // Log canvas dimensions
-        console.log('[GameScene] Canvas dimensions:', {
-          width: canvasRef.current!.width,
-          height: canvasRef.current!.height,
-          clientWidth: canvasRef.current!.clientWidth,
-          clientHeight: canvasRef.current!.clientHeight,
-          style: canvasRef.current!.style.cssText
+        // Set up canvas dimensions BEFORE creating game
+        const rect = containerRef.current!.getBoundingClientRect();
+        const pixelRatio = window.devicePixelRatio || 1;
+        
+        // Set canvas pixel dimensions
+        canvasRef.current!.width = rect.width * pixelRatio;
+        canvasRef.current!.height = rect.height * pixelRatio;
+        
+        // Set canvas CSS dimensions
+        canvasRef.current!.style.width = rect.width + 'px';
+        canvasRef.current!.style.height = rect.height + 'px';
+
+        // Log canvas dimensions after setup
+        console.log('[GameScene] Canvas setup complete:', {
+          pixelWidth: canvasRef.current!.width,
+          pixelHeight: canvasRef.current!.height,
+          cssWidth: rect.width,
+          cssHeight: rect.height,
+          pixelRatio: pixelRatio
         });
 
         // Create game instance
@@ -144,30 +156,14 @@ export const GameScene: React.FC<GameSceneProps> = () => {
           }
         };
         
-        // Force initial resize after game starts
-        setTimeout(() => {
-          if (canvasRef.current && containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const pixelRatio = window.devicePixelRatio || 1;
-            
-            console.log('[GameScene] Forcing resize after init:', rect.width, 'x', rect.height);
-            console.log('[GameScene] Pixel ratio:', pixelRatio);
-            
-            // Set canvas pixel dimensions
-            canvasRef.current.width = rect.width * pixelRatio;
-            canvasRef.current.height = rect.height * pixelRatio;
-            
-            // Set canvas CSS dimensions
-            canvasRef.current.style.width = rect.width + 'px';
-            canvasRef.current.style.height = rect.height + 'px';
-            
-            // Update camera viewport with logical dimensions
-            const camera = game.getCamera();
-            if (camera) {
-              camera.updateViewport(rect.width, rect.height);
-            }
-          }
-        }, 100);
+        // Canvas is already sized properly, just ensure camera is centered
+        const camera = game.getCamera();
+        const player = game.getPlayer();
+        if (camera && player) {
+          // Force immediate camera centering on player
+          camera.centerOnTarget(player.position);
+          console.log('[GameScene] Camera centered on player at:', player.position);
+        }
       } catch (error) {
         console.error('[GameScene] Failed to initialize game:', error);
       }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button } from '../shared/Button';
+import { GlassPanel, GlassIconButton, GlassDivider } from '../shared/Glass';
+import { Icon } from '../shared/Icon';
 import { IconType } from '@/ui/icons/SvgIcons';
 import { cn } from '@/lib/utils';
 import type { Game } from '@/core/Game';
@@ -61,70 +62,85 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   };
 
   return (
-    <div className={cn(
-      'h-[60px]',
-      'bg-ui-bg-secondary/90 backdrop-blur-sm',
-      'border-t border-ui-border-DEFAULT',
-      'flex items-center justify-center gap-2 px-4',
-      'flex-shrink-0'
-    )}>
-      <Button
-        variant="primary"
-        size="md"
-        icon={IconType.BUILD}
+    <GlassPanel
+      variant="dark"
+      blur="lg"
+      opacity={85}
+      border={true}
+      glow={true}
+      className={cn(
+        'h-[60px]',
+        'border-t-0 border-l-0 border-r-0',
+        'border-b border-white/20',
+        'flex items-center justify-center gap-3 px-6',
+        'flex-shrink-0',
+        'rounded-t-2xl',
+        'relative',
+        'before:absolute before:inset-0 before:bg-gradient-to-t before:from-black/20 before:to-transparent before:pointer-events-none',
+        'shadow-[0_-10px_30px_rgba(0,0,0,0.3)]'
+      )}
+    >
+      <GlassIconButton
+        icon={<Icon type={IconType.BUILD} size={24} />}
+        size="lg"
+        blur="md"
         onClick={handleBuild}
         title="Build Menu (B)"
-        className="ui-button-control border-2 hover:scale-105 transition-transform"
+        className="hover:scale-110 hover:bg-primary/20 hover:border-primary/40"
       />
 
-      <Button
-        variant="primary"
-        size="md"
-        icon={IconType.PLAYER}
+      <GlassIconButton
+        icon={<Icon type={IconType.PLAYER} size={24} />}
+        size="lg"
+        blur="md"
         onClick={handlePlayerUpgrade}
         title="Player Upgrades (U)"
-        className="ui-button-control border-2 hover:scale-105 transition-transform"
+        className="hover:scale-110 hover:bg-primary/20 hover:border-primary/40"
       />
 
-      <Button
-        variant="primary"
-        size="md"
-        icon={IconType.INVENTORY}
+      <GlassIconButton
+        icon={<Icon type={IconType.INVENTORY} size={24} />}
+        size="lg"
+        blur="md"
         onClick={handleInventory}
         title="Inventory (E)"
-        className="ui-button-control border-2 hover:scale-105 transition-transform"
+        className="hover:scale-110 hover:bg-primary/20 hover:border-primary/40"
       />
 
-      <Button
-        variant="primary"
-        size="md"
-        icon={IconType.PLAY}
+      <GlassDivider orientation="vertical" className="h-8 mx-2" />
+
+      <GlassIconButton
+        icon={<Icon type={IconType.PLAY} size={24} />}
+        size="lg"
+        blur="md"
         onClick={handleStartWave}
         disabled={!isWaveComplete}
         title="Start Next Wave (Enter)"
         className={cn(
-          'ui-button-control border-2 hover:scale-105 transition-transform',
-          isWaveComplete && 'animate-pulse'
+          'hover:scale-110',
+          isWaveComplete && 'animate-pulse bg-success/20 border-success/40 hover:bg-success/30'
         )}
       />
 
-      <Button
-        variant="primary"
-        size="md"
-        icon={IconType.PAUSE}
+      <GlassIconButton
+        icon={<Icon type={IconType.PAUSE} size={24} />}
+        size="lg"
+        blur="md"
         onClick={handlePause}
         title="Pause/Resume (Space)"
-        className="ui-button-control border-2 hover:scale-105 transition-transform"
+        className="hover:scale-110 hover:bg-primary/20 hover:border-primary/40"
       />
 
-      <Button
-        variant="primary"
-        size="md"
-        icon={IconType.SETTINGS}
+      <GlassDivider orientation="vertical" className="h-8 mx-2" />
+
+      <GlassIconButton
+        icon={<Icon type={IconType.SETTINGS} size={24} />}
+        size="lg"
+        blur="md"
         onClick={handleSettings}
         title="Settings"
-        className="ui-button-control border-2 hover:scale-105 transition-transform"
+        className="hover:scale-110 hover:bg-primary/20 hover:border-primary/40"
       />
-    </div>
+    </GlassPanel>
   );
 };
