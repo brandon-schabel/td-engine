@@ -41,7 +41,6 @@ export const FloatingPortal: React.FC<FloatingPortalProps> = ({
       element.style.left = '0';
       element.style.width = '0';
       element.style.height = '0';
-      element.style.pointerEvents = 'none';
       element.style.zIndex = '9999';
       
       document.body.appendChild(element);

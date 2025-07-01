@@ -103,9 +103,10 @@ export const DraggablePlayerLevelDisplay: React.FC<DraggablePlayerLevelDisplayPr
       defaultPosition={calculatedDefaultPosition}
       persistent={true}
       className={cn(
-        '!p-0 !bg-transparent',
+        '!p-0',
         showGlow && 'animate-golden-pulse'
       )}
+      style={{ backgroundColor: 'transparent' }}
       zIndex={500}
     >
       <div className={cn(
