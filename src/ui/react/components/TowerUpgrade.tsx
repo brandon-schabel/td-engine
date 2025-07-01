@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Panel, Button } from "./shared";
-import { GlassCard } from "./shared/Glass";
-import { IconContainer, InlineStats, type Stat } from "./index";
-import { FloatingPanel } from "./floating";
+import { GlassCard, GlassPanel } from "./shared/Glass";
+import { IconContainer, InlineStats, type Stat, Icon } from "./index";
+import { FloatingPanel, FloatingPortal } from "./floating";
 import { cn } from "@/lib/utils";
 import { UpgradeType } from "@/entities/Tower";
 import type { Tower } from "@/entities/Tower";
@@ -11,6 +11,7 @@ import { uiStore, UIPanelType } from "@/stores/uiStore";
 import { useIsPanelOpen } from "../hooks/useUIStore";
 import { useGameStoreSelector } from "../hooks/useGameStore";
 import { SoundType } from "@/audio/AudioManager";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface UpgradeOption {
   type: UpgradeType;
@@ -32,11 +33,13 @@ export const TowerUpgrade: React.FC = () => {
   const currency = useGameStoreSelector((state) => state.currency);
   const isOpen = useIsPanelOpen(UIPanelType.TOWER_UPGRADE);
 
-  // Get tower from metadata
+  // Get tower and position from metadata
   const metadata = uiStore
     .getState()
     .getPanelMetadata(UIPanelType.TOWER_UPGRADE);
   const tower = metadata?.tower as Tower | undefined;
+  const screenPos = metadata?.screenPos as { x: number; y: number } | undefined;
+  const anchorElement = metadata?.anchorElement as HTMLElement | undefined;
 
   // Get game instance
   const game = (window as any).currentGame;
@@ -60,6 +63,8 @@ export const TowerUpgrade: React.FC = () => {
   if (!tower) return null;
 
   const handleClose = () => {
+    // Close the panel through UI store
+    uiStore.getState().closePanel(UIPanelType.TOWER_UPGRADE);
     game?.deselectTower();
   };
 
@@ -191,11 +196,180 @@ export const TowerUpgrade: React.FC = () => {
     { label: "Total Invested", value: totalInvested, icon: IconType.COINS },
   ];
 
+  // Determine if we're on mobile
+  const isMobile = window.innerWidth <= 768 || "ontouchstart" in window;
+
+  // For mobile, use a simple centered modal like BuildMenu
+  if (isMobile && isOpen && tower) {
+    return (
+      <FloatingPortal>
+        <AnimatePresence>
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50"
+              onClick={handleClose}
+            />
+
+            {/* Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="relative z-10 w-full max-w-[350px] max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GlassPanel
+                variant="dark"
+                blur="xl"
+                opacity={90}
+                border={true}
+                glow={true}
+                className="rounded-lg"
+              >
+                <Panel
+                  title="Tower Upgrade"
+                  icon={IconType.UPGRADE}
+                  onClose={handleClose}
+                  className="!bg-transparent"
+                >
+                  {/* Tower Info */}
+                  <div className="p-4 border-b border-ui-border-subtle">
+                    <div className="flex items-center gap-4">
+                      <IconContainer
+                        icon={tower.getIconType()}
+                        size="lg"
+                        className="bg-ui-bg-primary"
+                      />
+                      <div className="flex-1">
+                        <InlineStats stats={towerStats} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upgrade Options */}
+                  <div className="p-4 space-y-3">
+                    {getUpgradeOptions().map((upgrade) => {
+                      const canAfford = currency >= upgrade.cost;
+                      const isMaxLevel =
+                        upgrade.currentLevel >= upgrade.maxLevel;
+                      const canUpgrade = canAfford && !isMaxLevel;
+
+                      return (
+                        <GlassCard
+                          key={upgrade.type}
+                          variant="dark"
+                          blur="sm"
+                          padding="sm"
+                          hover={canUpgrade}
+                          className={cn(
+                            "flex items-center gap-3",
+                            "transition-all duration-200",
+                            "bg-black/95"
+                          )}
+                        >
+                          <IconContainer
+                            icon={upgrade.icon}
+                            size="md"
+                            className="bg-ui-bg-primary"
+                          />
+
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-white/90">
+                                {upgrade.name}
+                              </span>
+                              <span className="text-xs text-white/60">
+                                Lv. {upgrade.currentLevel}/{upgrade.maxLevel}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/60">
+                              {upgrade.effect}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Icon
+                                type={IconType.CURRENCY}
+                                size={12}
+                                className={cn(
+                                  "text-status-warning",
+                                  !canAfford && "text-status-error"
+                                )}
+                              />
+                              <span
+                                className={cn(
+                                  "text-xs font-medium",
+                                  canAfford
+                                    ? "text-status-warning"
+                                    : "text-status-error"
+                                )}
+                              >
+                                {upgrade.cost}
+                              </span>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={() => handleUpgrade(upgrade.type)}
+                            variant="primary"
+                            size="sm"
+                            disabled={!canUpgrade}
+                            icon={IconType.UPGRADE}
+                          >
+                            Upgrade
+                          </Button>
+                        </GlassCard>
+                      );
+                    })}
+                  </div>
+
+                  {/* Sell Section */}
+                  <div className="p-4 border-t border-ui-border-subtle">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-white/90">
+                          Sell Tower
+                        </div>
+                        <div className="text-xs text-white/60 flex items-center gap-1 mt-1">
+                          <Icon type={IconType.CURRENCY} size={12} />
+                          <span className="text-status-success">
+                            {sellValue}
+                          </span>
+                          <span className="text-white/40">(70% of cost)</span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleSell}
+                        variant="danger"
+                        size="sm"
+                        disabled={!sellButtonEnabled}
+                        icon={IconType.SELL}
+                        onMouseEnter={() => setSellButtonEnabled(true)}
+                        onMouseLeave={() => setSellButtonEnabled(false)}
+                      >
+                        {sellButtonEnabled ? "Confirm" : "Sell"}
+                      </Button>
+                    </div>
+                  </div>
+                </Panel>
+              </GlassPanel>
+            </motion.div>
+          </div>
+        </AnimatePresence>
+      </FloatingPortal>
+    );
+  }
+
+  // Desktop version - use FloatingPanel with anchor
   return (
     <FloatingPanel
-      open={isOpen}
+      open={isOpen && !!tower}
       onOpenChange={handleClose}
-      placement="center"
+      anchor={screenPos || anchorElement}
+      placement="bottom"
       modal={true}
       closeOnOutsideClick={true}
       closeOnEscape={true}
@@ -235,14 +409,14 @@ export const TowerUpgrade: React.FC = () => {
             return (
               <GlassCard
                 key={upgrade.type}
-                variant="dark"
+                // variant="dark"
                 blur="sm"
                 padding="sm"
                 hover={canUpgrade}
                 className={cn(
                   "flex items-center gap-3",
-                  "transition-all duration-200",
-                  "bg-black/95"
+                  "transition-all duration-200"
+                  // "bg-black/95"
                 )}
               >
                 <IconContainer

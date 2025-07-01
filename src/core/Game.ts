@@ -1837,11 +1837,26 @@ export class Game {
     this.selectedTower = tower;
     this.setSelectedTowerType(null); // Clear tower placement mode
 
-    // Use UIController to show tower upgrade UI
-    this.uiController.showTowerUpgrade(tower);
+    // Calculate screen position for tower
+    const camera = this.getCamera();
+    const screenPos = camera.worldToScreen(tower.position);
+    
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+    
+    if (isMobile) {
+      // On mobile, center the upgrade menu
+      this.uiController.showTowerUpgrade(tower, {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      });
+    } else {
+      // On desktop, position near the tower
+      this.uiController.showTowerUpgrade(tower, screenPos);
+    }
 
     // Debug logging
-    console.log(`[Game] Tower upgrade UI created for ${tower.towerType} at position:`, tower.position);
+    console.log(`[Game] Tower upgrade UI created for ${tower.towerType} at position:`, tower.position, 'screen:', screenPos);
 
     // Dispatch select event
     const selectEvent = new CustomEvent('towerSelected', {

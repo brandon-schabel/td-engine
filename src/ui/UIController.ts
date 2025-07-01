@@ -170,10 +170,10 @@ export class UIController {
   /**
    * Show tower upgrade UI for selected tower
    */
-  public showTowerUpgrade(tower: Tower): void {
+  public showTowerUpgrade(tower: Tower, screenPos?: { x: number; y: number }, anchorElement?: HTMLElement): void {
     // Use UI store to handle panel opening with tower metadata
     const store = getUIState();
-    store.openPanel(UIPanelType.TOWER_UPGRADE, { tower });
+    store.openPanel(UIPanelType.TOWER_UPGRADE, { tower, screenPos, anchorElement });
     
     // No need to create old UI instance - React will handle it
   }
