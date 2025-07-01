@@ -17,6 +17,7 @@ const createAppRouter = (audioManager: AudioManager) => {
     },
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
+    basepath: process.env.NODE_ENV === "production" ? "/td-engine" : "/",
   });
 };
 

@@ -14,8 +14,7 @@
     "tauri:ios:dev": "tauri ios dev",
     "tauri:ios:build": "tauri ios build",
     "test": "vitest",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "deploy": "bun run build && gh-pages -d dist"
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.2",

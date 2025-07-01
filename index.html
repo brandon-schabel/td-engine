@@ -12,6 +12,27 @@
       content="black-translucent"
     />
     <title>Wave TD</title>
+    <script type="text/javascript">
+      // GitHub Pages SPA routing support
+      (function () {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== location.href) {
+          history.replaceState(null, null, redirect);
+        }
+      })();
+
+      // Handle hash-based redirects from 404.html
+      (function () {
+        var l = window.location;
+        if (l.hash.startsWith("#/")) {
+          var redirectPath = l.hash.slice(1);
+          if (redirectPath !== l.pathname) {
+            history.replaceState(null, null, redirectPath + l.search);
+          }
+        }
+      })();
+    </script>
     <style>
       :root {
         --ui-bottom-height: 60px;

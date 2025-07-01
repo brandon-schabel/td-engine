@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TD Engine</title>
+    <script type="text/javascript">
+      // GitHub Pages SPA hack to handle client-side routing
+      // https://github.com/rafgraph/spa-github-pages
+      var pathPrefix = "/td-engine";
+      var l = window.location;
+      var redirectPath = l.pathname.slice(pathPrefix.length);
+
+      if (redirectPath) {
+        window.history.replaceState(
+          null,
+          null,
+          pathPrefix + "/#" + redirectPath + l.search + l.hash
+        );
+      }
+
+      window.location.replace(pathPrefix + "/");
+    </script>
+  </head>
+  <body></body>
+</html>
