@@ -13,6 +13,8 @@ import { PlayerPowerUps } from './player/PlayerPowerUps';
 import { PlayerLevelSystem } from './player/PlayerLevelSystem';
 import { PlayerUpgradeManager } from './player/PlayerUpgradeManager';
 import { calculateUpgradeCost, normalizeMovement } from '@/utils/MathUtils';
+import type { SerializedPlayer } from '@/types/SaveGame';
+import { serializeVector2, deserializeVector2 } from '@/types/SaveGame';
 
 export enum PlayerUpgradeType {
   DAMAGE = 'DAMAGE',
@@ -716,5 +718,68 @@ export class Player extends Entity implements ShootingCapable {
   
   isMobileInputActive(): boolean {
     return this.mobileInputMode;
+  }
+
+  // Serialization methods for save/load
+  serialize(): SerializedPlayer {
+    const upgrades: Record<PlayerUpgradeType, number> = {
+      [PlayerUpgradeType.DAMAGE]: this.getUpgradeLevel(PlayerUpgradeType.DAMAGE),
+      [PlayerUpgradeType.SPEED]: this.getUpgradeLevel(PlayerUpgradeType.SPEED),
+      [PlayerUpgradeType.FIRE_RATE]: this.getUpgradeLevel(PlayerUpgradeType.FIRE_RATE),
+      [PlayerUpgradeType.HEALTH]: this.getUpgradeLevel(PlayerUpgradeType.HEALTH),
+      [PlayerUpgradeType.REGENERATION]: this.getUpgradeLevel(PlayerUpgradeType.REGENERATION)
+    };
+
+    return {
+      id: this.id,
+      position: serializeVector2(this.position),
+      health: this.health,
+      maxHealth: this.maxHealth,
+      level: this.levelSystem.getLevel(),
+      experience: this.levelSystem.getExperience(),
+      nextLevelExperience: this.levelSystem.getExperienceToNextLevel(),
+      upgrades,
+      availableUpgradePoints: this.levelSystem.getAvailableUpgradePoints(),
+      movementSpeed: this.baseSpeed,
+      armor: 0 // Default armor value
+    };
+  }
+
+  static deserialize(data: SerializedPlayer, grid?: Grid): Player {
+    const player = new Player(deserializeVector2(data.position));
+    
+    // Restore ID
+    (player as any).id = data.id;
+    
+    // Restore grid
+    if (grid) {
+      player.setGrid(grid);
+    }
+    
+    // Restore health
+    player.health = data.health;
+    player.maxHealth = data.maxHealth;
+    
+    // Restore level and experience
+    const levelSystem = (player as any).levelSystem as PlayerLevelSystem;
+    // Use setLevelData to directly restore the level system state
+    levelSystem.setLevelData(
+      data.level,
+      data.experience,
+      data.experience, // totalExperience is same as experience in saved data
+      data.availableUpgradePoints
+    );
+    
+    // Restore upgrades
+    Object.entries(data.upgrades).forEach(([type, level]) => {
+      for (let i = 0; i < level; i++) {
+        player.upgrade(type as PlayerUpgradeType);
+      }
+    });
+    
+    // Restore movement speed
+    (player as any).baseSpeed = data.movementSpeed;
+    
+    return player;
   }
 }

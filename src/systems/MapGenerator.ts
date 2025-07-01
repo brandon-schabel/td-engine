@@ -15,7 +15,7 @@ import { PathGenerator } from './PathGenerator';
 import { TerrainGenerator } from './TerrainGenerator';
 import { EdgeType } from './SpawnZoneManager';
 import { Pathfinding } from './Pathfinding';
-import { MovementType } from './MovementSystem';
+import { MovementSystem, MovementType } from './MovementSystem';
 
 export class MapGenerator {
   private pathGenerator: PathGenerator;
@@ -389,13 +389,16 @@ export class MapGenerator {
     return spawnZones;
   }
 
-  private generatePlayerStartPosition(grid: Grid, _mainPath: MapData['paths'][0], _config: MapGenerationConfig): Vector2 {
+  private generatePlayerStartPosition(grid: Grid, _mainPath: MapData['paths'][0], config: MapGenerationConfig): Vector2 {
     // Place player at center of map by default
     const centerX = Math.floor(grid.width / 2);
     const centerY = Math.floor(grid.height / 2);
     
-    // Try to find a good empty spot near center
-    const searchRadius = 5;
+    // Create a mock entity to test walkability
+    const mockEntity = { movementType: MovementType.WALKING };
+    
+    // Try to find a walkable spot near center
+    const searchRadius = 10; // Increased search radius
     for (let radius = 0; radius <= searchRadius; radius++) {
       for (let dx = -radius; dx <= radius; dx++) {
         for (let dy = -radius; dy <= radius; dy++) {
@@ -403,15 +406,50 @@ export class MapGenerator {
             const x = centerX + dx;
             const y = centerY + dy;
             
-            if (grid.isInBounds(x, y) && grid.getCellType(x, y) === CellType.EMPTY) {
-              return { x, y };
+            if (grid.isInBounds(x, y)) {
+              const cellType = grid.getCellType(x, y);
+              // Check if the position is walkable for a walking entity
+              if (MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType)) {
+                // Also verify it's not blocked by obstacles or decorations
+                const worldPos = grid.gridToWorld(x, y);
+                if (MovementSystem.canEntityMoveTo(mockEntity as any, worldPos, grid)) {
+                  return { x, y };
+                }
+              }
             }
           }
         }
       }
     }
     
-    // Fallback to center
+    // Extended fallback: search entire map for ANY walkable position
+    console.warn('Could not find walkable position near center, searching entire map...');
+    const positions: Vector2[] = [];
+    
+    for (let y = 1; y < grid.height - 1; y++) {
+      for (let x = 1; x < grid.width - 1; x++) {
+        const cellType = grid.getCellType(x, y);
+        if (MovementSystem.canMoveOnTerrain(MovementType.WALKING, cellType)) {
+          positions.push({ x, y });
+        }
+      }
+    }
+    
+    // If we found walkable positions, pick one close to center
+    if (positions.length > 0) {
+      positions.sort((a, b) => {
+        const distA = Math.abs(a.x - centerX) + Math.abs(a.y - centerY);
+        const distB = Math.abs(b.x - centerX) + Math.abs(b.y - centerY);
+        return distA - distB;
+      });
+      
+      console.warn(`Found ${positions.length} walkable positions, using closest to center:`, positions[0]);
+      return positions[0];
+    }
+    
+    // Critical fallback - force clear a position if no walkable spots exist
+    console.error('No walkable positions found on map! Forcing center position to be walkable.');
+    grid.setCellType(centerX, centerY, CellType.EMPTY);
     return { x: centerX, y: centerY };
   }
 
@@ -752,7 +790,7 @@ export class MapGenerator {
       errors.push('No player start position defined');
     }
     
-    // Count available tower placement spaces
+    // Create grid for validation
     const grid = new Grid(mapData.metadata.width, mapData.metadata.height, cellSize);
     grid.setBiome(mapData.metadata.biome);
     
@@ -780,6 +818,14 @@ export class MapGenerator {
     
     // Set borders
     grid.setBorders();
+    
+    // Validate player start position is walkable now that grid is set up
+    if (mapData.playerStart) {
+      const playerCellType = grid.getCellType(mapData.playerStart.x, mapData.playerStart.y);
+      if (!MovementSystem.canMoveOnTerrain(MovementType.WALKING, playerCellType)) {
+        errors.push(`Player start position (${mapData.playerStart.x}, ${mapData.playerStart.y}) is not walkable - cell type: ${playerCellType}`);
+      }
+    }
     
     // Validate spawn point connectivity if requested and we have both spawn zones and player start
     if (validateSpawnConnectivity && mapData.spawnZones.length > 0 && mapData.playerStart) {

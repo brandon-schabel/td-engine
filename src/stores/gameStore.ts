@@ -278,8 +278,22 @@ export const gameStore = createStore<GameStore>()(
       {
         name: 'game-store',
         partialize: (state) => ({
-          // Only persist game stats between sessions
-          stats: state.stats
+          // Persist full game state for resume functionality
+          currency: state.currency,
+          lives: state.lives,
+          score: state.score,
+          playerHealth: state.playerHealth,
+          playerMaxHealth: state.playerMaxHealth,
+          currentWave: state.currentWave,
+          isWaveActive: state.isWaveActive,
+          waveInProgress: state.waveInProgress,
+          enemiesRemaining: state.enemiesRemaining,
+          nextWaveTime: state.nextWaveTime,
+          gameSpeed: state.gameSpeed,
+          stats: state.stats,
+          // Don't persist pause/game over states
+          // isPaused: state.isPaused,
+          // isGameOver: state.isGameOver,
         })
       }
     ),

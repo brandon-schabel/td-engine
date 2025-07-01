@@ -136,6 +136,7 @@ function PreGameConfig() {
     // Navigate to game
     navigate({
       to: "/game",
+      search: { resume: false },
     });
   };
 

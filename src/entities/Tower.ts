@@ -3,6 +3,8 @@ import { Enemy } from './Enemy';
 import { Projectile, ProjectileType } from './Projectile';
 import type { Vector2 } from '@/utils/Vector2';
 import { IconType } from '@/ui/icons/SvgIcons';
+import type { SerializedTower } from '@/types/SaveGame';
+import { serializeVector2, deserializeVector2 } from '@/types/SaveGame';
 
 export enum UpgradeType {
   DAMAGE = 'DAMAGE',
@@ -673,5 +675,44 @@ export class Tower extends Entity implements ShootingCapable {
       healthPercentage: this.health / this.maxHealth,
       isDestroyed: !this.isAlive
     };
+  }
+
+  // Serialization methods for save/load
+  serialize(): SerializedTower {
+    const upgradeLevels: Record<UpgradeType, number> = {
+      [UpgradeType.DAMAGE]: this.getUpgradeLevel(UpgradeType.DAMAGE),
+      [UpgradeType.RANGE]: this.getUpgradeLevel(UpgradeType.RANGE),
+      [UpgradeType.FIRE_RATE]: this.getUpgradeLevel(UpgradeType.FIRE_RATE)
+    };
+
+    return {
+      id: this.id,
+      type: this.towerType,
+      position: serializeVector2(this.position),
+      upgradeLevels,
+      health: this.health,
+      maxHealth: this.maxHealth,
+      totalInvestment: this.getTotalInvestment()
+    };
+  }
+
+  static deserialize(data: SerializedTower): Tower {
+    const tower = new Tower(data.type, deserializeVector2(data.position));
+    
+    // Restore ID
+    (tower as any).id = data.id;
+    
+    // Restore upgrades
+    Object.entries(data.upgradeLevels).forEach(([type, level]) => {
+      for (let i = 0; i < level; i++) {
+        tower.upgrade(type as UpgradeType);
+      }
+    });
+    
+    // Restore health
+    tower.health = data.health;
+    tower.maxHealth = data.maxHealth;
+    
+    return tower;
   }
 }

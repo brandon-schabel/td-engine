@@ -14,10 +14,14 @@ import {
 
 export const Route = createFileRoute("/game")({
   component: GameScene,
+  validateSearch: (search) => ({
+    resume: search.resume === true,
+  }),
 });
 
 function GameScene() {
   const navigate = useNavigate();
+  const { resume } = Route.useSearch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameWithEvents | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,6 +104,17 @@ function GameScene() {
 
         // Start the game
         game.start();
+        
+        // Load saved game if resuming
+        if (resume) {
+          console.log("[GameScene] Resuming saved game...");
+          const loaded = game.loadGameState();
+          if (!loaded) {
+            console.error("[GameScene] Failed to load saved game");
+            // Optional: Navigate back to main menu or show error
+          }
+        }
+        
         setIsGameInitialized(true);
 
         console.log("[GameScene] Game initialized successfully");

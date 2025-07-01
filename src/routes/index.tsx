@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { GlassPanel, GlassButton } from "@/ui/react/components/shared/Glass";
 import { Icon } from "@/ui/react/components/shared/Icon";
 import { IconType } from "@/ui/icons/SvgIcons";
 import { SoundType } from "@/audio/AudioManager";
 import { cn } from "@/lib/utils";
+import { getSaveGameMetadata } from "@/types/SaveGame";
 
 export const Route = createFileRoute("/")({
   component: MainMenu,
@@ -13,11 +14,33 @@ export const Route = createFileRoute("/")({
 function MainMenu() {
   const navigate = useNavigate();
   const { audioManager } = Route.useRouteContext();
+  const [hasSavedGame, setHasSavedGame] = useState(false);
+  const [saveMetadata, setSaveMetadata] = useState<ReturnType<typeof getSaveGameMetadata>>(null);
+
+  useEffect(() => {
+    // Check for saved game on mount
+    const savedGame = localStorage.getItem('hasSavedGame') === 'true';
+    setHasSavedGame(savedGame);
+    
+    if (savedGame) {
+      const metadata = getSaveGameMetadata();
+      setSaveMetadata(metadata);
+    }
+  }, []);
 
   const handleStartGame = () => {
     audioManager?.playUISound(SoundType.BUTTON_CLICK);
     navigate({
       to: "/pre-game",
+    });
+  };
+
+  const handleResumeGame = () => {
+    audioManager?.playUISound(SoundType.BUTTON_CLICK);
+    // Navigate to game with resume flag
+    navigate({
+      to: "/game",
+      search: { resume: true },
     });
   };
 
@@ -33,6 +56,13 @@ function MainMenu() {
     navigate({
       to: "/leaderboard",
     });
+  };
+
+  const formatPlayTime = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
   return (
@@ -91,14 +121,35 @@ function MainMenu() {
 
             {/* Menu buttons */}
             <div className="space-y-4">
+              {hasSavedGame && saveMetadata && (
+                <div className="space-y-2">
+                  <GlassButton
+                    size="lg"
+                    variant="primary"
+                    onClick={handleResumeGame}
+                    className="w-full h-14 text-lg font-semibold gap-3 text-white shadow-lg shadow-green-500/25 border-2 border-green-500/30 hover:border-green-500/50 transition-all duration-300"
+                  >
+                    <Icon type={IconType.PLAY} size={20} className="text-white" />
+                    Resume Game
+                  </GlassButton>
+                  <div className="text-xs text-white/60 text-center space-y-1">
+                    <div>Wave {saveMetadata?.gameTime ? Math.floor(saveMetadata.gameTime / 60000) : 0}</div>
+                    <div>Played for {formatPlayTime(saveMetadata?.realTimePlayed || 0)}</div>
+                  </div>
+                </div>
+              )}
+
               <GlassButton
                 size="lg"
-                variant="primary"
+                variant={hasSavedGame ? "secondary" : "primary"}
                 onClick={handleStartGame}
-                className="w-full h-14 text-lg font-semibold gap-3 text-white shadow-lg shadow-blue-500/25 border-2 border-blue-500/30 hover:border-blue-500/50 transition-all duration-300"
+                className={cn(
+                  "w-full h-14 text-lg font-semibold gap-3",
+                  !hasSavedGame && "text-white shadow-lg shadow-blue-500/25 border-2 border-blue-500/30 hover:border-blue-500/50 transition-all duration-300"
+                )}
               >
-                <Icon type={IconType.PLAY} size={20} className="text-white" />
-                Start Game
+                <Icon type={IconType.PLAY} size={20} className={!hasSavedGame ? "text-white" : ""} />
+                {hasSavedGame ? "New Game" : "Start Game"}
               </GlassButton>
 
               <GlassButton

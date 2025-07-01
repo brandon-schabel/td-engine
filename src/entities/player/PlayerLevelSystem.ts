@@ -97,6 +97,17 @@ export class PlayerLevelSystem {
     return leveledUp;
   }
 
+  /**
+   * Directly set the level system state (used for save/load)
+   */
+  setLevelData(level: number, experience: number, totalExperience: number, availableUpgradePoints: number): void {
+    this.level = Math.max(1, Math.min(level, PlayerLevelSystem.MAX_LEVEL));
+    this.experience = Math.max(0, experience);
+    this.totalExperience = Math.max(0, totalExperience);
+    this.availableUpgradePoints = Math.max(0, availableUpgradePoints);
+    this.totalUpgradePointsEarned = Math.max(this.availableUpgradePoints, this.totalUpgradePointsEarned);
+  }
+
   private levelUp(): void {
     this.level++;
     

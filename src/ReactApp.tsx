@@ -38,7 +38,7 @@ export const ReactApp: React.FC<ReactAppProps> = ({ audioManager }) => {
   React.useEffect(() => {
     const handleQuickStart = () => {
       console.log("[ReactApp] Quick start game triggered");
-      router.navigate({ to: "/game", search: {} });
+      router.navigate({ to: "/game", search: { resume: false } });
     };
 
     window.addEventListener("quickStartGame", handleQuickStart);

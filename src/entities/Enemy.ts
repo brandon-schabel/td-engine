@@ -10,6 +10,8 @@ import { COLOR_THEME } from '@/config/ColorTheme';
 import { ENEMY_RENDER } from '@/config/RenderingConfig';
 import { DestructionEffect } from '@/effects/DestructionEffect';
 import { Pathfinding } from '@/systems/Pathfinding';
+import type { SerializedEnemy } from '@/types/SaveGame';
+import { serializeVector2, deserializeVector2 } from '@/types/SaveGame';
 
 import { ProblematicPositionCache } from '@/systems/ProblematicPositionCache';
 
@@ -67,16 +69,21 @@ export class Enemy extends Entity {
 
 
 
+  private distanceTraveled: number = 0;
+  private speedMultiplier: number = 1.0;
+  private isBoss: boolean = false;
+
   constructor(
+    enemyType: EnemyType,
     position: Vector2,
-    health: number,
-    enemyType: EnemyType = EnemyType.BASIC,
-    speedMultiplier: number = 1.0
+    speedMultiplier: number = 1.0,
+    healthMultiplier: number = 1.0
   ) {
     const stats = ENEMY_STATS[enemyType];
-    super(EntityType.ENEMY, position, health || stats.health, stats.radius);
+    super(EntityType.ENEMY, position, stats.health * healthMultiplier, stats.radius);
 
     this.enemyType = enemyType;
+    this.speedMultiplier = speedMultiplier;
     this.speed = stats.speed * speedMultiplier;
     this.reward = stats.reward;
     this.damage = stats.damage;
@@ -719,6 +726,47 @@ export class Enemy extends Entity {
       this.velocity.x = (this.velocity.x / currentSpeed) * speed;
       this.velocity.y = (this.velocity.y / currentSpeed) * speed;
     }
+  }
+
+  // Serialization methods for save/load
+  serialize(): SerializedEnemy {
+    return {
+      id: this.id,
+      type: this.enemyType,
+      position: serializeVector2(this.position),
+      health: this.health,
+      maxHealth: this.maxHealth,
+      pathIndex: this.currentPathIndex,
+      distanceTraveled: this.distanceTraveled || 0,
+      speedMultiplier: this.speedMultiplier || 1,
+      isBoss: this.isBoss || false
+    };
+  }
+
+  static deserialize(data: SerializedEnemy, grid?: Grid): Enemy {
+    const enemy = new Enemy(
+      data.type,
+      deserializeVector2(data.position),
+      data.speedMultiplier || 1,
+      data.maxHealth / ENEMY_STATS[data.type].health // Calculate health multiplier
+    );
+    
+    // Restore ID
+    (enemy as any).id = data.id;
+    
+    // Restore state
+    enemy.health = data.health;
+    enemy.maxHealth = data.maxHealth;
+    (enemy as any).currentPathIndex = data.pathIndex;
+    (enemy as any).distanceTraveled = data.distanceTraveled;
+    (enemy as any).isBoss = data.isBoss;
+    
+    // Set grid if provided
+    if (grid) {
+      enemy.setGrid(grid);
+    }
+    
+    return enemy;
   }
 
 }

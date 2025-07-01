@@ -93,6 +93,14 @@ export class WaveManager {
     this.useDynamicSpawning = enable;
   }
 
+  isInfiniteWavesEnabled(): boolean {
+    return this.infiniteWavesEnabled;
+  }
+
+  getInfiniteWaveGenerator(): InfiniteWaveGenerator | undefined {
+    return this.infiniteWaveGenerator;
+  }
+
   setDifficultyMultipliers(healthMultiplier: number, speedMultiplier: number): void {
     this.enemyHealthMultiplier = healthMultiplier;
     this.enemySpeedMultiplier = speedMultiplier;
@@ -104,10 +112,6 @@ export class WaveManager {
     if (enable && !this.infiniteWaveGenerator) {
       this.infiniteWaveGenerator = new InfiniteWaveGenerator(config);
     }
-  }
-
-  getInfiniteWaveGenerator(): InfiniteWaveGenerator | undefined {
-    return this.infiniteWaveGenerator;
   }
 
   setDefaultSpawnPattern(pattern: SpawnPattern): void {
@@ -408,10 +412,10 @@ export class WaveManager {
       }
       
       const enemy = new Enemy(
-        adjustedSpawnPoint,
-        spawnHealth,
-        spawnItem.type,
-        this.enemySpeedMultiplier  // Pass speed multiplier
+        spawnItem.type,             // enemyType (first parameter)
+        adjustedSpawnPoint,         // position (second parameter)
+        this.enemySpeedMultiplier,  // speedMultiplier (third parameter)
+        spawnHealth / ENEMY_STATS[spawnItem.type].health  // healthMultiplier (fourth parameter)
       );
       
       this.enemiesInWave.push(enemy);

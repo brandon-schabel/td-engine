@@ -1344,7 +1344,27 @@ export class Renderer {
     if (!effect || effect.isComplete) return;
     // Only render particles if enabled
     if (this.renderSettings.enableParticles) {
+      // Convert effect's world position to screen position
+      const screenPos = this.camera.worldToScreen(effect.position);
+      const zoom = this.camera.getZoom();
+      
+      // Save context state
+      this.ctx.save();
+      
+      // Translate to screen position of the effect
+      this.ctx.translate(screenPos.x, screenPos.y);
+      
+      // Apply zoom scaling
+      this.ctx.scale(zoom, zoom);
+      
+      // Translate back by the world position so particles render relative to origin
+      this.ctx.translate(-effect.position.x, -effect.position.y);
+      
+      // Render the effect (particles will be in world coordinates relative to effect position)
       effect.render(this.ctx);
+      
+      // Restore context state
+      this.ctx.restore();
     }
   }
 

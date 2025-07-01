@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useGameStore } from "../hooks/useGameStore";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
 import { gameStore } from "@/stores/gameStore";
@@ -12,6 +12,7 @@ import { SoundType } from "@/audio/AudioManager";
  */
 export const PauseMenu: React.FC = () => {
   const { currentWave, score, lives, stats } = useGameStore();
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   // Get the game instance from window (set in Game.ts)
   const game = (window as any).currentGame;
@@ -42,6 +43,25 @@ export const PauseMenu: React.FC = () => {
     game?.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
     // TODO: Implement main menu navigation
     uiStore.getState().closePanel(UIPanelType.PAUSE_MENU);
+  };
+
+  const handleSaveGame = () => {
+    game?.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+    if (game) {
+      game.saveGameState();
+      setSaveMessage("Game saved successfully!");
+      // Clear message after 3 seconds
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
+  };
+
+  const handleSaveAndQuit = () => {
+    game?.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
+    if (game) {
+      game.saveGameState();
+      // Navigate to main menu
+      window.location.href = '/';
+    }
   };
 
   const formatTime = (seconds: number): string => {
@@ -80,6 +100,16 @@ export const PauseMenu: React.FC = () => {
           </Button>
 
           <Button
+            onClick={handleSaveGame}
+            icon={IconType.SAVE}
+            variant="secondary"
+            size="lg"
+            fullWidth
+          >
+            Save Game
+          </Button>
+
+          <Button
             onClick={handleSettings}
             icon={IconType.SETTINGS}
             variant="secondary"
@@ -100,15 +130,22 @@ export const PauseMenu: React.FC = () => {
           </Button>
 
           <Button
-            onClick={handleMainMenu}
+            onClick={handleSaveAndQuit}
             icon={IconType.HOME}
             variant="secondary"
             size="lg"
             fullWidth
           >
-            Main Menu
+            Save & Quit
           </Button>
         </div>
+
+        {/* Save message */}
+        {saveMessage && (
+          <div className="mt-2 p-2 bg-green-500/20 border border-green-500/50 rounded-lg">
+            <span className="text-sm text-green-400">{saveMessage}</span>
+          </div>
+        )}
 
         {/* Game info */}
         <div className="mt-5 p-4 rounded-lg text-sm text-ui-text-secondary text-shadow-sm bg-white/5 border border-white/10">

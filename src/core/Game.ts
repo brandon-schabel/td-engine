@@ -11,7 +11,6 @@ import { Camera, type CameraOptions } from "@/systems/Camera";
 import { CameraDiagnostics } from "@/systems/CameraDiagnostics";
 import { Tower, TowerType, UpgradeType } from "@/entities/Tower";
 import { Enemy, EnemyType } from "@/entities/Enemy";
-import { EntityType } from "@/entities/Entity";
 import { Projectile } from "@/entities/Projectile";
 import { Player, PlayerUpgradeType } from "@/entities/Player";
 import { Collectible } from "@/entities/Collectible";
@@ -53,6 +52,8 @@ import { gameStore } from "@/stores/gameStore";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
 import { setupGameStoreEventBridge } from "@/stores/gameStoreEvents";
 import { HammerGestureManager } from "@/input/HammerGestureManager";
+import type { SerializedGameState } from "@/types/SaveGame";
+import { SAVE_VERSION, isValidSaveGame, serializeVector2, deserializeVector2 } from "@/types/SaveGame";
 // import { TerrainDebug } from "@/debug/TerrainDebug"; // Commented out - unused
 
 
@@ -111,6 +112,11 @@ export class Game {
   private justSelectedTowerType: boolean = false; // Flag to prevent immediate placement after menu selection
   private firstRenderLogged: boolean = false;
   private lastPlayerPosition: Vector2 | null = null; // Track player position for movement detection
+  
+  // Auto-save system
+  private autoSaveTimer: number = 0;
+  private readonly AUTO_SAVE_INTERVAL: number = 60000; // Auto-save every 60 seconds
+  private lastSaveTime: number = 0;
 
 
   constructor(
@@ -655,6 +661,13 @@ export class Game {
       return;
     }
 
+    // Auto-save system
+    this.autoSaveTimer += deltaTime;
+    if (this.autoSaveTimer >= this.AUTO_SAVE_INTERVAL && !gameStore.getState().isGameOver) {
+      this.autoSaveTimer = 0;
+      this.autoSave();
+    }
+
     // Update SpawnZoneManager
     const gameStateSnapshot: GameStateSnapshot = {
       lives: gameStore.getState().lives,
@@ -969,6 +982,9 @@ export class Game {
 
     // Show wave complete notification if UI is available
     console.log(`Wave ${waveNumber} Complete! Reward: ${waveReward} currency`);
+    
+    // Save game after wave completion
+    this.saveAfterWave();
   }
 
   private saveGameStats(victory: boolean): void {
@@ -1756,6 +1772,9 @@ export class Game {
     // Update store state which will trigger React UI
     gameStore.getState().pauseGame();
     uiStore.getState().openPanel(UIPanelType.PAUSE_MENU);
+    
+    // Auto-save when pausing the game
+    this.autoSave();
   }
 
   resume(): void {
@@ -2679,5 +2698,308 @@ export class Game {
     const cache = ProblematicPositionCache.getInstance();
     cache.clear();
     console.log('Problematic position cache cleared');
+  }
+
+  // Save/Load System
+  public saveGameState(): void {
+    try {
+      const snapshot = this.createSnapshot();
+      localStorage.setItem('gameSave', JSON.stringify(snapshot));
+      localStorage.setItem('hasSavedGame', 'true');
+      
+      // Validation logging
+      console.log('Game saved successfully:', {
+        player: {
+          level: snapshot.player.level,
+          experience: snapshot.player.experience,
+          health: `${snapshot.player.health}/${snapshot.player.maxHealth}`
+        },
+        towers: {
+          count: snapshot.towers.length,
+          types: snapshot.towers.map(t => t.type)
+        },
+        wave: snapshot.waveState.currentWave,
+        currency: snapshot.gameStore.currency,
+        score: snapshot.gameStore.score
+      });
+    } catch (error) {
+      console.error('Failed to save game:', error);
+    }
+  }
+
+  public loadGameState(): boolean {
+    try {
+      const saved = localStorage.getItem('gameSave');
+      if (!saved) return false;
+
+      const snapshot = JSON.parse(saved) as SerializedGameState;
+      return this.restoreFromSnapshot(snapshot);
+    } catch (error) {
+      console.error('Failed to load game:', error);
+      return false;
+    }
+  }
+
+  private createSnapshot(): SerializedGameState {
+    const gameState = gameStore.getState();
+    
+    return {
+      version: SAVE_VERSION,
+      
+      // Core game state
+      gameStore: {
+        currency: gameState.currency,
+        lives: gameState.lives,
+        score: gameState.score,
+        playerHealth: gameState.playerHealth,
+        playerMaxHealth: gameState.playerMaxHealth,
+        currentWave: gameState.currentWave,
+        isWaveActive: gameState.isWaveActive,
+        waveInProgress: gameState.waveInProgress,
+        enemiesRemaining: gameState.enemiesRemaining,
+        nextWaveTime: gameState.nextWaveTime,
+        gameSpeed: gameState.gameSpeed,
+        stats: gameState.stats
+      },
+      
+      // Entity states
+      towers: this.towers.map(tower => tower.serialize()),
+      enemies: this.enemies.map(enemy => enemy.serialize()),
+      player: this.player.serialize(),
+      
+      // Systems state
+      inventory: {
+        items: this.inventory.getState().slots
+          .filter(slot => slot.item !== null)
+          .map(slot => slot.item!),
+        maxSlots: this.inventory.getState().config.maxSlots,
+        itemsCollected: this.inventory.getState().statistics.itemsCollected,
+        itemsUsed: this.inventory.getState().statistics.itemsUsed
+      },
+      
+      waveState: {
+        currentWave: this.waveManager.currentWave,
+        isWaveActive: this.waveManager.isWaveActive(),
+        waveInProgress: gameState.waveInProgress,
+        enemiesRemaining: this.enemies.length,
+        nextWaveTime: gameState.nextWaveTime,
+        infiniteWavesEnabled: this.waveManager.isInfiniteWavesEnabled(),
+        enemyHealthMultiplier: this.enemyHealthMultiplier,
+        enemySpeedMultiplier: this.enemySpeedMultiplier
+      },
+      
+      // Map configuration
+      mapConfig: {
+        seed: this.currentMapData.metadata.seed,
+        width: this.currentMapData.metadata.width,
+        height: this.currentMapData.metadata.height,
+        cellSize: this.grid.cellSize,
+        biome: this.currentMapData.metadata.biome,
+        difficulty: this.currentMapData.metadata.difficulty,
+        decorationLevel: DecorationLevel.MODERATE // Default since it's not in MapData
+      },
+      
+      // Camera state
+      camera: {
+        position: serializeVector2(this.camera.getPosition()),
+        zoom: this.camera.getZoom()
+      },
+      
+      // Game metadata
+      metadata: {
+        saveVersion: SAVE_VERSION,
+        timestamp: Date.now(),
+        gameTime: gameState.stats.gameTime,
+        realTimePlayed: Date.now() - this.gameStartTime,
+        gameVersion: '1.0.0'
+      }
+    };
+  }
+
+  private restoreFromSnapshot(snapshot: SerializedGameState): boolean {
+    try {
+      // Validate save version
+      if (!isValidSaveGame(snapshot)) {
+        console.error('Invalid save game format');
+        return false;
+      }
+
+      // Clear current game state
+      this.clearEntities();
+
+      // Restore game store state
+      const store = gameStore.getState();
+      store.resetGame(); // Reset first
+      
+      // Then restore saved values
+      if (snapshot.gameStore.currency !== undefined) store.addCurrency(snapshot.gameStore.currency);
+      if (snapshot.gameStore.lives !== undefined) {
+        // Restore lives by adjusting from default
+        const livesToRestore = snapshot.gameStore.lives - store.lives;
+        if (livesToRestore < 0) {
+          for (let i = 0; i < Math.abs(livesToRestore); i++) {
+            store.loseLife();
+          }
+        }
+      }
+      if (snapshot.gameStore.score !== undefined) store.addScore(snapshot.gameStore.score);
+      if (snapshot.gameStore.playerHealth !== undefined) {
+        store.setPlayerHealth(snapshot.gameStore.playerHealth, snapshot.gameStore.playerMaxHealth);
+      }
+      if (snapshot.gameStore.currentWave !== undefined) store.startWave(snapshot.gameStore.currentWave);
+      if (snapshot.gameStore.gameSpeed !== undefined) store.setGameSpeed(snapshot.gameStore.gameSpeed);
+      if (snapshot.gameStore.stats !== undefined) {
+        // Restore stats
+        Object.assign(store.stats, snapshot.gameStore.stats);
+      }
+
+      // Restore towers
+      this.towers = snapshot.towers.map(towerData => Tower.deserialize(towerData));
+      
+      // Place towers back on the grid
+      this.towers.forEach(tower => {
+        const gridPos = this.grid.worldToGrid(tower.position);
+        if (tower.towerType === TowerType.WALL) {
+          this.grid.setCellType(gridPos.x, gridPos.y, CellType.OBSTACLE);
+        } else {
+          this.grid.setCellType(gridPos.x, gridPos.y, CellType.TOWER);
+        }
+      });
+
+      // Restore enemies
+      this.enemies = snapshot.enemies.map(enemyData => Enemy.deserialize(enemyData, this.grid));
+
+      // Restore player
+      this.player = Player.deserialize(snapshot.player, this.grid);
+
+      // Restore inventory
+      const inventoryState = this.inventory.getState();
+      this.inventory.setState({
+        ...inventoryState,
+        slots: Array.from({ length: snapshot.inventory.maxSlots }, (_, index) => {
+          const item = snapshot.inventory.items.find((_, itemIndex) => itemIndex === index);
+          return { item: item || null, slotIndex: index };
+        }),
+        config: {
+          ...inventoryState.config,
+          maxSlots: snapshot.inventory.maxSlots
+        },
+        statistics: {
+          itemsCollected: snapshot.inventory.itemsCollected,
+          itemsUsed: snapshot.inventory.itemsUsed,
+          totalValue: 0
+        }
+      });
+
+      // Restore wave state
+      this.waveManager.currentWave = snapshot.waveState.currentWave;
+      this.enemyHealthMultiplier = snapshot.waveState.enemyHealthMultiplier;
+      this.enemySpeedMultiplier = snapshot.waveState.enemySpeedMultiplier;
+      this.waveManager.setDifficultyMultipliers(this.enemyHealthMultiplier, this.enemySpeedMultiplier);
+      
+      // Ensure wave state is fully synchronized
+      if (snapshot.waveState.infiniteWavesEnabled) {
+        this.waveManager.enableInfiniteWaves(true);
+      }
+      
+      // Force update the game store to ensure UI reflects the correct wave
+      const currentStore = gameStore.getState();
+      if (currentStore.currentWave !== snapshot.waveState.currentWave) {
+        currentStore.startWave(snapshot.waveState.currentWave);
+      }
+
+      // Restore camera
+      this.camera.setPosition(deserializeVector2(snapshot.camera.position));
+      this.camera.setZoom(snapshot.camera.zoom);
+
+      // Restore game timing
+      this.gameStartTime = Date.now() - snapshot.metadata.realTimePlayed;
+
+      // Validation logging
+      console.log('Game loaded successfully:', {
+        player: {
+          level: this.player.getLevel(),
+          experience: this.player.getExperienceProgress(),
+          health: `${this.player.health}/${this.player.maxHealth}`,
+          position: this.player.position
+        },
+        towers: {
+          count: this.towers.length,
+          types: this.towers.map(t => t.towerType)
+        },
+        enemies: {
+          count: this.enemies.length
+        },
+        wave: {
+          current: this.waveManager.currentWave,
+          storeWave: gameStore.getState().currentWave,
+          isActive: this.waveManager.isWaveActive()
+        },
+        grid: {
+          towerCells: this.countGridCells(CellType.TOWER),
+          obstacleCells: this.countGridCells(CellType.OBSTACLE)
+        }
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error restoring game state:', error);
+      return false;
+    }
+  }
+
+  private clearEntities(): void {
+    // Clear all entities
+    this.towers = [];
+    this.enemies = [];
+    this.projectiles = [];
+    this.collectibles = [];
+    this.destructionEffects = [];
+  }
+
+  private countGridCells(cellType: CellType): number {
+    let count = 0;
+    for (let y = 0; y < this.grid.height; y++) {
+      for (let x = 0; x < this.grid.width; x++) {
+        if (this.grid.getCellType(x, y) === cellType) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  public clearSaveData(): void {
+    localStorage.removeItem('gameSave');
+    localStorage.removeItem('hasSavedGame');
+    console.log('Save data cleared');
+  }
+
+  public hasSavedGame(): boolean {
+    return localStorage.getItem('hasSavedGame') === 'true';
+  }
+
+  // Auto-save functionality
+  private autoSave(): void {
+    try {
+      this.saveGameState();
+      this.lastSaveTime = Date.now();
+      console.log('[Game] Auto-save completed');
+      
+      // Dispatch auto-save event for UI notification
+      document.dispatchEvent(new CustomEvent('gameAutoSaved', {
+        detail: { timestamp: this.lastSaveTime }
+      }));
+    } catch (error) {
+      console.error('[Game] Auto-save failed:', error);
+    }
+  }
+
+  // Save after wave completion
+  public saveAfterWave(): void {
+    // Reset auto-save timer to prevent immediate auto-save
+    this.autoSaveTimer = 0;
+    this.saveGameState();
+    console.log('[Game] Game saved after wave completion');
   }
 }

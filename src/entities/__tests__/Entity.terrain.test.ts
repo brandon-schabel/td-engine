@@ -106,7 +106,7 @@ describe('Entity terrain-aware movement', () => {
     let enemy: Enemy;
 
     beforeEach(() => {
-      enemy = new Enemy({ x: 100, y: 100 }, 100, EnemyType.BASIC);
+      enemy = new Enemy(EnemyType.BASIC, { x: 100, y: 100 }, 1.0, 1.0);
       enemy.setGrid(grid);
     });
 
@@ -267,7 +267,7 @@ describe('Entity terrain-aware movement', () => {
 
   describe('Movement type interactions', () => {
     it('should allow different movement types on appropriate terrain', () => {
-      const flyingEnemy = new Enemy({ x: 100, y: 100 }, 100, EnemyType.BASIC);
+      const flyingEnemy = new Enemy(EnemyType.BASIC, { x: 100, y: 100 }, 1.0, 1.0);
       flyingEnemy.movementType = MovementType.FLYING;
       flyingEnemy.setGrid(grid);
       
