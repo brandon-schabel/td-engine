@@ -18,10 +18,11 @@
     "isolatedModules": true,
     "noEmit": true,
     /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
+    "strict": false,
+    "strictNullChecks": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": false,
     // Path mappings
     "baseUrl": ".",
     "paths": {

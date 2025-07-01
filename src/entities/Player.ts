@@ -33,6 +33,8 @@ export class Player extends Entity implements ShootingCapable {
   // Movement
   public override velocity: Vector2 = { x: 0, y: 0 };
   private keys: Set<string> = new Set();
+  private mobileInputMode: boolean = false;
+  private directionalInput: Vector2 = { x: 0, y: 0 };
   
   // Upgrade levels
   private upgradeLevels: Map<PlayerUpgradeType, number> = new Map();
@@ -133,18 +135,24 @@ export class Player extends Entity implements ShootingCapable {
     let movementX = 0;
     let movementY = 0;
     
-    // Calculate movement based on pressed keys
-    if (this.keys.has('w') || this.keys.has('arrowup')) {
-      movementY -= 1;
-    }
-    if (this.keys.has('s') || this.keys.has('arrowdown')) {
-      movementY += 1;
-    }
-    if (this.keys.has('a') || this.keys.has('arrowleft')) {
-      movementX -= 1;
-    }
-    if (this.keys.has('d') || this.keys.has('arrowright')) {
-      movementX += 1;
+    if (this.mobileInputMode) {
+      // Use mobile directional input
+      movementX = this.directionalInput.x;
+      movementY = this.directionalInput.y;
+    } else {
+      // Calculate movement based on pressed keys
+      if (this.keys.has('w') || this.keys.has('arrowup')) {
+        movementY -= 1;
+      }
+      if (this.keys.has('s') || this.keys.has('arrowdown')) {
+        movementY += 1;
+      }
+      if (this.keys.has('a') || this.keys.has('arrowleft')) {
+        movementX -= 1;
+      }
+      if (this.keys.has('d') || this.keys.has('arrowright')) {
+        movementX += 1;
+      }
     }
     
     // Normalize diagonal movement
@@ -691,5 +699,22 @@ export class Player extends Entity implements ShootingCapable {
       return this.shootManual();
     }
     return null;
+  }
+  
+  // Mobile input methods
+  setMobileInput(x: number, y: number): void {
+    this.mobileInputMode = true;
+    this.directionalInput.x = x;
+    this.directionalInput.y = y;
+  }
+  
+  clearMobileInput(): void {
+    this.mobileInputMode = false;
+    this.directionalInput.x = 0;
+    this.directionalInput.y = 0;
+  }
+  
+  isMobileInputActive(): boolean {
+    return this.mobileInputMode;
   }
 }

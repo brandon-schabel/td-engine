@@ -96,30 +96,20 @@ export const SimpleDraggableWrapper: React.FC<SimpleDraggableWrapperProps> = ({
     let startPosY = 0;
     let dragging = false;
 
-    const handleMouseDown = (e: MouseEvent) => {
-      // Only drag with left mouse button
-      if (e.button !== 0) return;
-      
+    const handleStart = (clientX: number, clientY: number) => {
       dragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
+      startX = clientX;
+      startY = clientY;
       startPosX = positionRef.current.x;
       startPosY = positionRef.current.y;
       setIsDragging(true);
-
-      // Add listeners to document for better capture
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      // Prevent text selection
-      e.preventDefault();
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (clientX: number, clientY: number) => {
       if (!dragging) return;
       
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
+      const deltaX = clientX - startX;
+      const deltaY = clientY - startY;
       
       const newPosition = constrainPosition(
         startPosX + deltaX,
@@ -133,7 +123,7 @@ export const SimpleDraggableWrapper: React.FC<SimpleDraggableWrapperProps> = ({
       }
     };
 
-    const handleMouseUp = () => {
+    const handleEnd = () => {
       if (!dragging) return;
       
       dragging = false;
@@ -141,17 +131,72 @@ export const SimpleDraggableWrapper: React.FC<SimpleDraggableWrapperProps> = ({
       
       // Save final position
       savePosition(positionRef.current);
+    };
+
+    // Mouse event handlers
+    const handleMouseDown = (e: MouseEvent) => {
+      // Only drag with left mouse button
+      if (e.button !== 0) return;
+      
+      handleStart(e.clientX, e.clientY);
+
+      // Add listeners to document for better capture
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      // Prevent text selection
+      e.preventDefault();
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleMouseUp = () => {
+      handleEnd();
       
       // Remove document listeners
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
-    // Add mousedown listener to element
+    // Touch event handlers
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return; // Only handle single touch
+      
+      const touch = e.touches[0];
+      handleStart(touch.clientX, touch.clientY);
+      
+      // Prevent scrolling while dragging
+      e.preventDefault();
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      
+      const touch = e.touches[0];
+      handleMove(touch.clientX, touch.clientY);
+      
+      // Prevent scrolling
+      e.preventDefault();
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      handleEnd();
+      e.preventDefault();
+    };
+
+    // Add event listeners
     element.addEventListener('mousedown', handleMouseDown);
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
+    element.addEventListener('touchmove', handleTouchMove, { passive: false });
+    element.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
       element.removeEventListener('mousedown', handleMouseDown);
+      element.removeEventListener('touchstart', handleTouchStart);
+      element.removeEventListener('touchmove', handleTouchMove);
+      element.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };

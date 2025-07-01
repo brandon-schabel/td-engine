@@ -4,7 +4,7 @@
 
 import type { InventoryItem } from '@/systems/Inventory';
 import { addClickAndTouchSupport } from '@/ui/utils/touchSupport';
-import { cn } from '@/ui/styles/UtilityStyles';
+import { cn } from '@/lib/utils';
 
 export interface ItemSlotOptions {
   index: number;
@@ -44,25 +44,25 @@ export class ItemSlot {
       'hover:border-primary',
       'hover:shadow-md'
     );
-    
+
     // Add hover effect
     slot.addEventListener('mouseenter', () => {
       if (this.options.onHover) {
         this.options.onHover(this.index);
       }
     });
-    
+
     // Add click handler with touch support
     if (this.options.onSelect) {
       addClickAndTouchSupport(slot, () => {
         this.options.onSelect!(this.index);
       });
     }
-    
+
     // Add drag and drop
     slot.draggable = true;
     slot.dataset.slotIndex = this.index.toString();
-    
+
     slot.addEventListener('dragstart', (e) => {
       if (!this.item) {
         e.preventDefault();
@@ -72,21 +72,21 @@ export class ItemSlot {
       e.dataTransfer!.setData('text/plain', this.index.toString());
       slot.style.opacity = '0.5';
     });
-    
+
     slot.addEventListener('dragend', () => {
       slot.style.opacity = '1';
     });
-    
+
     slot.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer!.dropEffect = 'move';
       slot.classList.add('drag-over', 'border-yellow-400', 'bg-yellow-400\\/10');
     });
-    
+
     slot.addEventListener('dragleave', () => {
       slot.classList.remove('drag-over', 'border-yellow-400', 'bg-yellow-400\\/10');
     });
-    
+
     slot.addEventListener('drop', (e) => {
       e.preventDefault();
       const fromIndex = parseInt(e.dataTransfer!.getData('text/plain'));
@@ -95,7 +95,7 @@ export class ItemSlot {
       }
       slot.classList.remove('drag-over', 'border-yellow-400', 'bg-yellow-400\\/10');
     });
-    
+
     return slot;
   }
 
@@ -104,7 +104,7 @@ export class ItemSlot {
     while (this.element.firstChild) {
       this.element.removeChild(this.element.firstChild);
     }
-    
+
     if (this.item) {
       // Add rarity class
       const rarityColors = {
@@ -114,7 +114,7 @@ export class ItemSlot {
         epic: 'border-purple-400',
         legendary: 'border-yellow-400'
       };
-      
+
       this.element.className = cn(
         'inventory-slot',
         'w-[60px]',
@@ -131,7 +131,7 @@ export class ItemSlot {
         'hover:scale-105',
         `rarity-${this.item.rarity.toLowerCase()}`
       );
-      
+
       // Item icon (simplified)
       const icon = document.createElement('div');
       icon.className = cn(
@@ -144,7 +144,7 @@ export class ItemSlot {
         'select-none'
       );
       icon.textContent = this.getItemEmoji(this.item.type);
-      
+
       // Quantity badge
       if (this.item.quantity > 1) {
         const quantity = document.createElement('div');
@@ -165,7 +165,7 @@ export class ItemSlot {
         quantity.textContent = this.item.quantity.toString();
         this.element.appendChild(quantity);
       }
-      
+
       this.element.appendChild(icon);
     } else {
       // Reset to empty slot
@@ -209,7 +209,7 @@ export class ItemSlot {
   getElement(): HTMLElement {
     return this.element;
   }
-  
+
   getItem(): InventoryItem | null {
     return this.item;
   }

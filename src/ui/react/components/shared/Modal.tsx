@@ -26,7 +26,7 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   if (!isOpen) return null;
   
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = (e: React.MouseEvent | React.TouchEvent) => {
     if (closeOnOverlayClick && e.target === e.currentTarget && onClose) {
       onClose();
     }
@@ -47,6 +47,7 @@ export const Modal: React.FC<ModalProps> = ({
       )}
       style={{ pointerEvents: 'auto' }}
       onClick={handleOverlayClick}
+      onTouchEnd={handleOverlayClick}
     >
       <div className={cn('relative', className)}>
         {children}

@@ -222,7 +222,7 @@ export class HammerGestureManager extends EventEmitter {
   }
   
   private handlePinchStart(event: HammerInput): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled || this.shouldIgnoreGesture(event)) return;
     
     this.pinchActive = true;
     this.initialZoom = this.camera.getZoom();
@@ -279,7 +279,7 @@ export class HammerGestureManager extends EventEmitter {
     this.triggerHaptic('light');
   }
   
-  private handleDoubleTap(_event: HammerInput): void {
+  private handleDoubleTap(event: HammerInput): void {
     if (!this.isEnabled || this.shouldIgnoreGesture(event)) return;
     
     // Center camera on player
@@ -302,7 +302,7 @@ export class HammerGestureManager extends EventEmitter {
     this.triggerHaptic('medium');
   }
   
-  private handlePress(_event: HammerInput): void {
+  private handlePress(event: HammerInput): void {
     if (!this.isEnabled || this.shouldIgnoreGesture(event)) return;
     
     const worldPos = this.camera.screenToWorld({

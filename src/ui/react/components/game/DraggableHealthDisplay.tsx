@@ -8,7 +8,7 @@ import {
 } from "../../hooks/useMobileLayout";
 import { cn } from "@/lib/utils";
 
-export interface DraggableCurrencyDisplayProps {
+export interface DraggableHealthDisplayProps {
   /** Whether the display can be dragged */
   draggable?: boolean;
   /** Initial position */
@@ -18,24 +18,31 @@ export interface DraggableCurrencyDisplayProps {
 }
 
 /**
- * Draggable currency display that shows the player's coins
- * Replaces the FloatingUIManager-based currency display
+ * Draggable health display that shows the player's health
  */
-export const DraggableCurrencyDisplay: React.FC<
-  DraggableCurrencyDisplayProps
-> = ({ draggable = true, defaultPosition, className }) => {
-  const { currency } = useGameStore();
+export const DraggableHealthDisplay: React.FC<DraggableHealthDisplayProps> = ({
+  draggable = true,
+  defaultPosition,
+  className,
+}) => {
+  const { playerHealth, playerMaxHealth } = useGameStore();
   const layoutInfo = useMobileLayout();
 
   // Calculate default position with mobile safe area
   const calculatedDefaultPosition = defaultPosition || {
     x: layoutInfo.isMobile ? 10 : 20,
-    y: adjustForMobileSafeArea(layoutInfo.isMobile ? 160 : 100, layoutInfo),
+    y: adjustForMobileSafeArea(layoutInfo.isMobile ? 110 : 20, layoutInfo),
   };
+
+  // Get player instance for accurate health
+  const game = (window as any).currentGame;
+  const player = game?.getPlayer();
+  const currentHealth = player?.health ?? playerHealth;
+  const maxHealth = player?.maxHealth ?? playerMaxHealth;
 
   return (
     <DraggablePanel
-      id="currency-display"
+      id="health-display"
       draggable={draggable}
       defaultPosition={calculatedDefaultPosition}
       persistent={true}
@@ -44,13 +51,13 @@ export const DraggableCurrencyDisplay: React.FC<
       zIndex={500}
     >
       <ResourceDisplay
-        value={currency}
-        icon={IconType.COINS}
-        label="Coins"
+        value={`${Math.ceil(currentHealth)}/${maxHealth}`}
+        label="Health"
+        icon={IconType.HEALTH}
         variant={layoutInfo.isMobile ? "compact" : "large"}
         showLabel={!layoutInfo.isMobile}
-        format="currency"
-        tooltip="Your currency"
+        color={currentHealth <= maxHealth * 0.3 ? "danger" : "primary"}
+        tooltip="Your health points"
       />
     </DraggablePanel>
   );

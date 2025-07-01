@@ -48,6 +48,9 @@ export function useGameFloating(options: GameFloatingOptions = {}) {
   const game = (window as any).currentGame as Game | undefined;
   const camera = game?.getCamera();
   
+  // Arrow ref if needed
+  const arrowRef = useRef<HTMLElement>(null);
+  
   // Reference to virtual element for world position tracking
   const virtualEl = useRef<HTMLElement | null>(null);
   const rafId = useRef<number | null>(null);
@@ -63,8 +66,8 @@ export function useGameFloating(options: GameFloatingOptions = {}) {
     }),
   ];
 
-  if (showArrow) {
-    defaultMiddleware.push(arrow({ padding: 8 }));
+  if (showArrow && arrowRef) {
+    defaultMiddleware.push(arrow({ element: arrowRef, padding: 8 }));
   }
 
   // Use Floating UI
@@ -172,5 +175,6 @@ export function useGameFloating(options: GameFloatingOptions = {}) {
     updateWorldPosition,
     game,
     camera,
+    arrowRef: showArrow ? arrowRef : undefined,
   };
 }

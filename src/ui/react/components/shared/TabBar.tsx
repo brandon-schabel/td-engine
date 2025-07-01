@@ -1,7 +1,14 @@
-import React, { forwardRef, HTMLAttributes, ReactNode, useState, useCallback, useEffect } from 'react';
-import { Icon } from './Icon';
-import { IconType } from '@/ui/icons/SvgIcons';
-import { cn } from '@/lib/utils';
+import React, {
+  forwardRef,
+  HTMLAttributes,
+  ReactNode,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
+import { Icon } from "./Icon";
+import { IconType } from "@/ui/icons/SvgIcons";
+import { cn } from "@/lib/utils";
 
 export interface Tab {
   id: string;
@@ -12,13 +19,14 @@ export interface Tab {
   content?: ReactNode;
 }
 
-export interface TabBarProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
+export interface TabBarProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
   tabs: Tab[];
   defaultTabId?: string;
   activeTabId?: string;
-  variant?: 'default' | 'pills' | 'underline' | 'contained';
-  size?: 'sm' | 'md' | 'lg';
-  orientation?: 'horizontal' | 'vertical';
+  variant?: "default" | "pills" | "underline" | "contained";
+  size?: "sm" | "md" | "lg";
+  orientation?: "horizontal" | "vertical";
   fullWidth?: boolean;
   onChange?: (tabId: string, previousTabId: string | null) => void;
   showContent?: boolean;
@@ -28,31 +36,40 @@ export interface TabBarProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onCha
 
 const variantStyles = {
   default: {
-    list: 'gap-1',
-    active: 'text-button-primary font-semibold',
-    inactive: 'text-ui-text-muted hover:text-ui-text-primary',
+    list: "gap-1",
+    active: "text-button-primary font-semibold",
+    inactive: "text-ui-text-muted hover:text-ui-text-primary",
   },
   pills: {
-    list: 'gap-2 p-1 bg-ui-bg-secondary rounded-lg',
-    active: 'bg-button-primary text-white shadow-sm',
-    inactive: 'text-ui-text-muted hover:bg-ui-bg-hover',
+    list: "gap-2 p-1 bg-ui-bg-secondary rounded-lg",
+    active: "bg-button-primary text-white shadow-sm",
+    inactive: "text-ui-text-muted hover:bg-ui-bg-hover",
   },
   underline: {
-    list: 'border-b border-ui-border-subtle',
-    active: 'text-button-primary border-b-2 border-button-primary',
-    inactive: 'text-ui-text-muted border-b-2 border-transparent hover:text-ui-text-primary',
+    list: "border-b border-ui-border-subtle",
+    active: "text-button-primary border-b-2 border-button-primary",
+    inactive:
+      "text-ui-text-muted border-b-2 border-transparent hover:text-ui-text-primary",
   },
   contained: {
-    list: 'bg-ui-bg-primary border border-ui-border-DEFAULT rounded-lg p-1',
-    active: 'bg-button-primary text-white',
-    inactive: 'text-ui-text-muted hover:bg-ui-bg-hover',
+    list: "bg-ui-bg-primary border border-ui-border-DEFAULT rounded-lg p-1",
+    active: "bg-button-primary text-white",
+    inactive: "text-ui-text-muted hover:bg-ui-bg-hover",
   },
 };
 
 const sizeStyles = {
-  sm: { button: 'px-3 py-1.5 text-sm gap-1', icon: 14, badge: 'text-xs px-1.5' },
-  md: { button: 'px-4 py-2 text-base gap-2', icon: 16, badge: 'text-sm px-2' },
-  lg: { button: 'px-5 py-3 text-lg gap-3', icon: 20, badge: 'text-base px-2.5' },
+  sm: {
+    button: "px-3 py-1.5 text-sm gap-1",
+    icon: 14,
+    badge: "text-xs px-1.5",
+  },
+  md: { button: "px-4 py-2 text-base gap-2", icon: 16, badge: "text-sm px-2" },
+  lg: {
+    button: "px-5 py-3 text-lg gap-3",
+    icon: 20,
+    badge: "text-base px-2.5",
+  },
 };
 
 interface TabButtonProps {
@@ -65,14 +82,14 @@ interface TabButtonProps {
   onClick: () => void;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ 
-  tab, 
-  isActive, 
-  variant, 
-  size, 
-  fullWidth, 
+const TabButton: React.FC<TabButtonProps> = ({
+  tab,
+  isActive,
+  variant,
+  size,
+  fullWidth,
   tabClassName,
-  onClick 
+  onClick,
 }) => {
   const variantConfig = variantStyles[variant];
   const sizeConfig = sizeStyles[size];
@@ -101,18 +118,19 @@ const TabButton: React.FC<TabButtonProps> = ({
       disabled={tab.disabled}
       onClick={onClick}
       className={cn(
-        'tab-button transition-all duration-200',
+        "tab-button transition-all duration-200",
         sizeConfig.button,
         isActive ? variantConfig.active : variantConfig.inactive,
-        fullWidth && 'flex-1',
-        tab.disabled && 'opacity-50 cursor-not-allowed',
+        fullWidth && "flex-1",
+        tab.disabled && "opacity-50 cursor-not-allowed",
+        "text-white",
         tabClassName
       )}
     >
       {renderIcon()}
       <span className="tab-label">{tab.label}</span>
       {tab.badge !== undefined && tab.badge !== null && (
-        <span className={cn('tab-badge ml-2', sizeConfig.badge)}>
+        <span className={cn("tab-badge ml-2", sizeConfig.badge)}>
           {tab.badge}
         </span>
       )}
@@ -126,7 +144,11 @@ interface TabPanelProps {
   contentClassName?: string;
 }
 
-const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive, contentClassName }) => {
+const TabPanel: React.FC<TabPanelProps> = ({
+  tab,
+  isActive,
+  contentClassName,
+}) => {
   if (!tab.content) return null;
 
   return (
@@ -134,8 +156,8 @@ const TabPanel: React.FC<TabPanelProps> = ({ tab, isActive, contentClassName }) 
       role="tabpanel"
       aria-labelledby={`tab-${tab.id}`}
       id={`tabpanel-${tab.id}`}
-      className={cn('tab-panel', contentClassName)}
-      style={{ display: isActive ? 'block' : 'none' }}
+      className={cn("tab-panel", contentClassName)}
+      style={{ display: isActive ? "block" : "none" }}
     >
       {tab.content}
     </div>
@@ -149,9 +171,9 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
       tabs,
       defaultTabId,
       activeTabId: controlledActiveTabId,
-      variant = 'default',
-      size = 'md',
-      orientation = 'horizontal',
+      variant = "default",
+      size = "md",
+      orientation = "horizontal",
       fullWidth = false,
       onChange,
       showContent = true,
@@ -162,28 +184,39 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
     ref
   ) => {
     const [internalActiveTabId, setInternalActiveTabId] = useState(() => {
-      const initialTab = defaultTabId || (tabs.length > 0 && !tabs[0].disabled ? tabs[0].id : null);
+      const initialTab =
+        defaultTabId ||
+        (tabs.length > 0 && !tabs[0].disabled ? tabs[0].id : null);
       return initialTab;
     });
 
-    const activeTabId = controlledActiveTabId !== undefined ? controlledActiveTabId : internalActiveTabId;
+    const activeTabId =
+      controlledActiveTabId !== undefined
+        ? controlledActiveTabId
+        : internalActiveTabId;
     const variantConfig = variantStyles[variant];
 
-    const handleTabClick = useCallback((tabId: string) => {
-      if (activeTabId === tabId) return;
+    const handleTabClick = useCallback(
+      (tabId: string) => {
+        if (activeTabId === tabId) return;
 
-      const previousTabId = activeTabId;
-      
-      if (controlledActiveTabId === undefined) {
-        setInternalActiveTabId(tabId);
-      }
+        const previousTabId = activeTabId;
 
-      onChange?.(tabId, previousTabId);
-    }, [activeTabId, controlledActiveTabId, onChange]);
+        if (controlledActiveTabId === undefined) {
+          setInternalActiveTabId(tabId);
+        }
+
+        onChange?.(tabId, previousTabId);
+      },
+      [activeTabId, controlledActiveTabId, onChange]
+    );
 
     // Update internal state if controlled value changes
     useEffect(() => {
-      if (controlledActiveTabId !== undefined && controlledActiveTabId !== internalActiveTabId) {
+      if (
+        controlledActiveTabId !== undefined &&
+        controlledActiveTabId !== internalActiveTabId
+      ) {
         setInternalActiveTabId(controlledActiveTabId);
       }
     }, [controlledActiveTabId, internalActiveTabId]);
@@ -192,8 +225,8 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
       <div
         ref={ref}
         className={cn(
-          'tab-container',
-          orientation === 'vertical' && 'flex gap-4',
+          "tab-container",
+          orientation === "vertical" && "flex gap-4",
           className
         )}
         {...props}
@@ -202,14 +235,11 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
           role="tablist"
           aria-orientation={orientation}
           className={cn(
-            'tab-list',
+            "tab-list",
             variantConfig.list,
-            orientation === 'horizontal' ? [
-              'flex flex-row',
-              fullWidth && 'w-full',
-            ] : [
-              'flex flex-col min-w-[200px]',
-            ]
+            orientation === "horizontal"
+              ? ["flex flex-row", fullWidth && "w-full"]
+              : ["flex flex-col min-w-[200px]"]
           )}
         >
           {tabs.map((tab) => (
@@ -219,7 +249,7 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
               isActive={activeTabId === tab.id}
               variant={variant}
               size={size}
-              fullWidth={fullWidth && orientation === 'horizontal'}
+              fullWidth={fullWidth && orientation === "horizontal"}
               tabClassName={tabClassName}
               onClick={() => !tab.disabled && handleTabClick(tab.id)}
             />
@@ -227,7 +257,7 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
         </div>
 
         {showContent && (
-          <div className={cn('tab-content flex-1', contentClassName)}>
+          <div className={cn("tab-content flex-1", contentClassName)}>
             {tabs.map((tab) => (
               <TabPanel
                 key={tab.id}
@@ -243,11 +273,12 @@ export const TabBar = forwardRef<HTMLDivElement, TabBarProps>(
   }
 );
 
-TabBar.displayName = 'TabBar';
+TabBar.displayName = "TabBar";
 
 // Utility component for simple use cases
-export const SimpleTabBar = forwardRef<HTMLDivElement, Omit<TabBarProps, 'variant'>>(
-  (props, ref) => <TabBar ref={ref} variant="underline" {...props} />
-);
+export const SimpleTabBar = forwardRef<
+  HTMLDivElement,
+  Omit<TabBarProps, "variant">
+>((props, ref) => <TabBar ref={ref} variant="underline" {...props} />);
 
-SimpleTabBar.displayName = 'SimpleTabBar';
+SimpleTabBar.displayName = "SimpleTabBar";

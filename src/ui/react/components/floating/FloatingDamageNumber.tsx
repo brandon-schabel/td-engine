@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { useGameFloating } from '../../hooks/floating';
-import { FloatingPortal } from './FloatingPortal';
+import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { useGameFloating } from "../../hooks/floating";
+import { FloatingPortal } from "./FloatingPortal";
 
 export interface FloatingDamageNumberProps {
   /** World position where the damage occurred */
@@ -10,7 +10,7 @@ export interface FloatingDamageNumberProps {
   /** Damage value to display */
   value: number;
   /** Type of damage for styling */
-  type?: 'physical' | 'magical' | 'critical' | 'heal';
+  type?: "physical" | "magical" | "critical" | "heal";
   /** Duration in milliseconds before auto-removing */
   duration?: number;
   /** Callback when animation completes */
@@ -18,10 +18,10 @@ export interface FloatingDamageNumberProps {
 }
 
 const damageTypeStyles = {
-  physical: 'text-game-damage-physical',
-  magical: 'text-game-damage-magical',
-  critical: 'text-game-damage-critical text-2xl font-bold',
-  heal: 'text-game-health-high',
+  physical: "text-game-damage-physical",
+  magical: "text-game-damage-magical",
+  critical: "text-game-damage-critical text-2xl font-bold",
+  heal: "text-game-health-high",
 };
 
 /**
@@ -31,17 +31,21 @@ const damageTypeStyles = {
 export const FloatingDamageNumber: React.FC<FloatingDamageNumberProps> = ({
   worldPosition,
   value,
-  type = 'physical',
+  type = "physical",
   duration = 1500,
   onComplete,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use game floating for world-to-screen positioning
-  const { x, y, isVisible: isOnScreen } = useGameFloating({
+  const {
+    x,
+    y,
+    isVisible: isOnScreen,
+  } = useGameFloating({
     trackWorldPosition: worldPosition,
-    updateStrategy: 'raf',
+    updateStrategy: "raf",
   });
 
   // Auto-hide after duration
@@ -67,42 +71,42 @@ export const FloatingDamageNumber: React.FC<FloatingDamageNumberProps> = ({
   // Don't render if off-screen
   if (!isOnScreen()) return null;
 
-  const displayValue = type === 'heal' ? `+${value}` : `-${value}`;
+  const displayValue = type === "heal" ? `+${value}` : `-${value}`;
 
   return (
     <FloatingPortal>
       <AnimatePresence onExitComplete={handleAnimationComplete}>
         {isVisible && (
           <motion.div
-            initial={{ 
-              x, 
+            initial={{
+              x,
               y,
               opacity: 0,
               scale: 0.5,
             }}
-            animate={{ 
+            animate={{
               x,
               y: y - 50, // Float upward
               opacity: 1,
               scale: 1,
             }}
-            exit={{ 
+            exit={{
               opacity: 0,
               scale: 0.8,
-              transition: { duration: 0.2 }
+              transition: { duration: 0.2 },
             }}
             transition={{
               duration: duration / 1000,
-              ease: 'easeOut',
+              ease: "easeOut",
               opacity: { duration: 0.2 },
               scale: { duration: 0.2 },
             }}
             style={{
-              position: 'fixed',
-              pointerEvents: 'none',
+              position: "fixed",
+              pointerEvents: "none",
             }}
             className={cn(
-              'font-bold text-lg drop-shadow-lg',
+              "font-bold text-lg drop-shadow-lg",
               damageTypeStyles[type]
             )}
           >
@@ -118,23 +122,28 @@ export const FloatingDamageNumber: React.FC<FloatingDamageNumberProps> = ({
  * Hook to manage multiple floating damage numbers
  */
 export function useFloatingDamageNumbers() {
-  const [damageNumbers, setDamageNumbers] = useState<Array<{
-    id: string;
-    props: FloatingDamageNumberProps;
-  }>>([]);
+  const [damageNumbers, setDamageNumbers] = useState<
+    Array<{
+      id: string;
+      props: FloatingDamageNumberProps;
+    }>
+  >([]);
 
-  const showDamage = (props: Omit<FloatingDamageNumberProps, 'onComplete'>) => {
+  const showDamage = (props: Omit<FloatingDamageNumberProps, "onComplete">) => {
     const id = `damage-${Date.now()}-${Math.random()}`;
-    
-    setDamageNumbers(prev => [...prev, {
-      id,
-      props: {
-        ...props,
-        onComplete: () => {
-          setDamageNumbers(prev => prev.filter(d => d.id !== id));
+
+    setDamageNumbers((prev) => [
+      ...prev,
+      {
+        id,
+        props: {
+          ...props,
+          onComplete: () => {
+            setDamageNumbers((prev) => prev.filter((d) => d.id !== id));
+          },
         },
       },
-    }]);
+    ]);
   };
 
   const DamageNumbers = () => (

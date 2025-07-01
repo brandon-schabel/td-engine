@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Slider, Toggle } from './shared';
+import { Modal, Button } from './shared';
 import { GlassPanel } from './shared/Glass';
+import { GlassSlider } from './shared/GlassSlider';
+import { GlassToggle } from './shared/GlassToggle';
 import { cn } from '@/lib/utils';
 import { loadSettings, saveSettings, type GameSettings } from '@/config/GameSettings';
 import { uiStore, UIPanelType } from '@/stores/uiStore';
@@ -126,28 +128,44 @@ const AudioSection: React.FC<{
       </div>
       
       {/* Master Volume */}
-      <div className={cn('space-y-2')}>
-        <label className={cn('text-sm', 'font-medium', 'text-white')}>
-          Master Volume
-        </label>
-        <Slider
+      <div className={cn('space-y-3')}>
+        <GlassSlider
+          label="Master Volume"
           min={0}
           max={100}
           value={Math.round(settings.masterVolume * 100)}
           onChange={(value) => onUpdate('masterVolume', value / 100)}
           showValue
           valueFormatter={(v) => `${v}%`}
+          glowColor="blue"
+          showReflection={true}
+          pulseOnChange={true}
         />
       </div>
       
       {/* Sound Effects Toggle */}
-      <div className={cn('flex', 'items-center', 'justify-between', 'py-2')}>
+      <div className={cn(
+        'flex', 
+        'items-center', 
+        'justify-between', 
+        'py-3',
+        'px-4',
+        'rounded-lg',
+        'bg-white/5',
+        'backdrop-blur-sm',
+        'border',
+        'border-white/10',
+        'hover:bg-white/10',
+        'transition-all'
+      )}>
         <label className={cn('text-sm', 'font-medium', 'text-white')}>
           Sound Effects
         </label>
-        <Toggle
+        <GlassToggle
           checked={settings.soundEnabled}
           onCheckedChange={(checked) => onUpdate('soundEnabled', checked)}
+          glowColor="green"
+          size="md"
         />
       </div>
     </div>
@@ -174,18 +192,21 @@ const GameplaySection: React.FC<{
         label="Auto-pause on Focus Loss"
         checked={settings.autoPause ?? true}
         onChange={(checked) => onUpdate('autoPause', checked)}
+        glowColor="purple"
       />
       
       <ToggleOption
         label="Show FPS Counter"
         checked={settings.showFPS}
         onChange={(checked) => onUpdate('showFPS', checked)}
+        glowColor="yellow"
       />
       
       <ToggleOption
         label="Show Path Debug"
         checked={settings.showPathDebug ?? false}
         onChange={(checked) => onUpdate('showPathDebug', checked)}
+        glowColor="pink"
       />
     </div>
   );
@@ -198,15 +219,31 @@ const ToggleOption: React.FC<{
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
-}> = ({ label, checked, onChange }) => {
+  glowColor?: 'blue' | 'green' | 'purple' | 'pink' | 'yellow';
+}> = ({ label, checked, onChange, glowColor = 'purple' }) => {
   return (
-    <div className={cn('flex', 'items-center', 'justify-between', 'py-2')}>
+    <div className={cn(
+      'flex', 
+      'items-center', 
+      'justify-between', 
+      'py-3',
+      'px-4',
+      'rounded-lg',
+      'bg-white/5',
+      'backdrop-blur-sm',
+      'border',
+      'border-white/10',
+      'hover:bg-white/10',
+      'transition-all'
+    )}>
       <label className={cn('text-sm', 'font-medium', 'text-white')}>
         {label}
       </label>
-      <Toggle
+      <GlassToggle
         checked={checked}
         onCheckedChange={onChange}
+        glowColor={glowColor}
+        size="md"
       />
     </div>
   );

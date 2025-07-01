@@ -21,6 +21,8 @@
     "@floating-ui/dom": "^1.7.2",
     "@floating-ui/react": "^0.27.13",
     "@tailwindcss/vite": "^4.1.11",
+    "@tanstack/react-router": "^1.123.2",
+    "@tanstack/router-devtools": "^1.123.2",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "@types/hammerjs": "^2.0.46",
@@ -40,6 +42,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@tanstack/router-plugin": "^1.123.2",
     "@tauri-apps/cli": "^2",
     "@types/pathfinding": "^0.1.0",
     "@vitejs/plugin-react": "^4.6.0",

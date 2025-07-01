@@ -1,26 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Scene, SceneContainer, SceneHeader } from "./Scene";
-import { useScene } from "./SceneContext";
-import { Button } from "../components/shared/Button";
-import { GlassPanel, GlassButton } from "../components/shared/Glass";
-import { GlassOptionCard } from "../components/shared/GlassOptionCard";
-import { Icon } from "../components/shared/Icon";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { GlassPanel, GlassButton } from "@/ui/react/components/shared/Glass";
+import { GlassOptionCard } from "@/ui/react/components/shared/GlassOptionCard";
+import { Icon } from "@/ui/react/components/shared/Icon";
 import { IconType } from "@/ui/icons/SvgIcons";
 import { SoundType } from "@/audio/AudioManager";
 import { BiomeType, MapDifficulty, MapSize } from "@/types/MapData";
-import { TransitionType } from "./SceneTransition";
 import { cn } from "@/lib/utils";
-import type { AudioManager } from "@/audio/AudioManager";
+
+export const Route = createFileRoute("/pre-game")({
+  component: PreGameConfig,
+});
 
 export interface PreGameConfigData {
   mapSize: MapSize;
   difficulty: MapDifficulty;
   biome: BiomeType;
-}
-
-interface PreGameConfigProps {
-  audioManager?: AudioManager;
-  onStartGame?: (config: PreGameConfigData) => void;
 }
 
 interface OptionItem {
@@ -35,7 +30,6 @@ interface OptionSectionProps {
   options: OptionItem[];
   selectedValue: string;
   onChange: (value: string) => void;
-  audioManager?: AudioManager;
   icon?: IconType;
 }
 
@@ -45,9 +39,10 @@ const OptionSection: React.FC<OptionSectionProps> = ({
   options,
   selectedValue,
   onChange,
-  audioManager,
   icon,
 }) => {
+  const { audioManager } = Route.useRouteContext();
+
   return (
     <GlassPanel
       variant="dark"
@@ -95,11 +90,9 @@ const OptionSection: React.FC<OptionSectionProps> = ({
   );
 };
 
-export const PreGameConfig: React.FC<PreGameConfigProps> = ({
-  audioManager,
-  onStartGame,
-}) => {
-  const { switchToScene, goBack } = useScene();
+function PreGameConfig() {
+  const navigate = useNavigate();
+  const { audioManager } = Route.useRouteContext();
 
   const [config, setConfig] = useState<PreGameConfigData>(() => {
     // Load saved preferences
@@ -131,7 +124,7 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
 
   const handleBack = () => {
     audioManager?.playUISound(SoundType.BUTTON_CLICK);
-    goBack();
+    navigate({ to: "/" });
   };
 
   const handleStartGame = () => {
@@ -140,14 +133,9 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
     // Store config for game scene
     (window as any).__preGameConfig = config;
 
-    // Call callback if provided
-    if (onStartGame) {
-      onStartGame(config);
-    }
-
-    // Switch to game scene
-    switchToScene("game", {
-      type: TransitionType.FADE,
+    // Navigate to game
+    navigate({
+      to: "/game",
     });
   };
 
@@ -189,14 +177,15 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
   ];
 
   return (
-    <Scene className="overflow-y-auto relative">
+    <div className="relative w-full h-full overflow-y-auto">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
-      <SceneHeader
-        title="Game Configuration"
-        leftAction={
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-surface-primary/80 backdrop-blur-xl border-b border-white/10">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-white">Game Configuration</h1>
           <GlassButton
             variant="ghost"
             size="sm"
@@ -218,10 +207,11 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
             </svg>
             Back
           </GlassButton>
-        }
-      />
+        </div>
+      </div>
 
-      <SceneContainer centered className="max-w-4xl mx-auto relative z-10">
+      {/* Main content */}
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
         {/* Configuration sections */}
         <div className="w-full space-y-6 stagger-children">
           {/* Map Size */}
@@ -233,7 +223,6 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
             onChange={(value) =>
               setConfig({ ...config, mapSize: value as MapSize })
             }
-            audioManager={audioManager}
             icon={IconType.MAP}
           />
 
@@ -246,7 +235,6 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
             onChange={(value) =>
               setConfig({ ...config, difficulty: value as MapDifficulty })
             }
-            audioManager={audioManager}
             icon={IconType.DIFFICULTY}
           />
 
@@ -259,7 +247,6 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
             onChange={(value) =>
               setConfig({ ...config, biome: value as BiomeType })
             }
-            audioManager={audioManager}
             icon={IconType.MAP}
           />
         </div>
@@ -270,7 +257,7 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
             size="lg"
             variant="primary"
             onClick={handleStartGame}
-            className="px-12 py-5 text-lg font-bold glass-border-glow text-white "
+            className="px-12 py-5 text-lg font-bold glass-border-glow text-white"
           >
             <svg
               className="w-6 h-6 mr-2"
@@ -294,7 +281,7 @@ export const PreGameConfig: React.FC<PreGameConfigProps> = ({
             Start Game
           </GlassButton>
         </div>
-      </SceneContainer>
-    </Scene>
+      </div>
+    </div>
   );
-};
+}

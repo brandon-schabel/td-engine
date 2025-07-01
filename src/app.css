@@ -55,10 +55,10 @@
 
 @keyframes shimmer {
   0% {
-    background-position: -200px 0;
+    background-position: -200% 0;
   }
   100% {
-    background-position: 200px 0;
+    background-position: 200% 0;
   }
 }
 
@@ -85,7 +85,8 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
   }
   50% {
@@ -94,7 +95,8 @@
 }
 
 @keyframes borderGlow {
-  0%, 100% {
+  0%,
+  100% {
     border-color: rgba(255, 255, 255, 0.2);
   }
   50% {
@@ -178,9 +180,11 @@
   .glass-gradient {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.15) 0%, 
-      rgba(255, 255, 255, 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     color: white;
@@ -192,13 +196,15 @@
   }
 
   .glass-border-glow::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: -2px;
-    background: linear-gradient(45deg, 
-      transparent 30%, 
-      rgba(255, 255, 255, 0.3) 50%, 
-      transparent 70%);
+    background: linear-gradient(
+      45deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 70%
+    );
     border-radius: inherit;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -226,18 +232,43 @@
     animation: borderGlow 2s ease-in-out infinite;
   }
 
+  .animate-shimmer {
+    animation: shimmer 3s linear infinite;
+  }
+
   /* Stagger animations for children */
   .stagger-children > * {
     animation: fadeInUp 0.4s ease-out;
     animation-fill-mode: both;
   }
 
-  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+  .stagger-children > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .stagger-children > *:nth-child(2) {
+    animation-delay: 50ms;
+  }
+  .stagger-children > *:nth-child(3) {
+    animation-delay: 100ms;
+  }
+  .stagger-children > *:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  .stagger-children > *:nth-child(5) {
+    animation-delay: 200ms;
+  }
+  .stagger-children > *:nth-child(6) {
+    animation-delay: 250ms;
+  }
+  
+  /* Animation delay utilities */
+  .animation-delay-0 { animation-delay: 0ms; }
+  .animation-delay-50 { animation-delay: 50ms; }
+  .animation-delay-100 { animation-delay: 100ms; }
+  .animation-delay-150 { animation-delay: 150ms; }
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-250 { animation-delay: 250ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
 }
 
 /* Slider component styles */
@@ -247,7 +278,7 @@
   height: var(--thumb-height);
   border-radius: 50%;
   background: white;
-  border: 2px solid theme('colors.button.primary');
+  border: 2px solid #4169e1;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: all 0.2s;
@@ -267,7 +298,7 @@
   height: var(--thumb-height);
   border-radius: 50%;
   background: white;
-  border: 2px solid theme('colors.button.primary');
+  border: 2px solid #4169e1;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: all 0.2s;
@@ -281,7 +312,92 @@
   transform: scale(0.95);
 }
 
+/* Glass slider styles */
+.glass-slider-input::-webkit-slider-thumb {
+  appearance: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    var(--thumb-glow, 0 0 15px rgba(59, 130, 246, 0.8)),
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 3px rgba(255, 255, 255, 0.6);
+  cursor: grab;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.glass-slider-input::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow:
+    var(--thumb-glow, 0 0 20px rgba(59, 130, 246, 1)),
+    0 6px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 3px rgba(255, 255, 255, 0.8);
+}
+
+.glass-slider-input::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+.glass-slider-input::-moz-range-thumb {
+  appearance: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    var(--thumb-glow, 0 0 15px rgba(59, 130, 246, 0.8)),
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 3px rgba(255, 255, 255, 0.6);
+  cursor: grab;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.glass-slider-input::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow:
+    var(--thumb-glow, 0 0 20px rgba(59, 130, 246, 1)),
+    0 6px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 3px rgba(255, 255, 255, 0.8);
+}
+
+.glass-slider-input::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
 /* Game-specific styles */
 .game-paused {
   @apply absolute inset-0 bg-black/50 pointer-events-none z-10;
+}
+
+/* Canvas rendering optimization */
+.image-crisp-edges {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Ensure canvas container has proper dimensions */
+#canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0)); /* Space for control bar + safe area */
+  background-color: #000; /* Black background to see if container is visible */
 }

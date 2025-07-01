@@ -1908,6 +1908,10 @@ export class Game {
   getPlayer(): Player {
     return this.player;
   }
+  
+  getMobileControls(): any {
+    return (this as any).mobileControls || null;
+  }
 
   // Tower selling
   sellTower(tower: Tower): boolean {
@@ -1980,9 +1984,6 @@ export class Game {
     this.mobileControls = mobileControls;
   }
 
-  getMobileControls(): any | null {
-    return this.mobileControls;
-  }
   
   getTouchGestureManager(): HammerGestureManager | null {
     return this.touchGestureManager;

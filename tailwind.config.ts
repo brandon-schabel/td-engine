@@ -85,6 +85,9 @@ export default {
         'xxl': '24px',
         'xxxl': '32px',
       },
+      padding: {
+        'safe': 'env(safe-area-inset-bottom, 0)',
+      },
       fontSize: {
         'xxs': '10px',
         'xs': '12px',

@@ -2,13 +2,19 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import react from "@vitejs/plugin-react";
 import tailwindcss from '@tailwindcss/vite'
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react(), tsconfigPaths(), tailwindcss()],
+  plugins: [
+    TanStackRouterVite(),
+    react(), 
+    tsconfigPaths(), 
+    tailwindcss()
+  ],
   // @ts-expect-error process is a nodejs global
   base: process.env.NODE_ENV === 'production' ? '/td-engine/' : '/',
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

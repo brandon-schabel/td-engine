@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ProgressBar } from '../shared/ProgressBar';
-import { DraggablePanel } from '../floating';
-import { useGameNotifications } from './GameNotifications';
-import { cn } from '@/lib/utils';
-import type { Game } from '@/core/Game';
-import { SoundType } from '@/audio/AudioManager';
-import { IconType } from '@/ui/icons/SvgIcons';
+import React, { useState, useEffect, useCallback } from "react";
+import { ProgressBar } from "../shared/ProgressBar";
+import { DraggablePanel } from "../floating";
+import { useGameNotifications } from "./GameNotifications";
+import { cn } from "@/lib/utils";
+import type { Game } from "@/core/Game";
+import { SoundType } from "@/audio/AudioManager";
+import { IconType } from "@/ui/icons/SvgIcons";
+import {
+  useMobileLayout,
+  adjustForMobileSafeArea,
+} from "../../hooks/useMobileLayout";
 
 interface DraggablePlayerLevelDisplayProps {
   game: Game;
@@ -18,12 +22,9 @@ interface DraggablePlayerLevelDisplayProps {
  * Draggable player level display with experience progress
  * Replaces the FloatingUIManager-based level display
  */
-export const DraggablePlayerLevelDisplay: React.FC<DraggablePlayerLevelDisplayProps> = ({ 
-  game, 
-  visible = true,
-  draggable = true,
-  defaultPosition,
-}) => {
+export const DraggablePlayerLevelDisplay: React.FC<
+  DraggablePlayerLevelDisplayProps
+> = ({ game, visible = true, draggable = true, defaultPosition }) => {
   const [level, setLevel] = useState(0);
   const [experience, setExperience] = useState(0);
   const [experienceToNext, setExperienceToNext] = useState(0);
@@ -31,49 +32,52 @@ export const DraggablePlayerLevelDisplay: React.FC<DraggablePlayerLevelDisplayPr
   const [progress, setProgress] = useState(0);
   const [isMaxLevel, setIsMaxLevel] = useState(false);
   const [showGlow, setShowGlow] = useState(false);
-  
+
   const { success: showNotification } = useGameNotifications();
-  const isMobile = 'ontouchstart' in window;
+  const layoutInfo = useMobileLayout();
 
   // Calculate default position if not provided
   const calculatedDefaultPosition = defaultPosition || {
-    x: window.innerWidth - (isMobile ? 140 : 240),
-    y: isMobile ? 20 : 50
+    x: window.innerWidth - (layoutInfo.isMobile ? 110 : 240),
+    y: adjustForMobileSafeArea(layoutInfo.isMobile ? 160 : 50, layoutInfo),
   };
 
   // Show level up notification
-  const showLevelUpNotification = useCallback((newLevel: number, pointsEarned: number) => {
-    // Show toast notification
-    showNotification(
-      `LEVEL ${newLevel}`,
-      {
+  const showLevelUpNotification = useCallback(
+    (newLevel: number, pointsEarned: number) => {
+      // Show toast notification
+      showNotification(`LEVEL ${newLevel}`, {
         icon: IconType.STAR,
         duration: 3000,
-        action: pointsEarned > 0 ? {
-          label: `+${pointsEarned} Point${pointsEarned > 1 ? 's' : ''}`,
-          onClick: () => {
-            // Could open upgrade menu here
-          }
-        } : undefined
+        action:
+          pointsEarned > 0
+            ? {
+                label: `+${pointsEarned} Point${pointsEarned > 1 ? "s" : ""}`,
+                onClick: () => {
+                  // Could open upgrade menu here
+                },
+              }
+            : undefined,
+      });
+
+      // Play level up sound
+      try {
+        game.getAudioManager().playSound(SoundType.PLAYER_LEVEL_UP, 1);
+      } catch (error) {
+        console.debug("Level up sound could not be played:", error);
       }
-    );
 
-    // Play level up sound
-    try {
-      game.getAudioManager().playSound(SoundType.PLAYER_LEVEL_UP, 1);
-    } catch (error) {
-      console.debug('Level up sound could not be played:', error);
-    }
-
-    // Add glow effect
-    setShowGlow(true);
-    setTimeout(() => setShowGlow(false), 3000);
-  }, [game, showNotification]);
+      // Add glow effect
+      setShowGlow(true);
+      setTimeout(() => setShowGlow(false), 3000);
+    },
+    [game, showNotification]
+  );
 
   // Connect to game for level up notifications
   useEffect(() => {
     game.setPlayerLevelDisplay({
-      showLevelUpNotification
+      showLevelUpNotification,
     });
   }, [game, showLevelUpNotification]);
 
@@ -82,7 +86,7 @@ export const DraggablePlayerLevelDisplay: React.FC<DraggablePlayerLevelDisplayPr
     const updateInterval = setInterval(() => {
       const player = game.getPlayer();
       const levelSystem = player.getPlayerLevelSystem();
-      
+
       setLevel(levelSystem.getLevel());
       setExperience(levelSystem.getExperience());
       setExperienceToNext(levelSystem.getExperienceToNextLevel());
@@ -104,28 +108,32 @@ export const DraggablePlayerLevelDisplay: React.FC<DraggablePlayerLevelDisplayPr
       persistent={true}
       variant="glass-dark"
       className={cn(
-        isMobile ? 'p-2' : 'p-3',
-        showGlow && 'animate-golden-pulse'
+        layoutInfo.isMobile ? "p-1" : "p-3",
+        showGlow && "animate-golden-pulse"
       )}
       zIndex={500}
     >
-      <div className={cn(
-        isMobile ? 'min-w-[120px]' : 'min-w-[200px]'
-      )}>
+      <div
+        className={cn(layoutInfo.isMobile ? "min-w-[100px]" : "min-w-[200px]")}
+      >
         {/* Level header */}
-        <div className="flex items-center justify-between mb-2">
-          <div className={cn(
-            isMobile ? 'text-sm' : 'text-lg',
-            'font-bold text-white'
-          )}>
+        <div className="flex items-center justify-between mb-1">
+          <div
+            className={cn(
+              layoutInfo.isMobile ? "text-xs" : "text-lg",
+              "font-bold text-white"
+            )}
+          >
             Level {level}
           </div>
-          
+
           {availablePoints > 0 && (
-            <div className={cn(
-              isMobile ? 'text-xs' : 'text-sm',
-              'text-status-success font-medium'
-            )}>
+            <div
+              className={cn(
+                layoutInfo.isMobile ? "text-xs" : "text-sm",
+                "text-status-success font-medium"
+              )}
+            >
               {availablePoints} Points
             </div>
           )}
@@ -135,24 +143,23 @@ export const DraggablePlayerLevelDisplay: React.FC<DraggablePlayerLevelDisplayPr
         <div className="mb-1">
           <ProgressBar
             progress={progress}
-            className={cn(
-              'w-full',
-              isMobile ? 'h-2' : 'h-3'
-            )}
+            className={cn("w-full", layoutInfo.isMobile ? "h-1" : "h-3")}
             fillColor="primary"
             animated
           />
         </div>
 
         {/* Experience text */}
-        <div className={cn(
-          'text-xs text-center',
-          isMaxLevel ? 'text-status-warning font-bold' : 'text-white/80'
-        )}>
-          {isMaxLevel 
-            ? 'MAX LEVEL' 
-            : `${Math.floor(experience)} / ${experienceToNext} XP`
-          }
+        <div
+          className={cn(
+            layoutInfo.isMobile ? "text-xs" : "text-xs",
+            "text-center",
+            isMaxLevel ? "text-status-warning font-bold" : "text-white/80"
+          )}
+        >
+          {isMaxLevel
+            ? "MAX LEVEL"
+            : `${Math.floor(experience)} / ${experienceToNext} XP`}
         </div>
       </div>
     </DraggablePanel>

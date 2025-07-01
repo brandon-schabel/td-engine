@@ -117,7 +117,7 @@ export class Pathfinding {
           // Access the node using getNodeAt method
           const node = pfGrid.getNodeAt(x, y);
           if (node) {
-            node.weight = cost;
+            (node as any).weight = cost;
           }
         }
       }

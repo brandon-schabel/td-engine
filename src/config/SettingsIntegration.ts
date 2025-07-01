@@ -113,7 +113,8 @@ export function getCurrentGameConfig(): SimpleGameConfig {
     enableShadows: true,
     enableAntialiasing: true,
     enableGlowEffects: true,
-    useLowQualityMode: false
+    useLowQualityMode: false,
+    showMobileControls: true
   };
 
   return applySettingsToGame(defaultSettings);

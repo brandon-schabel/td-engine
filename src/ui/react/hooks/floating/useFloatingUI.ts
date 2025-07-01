@@ -106,7 +106,7 @@ export function useFloatingUI({
     placement,
     strategy,
     middleware,
-    whileElementsMounted: enableAutoUpdate ? (...args) => autoUpdate(...args, autoUpdateOptions) : undefined,
+    whileElementsMounted: enableAutoUpdate ? autoUpdate : undefined,
     ...options,
   });
 

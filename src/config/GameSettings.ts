@@ -36,6 +36,7 @@ export interface GameSettings {
   mobileJoystickEnabled: boolean;
   hapticFeedbackEnabled: boolean;
   touchControlsLayout: 'default' | 'lefty';
+  showMobileControls: boolean;
 }
 
 // Difficulty enum for UI compatibility
@@ -68,7 +69,8 @@ export const DEFAULT_SETTINGS: GameSettings = {
   pathComplexity: 'SIMPLE',
   mobileJoystickEnabled: true,
   hapticFeedbackEnabled: true,
-  touchControlsLayout: 'default'
+  touchControlsLayout: 'default',
+  showMobileControls: true
 };
 
 // Load settings from localStorage
@@ -240,6 +242,9 @@ export class SettingsManager implements GameSettings {
 
   get touchControlsLayout() { return this._settings.touchControlsLayout; }
   set touchControlsLayout(value) { this._settings.touchControlsLayout = value; }
+  
+  get showMobileControls() { return this._settings.showMobileControls; }
+  set showMobileControls(value) { this._settings.showMobileControls = value; }
 
   private constructor() {
     this._settings = this.loadSettings();

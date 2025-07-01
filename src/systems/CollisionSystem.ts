@@ -156,7 +156,9 @@ export class CollisionSystem {
    */
   public getCollisionDetails(entityA: Entity, entityB: Entity): SAT.Response | null {
     if (this.checkCollision(entityA, entityB)) {
-      return { ...this.collisionResponse };
+      const response = new SAT.Response();
+      Object.assign(response, this.collisionResponse);
+      return response;
     }
     return null;
   }

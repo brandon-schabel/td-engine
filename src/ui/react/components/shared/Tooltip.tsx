@@ -92,7 +92,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
     children,
     getReferenceProps({
       ref: refs.setReference,
-      ...children.props,
+      ...(children.props || {}),
     })
   );
 
@@ -107,6 +107,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
               ...floatingStyles,
               maxWidth: `${maxWidth}px`,
               pointerEvents: "none",
+              visibility: (floatingStyles as any).visibility,
             }}
             className={cn(
               "z-[10000]",

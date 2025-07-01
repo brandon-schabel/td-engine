@@ -1,9 +1,9 @@
-import React, { forwardRef, HTMLAttributes } from 'react';
-import { cn } from '@/lib/utils';
+import React, { forwardRef, HTMLAttributes } from "react";
+import { cn } from "@/lib/utils";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'elevated' | 'outlined' | 'filled' | 'glass';
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  variant?: "default" | "elevated" | "outlined" | "filled" | "glass";
+  padding?: "none" | "sm" | "md" | "lg";
   hoverable?: boolean;
   clickable?: boolean;
   asChild?: boolean;
@@ -11,44 +11,38 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 const cardVariants = {
   default: [
-    'bg-ui-bg-secondary',
-    'border border-ui-border-subtle',
-    'shadow-sm',
+    "bg-ui-bg-secondary",
+    "border border-ui-border-subtle",
+    "shadow-sm",
   ],
   elevated: [
-    'bg-ui-bg-secondary',
-    'border border-ui-border-subtle',
-    'shadow-md',
+    "bg-ui-bg-secondary",
+    "border border-ui-border-subtle",
+    "shadow-md",
   ],
-  outlined: [
-    'bg-transparent',
-    'border-2 border-ui-border-DEFAULT',
-  ],
-  filled: [
-    'bg-ui-bg-secondary',
-    'border border-ui-border-subtle',
-  ],
+  outlined: ["bg-transparent", "border-2 border-ui-border-DEFAULT"],
+  filled: ["bg-ui-bg-secondary", "border border-ui-border-subtle"],
   glass: [
-    'bg-white/10',
-    'backdrop-blur-md',
-    'border border-white/20',
-    'shadow-lg',
+    "bg-white/10",
+    "backdrop-blur-md",
+    "border border-white/20",
+    "shadow-lg",
   ],
 };
 
 const paddingSizes = {
-  none: '',
-  sm: 'p-2',
-  md: 'p-4',
-  lg: 'p-6',
+  none: "",
+  sm: "p-2",
+  md: "p-4",
+  lg: "p-6",
 };
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   (
     {
       className,
-      variant = 'default',
-      padding = 'md',
+      variant = "default",
+      padding = "md",
       hoverable = false,
       clickable = false,
       onClick,
@@ -62,36 +56,39 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 
     const classes = cn(
       // Base styles
-      'rounded-md overflow-hidden',
-      
+      "rounded-md overflow-hidden",
+
       // Variant styles
       cardVariants[variant],
-      
+
       // Padding
       paddingSizes[padding],
-      
+
       // Interactive states
-      isInteractive && 'transition-all duration-200',
-      hoverable && 'hover:shadow-lg hover:scale-[1.02]',
-      clickable && 'cursor-pointer active:scale-[0.98]',
-      
+      isInteractive && "transition-all duration-200",
+      hoverable && "hover:shadow-lg hover:scale-[1.02]",
+      clickable && "cursor-pointer active:scale-[0.98]",
+
       // Focus styles for clickable cards
-      clickable && 'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-button-primary',
-      
+      clickable &&
+        "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-button-primary",
+
       className
     );
 
-    const Component = asChild ? 'div' : 'div';
-    const interactiveProps = clickable ? {
-      tabIndex: 0,
-      role: 'button',
-      onKeyDown: (e: React.KeyboardEvent) => {
-        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
-          e.preventDefault();
-          onClick(e as any);
+    const Component = asChild ? "div" : "div";
+    const interactiveProps = clickable
+      ? {
+          tabIndex: 0,
+          role: "button",
+          onKeyDown: (e: React.KeyboardEvent) => {
+            if ((e.key === "Enter" || e.key === " ") && onClick) {
+              e.preventDefault();
+              onClick(e as any);
+            }
+          },
         }
-      },
-    } : {};
+      : {};
 
     return (
       <Component
@@ -107,7 +104,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   }
 );
 
-Card.displayName = 'Card';
+Card.displayName = "Card";
 
 // Card sub-components for structured cards
 export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
@@ -119,8 +116,8 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
     <div
       ref={ref}
       className={cn(
-        'px-4 py-3',
-        !noBorder && 'border-b border-ui-border-subtle',
+        "px-4 py-3",
+        !noBorder && "border-b border-ui-border-subtle",
         className
       )}
       {...props}
@@ -128,46 +125,42 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
   )
 );
 
-CardHeader.displayName = 'CardHeader';
+CardHeader.displayName = "CardHeader";
 
-export const CardBody = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn('p-4', className)}
-      {...props}
-    />
-  )
-);
+export const CardBody = forwardRef<
+  HTMLDivElement,
+  HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("p-4", className)} {...props} />
+));
 
-CardBody.displayName = 'CardBody';
+CardBody.displayName = "CardBody";
 
-export const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        'px-4 py-3',
-        'border-t border-ui-border-subtle',
-        'bg-black/20',
-        className
-      )}
-      {...props}
-    />
-  )
-);
+export const CardFooter = forwardRef<
+  HTMLDivElement,
+  HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "px-4 py-3",
+      "border-t border-ui-border-subtle",
+      "bg-black/20",
+      className
+    )}
+    {...props}
+  />
+));
 
-CardFooter.displayName = 'CardFooter';
+CardFooter.displayName = "CardFooter";
 
 // Utility components
 export const ClickableCard = forwardRef<
   HTMLDivElement,
-  Omit<CardProps, 'clickable' | 'hoverable'> & { onClick: () => void }
->(({ ...props }, ref) => (
-  <Card ref={ref} clickable hoverable {...props} />
-));
+  Omit<CardProps, "clickable" | "hoverable"> & { onClick: () => void }
+>(({ ...props }, ref) => <Card ref={ref} clickable hoverable {...props} />);
 
-ClickableCard.displayName = 'ClickableCard';
+ClickableCard.displayName = "ClickableCard";
 
 // Compound component for better composition
 export interface StructuredCardProps extends CardProps {
@@ -176,7 +169,7 @@ export interface StructuredCardProps extends CardProps {
 }
 
 export const StructuredCard = forwardRef<HTMLDivElement, StructuredCardProps>(
-  ({ header, footer, children, padding = 'none', ...props }, ref) => (
+  ({ header, footer, children, padding = "none", ...props }, ref) => (
     <Card ref={ref} padding={padding} {...props}>
       {header && <CardHeader>{header}</CardHeader>}
       {children && <CardBody>{children}</CardBody>}
@@ -185,4 +178,4 @@ export const StructuredCard = forwardRef<HTMLDivElement, StructuredCardProps>(
   )
 );
 
-StructuredCard.displayName = 'StructuredCard';
+StructuredCard.displayName = "StructuredCard";

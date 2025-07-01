@@ -39,6 +39,10 @@ export interface FloatingPanelProps {
   animation?: 'fade' | 'scale' | 'slide' | 'none';
   /** Z-index for stacking */
   zIndex?: number;
+  /** Event handlers to prevent propagation */
+  onMouseDown?: (e: React.MouseEvent) => void;
+  onMouseUp?: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 const animations = {
@@ -82,6 +86,9 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
   overlayClassName,
   animation = 'scale',
   zIndex = 1000,
+  onMouseDown,
+  onMouseUp,
+  onClick,
 }) => {
   const isPositionAnchor = anchor && 'x' in anchor;
   const virtualRef = useRef<HTMLElement | null>(null);
@@ -166,6 +173,9 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
           {...animations[animation]}
           transition={{ duration: 0.2, ease: 'easeOut' }}
           {...getFloatingProps()}
+          onMouseDown={onMouseDown}
+          onMouseUp={onMouseUp}
+          onClick={onClick}
         >
           <GlassPanel
             variant="dark"

@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { ControlBar } from './ControlBar';
 import { TowerPlacementIndicator } from './TowerPlacementIndicator';
 import { DraggableCurrencyDisplay } from './DraggableCurrencyDisplay';
+import { DraggableScoreDisplay } from './DraggableScoreDisplay';
+import { DraggableHealthDisplay } from './DraggableHealthDisplay';
+import { DraggableWaveDisplay } from './DraggableWaveDisplay';
+import { DraggablePlayerLevelDisplay } from './DraggablePlayerLevelDisplay';
+import { MobileControls } from './MobileControls';
 import { useFloatingDamageNumbers } from '../floating/FloatingDamageNumber';
 import { BuildModeOverlay } from '../floating/BuildModeOverlay';
 import { useIsPanelOpen } from '../../hooks/useUIStore';
@@ -134,38 +139,55 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
     const uiController = game.getUIController();
     const buildButton = document.querySelector('.ui-button-control[title*="Build"]') as HTMLElement;
     
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+    
     let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    if (buildButton) {
+    let anchorElement: HTMLElement | undefined = undefined;
+    
+    if (!isMobile && buildButton) {
+      // Desktop: anchor to button
       const rect = buildButton.getBoundingClientRect();
       screenPos = {
         x: rect.left + rect.width / 2,
         y: rect.top - 10
       };
+      anchorElement = buildButton;
     }
+    // Mobile: use center position (no anchor)
 
     uiController.showBuildMenu(screenPos.x, screenPos.y, (towerType) => {
       game.setSelectedTowerType(towerType);
       setSelectedTowerType(towerType);
-    }, buildButton || undefined);
+    }, anchorElement);
   };
 
   const handlePlayerUpgrade = () => {
     const uiController = game.getUIController();
-    uiController.showPlayerUpgrade();
+    const player = game.getPlayer();
+    if (player) {
+      uiController.showPlayerUpgrade(player);
+    }
   };
 
   const handleInventory = () => {
     const uiController = game.getUIController();
     const inventoryButton = document.querySelector('.ui-button-control[title*="Inventory"]') as HTMLElement;
     
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+    
     let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    if (inventoryButton) {
+    
+    if (!isMobile && inventoryButton) {
+      // Desktop: position above button
       const rect = inventoryButton.getBoundingClientRect();
       screenPos = {
         x: rect.left + rect.width / 2,
         y: rect.top - 10
       };
     }
+    // Mobile: use center position
     
     uiController.showInventory(screenPos);
   };
@@ -211,8 +233,12 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
 
   return (
     <>
-      {/* Draggable currency display */}
+      {/* Draggable displays */}
+      <DraggableHealthDisplay />
       <DraggableCurrencyDisplay />
+      <DraggableWaveDisplay />
+      <DraggableScoreDisplay />
+      <DraggablePlayerLevelDisplay game={game} />
       
       <ControlBar
         game={game}
@@ -239,6 +265,9 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
       {isPaused && (
         <div className="game-paused" />
       )}
+      
+      {/* Mobile Controls */}
+      <MobileControls game={game} />
     </>
   );
 };
