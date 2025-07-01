@@ -42,7 +42,7 @@ export const Settings: React.FC = () => {
     const audioManager = game?.getAudioManager();
     if (audioManager) {
       audioManager.setMasterVolume(currentSettings.masterVolume);
-      audioManager.setSoundEnabled(currentSettings.soundEnabled);
+      audioManager.setEnabled(currentSettings.soundEnabled);
     }
   };
   

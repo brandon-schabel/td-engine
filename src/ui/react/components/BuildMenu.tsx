@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Panel } from './shared';
 import { ResourceDisplay, Icon } from './index';
+import { FloatingPanel } from './floating';
 import { cn } from '@/lib/utils';
 import { TowerType } from '@/entities/Tower';
 import { IconType } from '@/ui/icons/SvgIcons';
@@ -8,6 +9,7 @@ import { COLOR_THEME } from '@/config/ColorTheme';
 import { TOWER_COSTS } from '@/config/GameConfig';
 import { useGameStoreSelector } from '../hooks/useGameStore';
 import { uiStore, UIPanelType } from '@/stores/uiStore';
+import { useIsPanelOpen } from '../hooks/useUIStore';
 import { SoundType } from '@/audio/AudioManager';
 
 interface TowerOption {
@@ -19,19 +21,43 @@ interface TowerOption {
 }
 
 /**
- * BuildMenu React component - Replaces BuildMenuUI
- * Shows a grid of available towers with costs and affordability
+ * BuildMenu React component
+ * Shows a floating panel with available towers
  */
 export const BuildMenu: React.FC = () => {
   const currency = useGameStoreSelector(state => state.currency);
+  const isOpen = useIsPanelOpen(UIPanelType.BUILD_MENU);
+  const anchorRef = useRef<HTMLElement | null>(null);
   
   // Get metadata from UI store for position and callback
   const metadata = uiStore.getState().getPanelMetadata(UIPanelType.BUILD_MENU);
   const position = metadata?.position as { x: number; y: number } | undefined;
   const onTowerSelect = metadata?.onTowerSelect as ((type: TowerType) => void) | undefined;
+  const anchorElement = metadata?.anchorElement as HTMLElement | undefined;
   
   // Get game instance
   const game = (window as any).currentGame;
+  
+  // Update anchor element
+  useEffect(() => {
+    if (anchorElement) {
+      anchorRef.current = anchorElement;
+    } else if (position) {
+      // Create virtual element for position-based anchoring
+      anchorRef.current = {
+        getBoundingClientRect: () => ({
+          x: position.x,
+          y: position.y,
+          width: 0,
+          height: 0,
+          top: position.y,
+          left: position.x,
+          right: position.x,
+          bottom: position.y,
+        }),
+      } as any;
+    }
+  }, [anchorElement, position]);
   
   const towers: TowerOption[] = [
     {
@@ -82,93 +108,83 @@ export const BuildMenu: React.FC = () => {
     }
   };
   
-  
-  // Calculate position
-  const style: React.CSSProperties = position ? {
-    position: 'fixed',
-    left: `${position.x}px`,
-    top: `${position.y}px`,
-    transform: 'translate(-50%, -50%)',
-    pointerEvents: 'auto' as const
-  } : {
-    position: 'fixed',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    pointerEvents: 'auto' as const
-  };
-  
   return (
-    <div style={style} className={cn('z-[1000]')}>
-      <Panel
-        title="Build Tower"
+    <FloatingPanel
+      open={isOpen}
+      onOpenChange={handleClose}
+      anchor={anchorRef.current}
+      placement={anchorElement ? "top" : "center"}
+      modal={false}
+      closeOnOutsideClick={true}
+      closeOnEscape={true}
+      animation="scale"
+      className="w-[300px]"
+    >
+      <Panel 
+        title="Build Tower" 
+        icon={IconType.BUILD}
         onClose={handleClose}
-        className={cn('w-[300px]')}
+        className="!bg-transparent"
       >
-        {/* Tower grid */}
-        <div className={cn('grid', 'grid-cols-2', 'gap-2', 'mb-4')}>
-          {towers.map(tower => (
-            <TowerCard
-              key={tower.type}
-              tower={tower}
-              canAfford={currency >= tower.cost}
-              onClick={() => handleTowerSelect(tower)}
-            />
-          ))}
+        <div className="grid grid-cols-2 gap-2 p-3">
+          {towers.map((tower) => {
+            const canAfford = currency >= tower.cost;
+            
+            return (
+              <button
+                key={tower.type}
+                onClick={() => handleTowerSelect(tower)}
+                disabled={!canAfford}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-3',
+                  'rounded-lg border-2 transition-all duration-200',
+                  'hover:scale-105 active:scale-95',
+                  canAfford ? [
+                    'bg-ui-bg-secondary border-ui-border-subtle',
+                    'hover:border-ui-border-active hover:bg-ui-bg-primary',
+                    'cursor-pointer'
+                  ] : [
+                    'bg-ui-bg-secondary/50 border-ui-border-subtle/50',
+                    'cursor-not-allowed opacity-50'
+                  ]
+                )}
+              >
+                <div 
+                  className="w-12 h-12 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: `${tower.color}20` }}
+                >
+                  <Icon 
+                    type={tower.icon} 
+                    size={32} 
+                    color={tower.color}
+                  />
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-xs font-medium text-ui-text-primary">
+                    {tower.name}
+                  </div>
+                  <ResourceDisplay
+                    value={tower.cost}
+                    icon={IconType.COINS}
+                    variant="inline"
+                    className={cn(
+                      'text-xs',
+                      !canAfford && 'text-status-error'
+                    )}
+                  />
+                </div>
+              </button>
+            );
+          })}
         </div>
         
-        {/* Currency display */}
-        <div className={cn('flex', 'justify-center')}>
-          <ResourceDisplay
-            label="Currency"
-            value={`$${currency}`}
-            icon={IconType.COINS}
-            variant="compact"
-          />
+        <div className="px-3 pb-3">
+          <div className="text-xs text-ui-text-secondary text-center">
+            Select a tower to build
+          </div>
         </div>
       </Panel>
-    </div>
-  );
-};
-
-/**
- * Individual tower card component
- */
-const TowerCard: React.FC<{
-  tower: TowerOption;
-  canAfford: boolean;
-  onClick: () => void;
-}> = ({ tower, canAfford, onClick }) => {
-  return (
-    <div
-      className={cn(
-        'bg-ui-bg-tertiary',
-        'border-2',
-        canAfford ? 'border-ui-border-DEFAULT hover:border-button-primary' : 'border-ui-border-subtle',
-        'rounded-lg',
-        'p-4',
-        'cursor-pointer',
-        'transition-all',
-        'text-center',
-        !canAfford && 'opacity-50 cursor-not-allowed'
-      )}
-      onClick={onClick}
-    >
-      <div className={cn('flex', 'justify-center', 'mb-2')}>
-        <Icon type={tower.icon} size={48} color={tower.color} />
-      </div>
-      
-      <h3 className={cn('text-sm', 'font-semibold', 'text-white', 'mb-1')}>
-        {tower.name}
-      </h3>
-      
-      <div className={cn(
-        'text-xs',
-        'font-bold',
-        canAfford ? 'text-success-DEFAULT' : 'text-danger-DEFAULT'
-      )}>
-        ${tower.cost}
-      </div>
-    </div>
+    </FloatingPanel>
   );
 };

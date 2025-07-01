@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Panel, Button } from './shared';
 import { IconContainer, InlineStats, type Stat } from './index';
+import { FloatingPanel } from './floating';
 import { cn } from '@/lib/utils';
 import { UpgradeType } from '@/entities/Tower';
 import type { Tower } from '@/entities/Tower';
 import { IconType } from '@/ui/icons/SvgIcons';
 import { uiStore, UIPanelType } from '@/stores/uiStore';
+import { useIsPanelOpen } from '../hooks/useUIStore';
 import { useGameStoreSelector } from '../hooks/useGameStore';
 import { SoundType } from '@/audio/AudioManager';
 
@@ -21,12 +23,13 @@ interface UpgradeOption {
 }
 
 /**
- * TowerUpgrade React component - Replaces TowerUpgradeUI
- * Manages tower upgrades and selling with safety features
+ * TowerUpgrade React component
+ * Shows a centered modal for tower upgrades and selling
  */
 export const TowerUpgrade: React.FC = () => {
   const [sellButtonEnabled, setSellButtonEnabled] = useState(false);
   const currency = useGameStoreSelector(state => state.currency);
+  const isOpen = useIsPanelOpen(UIPanelType.TOWER_UPGRADE);
   
   // Get tower from metadata
   const metadata = uiStore.getState().getPanelMetadata(UIPanelType.TOWER_UPGRADE);
@@ -102,8 +105,8 @@ export const TowerUpgrade: React.FC = () => {
       },
       {
         type: UpgradeType.FIRE_RATE,
-        name: 'Speed',
-        description: 'Attack more frequently',
+        name: 'Fire Rate',
+        description: 'Increase attack speed',
         cost: tower.getUpgradeCost(UpgradeType.FIRE_RATE),
         currentLevel: tower.getUpgradeLevel(UpgradeType.FIRE_RATE),
         maxLevel: tower.getMaxUpgradeLevel(),
@@ -114,174 +117,191 @@ export const TowerUpgrade: React.FC = () => {
   };
   
   const getUpgradeEffectText = (tower: Tower, upgradeType: UpgradeType): string => {
-    const preview = tower.getUpgradePreview(upgradeType);
-    if (!preview) return 'MAX';
+    const level = tower.getUpgradeLevel(upgradeType);
+    const baseValue = getBaseValue(tower, upgradeType);
+    const currentValue = getCurrentValue(tower, upgradeType);
+    const nextValue = getNextValue(tower, upgradeType);
     
+    if (level >= tower.getMaxUpgradeLevel()) {
+      return `MAX (${formatValue(currentValue, upgradeType)})`;
+    }
+    
+    const percentIncrease = ((nextValue - baseValue) / baseValue) * 100;
+    return `${formatValue(currentValue, upgradeType)} → ${formatValue(nextValue, upgradeType)} (+${percentIncrease.toFixed(0)}%)`;
+  };
+  
+  const getBaseValue = (tower: Tower, upgradeType: UpgradeType): number => {
     switch (upgradeType) {
       case UpgradeType.DAMAGE:
-        return `${Math.round(preview.currentValue)} → ${Math.round(preview.newValue)} (+${Math.round(preview.increase)})`;
+        return tower.getBaseDamage();
       case UpgradeType.RANGE:
-        return `${Math.round(preview.currentValue)} → ${Math.round(preview.newValue)} (+${Math.round(preview.increase)})`;
+        return tower.getBaseRange();
       case UpgradeType.FIRE_RATE:
-        return `${preview.currentValue.toFixed(1)}/s → ${preview.newValue.toFixed(1)}/s (+${preview.increase.toFixed(1)}/s)`;
+        return tower.getBaseFireRate();
       default:
-        return '';
+        return 0;
     }
   };
   
-  // Calculate position to follow tower
-  const towerWorldPos = tower.position;
-  const screenPos = game?.worldToScreen(towerWorldPos.x, towerWorldPos.y);
-  
-  const style: React.CSSProperties = screenPos ? {
-    position: 'fixed',
-    left: `${screenPos.x}px`,
-    top: `${screenPos.y - 20}px`,
-    transform: 'translate(-50%, -100%)',
-    pointerEvents: 'auto' as const
-  } : {
-    display: 'none'
+  const getCurrentValue = (tower: Tower, upgradeType: UpgradeType): number => {
+    switch (upgradeType) {
+      case UpgradeType.DAMAGE:
+        return tower.damage;
+      case UpgradeType.RANGE:
+        return tower.range;
+      case UpgradeType.FIRE_RATE:
+        return tower.attackSpeed;
+      default:
+        return 0;
+    }
   };
   
-  const hasAvailableUpgrades = getUpgradeOptions().some(
-    opt => opt.currentLevel < opt.maxLevel
-  );
+  const getNextValue = (tower: Tower, upgradeType: UpgradeType): number => {
+    const level = tower.getUpgradeLevel(upgradeType);
+    const baseValue = getBaseValue(tower, upgradeType);
+    const multiplier = 1 + (level + 1) * 0.2;
+    return Math.round(baseValue * multiplier * 10) / 10;
+  };
   
-  return (
-    <div style={style} className={cn('z-[1000]')}>
-      <Panel
-        className={cn('min-w-[280px]', 'max-w-[320px]', 'tower-upgrade-panel', 'compact')}
-        onClose={handleClose}
-      >
-        {/* Tower Header */}
-        <TowerHeader tower={tower} />
-        
-        {/* Upgrade Options */}
-        {hasAvailableUpgrades && (
-          <div className={cn('space-y-2', 'mb-3')}>
-            {getUpgradeOptions().map(option => (
-              <UpgradeCard
-                key={option.type}
-                option={option}
-                canAfford={currency >= option.cost}
-                onUpgrade={() => handleUpgrade(option.type)}
-              />
-            ))}
-          </div>
-        )}
-        
-        {/* Action Buttons */}
-        <div className={cn('flex', 'gap-2', 'mt-3')}>
-          <Button
-            icon={IconType.SELL}
-            variant="danger"
-            size="sm"
-            disabled={!sellButtonEnabled}
-            onClick={handleSell}
-            className="flex-1"
-          >
-            Sell (${Math.floor(tower.getTotalValue() * 0.7)})
-          </Button>
-          
-          <Button
-            icon={IconType.INFO}
-            variant="secondary"
-            size="sm"
-            onClick={() => console.log('Show stats')}
-            className="flex-1"
-          >
-            Stats
-          </Button>
-        </div>
-      </Panel>
-    </div>
-  );
-};
-
-/**
- * Tower header component
- */
-const TowerHeader: React.FC<{ tower: Tower }> = ({ tower }) => {
-  const stats: Stat[] = [
-    { label: 'Dmg', value: Math.round(tower.damage).toString() },
-    { label: 'Rng', value: Math.round(tower.range).toString() },
-    { label: 'Spd', value: `${tower.fireRate.toFixed(1)}/s` }
+  const formatValue = (value: number, upgradeType: UpgradeType): string => {
+    switch (upgradeType) {
+      case UpgradeType.DAMAGE:
+        return value.toFixed(1);
+      case UpgradeType.RANGE:
+        return value.toFixed(0);
+      case UpgradeType.FIRE_RATE:
+        return `${value.toFixed(1)}/s`;
+      default:
+        return value.toString();
+    }
+  };
+  
+  const totalInvested = tower.getTotalInvestment();
+  const sellValue = Math.floor(totalInvested * 0.7);
+  
+  const towerStats: Stat[] = [
+    { label: 'Type', value: tower.getDisplayName() },
+    { label: 'Level', value: `${Math.floor(tower.getAverageUpgradeLevel())}` },
+    { label: 'Total Invested', value: totalInvested, icon: IconType.COINS },
   ];
   
   return (
-    <div className={cn('flex', 'items-center', 'justify-between', 'mb-3')}>
-      <div className={cn('flex', 'items-center', 'gap-3')}>
-        <IconContainer
-          icon={getTowerIcon(tower.towerType)}
-          size="md"
-          variant="filled"
-          color="primary"
-        />
-        <div>
-          <div className={cn('text-sm', 'font-semibold', 'text-white')}>
-            {tower.towerType.replace('_', ' ')}
-          </div>
-          <InlineStats stats={stats} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Upgrade option card
- */
-const UpgradeCard: React.FC<{
-  option: UpgradeOption;
-  canAfford: boolean;
-  onUpgrade: () => void;
-}> = ({ option, canAfford, onUpgrade }) => {
-  const isMaxLevel = option.currentLevel >= option.maxLevel;
-  
-  return (
-    <div
-      className={cn(
-        'bg-ui-bg-tertiary',
-        'border',
-        isMaxLevel ? 'border-ui-border-subtle' : canAfford ? 'border-button-primary hover:border-button-primary-hover' : 'border-ui-border-DEFAULT',
-        'rounded',
-        'p-2',
-        'cursor-pointer',
-        'transition-all',
-        isMaxLevel && 'opacity-50 cursor-not-allowed'
-      )}
-      onClick={!isMaxLevel && canAfford ? onUpgrade : undefined}
+    <FloatingPanel
+      open={isOpen}
+      onOpenChange={handleClose}
+      placement="center"
+      modal={true}
+      closeOnOutsideClick={true}
+      closeOnEscape={true}
+      animation="scale"
+      className="w-[400px] max-w-[90vw]"
     >
-      <div className={cn('flex', 'items-center', 'justify-between')}>
-        <div className={cn('flex', 'items-center', 'gap-2')}>
-          <span className={cn('text-lg')}>{option.name}</span>
-          <span className={cn('text-xs', 'text-ui-text-secondary')}>
-            Lv.{option.currentLevel}/{option.maxLevel}
-          </span>
+      <Panel
+        title="Tower Upgrade"
+        icon={IconType.UPGRADE}
+        onClose={handleClose}
+        className="!bg-transparent"
+      >
+        {/* Tower Info */}
+        <div className="p-4 border-b border-ui-border-subtle">
+          <div className="flex items-center gap-4">
+            <IconContainer
+              icon={tower.getIconType()}
+              size="lg"
+              className="bg-ui-bg-primary"
+            />
+            <div className="flex-1">
+              <InlineStats stats={towerStats} />
+            </div>
+          </div>
         </div>
-        <span className={cn(
-          'text-sm',
-          'font-bold',
-          canAfford ? 'text-success-DEFAULT' : 'text-danger-DEFAULT'
-        )}>
-          ${option.cost}
-        </span>
-      </div>
-      <div className={cn('text-xs', 'text-ui-text-secondary', 'mt-1')}>
-        {option.effect}
-      </div>
-    </div>
+        
+        {/* Upgrade Options */}
+        <div className="p-4 space-y-3">
+          {getUpgradeOptions().map((upgrade) => {
+            const canAfford = currency >= upgrade.cost;
+            const isMaxLevel = upgrade.currentLevel >= upgrade.maxLevel;
+            const canUpgrade = canAfford && !isMaxLevel;
+            
+            return (
+              <div
+                key={upgrade.type}
+                className={cn(
+                  'flex items-center gap-3 p-3 rounded-lg',
+                  'bg-ui-bg-primary border border-ui-border-subtle',
+                  'transition-all duration-200',
+                  canUpgrade && 'hover:border-ui-border-active'
+                )}
+              >
+                <IconContainer
+                  icon={upgrade.icon}
+                  size="md"
+                  className="bg-ui-bg-secondary"
+                />
+                
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-ui-text-primary">
+                      {upgrade.name}
+                    </span>
+                    <span className="text-xs text-ui-text-secondary">
+                      Level {upgrade.currentLevel}/{upgrade.maxLevel}
+                    </span>
+                  </div>
+                  
+                  <div className="text-xs text-ui-text-secondary mb-2">
+                    {upgrade.effect}
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-ui-text-muted">
+                      {upgrade.description}
+                    </div>
+                    
+                    {!isMaxLevel && (
+                      <Button
+                        size="sm"
+                        variant={canAfford ? 'primary' : 'secondary'}
+                        disabled={!canUpgrade}
+                        onClick={() => handleUpgrade(upgrade.type)}
+                        icon={IconType.COINS}
+                      >
+                        {upgrade.cost}
+                      </Button>
+                    )}
+                    
+                    {isMaxLevel && (
+                      <span className="text-xs font-bold text-status-warning">
+                        MAX
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Sell Button */}
+        <div className="p-4 border-t border-ui-border-subtle">
+          <Button
+            variant="danger"
+            size="lg"
+            fullWidth
+            disabled={!sellButtonEnabled}
+            onClick={handleSell}
+            icon={IconType.SELL}
+          >
+            Sell for {sellValue} coins
+          </Button>
+          
+          {!sellButtonEnabled && (
+            <div className="text-xs text-center text-ui-text-muted mt-2">
+              Sell button enabled in a moment...
+            </div>
+          )}
+        </div>
+      </Panel>
+    </FloatingPanel>
   );
-};
-
-
-// Helper function to get tower icon
-const getTowerIcon = (towerType: string): IconType => {
-  const iconMap: Record<string, IconType> = {
-    'BASIC': IconType.BASIC_TOWER,
-    'SNIPER': IconType.SNIPER_TOWER,
-    'RAPID': IconType.RAPID_TOWER,
-    'WALL': IconType.WALL
-  };
-  return iconMap[towerType] || IconType.BASIC_TOWER;
 };

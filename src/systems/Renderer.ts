@@ -4,7 +4,7 @@ import { Projectile } from '@/entities/Projectile';
 import { Player } from '@/entities/Player';
 import { Collectible } from '@/entities/Collectible';
 import { HealthPickup } from '@/entities/HealthPickup';
-import { Entity } from '@/entities/Entity';
+import { Entity, EntityType } from '@/entities/Entity';
 import { Grid } from './Grid';
 import { Camera } from './Camera';
 import { UpgradeType } from '@/entities/Tower';
@@ -934,6 +934,11 @@ export class Renderer {
         this.renderTowerUpgradeDots(tower);
       }
     }
+    
+    // Render health bar (skip for walls)
+    if (tower.towerType !== TowerType.WALL && tower.health < tower.maxHealth) {
+      this.renderHealthBar(tower, isSelected);
+    }
   }
 
   renderTowerUpgradeDots(tower: Tower): void {
@@ -1013,6 +1018,9 @@ export class Renderer {
         enemy.renderTargetLine(this.ctx, screenPos, this.getScreenPosition.bind(this), this.camera);
       }
     }
+    
+    // Always render health bar for enemies
+    this.renderHealthBar(enemy, true);
   }
 
   renderProjectile(projectile: Projectile): void {
@@ -1224,6 +1232,9 @@ export class Renderer {
         'center'
       );
     }
+    
+    // Always render health bar for player
+    this.renderHealthBar(player, true);
   }
 
   renderHealthPickup(pickup: HealthPickup): void {
@@ -1325,7 +1336,7 @@ export class Renderer {
     if (!effect || effect.isComplete) return;
     // Only render particles if enabled
     if (this.renderSettings.enableParticles) {
-      effect.render(this.ctx, this.camera);
+      effect.render(this.ctx);
     }
   }
 
@@ -1379,10 +1390,65 @@ export class Renderer {
     }
   }
 
-  // Health bar rendering has been moved to the HealthBarPopup system
-  // This method is preserved for backwards compatibility but is no longer used
-  renderHealthBar(_entity: Entity, _alwaysShow: boolean = false): void {
-    // Health bars are now handled by the HealthBarPopup component
+  // Canvas-based health bar rendering
+  renderHealthBar(entity: Entity & { health: number; maxHealth?: number; getMaxHealth?: () => number }, alwaysShow: boolean = false): void {
+    // Skip if entity is dead or has no health
+    if (!entity || entity.health <= 0) return;
+    
+    // Get max health
+    const maxHealth = entity.maxHealth || (entity.getMaxHealth ? entity.getMaxHealth() : 100);
+    
+    // Skip rendering if entity has full health (unless forced to show)
+    const healthPercent = entity.health / maxHealth;
+    if (!alwaysShow && healthPercent >= 1) return;
+    
+    // Check if entity is visible
+    if (!this.camera.isVisible(entity.position, entity.radius + 30)) return;
+    
+    // Get screen position
+    const screenPos = this.getScreenPosition(entity);
+    const zoom = this.camera.getZoom();
+    
+    // Health bar dimensions
+    const barWidth = ENTITY_RENDER.healthBar.width * zoom;
+    const barHeight = ENTITY_RENDER.healthBar.height * zoom;
+    const yOffset = (entity.radius + ENTITY_RENDER.healthBar.offset) * zoom;
+    
+    // Position above entity
+    const barX = screenPos.x - barWidth / 2;
+    const barY = screenPos.y - yOffset;
+    
+    // Background (dark outline)
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+    
+    // Background (dark fill)
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    this.ctx.fillRect(barX, barY, barWidth, barHeight);
+    
+    // Health bar color based on entity type and health percentage
+    let barColor = '#4CAF50'; // Default green
+    
+    if ('entityType' in entity) {
+      if (entity.entityType === EntityType.PLAYER) {
+        barColor = '#4CAF50'; // Player is always green
+      } else if (entity.entityType === EntityType.TOWER) {
+        barColor = '#2196F3'; // Towers are blue
+      } else if (entity.entityType === EntityType.ENEMY) {
+        // Enemies use gradient based on health
+        if (healthPercent > 0.5) {
+          barColor = '#4CAF50'; // Green
+        } else if (healthPercent > 0.25) {
+          barColor = '#FF9800'; // Orange
+        } else {
+          barColor = '#F44336'; // Red
+        }
+      }
+    }
+    
+    // Health fill
+    this.ctx.fillStyle = barColor;
+    this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
   }
 
   renderTowerRange(tower: Tower): void {
@@ -1527,10 +1593,9 @@ export class Renderer {
       // Health bars are now handled by the HealthBarPopup system
     });
 
-    // Render enemies with health bars
+    // Render enemies
     enemies.forEach(enemy => {
       this.renderEnemy(enemy);
-      // Health bars are now handled by the HealthBarPopup system
     });
 
     // Render collectibles

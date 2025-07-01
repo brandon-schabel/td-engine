@@ -101,7 +101,7 @@ export const Header = forwardRef<HTMLElement, HeaderProps>(
             </HeadingTag>
             
             {subtitle && (
-              <p className="header-subtitle text-sm text-ui-text-secondary mt-1">
+              <p className="header-subtitle text-sm text-white/80 mt-1">
                 {subtitle}
               </p>
             )}

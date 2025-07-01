@@ -2,7 +2,7 @@
 export { GameUI } from './GameUI';
 export { ControlBar } from './ControlBar';
 export { TowerPlacementIndicator } from './TowerPlacementIndicator';
-export { PlayerLevelDisplay } from './PlayerLevelDisplay';
+export { DraggablePlayerLevelDisplay } from './DraggablePlayerLevelDisplay';
 
 // Other game components
 export { CurrencyDisplay } from './CurrencyDisplay';

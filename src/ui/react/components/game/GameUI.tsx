@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ControlBar } from './ControlBar';
 import { TowerPlacementIndicator } from './TowerPlacementIndicator';
-import { ResourceDisplay } from '../shared/ResourceDisplay';
-import { IconType } from '@/ui/icons/SvgIcons';
-import { cn } from '@/lib/utils';
+import { DraggableCurrencyDisplay } from './DraggableCurrencyDisplay';
+import { useFloatingDamageNumbers } from '../floating/FloatingDamageNumber';
+import { BuildModeOverlay } from '../floating/BuildModeOverlay';
+import { useIsPanelOpen } from '../../hooks/useUIStore';
+import { UIPanelType } from '@/stores/uiStore';
 import type { Game } from '@/core/Game';
-import { PersistentPositionManager } from '@/ui/utils/PersistentPositionManager';
 
 interface GameUIProps {
   game: Game;
@@ -46,78 +47,17 @@ export const GameOverlayUI: React.FC<GameUIProps> = ({ game }) => {
 };
 
 export const GameUI: React.FC<GameUIProps> = ({ game }) => {
-  const [currency, setCurrency] = useState(game.getCurrency());
   const [selectedTowerType, setSelectedTowerType] = useState<string | null>(null);
   const [isWaveComplete, setIsWaveComplete] = useState(game.isWaveComplete());
   const [isPaused, setIsPaused] = useState(game.isPaused());
-  const currencyFloatingRef = useRef<any>(null);
-
-  // Initialize UI components
-  useEffect(() => {
-    const floatingUI = game.getFloatingUIManager();
-
-    // Create floating currency display
-    const currencyFloatingElement = floatingUI.create('currency-display-floating', 'custom', {
-      className: cn('pointer-events-auto'),
-      screenSpace: true,
-      draggable: true,
-      persistPosition: true,
-      positionKey: 'currency-display-position',
-      zIndex: 500,
-      smoothing: 0,
-      autoHide: false,
-      persistent: true
-    });
-
-    currencyFloatingRef.current = currencyFloatingElement;
-
-    // Load saved position or use default
-    const savedPos = PersistentPositionManager.loadPosition('currency-display', 'currency-display-position');
-    if (savedPos) {
-      const minMargin = 20;
-      const adjustedPos = {
-        x: Math.max(minMargin, savedPos.x),
-        y: Math.max(60, savedPos.y)
-      };
-      currencyFloatingElement.setTarget(adjustedPos);
-    } else {
-      currencyFloatingElement.setTarget({ x: 20, y: 100 });
-    }
-    currencyFloatingElement.enable();
-
-    return () => {
-      floatingUI.remove('currency-display-floating');
-    };
-  }, [game]);
-
-  // Update currency display
-  useEffect(() => {
-    if (currencyFloatingRef.current) {
-      const content = (
-        <ResourceDisplay
-          id="currency-display"
-          value={currency}
-          icon={IconType.COINS}
-          variant="compact"
-          showIcon={true}
-        />
-      );
-      currencyFloatingRef.current.setContent(content);
-    }
-  }, [currency]);
+  const { showDamage, DamageNumbers } = useFloatingDamageNumbers();
+  const isInBuildMode = useIsPanelOpen(UIPanelType.BUILD_MODE);
 
   // Event listeners
   useEffect(() => {
-    const updateCurrency = () => setCurrency(game.getCurrency());
+    const updateSelectedTower = () => setSelectedTowerType(game.getSelectedTowerType());
     const updateWaveComplete = () => setIsWaveComplete(game.isWaveComplete());
     const updatePaused = () => setIsPaused(game.isPaused());
-    const updateSelectedTower = () => setSelectedTowerType(game.getSelectedTowerType());
-
-    // Currency events
-    document.addEventListener('currencyChanged', updateCurrency);
-    document.addEventListener('towerBuilt', updateCurrency);
-    document.addEventListener('towerUpgraded', updateCurrency);
-    document.addEventListener('towerSold', updateCurrency);
 
     // Wave events
     document.addEventListener('waveComplete', updateWaveComplete);
@@ -131,10 +71,6 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
     const checkTowerSelection = setInterval(updateSelectedTower, 100);
 
     return () => {
-      document.removeEventListener('currencyChanged', updateCurrency);
-      document.removeEventListener('towerBuilt', updateCurrency);
-      document.removeEventListener('towerUpgraded', updateCurrency);
-      document.removeEventListener('towerSold', updateCurrency);
       document.removeEventListener('waveComplete', updateWaveComplete);
       document.removeEventListener('waveStarted', updateWaveComplete);
       document.removeEventListener('gamePaused', updatePaused);
@@ -142,6 +78,24 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
       clearInterval(checkTowerSelection);
     };
   }, [game]);
+
+  // Damage number event listener
+  useEffect(() => {
+    const handleDamageNumber = (e: CustomEvent) => {
+      const { worldPosition, value, type } = e.detail;
+      showDamage({
+        worldPosition,
+        value,
+        type: type || 'physical',
+        duration: 1500,
+      });
+    };
+
+    document.addEventListener('damageNumber', handleDamageNumber as EventListener);
+    return () => {
+      document.removeEventListener('damageNumber', handleDamageNumber as EventListener);
+    };
+  }, [showDamage]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -197,22 +151,7 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
 
   const handlePlayerUpgrade = () => {
     const uiController = game.getUIController();
-    const player = game.getPlayer();
-    
-    if (player) {
-      const upgradeButton = document.querySelector('.ui-button-control[title*="Player Upgrades"]') as HTMLElement;
-      let screenPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-      
-      if (upgradeButton) {
-        const rect = upgradeButton.getBoundingClientRect();
-        screenPos = {
-          x: rect.left + rect.width / 2,
-          y: rect.top - 10
-        };
-      }
-      
-      uiController.showPlayerUpgrade(player, screenPos);
-    }
+    uiController.showPlayerUpgrade();
   };
 
   const handleInventory = () => {
@@ -266,8 +205,15 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
     }
   };
 
+  const handleCancelBuildMode = () => {
+    game.getUIController().exitBuildMode();
+  };
+
   return (
     <>
+      {/* Draggable currency display */}
+      <DraggableCurrencyDisplay />
+      
       <ControlBar
         game={game}
         onBuildMenu={handleBuildMenu}
@@ -280,6 +226,14 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
       />
 
       <TowerPlacementIndicator selectedTowerType={selectedTowerType} />
+
+      {/* Build mode overlay */}
+      {isInBuildMode && (
+        <BuildModeOverlay onCancel={handleCancelBuildMode} />
+      )}
+
+      {/* Damage numbers */}
+      <DamageNumbers />
 
       {/* Game paused overlay */}
       {isPaused && (

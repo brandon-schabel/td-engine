@@ -11,7 +11,7 @@ import { Camera, type CameraOptions } from "@/systems/Camera";
 import { CameraDiagnostics } from "@/systems/CameraDiagnostics";
 import { Tower, TowerType, UpgradeType } from "@/entities/Tower";
 import { Enemy, EnemyType } from "@/entities/Enemy";
-import { Entity, EntityType } from "@/entities/Entity";
+import { EntityType } from "@/entities/Entity";
 import { Projectile } from "@/entities/Projectile";
 import { Player, PlayerUpgradeType } from "@/entities/Player";
 import { Collectible } from "@/entities/Collectible";
@@ -47,7 +47,6 @@ import { ScoreManager, type GameStats } from "@/systems/ScoreManager";
 import { Inventory, type InventoryItem } from "@/systems/Inventory";
 import { EquipmentManager } from "@/entities/items/Equipment";
 // Removed unused UIManager and PopupManager imports
-import { FloatingUIManager } from "@/ui/floating";
 import { UIController } from "@/ui/UIController";
 import { ProblematicPositionCache } from "@/systems/ProblematicPositionCache";
 import { gameStore } from "@/stores/gameStore";
@@ -96,8 +95,6 @@ export class Game {
   private inventory: Inventory;
   private equipment: EquipmentManager;
   private destructionEffects: DestructionEffect[] = [];
-  // Removed unused uiManager - all UI handled by floatingUIManager
-  private floatingUIManager: FloatingUIManager;
   private uiController: UIController;
   private powerUpDisplay: any = null; // Reference to PowerUpDisplay for notifications
   private playerLevelDisplay: any = null; // Reference to PlayerLevelDisplay for notifications
@@ -264,7 +261,7 @@ export class Game {
     // Add damage callback for player
     this.player.onDamage = (event) => {
       if (event) {
-        this.floatingUIManager.createDamageNumber(
+        this.dispatchDamageNumber(
           event.entity,
           event.actualDamage,
           'normal'
@@ -288,8 +285,7 @@ export class Game {
     // Center camera on player initially (instant, no smoothing)
     this.camera.centerOnTarget(this.player.position);
 
-    // Initialize floating UI manager with camera
-    this.floatingUIManager = new FloatingUIManager(canvas, this.camera);
+    // Initialize UI controller
     this.uiController = new UIController(this);
     
     // Set up event bridge to dispatch DOM events when store changes
@@ -315,14 +311,7 @@ export class Game {
       this.lastPlayerPosition = { ...this.player.position };
     }
 
-    // Create health bar for player that follows them in world space
-    this.uiController.createHealthBar(this.player, {
-      width: 60,
-      height: 8,
-      offset: { x: 0, y: -30 },
-      showValue: true,
-      color: '#4CAF50'
-    });
+    // Health bars are now rendered directly on canvas
 
     // Load wave configurations
     this.loadWaveConfigurations();
@@ -692,7 +681,7 @@ export class Game {
       // Add damage callback for floating damage numbers
       enemy.onDamage = (event) => {
         if (event) {
-          this.floatingUIManager.createDamageNumber(
+          this.dispatchDamageNumber(
             event.entity,
             event.actualDamage,
             event.isCritical ? 'critical' : 'normal'
@@ -702,8 +691,7 @@ export class Game {
 
       this.enemies.push(enemy);
 
-      // Create health bar for the enemy
-      this.createHealthBarForEntity(enemy);
+      // Health bars are now rendered directly on canvas
     });
 
     // Update enemies
@@ -746,9 +734,6 @@ export class Game {
 
     // Update camera to follow player
     this.camera.update(this.player.position);
-
-    // Update floating UI positions after camera update
-    this.floatingUIManager.updateAllPositions();
 
     // Player manual shooting (click and hold)
     const playerProjectile = this.player.updateShooting();
@@ -812,7 +797,7 @@ export class Game {
         // Check if this was a health pickup to show heal number
         if (collectible.isHealthPickup()) {
           // Show healing number (health pickups heal for 25)
-          this.floatingUIManager.createDamageNumber(
+          this.dispatchDamageNumber(
             this.player,
             25,
             'heal'
@@ -881,9 +866,7 @@ export class Game {
         const particleMultiplier = qualityConfig.particleCount || 1.0;
         this.destructionEffects.push(enemy.createDestructionEffect(particleMultiplier));
         
-        // Remove health bar when enemy dies
-        const healthBarId = `healthbar_${enemy.id}`;
-        this.floatingUIManager.remove(healthBarId);
+        // Health bars are now rendered directly on canvas
         return false;
       }
       return true;
@@ -911,9 +894,7 @@ export class Game {
         const particleMultiplier = qualityConfig.particleCount || 1.0;
         this.destructionEffects.push(new DestructionEffect(tower.position, 'tower', particleMultiplier));
         
-        // Remove health bar when tower dies
-        const healthBarId = `healthbar_${tower.id}`;
-        this.floatingUIManager.remove(healthBarId);
+        // Health bars are now rendered directly on canvas
 
         // If this was the selected tower, deselect it
         if (this.selectedTower === tower) {
@@ -1119,8 +1100,7 @@ export class Game {
 
     this.towers.push(tower);
 
-    // Create health bar for the tower
-    this.createHealthBarForEntity(tower);
+    // Health bars are now rendered directly on canvas
 
     // Track towers built
     this.towersBuilt++;
@@ -1143,26 +1123,6 @@ export class Game {
 
     return true;
   }
-
-  // Health bar management methods using new floating UI system
-  private createHealthBarForEntity(entity: Entity & { health: number; maxHealth?: number }): void {
-    // Don't create health bars for walls
-    if ('towerType' in entity && (entity as any).towerType === TowerType.WALL) {
-      return;
-    }
-
-    const options = {
-      width: 50,
-      height: 6,
-      offset: { x: 0, y: -entity.radius - 15 },
-      showValue: false,
-      color: entity.entityType === EntityType.PLAYER ? '#4CAF50' : '#2196F3'
-    };
-
-    this.uiController.createHealthBar(entity, options);
-  }
-
-
 
   // Wave management
   startNextWave(): boolean {
@@ -1768,7 +1728,6 @@ export class Game {
   // Game engine control
   pause(): void {
     this.engine.pause();
-    this.floatingUIManager.pause();
     // Update store state which will trigger React UI
     gameStore.getState().pauseGame();
     uiStore.getState().openPanel(UIPanelType.PAUSE_MENU);
@@ -1776,7 +1735,6 @@ export class Game {
 
   resume(): void {
     this.engine.resume();
-    this.floatingUIManager.resume();
     // Update store state
     gameStore.getState().resumeGame();
     uiStore.getState().closePanel(UIPanelType.PAUSE_MENU);
@@ -1977,11 +1935,7 @@ export class Game {
     return this.grid;
   }
 
-  // Removed getPopupManager and getUIManager - use floatingUIManager directly
-
-  getFloatingUIManager(): FloatingUIManager {
-    return this.floatingUIManager;
-  }
+  // Removed getPopupManager, getUIManager, and getFloatingUIManager - use UIController directly
 
   // Set PowerUpDisplay reference for notifications
   setPowerUpDisplay(powerUpDisplay: any): void {
@@ -2288,7 +2242,7 @@ export class Game {
           this.player.heal(metadata.healAmount);
           this.audioManager.playSound(SoundType.HEALTH_PICKUP);
           // Show healing number
-          this.floatingUIManager.createDamageNumber(
+          this.dispatchDamageNumber(
             this.player,
             metadata.healAmount,
             'heal'
@@ -2654,6 +2608,18 @@ export class Game {
 
   getUIController(): UIController {
     return this.uiController;
+  }
+
+  /**
+   * Dispatch a damage number event instead of using FloatingUIManager directly
+   */
+  private dispatchDamageNumber(entity: any, value: number, type: 'normal' | 'critical' | 'heal' = 'normal'): void {
+    const worldPosition = { x: entity.x, y: entity.y };
+    const damageType = type === 'heal' ? 'heal' : type === 'critical' ? 'critical' : 'physical';
+    
+    document.dispatchEvent(new CustomEvent('damageNumber', {
+      detail: { worldPosition, value, type: damageType }
+    }));
   }
 
   

@@ -9,6 +9,8 @@ import { TowerUpgrade } from './components/TowerUpgrade';
 import { PlayerUpgrade } from './components/PlayerUpgrade';
 import { GameOver } from './components/GameOver';
 import { GameHUD } from './components/hud/GameHUD';
+import { GameNotificationsProvider } from './components/game/GameNotifications';
+import { DraggablePlayerLevelDisplay } from './components/game/DraggablePlayerLevelDisplay';
 
 /**
  * Main React UI component that manages all UI panels
@@ -23,11 +25,17 @@ export const AppUI: React.FC = () => {
   const isBuildMenuOpen = useIsPanelOpen(UIPanelType.BUILD_MENU);
   const isTowerUpgradeOpen = useIsPanelOpen(UIPanelType.TOWER_UPGRADE);
   const isPlayerUpgradeOpen = useIsPanelOpen(UIPanelType.PLAYER_UPGRADE);
+  
+  // Get game instance
+  const game = (window as any).currentGame;
 
   return (
-    <>
+    <GameNotificationsProvider>
       {/* HUD - Always visible during gameplay */}
       <GameHUD />
+      
+      {/* Draggable displays */}
+      {game && <DraggablePlayerLevelDisplay game={game} />}
       
       {/* Modal/Dialog panels */}
       {isPauseMenuOpen && <PauseMenu />}
@@ -39,6 +47,6 @@ export const AppUI: React.FC = () => {
       {isBuildMenuOpen && <BuildMenu />}
       {isTowerUpgradeOpen && <TowerUpgrade />}
       {isPlayerUpgradeOpen && <PlayerUpgrade />}
-    </>
+    </GameNotificationsProvider>
   );
 };

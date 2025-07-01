@@ -16,11 +16,10 @@ export const WaveDisplay: React.FC = () => {
       variant="elevated"
       className={cn(
         'min-w-[200px]',
-        'bg-ui-bg-secondary',
-        'border',
-        'border-ui-border-DEFAULT',
-        'shadow-md',
-        'pointer-events-auto'
+        'glass-dark',
+        'rounded-lg',
+        'pointer-events-auto',
+        '!bg-transparent'
       )}
     >
       <Header

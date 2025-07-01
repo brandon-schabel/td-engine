@@ -29,11 +29,10 @@ export const Panel: React.FC<PanelProps> = ({
   return (
     <div 
       className={cn(
-        'bg-ui-bg-secondary',
+        'glass-dark',
         'rounded-lg',
-        'shadow-xl',
-        'border',
-        'border-white/10',
+        '!bg-transparent',
+        'text-white',
         className
       )}
       style={{ pointerEvents: 'auto' }}

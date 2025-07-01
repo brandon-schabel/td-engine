@@ -7,25 +7,22 @@
  * - Provides intelligent update system to prevent flickering
  */
 
-import { FloatingUIManager, FloatingUIElement } from '@/ui/floating';
 import type { Game } from '@/core/Game';
 import { uiStore, getUIState, UIPanelType } from '@/stores/uiStore';
 import type { Tower } from '@/entities/Tower';
 import type { Player } from '@/entities/Player';
 import type { Entity } from '@/entities/Entity';
 import type { TowerType } from '@/entities/Tower';
-import { cn } from '@/ui/styles/UtilityStyles';
 
 export interface UIElementInfo {
   id: string;
   type: 'dialog' | 'popup' | 'hud' | 'healthbar' | 'custom';
-  element: FloatingUIElement | any; // Any for legacy UI components
+  element: any; // Legacy UI components
   closeable: boolean;
   persistent: boolean;
 }
 
 export class UIController {
-  private floatingUI: FloatingUIManager;
   private activeElements = new Map<string, UIElementInfo>();
   private escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -33,7 +30,6 @@ export class UIController {
   private updateCache = new Map<string, any>();
 
   constructor(private game: Game) {
-    this.floatingUI = game.getFloatingUIManager();
     this.setupEscapeHandler();
     this.setupStateListeners();
   }
@@ -61,17 +57,7 @@ export class UIController {
       }
     );
 
-    // Handle build mode changes
-    uiStore.subscribe(
-      (state) => state.isPanelOpen(UIPanelType.BUILD_MODE),
-      (isOpen) => {
-        if (isOpen) {
-          this.hideBuildModeUI();
-        } else {
-          this.showBuildModeUI();
-        }
-      }
-    );
+    // Build mode is now handled by React BuildModeOverlay component
   }
 
   private handlePanelClosed(panel: UIPanelType): void {
@@ -102,7 +88,7 @@ export class UIController {
   /**
    * Register a UI element with the controller
    */
-  private register(id: string, element: FloatingUIElement | any, type: UIElementInfo['type'], closeable = true, persistent = false): void {
+  private register(id: string, element: any, type: UIElementInfo['type'], closeable = true, persistent = false): void {
     this.activeElements.set(id, {
       id,
       type,
@@ -241,14 +227,7 @@ export class UIController {
     store.openPanel(UIPanelType.GAME_OVER);
   }
 
-  /**
-   * Create a health bar for an entity
-   */
-  public createHealthBar(entity: Entity & { health: number; maxHealth?: number }, options?: any): FloatingUIElement {
-    const healthBar = this.floatingUI.createHealthBar(entity, options);
-    this.register(`healthbar-${entity.id}`, healthBar, 'healthbar', false, false);
-    return healthBar;
-  }
+  // Health bars are now rendered directly on canvas
 
   /**
    * Smart update method that only updates changed values
@@ -353,124 +332,5 @@ export class UIController {
    */
   public isInBuildMode(): boolean {
     return getUIState().isInBuildMode();
-  }
-
-  /**
-   * Hide UI elements during build mode
-   */
-  private hideBuildModeUI(): void {
-    // Hide HUD elements
-    const hudElements = [
-      '.ui-control-bar',
-      '.static-hud',
-      '.mobile-controls'
-    ];
-
-    hudElements.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => {
-        (element as HTMLElement).style.visibility = 'hidden';
-      });
-    });
-
-    // Add build mode indicator
-    const indicator = document.getElementById('build-mode-indicator');
-    if (!indicator) {
-      const buildIndicator = document.createElement('div');
-      buildIndicator.id = 'build-mode-indicator';
-
-      const isMobile = 'ontouchstart' in window;
-
-      if (isMobile) {
-        // Mobile version with cancel button
-        buildIndicator.className = cn(
-          'fixed',
-          'top-4',
-          'left-1/2',
-          'transform',
-          '-translate-x-1/2',
-          'bg-surface-secondary',
-          'border',
-          'border-border-primary',
-          'rounded-lg',
-          'shadow-lg',
-          'z-50',
-          'flex',
-          'items-center',
-          'gap-3',
-          'px-4',
-          'py-3'
-        );
-
-        const text = document.createElement('span');
-        text.className = cn('text-primary', 'text-sm');
-        text.textContent = 'Tap to place tower';
-
-        const cancelButton = document.createElement('button');
-        cancelButton.className = cn(
-          'bg-danger',
-          'text-white',
-          'px-3',
-          'py-1',
-          'rounded',
-          'text-sm',
-          'font-medium',
-          'hover:bg-danger-dark',
-          'active:scale-95',
-          'transition-transform'
-        );
-        cancelButton.textContent = 'Cancel';
-        cancelButton.onclick = () => {
-          this.exitBuildMode();
-        };
-
-        buildIndicator.appendChild(text);
-        buildIndicator.appendChild(cancelButton);
-      } else {
-        // Desktop version
-        buildIndicator.className = cn(
-          'fixed',
-          'top-4',
-          'left-1/2',
-          'transform',
-          '-translate-x-1/2',
-          'bg-surface-secondary',
-          'text-primary',
-          'px-4',
-          'py-2',
-          'rounded-lg',
-          'shadow-lg',
-          'z-50'
-        );
-        buildIndicator.textContent = 'Place tower or press ESC to cancel';
-      }
-
-      document.body.appendChild(buildIndicator);
-    }
-  }
-
-  /**
-   * Show UI elements after build mode
-   */
-  private showBuildModeUI(): void {
-    // Show HUD elements
-    const hudElements = [
-      '.ui-control-bar',
-      '.static-hud',
-      '.mobile-controls'
-    ];
-
-    hudElements.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => {
-        (element as HTMLElement).style.visibility = '';
-      });
-    });
-
-    // Remove build mode indicator
-    const indicator = document.getElementById('build-mode-indicator');
-    if (indicator) {
-      indicator.remove();
-    }
   }
 }

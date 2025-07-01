@@ -2,6 +2,8 @@ import { Entity, EntityType } from './Entity';
 import { Enemy } from './Enemy';
 import { Projectile, ProjectileType } from './Projectile';
 import type { Vector2 } from '@/utils/Vector2';
+import { IconType } from '@/ui/icons/SvgIcons';
+
 export enum UpgradeType {
   DAMAGE = 'DAMAGE',
   RANGE = 'RANGE',
@@ -225,6 +227,67 @@ export class Tower extends Entity implements ShootingCapable {
 
   getCooldownTime(): number {
     return this.cooldownTime;
+  }
+
+  // Helper methods for TowerUpgrade UI
+  getBaseDamage(): number {
+    const baseStats = TOWER_STATS[this.towerType];
+    return baseStats.damage;
+  }
+
+  getBaseRange(): number {
+    const baseStats = TOWER_STATS[this.towerType];
+    return baseStats.range;
+  }
+
+  getBaseFireRate(): number {
+    const baseStats = TOWER_STATS[this.towerType];
+    return baseStats.fireRate;
+  }
+
+  get attackSpeed(): number {
+    return this.fireRate;
+  }
+
+  getTotalInvestment(): number {
+    // Initial tower cost
+    let total = TOWER_COSTS[this.towerType];
+    
+    // Add upgrade costs
+    for (const [upgradeType, level] of this.upgradeLevels.entries()) {
+      const baseCost = TOWER_UPGRADES.baseCosts[upgradeType];
+      for (let i = 0; i < level; i++) {
+        total += baseCost * Math.pow(TOWER_UPGRADES.costMultiplier, i);
+      }
+    }
+    
+    return Math.floor(total);
+  }
+
+  getDisplayName(): string {
+    const names: Record<TowerType, string> = {
+      [TowerType.BASIC]: 'Basic Tower',
+      [TowerType.SNIPER]: 'Sniper Tower',
+      [TowerType.RAPID]: 'Rapid Tower',
+      [TowerType.WALL]: 'Wall'
+    };
+    return names[this.towerType];
+  }
+
+  getAverageUpgradeLevel(): number {
+    const levels = Array.from(this.upgradeLevels.values());
+    if (levels.length === 0) return 0;
+    return levels.reduce((sum, level) => sum + level, 0) / levels.length;
+  }
+
+  getIconType(): IconType {
+    const icons: Record<TowerType, IconType> = {
+      [TowerType.BASIC]: IconType.BASIC_TOWER,
+      [TowerType.SNIPER]: IconType.SNIPER_TOWER,
+      [TowerType.RAPID]: IconType.RAPID_TOWER,
+      [TowerType.WALL]: IconType.WALL
+    };
+    return icons[this.towerType];
   }
 
   // Get preview of what stats would be after upgrade

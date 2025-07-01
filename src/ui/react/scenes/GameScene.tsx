@@ -3,7 +3,6 @@ import { Scene } from './Scene';
 import { useScene } from './SceneContext';
 import { GameWithEvents } from '@/core/GameWithEvents';
 import { GameUI, GameOverlayUI } from '../components/game/GameUI';
-import { PlayerLevelDisplay } from '../components/game/PlayerLevelDisplay';
 // GameUI is now handled by React component, not setupGameUI
 import { TransitionType } from './SceneTransition';
 import { cn } from '@/lib/utils';
@@ -82,15 +81,91 @@ export const GameScene: React.FC<GameSceneProps> = () => {
 
         console.log('[GameScene] Game initialized successfully');
         
+        // Set up input event listeners
+        const handleKeyDown = (e: KeyboardEvent) => {
+          // Don't handle input if typing in an input field
+          if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+            return;
+          }
+          game.handleKeyDown(e.key);
+        };
+        
+        const handleKeyUp = (e: KeyboardEvent) => {
+          // Don't handle input if typing in an input field
+          if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+            return;
+          }
+          game.handleKeyUp(e.key);
+        };
+        
+        const handleWheel = (e: WheelEvent) => {
+          // Only handle wheel events on the canvas
+          if (e.target === canvasRef.current) {
+            e.preventDefault();
+            game.handleMouseWheel(e);
+          }
+        };
+        
+        const handleMouseDown = (e: MouseEvent) => {
+          if (e.target === canvasRef.current) {
+            game.handleMouseDown(e);
+          }
+        };
+        
+        const handleMouseUp = (e: MouseEvent) => {
+          if (e.target === canvasRef.current) {
+            game.handleMouseUp(e);
+          }
+        };
+        
+        const handleMouseMove = (e: MouseEvent) => {
+          if (e.target === canvasRef.current) {
+            game.handleMouseMove(e);
+          }
+        };
+        
+        // Attach event listeners
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        canvasRef.current.addEventListener('wheel', handleWheel, { passive: false });
+        canvasRef.current.addEventListener('mousedown', handleMouseDown);
+        canvasRef.current.addEventListener('mouseup', handleMouseUp);
+        canvasRef.current.addEventListener('mousemove', handleMouseMove);
+        
+        // Store cleanup function
+        (window as any).__gameInputCleanup = () => {
+          window.removeEventListener('keydown', handleKeyDown);
+          window.removeEventListener('keyup', handleKeyUp);
+          if (canvasRef.current) {
+            canvasRef.current.removeEventListener('wheel', handleWheel);
+            canvasRef.current.removeEventListener('mousedown', handleMouseDown);
+            canvasRef.current.removeEventListener('mouseup', handleMouseUp);
+            canvasRef.current.removeEventListener('mousemove', handleMouseMove);
+          }
+        };
+        
         // Force initial resize after game starts
         setTimeout(() => {
           if (canvasRef.current && containerRef.current) {
             const rect = containerRef.current.getBoundingClientRect();
-            console.log('[GameScene] Forcing resize after init:', rect.width, 'x', rect.height);
-            canvasRef.current.width = rect.width;
-            canvasRef.current.height = rect.height;
+            const pixelRatio = window.devicePixelRatio || 1;
             
-            // The renderer will pick up the new canvas dimensions automatically
+            console.log('[GameScene] Forcing resize after init:', rect.width, 'x', rect.height);
+            console.log('[GameScene] Pixel ratio:', pixelRatio);
+            
+            // Set canvas pixel dimensions
+            canvasRef.current.width = rect.width * pixelRatio;
+            canvasRef.current.height = rect.height * pixelRatio;
+            
+            // Set canvas CSS dimensions
+            canvasRef.current.style.width = rect.width + 'px';
+            canvasRef.current.style.height = rect.height + 'px';
+            
+            // Update camera viewport with logical dimensions
+            const camera = game.getCamera();
+            if (camera) {
+              camera.updateViewport(rect.width, rect.height);
+            }
           }
         }, 100);
       } catch (error) {
@@ -107,6 +182,12 @@ export const GameScene: React.FC<GameSceneProps> = () => {
         gameRef.current.stop();
         gameRef.current = null;
         setIsGameInitialized(false);
+      }
+      
+      // Clean up input event listeners
+      if ((window as any).__gameInputCleanup) {
+        (window as any).__gameInputCleanup();
+        delete (window as any).__gameInputCleanup;
       }
     };
   }, []);
@@ -141,12 +222,25 @@ export const GameScene: React.FC<GameSceneProps> = () => {
       resizeTimeout = window.setTimeout(() => {
         if (canvasRef.current && containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
+          const pixelRatio = window.devicePixelRatio || 1;
+          
           console.log('[GameScene] Resizing canvas to:', rect.width, 'x', rect.height);
-          canvasRef.current.width = rect.width;
-          canvasRef.current.height = rect.height;
+          console.log('[GameScene] Pixel ratio:', pixelRatio);
+          
+          // Set canvas pixel dimensions
+          canvasRef.current.width = rect.width * pixelRatio;
+          canvasRef.current.height = rect.height * pixelRatio;
+          
+          // Set canvas CSS dimensions
+          canvasRef.current.style.width = rect.width + 'px';
+          canvasRef.current.style.height = rect.height + 'px';
           
           if (gameRef.current) {
-            // Game will handle resize internally
+            // Update camera viewport with logical dimensions
+            const camera = gameRef.current.getCamera();
+            if (camera) {
+              camera.updateViewport(rect.width, rect.height);
+            }
           }
         }
       }, 250); // Debounce resize
@@ -174,8 +268,7 @@ export const GameScene: React.FC<GameSceneProps> = () => {
         className={cn(
           'absolute',
           'top-0 left-0 right-0',
-          'bottom-[60px]', // Leave space for control bar
-          'bg-red-500' // Temporary red background for debugging
+          'bottom-[60px]' // Leave space for control bar
         )}
       >
         <canvas 
@@ -190,10 +283,7 @@ export const GameScene: React.FC<GameSceneProps> = () => {
 
       {/* Game UI overlay elements */}
       {isGameInitialized && gameRef.current && (
-        <>
-          <PlayerLevelDisplay game={gameRef.current} />
-          <GameOverlayUI game={gameRef.current} />
-        </>
+        <GameOverlayUI game={gameRef.current} />
       )}
 
       {/* Control bar at bottom - absolute positioned */}

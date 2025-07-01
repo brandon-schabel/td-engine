@@ -14,7 +14,7 @@ export const CurrencyDisplay: React.FC = () => {
       label="Coins"
       variant="large"
       showLabel={true}
-      className="bg-ui-bg-secondary border border-ui-border-DEFAULT shadow-md pointer-events-auto"
+      className="glass-dark rounded-lg pointer-events-auto !bg-transparent"
     />
   );
 };

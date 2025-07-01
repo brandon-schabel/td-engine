@@ -22,7 +22,7 @@ export const HealthDisplay: React.FC = () => {
       variant="large"
       showLabel={true}
       color={currentHealth <= maxHealth * 0.3 ? 'danger' : 'primary'}
-      className="bg-ui-bg-secondary border border-ui-border-DEFAULT shadow-md pointer-events-auto"
+      className="glass-dark rounded-lg pointer-events-auto !bg-transparent"
     />
   );
 };
