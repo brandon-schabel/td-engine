@@ -79,7 +79,7 @@ export const GlassOptionCard: React.FC<GlassOptionCardProps> = ({
                 'bg-white/10 backdrop-blur-sm',
                 selected && 'bg-white/20'
               )}>
-                <Icon icon={icon} size={20} className="text-white" />
+                <Icon type={icon} size={20} className="text-white" />
               </div>
             )}
             

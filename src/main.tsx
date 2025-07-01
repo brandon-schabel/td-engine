@@ -2,42 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./app.css";
 import { AudioManager } from "./audio/AudioManager";
-import { injectResponsiveStyles } from "./ui/styles/generateResponsiveStyles";
-import { styleManager } from "./ui/styles/StyleManager";
 import { ReactApp } from "./ReactApp";
-
-// Initialize all styles in the correct order
-function initializeStyles() {
-  console.log("[Main] Initializing styles...");
-
-  // Inject responsive styles
-  injectResponsiveStyles();
-
-  // Inject all styles into the DOM
-  styleManager.inject();
-
-  // Debug: Log the injected styles
-  const injectedStyles = styleManager.getStyles();
-  console.log("[Main] Styles initialized and injected");
-  console.log("[Main] Total CSS length:", injectedStyles.length);
-
-  // Debug: Check if key classes exist
-  const testClasses = [
-    "bg-surface-primary",
-    "text-primary",
-    "border-white\\/10",
-  ];
-  testClasses.forEach((className) => {
-    const exists = injectedStyles.includes(`.${className}`);
-    console.log(
-      `[Main] Class .${className}:`,
-      exists ? "✅ Found" : "❌ Missing"
-    );
-  });
-}
-
-// Initialize styles immediately
-initializeStyles();
 
 // Global variables
 let audioManager: AudioManager;

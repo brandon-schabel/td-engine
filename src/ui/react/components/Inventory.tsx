@@ -272,14 +272,16 @@ const ItemSlot: React.FC<{
     <div
       className={cn(
         'w-12', 'h-12',
-        'bg-ui-bg-tertiary',
-        'border-2',
-        isSelected ? 'border-button-primary' : 'border-ui-border-DEFAULT',
-        'rounded',
+        'backdrop-blur-sm',
+        item ? 'bg-white/10' : 'bg-black/30',
+        'border',
+        isSelected ? 'border-button-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'border-white/20',
+        'rounded-lg',
         'cursor-pointer',
         'relative',
-        'transition-all',
-        'hover:border-button-primary-hover'
+        'transition-all duration-200',
+        'hover:border-button-primary-hover hover:bg-white/15',
+        'active:scale-95'
       )}
       onClick={onSlotClick}
       draggable={!!item}
@@ -296,7 +298,7 @@ const ItemSlot: React.FC<{
             <span className={cn(
               'absolute', 'bottom-0', 'right-0',
               'text-xs', 'font-bold', 'text-white',
-              'bg-black/70', 'px-1', 'rounded-tl'
+              'bg-black/80 backdrop-blur-sm', 'px-1', 'rounded-tl-md'
             )}>
               {item.quantity}
             </span>

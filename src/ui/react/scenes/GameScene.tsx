@@ -223,15 +223,17 @@ export const GameScene: React.FC<GameSceneProps> = () => {
           console.log('[GameScene] Resizing canvas to:', rect.width, 'x', rect.height);
           console.log('[GameScene] Pixel ratio:', pixelRatio);
           
-          // Set canvas pixel dimensions
-          canvasRef.current.width = rect.width * pixelRatio;
-          canvasRef.current.height = rect.height * pixelRatio;
-          
           // Set canvas CSS dimensions
           canvasRef.current.style.width = rect.width + 'px';
           canvasRef.current.style.height = rect.height + 'px';
           
           if (gameRef.current) {
+            // Use renderer's updateCanvasSize to handle dimension changes properly
+            const renderer = gameRef.current.getRenderer();
+            if (renderer) {
+              renderer.updateCanvasSize(rect.width * pixelRatio, rect.height * pixelRatio);
+            }
+            
             // Update camera viewport with logical dimensions
             const camera = gameRef.current.getCamera();
             if (camera) {

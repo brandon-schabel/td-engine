@@ -42,6 +42,7 @@ export class Renderer {
   private environmentalEffects: EnvironmentalEffect[] = [];
   private debugMode: boolean = false;
   private biomeLogged: boolean = false;
+  private pixelRatio: number;
   private renderSettings: {
     enableShadows: boolean;
     enableAntialiasing: boolean;
@@ -63,10 +64,12 @@ export class Renderer {
     this.grid = grid;
     this.camera = camera;
 
+    // Store pixel ratio for later use
+    this.pixelRatio = window.devicePixelRatio || 1;
+    
     // Use CSS dimensions for viewport since context is scaled
-    const pixelRatio = window.devicePixelRatio || 1;
-    this.viewportWidth = canvas.width / pixelRatio;
-    this.viewportHeight = canvas.height / pixelRatio;
+    this.viewportWidth = canvas.width / this.pixelRatio;
+    this.viewportHeight = canvas.height / this.pixelRatio;
 
     this.textureManager = textureManager || new TextureManager();
 
@@ -76,12 +79,8 @@ export class Renderer {
     }
     this.ctx = ctx;
 
-    // Scale the context by pixel ratio to handle high-DPI displays
-    // This ensures all drawing operations use logical coordinates
-    if (pixelRatio !== 1) {
-      ctx.scale(pixelRatio, pixelRatio);
-      console.log('[Renderer] Applied pixel ratio scaling:', pixelRatio);
-    }
+    // Apply initial context state
+    this.restoreContextState();
 
     // Initialize terrain renderer
     this.terrainRenderer = new TerrainRenderer(ctx, grid, camera);
@@ -1635,6 +1634,20 @@ export class Renderer {
   }
 
   renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
+    // Save the current context state
+    this.ctx.save();
+    
+    // Ensure our pixel ratio scaling is maintained
+    // This is a safeguard in case something else modified the transform
+    if (this.ctx.getTransform) {
+      const currentTransform = this.ctx.getTransform();
+      // Check if transform has been reset (a=1, d=1 means no scaling)
+      if (currentTransform.a === 1 && currentTransform.d === 1 && this.pixelRatio !== 1) {
+        console.warn('[Renderer] Context transform was reset, restoring pixel ratio scaling');
+        this.restoreContextState();
+      }
+    }
+    
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
@@ -1666,6 +1679,9 @@ export class Renderer {
     if (this.debugMode) {
       this.renderDebugOverlay(player);
     }
+    
+    // Restore the context state
+    this.ctx.restore();
   }
 
   renderUI(_currency: number, _lives: number, _score: number, _wave: number): void {
@@ -1774,6 +1790,45 @@ export class Renderer {
   // Toggle debug mode
   setDebugMode(enabled: boolean): void {
     this.debugMode = enabled;
+  }
+
+  // Restore context state after canvas reset
+  private restoreContextState(): void {
+    // Reset transform to identity
+    if (this.ctx.resetTransform) {
+      this.ctx.resetTransform();
+    } else {
+      // Fallback for older browsers
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    
+    // Apply pixel ratio scaling
+    if (this.pixelRatio !== 1) {
+      this.ctx.scale(this.pixelRatio, this.pixelRatio);
+      console.log('[Renderer] Restored pixel ratio scaling:', this.pixelRatio);
+    }
+    
+    // Restore other context defaults if needed
+    this.ctx.imageSmoothingEnabled = this.renderSettings.enableAntialiasing;
+  }
+
+  // Update canvas size and restore context state
+  updateCanvasSize(width: number, height: number): void {
+    // Setting canvas dimensions resets the context, so we need to restore state
+    this.canvas.width = width;
+    this.canvas.height = height;
+    
+    // Update viewport dimensions
+    this.viewportWidth = width / this.pixelRatio;
+    this.viewportHeight = height / this.pixelRatio;
+    
+    // Restore context state after reset
+    this.restoreContextState();
+    
+    console.log('[Renderer] Canvas resized:', { 
+      pixelDimensions: { width, height },
+      logicalDimensions: { width: this.viewportWidth, height: this.viewportHeight }
+    });
   }
 
   // Render debug overlay

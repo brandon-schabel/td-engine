@@ -1960,6 +1960,10 @@ export class Game {
     return this.grid;
   }
 
+  getRenderer(): Renderer {
+    return this.renderer;
+  }
+
   // Removed getPopupManager, getUIManager, and getFloatingUIManager - use UIController directly
 
   // Set PowerUpDisplay reference for notifications
