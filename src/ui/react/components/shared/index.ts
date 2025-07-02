@@ -7,3 +7,15 @@ export { GlassPanel, GlassButton, GlassCard, GlassIconButton, GlassDivider } fro
 export { GlassOptionCard, GlassOptionButton } from './GlassOptionCard';
 export { GlassModal, GlassDialog, GlassMenu, GlassMenuItem, GlassAlert } from './GlassWrappers';
 export { Icon, MemoizedIcon } from './Icon';
+export { ResourceDisplay, CurrencyDisplay, CompactResource, ResourceBadge } from './ResourceDisplay';
+export { 
+  ConnectedCurrencyDisplay,
+  ConnectedLivesDisplay,
+  ConnectedScoreDisplay,
+  ConnectedWaveDisplay,
+  ConnectedEnemiesDisplay,
+  ConnectedPlayerLevelDisplay,
+  ConnectedPlayerExpDisplay,
+  GameHeader,
+  GameStatusBar
+} from './ConnectedResourceDisplay';

@@ -68,13 +68,13 @@ describe('SpawnZoneManager', () => {
     it('should assign correct edge types based on position', () => {
       const zones = spawnZoneManager.getAllZones();
       
-      // Find a top edge zone
-      const topZone = zones.find(z => z.gridPosition.y === 0 && 
+      // Find a top edge zone - zones start from y=1 to avoid border cells
+      const topZone = zones.find(z => z.gridPosition.y <= 3 && 
         z.gridPosition.x > 2 && z.gridPosition.x < grid.width - 3);
       expect(topZone?.edgeType).toBe(EdgeType.TOP);
       
-      // Find a corner zone
-      const cornerZone = zones.find(z => z.gridPosition.x <= 2 && z.gridPosition.y === 0);
+      // Find a corner zone - corners are at x <= 2 or x >= width-3
+      const cornerZone = zones.find(z => z.gridPosition.x <= 2 && z.gridPosition.y <= 3);
       expect(cornerZone?.edgeType).toBe(EdgeType.TOP_LEFT);
     });
   });

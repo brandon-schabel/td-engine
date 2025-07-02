@@ -67,6 +67,11 @@ export class Player extends Entity implements ShootingCapable {
   constructor(position: Vector2) {
     super(EntityType.PLAYER, position, BASE_PLAYER_STATS.health, BASE_PLAYER_STATS.radius);
     
+    // Ensure velocity is initialized
+    if (!this.velocity) {
+      this.velocity = { x: 0, y: 0 };
+    }
+    
     this.baseDamage = BASE_PLAYER_STATS.damage;
     this.playerBaseSpeed = BASE_PLAYER_STATS.speed;
     this.baseFireRate = BASE_PLAYER_STATS.fireRate;
@@ -346,10 +351,16 @@ export class Player extends Entity implements ShootingCapable {
   }
 
   getVelocity(): Vector2 {
+    if (!this.velocity) {
+      return { x: 0, y: 0 };
+    }
     return { ...this.velocity };
   }
 
   isMoving(): boolean {
+    if (!this.velocity) {
+      return false;
+    }
     return this.velocity.x !== 0 || this.velocity.y !== 0;
   }
 
@@ -515,6 +526,14 @@ export class Player extends Entity implements ShootingCapable {
 
   isHoldingToShoot(): boolean {
     return this.isHolding;
+  }
+  
+  startHoldingToShoot(): void {
+    this.isHolding = true;
+  }
+  
+  stopHoldingToShoot(): void {
+    this.isHolding = false;
   }
 
 

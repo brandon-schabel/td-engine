@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Game } from '@/core/Game';
 import { getUIState, UIPanelType } from '@/stores/uiStore';
 import { SoundType } from '@/audio/AudioManager';
+import { useIsGameOver } from '@/stores/hooks/useGameStore';
 
 interface ControlBarProps {
   game: Game;
@@ -29,6 +30,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
 }) => {
   const audioManager = game.getAudioManager();
   const [isMobile, setIsMobile] = useState(false);
+  const isGameOver = useIsGameOver();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -56,7 +58,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
 
   const handleStartWave = () => {
     audioManager.playUISound(SoundType.BUTTON_CLICK);
-    if (isWaveComplete && !game.isGameOverPublic()) {
+    if (isWaveComplete && !isGameOver) {
       onStartWave();
     }
   };

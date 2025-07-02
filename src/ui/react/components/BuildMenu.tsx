@@ -8,11 +8,11 @@ import { TowerType } from "@/entities/Tower";
 import { IconType } from "@/ui/icons/SvgIcons";
 import { COLOR_THEME } from "@/config/ColorTheme";
 import { TOWER_COSTS } from "@/config/GameConfig";
-import { useGameStoreSelector } from "../hooks/useGameStore";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
 import { useIsPanelOpen } from "../hooks/useUIStore";
 import { SoundType } from "@/audio/AudioManager";
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCurrency, useCanAfford, useStatisticActions } from '@/stores/hooks/useGameStore';
 
 interface TowerOption {
   type: TowerType;
@@ -27,9 +27,10 @@ interface TowerOption {
  * Shows a floating panel with available towers
  */
 export const BuildMenu: React.FC = () => {
-  const currency = useGameStoreSelector((state) => state.currency);
+  const currency = useCurrency();
   const isOpen = useIsPanelOpen(UIPanelType.BUILD_MENU);
   const anchorRef = useRef<HTMLElement | null>(null);
+  const { recordTowerBuilt } = useStatisticActions();
   
   // Check if mobile
   const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
@@ -100,6 +101,8 @@ export const BuildMenu: React.FC = () => {
       game?.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
       if (onTowerSelect) {
         onTowerSelect(tower.type);
+        // Record tower built for statistics
+        recordTowerBuilt(tower.type);
       }
       handleClose();
     } else {

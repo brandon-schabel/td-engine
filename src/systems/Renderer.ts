@@ -19,6 +19,8 @@ import { adjustColorBrightness } from '@/utils/MathUtils';
 import { DestructionEffect } from '@/effects/DestructionEffect';
 import { PathfindingDebug } from '@/debug/PathfindingDebug';
 import { TerrainRenderer } from './TerrainRenderer';
+import { useEntityStore, type Rectangle } from '@/stores/entityStore';
+import type { StoreApi } from 'zustand';
 
 // Legacy render config for backward compatibility
 const RENDER_CONFIG = {
@@ -58,6 +60,8 @@ export class Renderer {
       lodEnabled: true,
       lodBias: 1.0
     };
+  private unsubscribe: (() => void) | null = null;
+  private entityStoreApi: StoreApi<any>;
 
   constructor(canvas: HTMLCanvasElement, grid: Grid, camera: Camera, textureManager?: TextureManager) {
     this.canvas = canvas;
@@ -84,6 +88,9 @@ export class Renderer {
 
     // Initialize terrain renderer
     this.terrainRenderer = new TerrainRenderer(ctx, grid, camera);
+
+    // Store reference to entity store API
+    this.entityStoreApi = useEntityStore;
 
     console.log('[Renderer] Created with canvas:', {
       canvas: canvas,
@@ -1614,32 +1621,43 @@ export class Renderer {
     }
   }
 
-  renderEntities(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
-    // Render towers with health bars
-    towers.forEach(tower => {
+  renderEntities(aimerLine?: { start: Vector2; end: Vector2 } | null): void {
+    // Get viewport bounds for culling
+    const visibleBounds = this.camera.getVisibleBounds();
+    const viewport: Rectangle = {
+      x: visibleBounds.min.x,
+      y: visibleBounds.min.y,
+      width: visibleBounds.max.x - visibleBounds.min.x,
+      height: visibleBounds.max.y - visibleBounds.min.y
+    };
+
+    // Get visible entities from store using viewport culling
+    const { getVisibleEntities, selectedTower } = this.entityStoreApi.getState();
+    const visible = getVisibleEntities(viewport);
+
+    // Render towers
+    visible.towers.forEach(tower => {
       this.renderTower(tower, tower === selectedTower);
-      // Health bars are now handled by the HealthBarPopup system
     });
 
     // Render enemies
-    enemies.forEach(enemy => {
+    visible.enemies.forEach(enemy => {
       this.renderEnemy(enemy);
     });
 
     // Render collectibles
-    collectibles.forEach(collectible => {
+    visible.collectibles.forEach(collectible => {
       this.renderCollectible(collectible);
     });
 
     // Render projectiles
-    projectiles.forEach(projectile => {
+    visible.projectiles.forEach(projectile => {
       this.renderProjectile(projectile);
     });
 
-    // Render player with health bar
-    if (player) {
-      this.renderPlayer(player);
-      // Health bars are now handled by the HealthBarPopup system
+    // Render player
+    if (visible.player) {
+      this.renderPlayer(visible.player);
     }
 
     // Render aimer line
@@ -1648,12 +1666,12 @@ export class Renderer {
     }
 
     // Render destruction effects
-    destructionEffects.forEach(effect => {
+    visible.destructionEffects.forEach(effect => {
       this.renderDestructionEffect(effect);
     });
   }
 
-  renderScene(towers: Tower[], enemies: Enemy[], projectiles: Projectile[], collectibles: Collectible[], destructionEffects: DestructionEffect[], aimerLine: { start: Vector2; end: Vector2 } | null, player?: Player, selectedTower?: Tower | null): void {
+  renderScene(aimerLine?: { start: Vector2; end: Vector2 } | null): void {
     // Save the current context state
     this.ctx.save();
     
@@ -1689,14 +1707,16 @@ export class Renderer {
     // Render environmental effects
     this.renderEnvironmentalEffects();
 
-    // Render all entities
-    this.renderEntities(towers, enemies, projectiles, collectibles, destructionEffects, aimerLine, player, selectedTower);
+    // Render all entities from store
+    this.renderEntities(aimerLine);
 
     // Render pathfinding debug if enabled
-    PathfindingDebug.render(this.ctx, enemies, this.camera);
+    const { getAllEnemies } = this.entityStoreApi.getState();
+    PathfindingDebug.render(this.ctx, getAllEnemies(), this.camera);
 
     // Render debug overlay if enabled
     if (this.debugMode) {
+      const { player } = this.entityStoreApi.getState();
       this.renderDebugOverlay(player);
     }
     
@@ -1812,6 +1832,25 @@ export class Renderer {
     this.debugMode = enabled;
   }
 
+  // Subscribe to entity store changes for reactive rendering
+  subscribeToStore(callback: () => void): void {
+    // Unsubscribe from previous subscription if exists
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+
+    // Subscribe to store changes
+    this.unsubscribe = this.entityStoreApi.subscribe(callback);
+  }
+
+  // Cleanup method
+  destroy(): void {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
+  }
+
   // Restore context state after canvas reset
   private restoreContextState(): void {
     // Reset transform to identity
@@ -1852,7 +1891,7 @@ export class Renderer {
   }
 
   // Render debug overlay
-  private renderDebugOverlay(player?: Player): void {
+  private renderDebugOverlay(player: Player | null): void {
     if (!player) return;
 
     // Get camera info

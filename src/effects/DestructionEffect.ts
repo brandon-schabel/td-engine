@@ -8,6 +8,7 @@ import { EnemyType } from '@/entities/Enemy';
 import { ParticleSystem, ParticlePresets } from './ParticleSystem';
 
 export class DestructionEffect {
+  public readonly id: string;
   public position: Vector2;
   public type: EnemyType | 'tower';
   public age: number = 0;
@@ -18,6 +19,7 @@ export class DestructionEffect {
   private secondarySystem?: ParticleSystem; // For multi-layer effects
 
   constructor(position: Vector2, type: EnemyType | 'tower', particleMultiplier: number = 1.0) {
+    this.id = `destruction-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.position = { ...position };
     this.type = type;
     this.maxAge = 2000; // 2 seconds for particle effects

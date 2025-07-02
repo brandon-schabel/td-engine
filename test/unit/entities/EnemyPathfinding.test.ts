@@ -18,7 +18,7 @@ describe('Enemy Pathfinding and Recovery', () => {
     
     
     // Create a basic enemy
-    enemy = new Enemy({ x: 100, y: 100 }, 100, EnemyType.BASIC);
+    enemy = new Enemy(EnemyType.BASIC, { x: 100, y: 100 });
 
   });
 
@@ -154,7 +154,7 @@ describe('Enemy Pathfinding and Recovery', () => {
       // Skip: The pathfinding system's border handling is complex and
       // this test makes assumptions about specific behavior.
       // Place enemy near border
-      enemy = new Enemy({ x: 40, y: 40 }, 100, EnemyType.BASIC);
+      enemy = new Enemy(EnemyType.BASIC, { x: 40, y: 40 });
   
       
       // Try to path to a position beyond the border
@@ -168,7 +168,7 @@ describe('Enemy Pathfinding and Recovery', () => {
       // Skip: isNearBorder check may not work as expected for all path points.
       // The pathfinding algorithm doesn't guarantee border distance.
       // Place enemy in center
-      enemy = new Enemy({ x: 200, y: 200 }, 100, EnemyType.BASIC);
+      enemy = new Enemy(EnemyType.BASIC, { x: 200, y: 200 });
   
       
       // Path to near border
@@ -204,7 +204,7 @@ describe('Enemy Pathfinding and Recovery', () => {
 
     test('decelerates near target', () => {
       // Place enemy very close to target
-      enemy = new Enemy({ x: 195, y: 195 }, 100, EnemyType.BASIC);
+      enemy = new Enemy(EnemyType.BASIC, { x: 195, y: 195 });
       const target = { x: 200, y: 200 };
       
       enemy['smoothMoveTo'](target, 100, 0.016);
@@ -263,7 +263,7 @@ describe('Enemy Pathfinding and Recovery', () => {
       }
   
       
-      enemy = new Enemy({ x: 100, y: 100 }, 100, EnemyType.BASIC);
+      enemy = new Enemy(EnemyType.BASIC, { x: 100, y: 100 });
   
       
       // Try to path to the other side of the wall
@@ -310,7 +310,7 @@ describe('Enemy Pathfinding and Recovery', () => {
   
       
       // Create flying enemy
-      const flyingEnemy = new Enemy({ x: 100, y: 100 }, 100, EnemyType.BASIC);
+      const flyingEnemy = new Enemy(EnemyType.BASIC, { x: 100, y: 100 });
       flyingEnemy['movementType'] = MovementType.FLYING;
       
       

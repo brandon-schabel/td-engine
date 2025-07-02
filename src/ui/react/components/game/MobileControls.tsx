@@ -5,6 +5,7 @@ import { useMobileLayout } from "../../hooks/useMobileLayout";
 import type { Game } from "@/core/Game";
 import { loadSettings } from "@/config/GameSettings";
 import { uiStore } from "@/stores/uiStore";
+import { usePlayer } from '@/stores/entityStore';
 
 interface MobileControlsProps {
   game: Game;
@@ -22,6 +23,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   const [isMovementActive, setIsMovementActive] = useState(false);
   const [isAimingActive, setIsAimingActive] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const player = usePlayer();
 
   // Expose joystick state to the game
   useEffect(() => {
@@ -83,7 +85,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   const handleMovementJoystick = (
     direction: { x: number; y: number } | null
   ) => {
-    const player = game.getPlayer();
     if (!player) return;
 
     if (direction) {
@@ -98,7 +99,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   };
 
   const handleAimingJoystick = (direction: { x: number; y: number } | null) => {
-    const player = game.getPlayer();
     if (!player) return;
 
     if (direction) {

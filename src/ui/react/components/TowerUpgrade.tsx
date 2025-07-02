@@ -9,9 +9,10 @@ import type { Tower } from "@/entities/Tower";
 import { IconType } from "@/ui/icons/SvgIcons";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
 import { useIsPanelOpen } from "../hooks/useUIStore";
-import { useGameStoreSelector } from "../hooks/useGameStore";
 import { SoundType } from "@/audio/AudioManager";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCurrency, useResourceActions } from '@/stores/hooks/useGameStore';
+import { useSelectedTower, selectTower } from '@/stores/entityStore';
 
 interface UpgradeOption {
   type: UpgradeType;
@@ -30,14 +31,16 @@ interface UpgradeOption {
  */
 export const TowerUpgrade: React.FC = () => {
   const [sellButtonEnabled, setSellButtonEnabled] = useState(false);
-  const currency = useGameStoreSelector((state) => state.currency);
+  const currency = useCurrency();
   const isOpen = useIsPanelOpen(UIPanelType.TOWER_UPGRADE);
+  const selectedTower = useSelectedTower();
+  const { addCurrency } = useResourceActions();
 
-  // Get tower and position from metadata
+  // Get position from metadata, but use selectedTower from store
   const metadata = uiStore
     .getState()
     .getPanelMetadata(UIPanelType.TOWER_UPGRADE);
-  const tower = metadata?.tower as Tower | undefined;
+  const tower = selectedTower || (metadata?.tower as Tower | undefined);
   const screenPos = metadata?.screenPos as { x: number; y: number } | undefined;
   const anchorElement = metadata?.anchorElement as HTMLElement | undefined;
 
@@ -65,6 +68,7 @@ export const TowerUpgrade: React.FC = () => {
   const handleClose = () => {
     // Close the panel through UI store
     uiStore.getState().closePanel(UIPanelType.TOWER_UPGRADE);
+    selectTower(null);
     game?.deselectTower();
   };
 
@@ -82,8 +86,11 @@ export const TowerUpgrade: React.FC = () => {
   };
 
   const handleSell = () => {
-    if (sellButtonEnabled) {
+    if (sellButtonEnabled && tower) {
+      const sellValue = Math.floor(tower.getTotalInvestment() * 0.7);
       game?.getAudioManager()?.playUISound(SoundType.SELL);
+      // Add currency from selling
+      addCurrency(sellValue);
       game?.sellTower(tower);
       handleClose();
     }

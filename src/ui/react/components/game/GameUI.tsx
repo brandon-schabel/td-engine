@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { ControlBar } from './ControlBar';
 import { TowerPlacementIndicator } from './TowerPlacementIndicator';
-import { DraggableCurrencyDisplay } from './DraggableCurrencyDisplay';
-import { DraggableScoreDisplay } from './DraggableScoreDisplay';
-import { DraggableHealthDisplay } from './DraggableHealthDisplay';
-import { DraggableWaveDisplay } from './DraggableWaveDisplay';
+// Draggable display components removed - replaced by new draggable system
 import { DraggablePlayerLevelDisplay } from './DraggablePlayerLevelDisplay';
 import { MobileControls } from './MobileControls';
 import { useFloatingDamageNumbers } from '../floating/FloatingDamageNumber';
 import { BuildModeOverlay } from '../floating/BuildModeOverlay';
 import { useIsPanelOpen } from '../../hooks/useUIStore';
 import { UIPanelType } from '@/stores/uiStore';
+import { useGameUI, useIsGameOver, useGameActions } from '@/stores/hooks/useGameStore';
+import { usePlayer } from '@/stores/entityStore';
 import type { Game } from '@/core/Game';
 
 interface GameUIProps {
@@ -20,21 +19,14 @@ interface GameUIProps {
 // Export separate components for better control over layout
 export const GameOverlayUI: React.FC<GameUIProps> = ({ game }) => {
   const [selectedTowerType, setSelectedTowerType] = useState<string | null>(null);
-  const [isPaused, setIsPaused] = useState(game.isPaused());
+  const { isPaused } = useGameUI();
 
-  // Event listeners for tower selection and pause state
+  // Event listener for tower selection (still using game until fully migrated)
   useEffect(() => {
-    const updatePaused = () => setIsPaused(game.isPaused());
     const updateSelectedTower = () => setSelectedTowerType(game.getSelectedTowerType());
-
-    document.addEventListener('gamePaused', updatePaused);
-    document.addEventListener('gameResumed', updatePaused);
-
     const checkTowerSelection = setInterval(updateSelectedTower, 100);
 
     return () => {
-      document.removeEventListener('gamePaused', updatePaused);
-      document.removeEventListener('gameResumed', updatePaused);
       clearInterval(checkTowerSelection);
     };
   }, [game]);
@@ -53,33 +45,18 @@ export const GameOverlayUI: React.FC<GameUIProps> = ({ game }) => {
 
 export const GameUI: React.FC<GameUIProps> = ({ game }) => {
   const [selectedTowerType, setSelectedTowerType] = useState<string | null>(null);
-  const [isWaveComplete, setIsWaveComplete] = useState(game.isWaveComplete());
-  const [isPaused, setIsPaused] = useState(game.isPaused());
   const { showDamage, DamageNumbers } = useFloatingDamageNumbers();
   const isInBuildMode = useIsPanelOpen(UIPanelType.BUILD_MODE);
+  const player = usePlayer();
+  const isGameOver = useIsGameOver();
+  const { isPaused, canStartWave, pauseGame, resumeGame, startNextWave } = useGameUI();
 
-  // Event listeners
+  // Event listener for tower selection (still using game until fully migrated)
   useEffect(() => {
     const updateSelectedTower = () => setSelectedTowerType(game.getSelectedTowerType());
-    const updateWaveComplete = () => setIsWaveComplete(game.isWaveComplete());
-    const updatePaused = () => setIsPaused(game.isPaused());
-
-    // Wave events
-    document.addEventListener('waveComplete', updateWaveComplete);
-    document.addEventListener('waveStarted', updateWaveComplete);
-
-    // Game state events
-    document.addEventListener('gamePaused', updatePaused);
-    document.addEventListener('gameResumed', updatePaused);
-
-    // Tower selection
     const checkTowerSelection = setInterval(updateSelectedTower, 100);
 
     return () => {
-      document.removeEventListener('waveComplete', updateWaveComplete);
-      document.removeEventListener('waveStarted', updateWaveComplete);
-      document.removeEventListener('gamePaused', updatePaused);
-      document.removeEventListener('gameResumed', updatePaused);
       clearInterval(checkTowerSelection);
     };
   }, [game]);
@@ -120,7 +97,7 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
           handleInventory();
           break;
         case 'enter':
-          if (isWaveComplete && !game.isGameOverPublic()) {
+          if (canStartWave) {
             handleStartWave();
           }
           break;
@@ -133,7 +110,7 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isWaveComplete, game]);
+  }, [canStartWave]);
 
   const handleBuildMenu = () => {
     const uiController = game.getUIController();
@@ -164,7 +141,6 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
 
   const handlePlayerUpgrade = () => {
     const uiController = game.getUIController();
-    const player = game.getPlayer();
     if (player) {
       uiController.showPlayerUpgrade(player);
     }
@@ -193,20 +169,20 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
   };
 
   const handleStartWave = () => {
-    game.startNextWave();
+    startNextWave();
   };
 
   const handlePause = () => {
     const uiController = game.getUIController();
     
-    if (game.isPaused()) {
-      game.resume();
+    if (isPaused) {
+      resumeGame();
       uiController.close('pause-menu');
     } else {
-      game.pause();
+      pauseGame();
       uiController.showPauseMenu({
         onResume: () => {
-          game.resume();
+          resumeGame();
           uiController.close('pause-menu');
         },
         onSettings: () => {
@@ -233,11 +209,7 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
 
   return (
     <>
-      {/* Draggable displays */}
-      <DraggableHealthDisplay />
-      <DraggableCurrencyDisplay />
-      <DraggableWaveDisplay />
-      <DraggableScoreDisplay />
+      {/* Draggable displays - using new draggable system in GameUI */}
       <DraggablePlayerLevelDisplay game={game} />
       
       <ControlBar
@@ -247,7 +219,7 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
         onInventory={handleInventory}
         onStartWave={handleStartWave}
         onPause={handlePause}
-        isWaveComplete={isWaveComplete}
+        isWaveComplete={canStartWave}
         isPaused={isPaused}
       />
 

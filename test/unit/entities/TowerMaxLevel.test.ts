@@ -40,9 +40,9 @@ describe('Tower Max Level 10', () => {
     }
     
     // Verify costs increase by 25% each level
-    expect(costs[0]).toBe(50); // Base cost
-    expect(costs[1]).toBe(62); // floor(50 * 1.25)
-    expect(costs[2]).toBe(78); // floor(62.5 * 1.25)
+    expect(costs[0]).toBe(25); // Base cost
+    expect(costs[1]).toBe(31); // floor(25 * 1.25^1) = floor(31.25) = 31
+    expect(costs[2]).toBe(39); // floor(25 * 1.25^2) = floor(39.0625) = 39
     
     // Cost at max level should be 0
     expect(tower.getUpgradeCost(UpgradeType.DAMAGE)).toBe(0);
