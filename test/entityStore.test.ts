@@ -1,10 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { utilizeEntityStore } from '../entityStore';
+import { utilizeEntityStore } from '../src/stores/entityStore';
 import { Tower, TowerType } from '@/entities/Tower';
 import { Enemy, EnemyType } from '@/entities/Enemy';
 import { Projectile, ProjectileType } from '@/entities/Projectile';
-import { Collectible, CollectibleType } from '@/entities/Collectible';
-import { DestructionEffect } from '@/effects/DestructionEffect';
 import { Player } from '@/entities/Player';
 
 // Mock Vector2

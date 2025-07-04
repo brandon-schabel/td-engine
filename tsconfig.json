@@ -32,6 +32,8 @@
     }
   },
   "include": [
-    "src"
+    "src",
+    "test/entityStore.test.ts",
+    "test/gameStore.test.ts"
   ]
 }

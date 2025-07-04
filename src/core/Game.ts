@@ -18,8 +18,8 @@ import { CollectibleType } from "@/entities/items/ItemTypes";
 import { DestructionEffect } from "@/effects/DestructionEffect";
 import type { Vector2 } from "@/utils/Vector2";
 import { SoundType, AudioManager } from "../audio/AudioManager";
-import { MapGenerator } from "@/systems/MapGenerator";
 import { GAMEPLAY_CONSTANTS } from "@/config/GameplayConstants";
+import { MapLoader, MapRegistry } from "@/maps";
 import { INVENTORY_CONFIG, INVENTORY_UPGRADES } from "@/config/InventoryConfig";
 import { COLLECTIBLE_DROP_CHANCES } from "@/config/ItemConfig";
 import { loadSettings, VISUAL_QUALITY_CONFIGS } from "@/config/GameSettings";
@@ -28,13 +28,7 @@ import { ANIMATION_CONFIG } from "@/config/AnimationConfig";
 import { CAMERA_CONFIG } from "@/config/UIConfig";
 import { Pathfinding } from "@/systems/Pathfinding";
 import { MovementType } from "@/systems/MovementSystem";
-import {
-  BiomeType,
-  MapDifficulty,
-  DecorationLevel,
-  MapSize,
-  MAP_SIZE_PRESETS,
-} from "@/types/MapData";
+import { BiomeType } from "@/types/MapData";
 import type { MapData, MapGenerationConfig } from "@/types/MapData";
 import {
   TOWER_COSTS,
@@ -96,9 +90,9 @@ export class Game {
   private camera: Camera;
   private audioManager: AudioManager;
   private audioHandler: GameAudioHandler;
-  private mapGenerator: MapGenerator;
   private textureManager: TextureManager;
   private currentMapData: MapData;
+  private currentMapId: string | null = null;
   private cameraDiagnostics: CameraDiagnostics;
 
   private towers: Tower[] = [];
@@ -131,7 +125,7 @@ export class Game {
 
   constructor(
     canvas: HTMLCanvasElement,
-    mapConfig?: MapGenerationConfig,
+    mapIdOrConfig?: string | MapGenerationConfig,
     autoStart: boolean = true,
     difficultyConfig?: { enemyHealthMultiplier?: number; enemySpeedMultiplier?: number }
   ) {
@@ -143,19 +137,32 @@ export class Game {
       this.enemySpeedMultiplier = difficultyConfig.enemySpeedMultiplier ?? 1.0;
     }
 
-    // Initialize map generation systems
-    this.mapGenerator = new MapGenerator();
+    // Initialize texture manager
     this.textureManager = new TextureManager();
 
-    // Generate or use provided map configuration
-    const config: MapGenerationConfig =
-      mapConfig || this.generateEnhancedDefaultConfig();
+    // Load map based on provided parameter
+    if (typeof mapIdOrConfig === 'string') {
+      // Load preset map
+      this.currentMapId = mapIdOrConfig;
+      const mapData = MapLoader.loadMapSync(mapIdOrConfig);
+      if (!mapData) {
+        throw new Error(`Failed to load map: ${mapIdOrConfig}`);
+      }
+      this.currentMapData = mapData.data;
+    } else {
+      // Load default map
+      this.currentMapId = 'classic';
+      const mapData = MapLoader.loadMapSync('classic');
+      if (!mapData) {
+        throw new Error('Failed to load default map');
+      }
+      this.currentMapData = mapData.data;
+    }
 
-    // Generate the map
-    this.currentMapData = this.mapGenerator.generate(config);
-
-    // Initialize grid with generated map size
-    this.grid = new Grid(config.width, config.height, config.cellSize);
+    // Initialize grid with map size
+    const { width, height } = this.currentMapData.metadata;
+    const cellSize = 32; // Default cell size
+    this.grid = new Grid(width, height, cellSize);
 
     // Apply generated map to grid
     this.applyMapToGrid();
@@ -211,7 +218,7 @@ export class Game {
 
     // Fallback to default position if no spawn zones
     if (spawnWorldPositions.length === 0) {
-      const defaultZone = { x: 2, y: Math.floor(config.height / 2) };
+      const defaultZone = { x: 2, y: Math.floor(this.grid.height / 2) };
       spawnWorldPositions.push(
         this.grid.gridToWorld(defaultZone.x, defaultZone.y)
       );
@@ -227,16 +234,17 @@ export class Game {
     this.waveManager.setDifficultyMultipliers(this.enemyHealthMultiplier, this.enemySpeedMultiplier);
 
     // Initialize SpawnZoneManager
+    const difficulty = this.currentMapData.metadata.difficulty;
     const spawnZoneConfig = {
       maxActiveZones:
-        config.difficulty === MapDifficulty.EXTREME
+        difficulty === 'EXTREME'
           ? 5
-          : config.difficulty === MapDifficulty.HARD
+          : difficulty === 'HARD'
             ? 4
             : 3,
-      chaosMode: config.difficulty === MapDifficulty.EXTREME,
+      chaosMode: difficulty === 'EXTREME',
       adaptiveWeighting: true,
-      dynamicZoneGeneration: config.difficulty !== MapDifficulty.EASY,
+      dynamicZoneGeneration: difficulty !== 'EASY',
     };
 
     this.spawnZoneManager = new SpawnZoneManager(this.grid, spawnZoneConfig);
@@ -422,12 +430,26 @@ export class Game {
     // Set borders
     this.grid.setBorders();
 
-    // Apply paths to grid
-    this.currentMapData.paths.forEach((path) => {
-      path.waypoints.forEach((waypoint) => {
-        this.grid.setCellType(waypoint.x, waypoint.y, CellType.PATH);
+    // Apply tile data from preset maps if available
+    if (this.currentMapData.customProperties?.tiles) {
+      const tiles = this.currentMapData.customProperties.tiles;
+      for (let y = 0; y < tiles.length; y++) {
+        for (let x = 0; x < tiles[y].length; x++) {
+          const tile = tiles[y][x];
+          if (tile.isPath) {
+            this.grid.setCellType(x, y, CellType.PATH);
+          }
+          // The canPlaceTower property is handled by the grid's default behavior
+        }
+      }
+    } else {
+      // Legacy: Apply paths to grid
+      this.currentMapData.paths.forEach((path) => {
+        path.waypoints.forEach((waypoint) => {
+          this.grid.setCellType(waypoint.x, waypoint.y, CellType.PATH);
+        });
       });
-    });
+    }
 
     // Set spawn zones
     this.grid.setSpawnZones(this.currentMapData.spawnZones);
@@ -1376,7 +1398,7 @@ export class Game {
     }
 
     // Extra currency drop chance
-    if (Math.random() < COLLECTIBLE_DROP_CHANCES.extraCurrencyDrop) {
+    if (Math.random() < COLLECTIBLE_DROP_CHANCES.currency) {
       this.addCurrency(enemy.reward * CURRENCY_CONFIG.extraDropMultiplier);
     }
   }
@@ -1854,20 +1876,41 @@ export class Game {
     return this.currencyManager;
   }
 
-  getMapGenerator(): MapGenerator {
-    return this.mapGenerator;
+  // Legacy method - no longer used with preset maps
+  getMapGenerator(): any {
+    return null;
   }
 
   getTextureManager(): TextureManager {
     return this.textureManager;
   }
 
-  regenerateMap(config?: MapGenerationConfig): void {
-    // Generate new map with enhanced configuration if none provided
-    const newConfig: MapGenerationConfig =
-      config || this.generateEnhancedDefaultConfig();
-
-    this.currentMapData = this.mapGenerator.generate(newConfig);
+  regenerateMap(mapIdOrConfig?: string | MapGenerationConfig): void {
+    // Load new map
+    if (typeof mapIdOrConfig === 'string') {
+      this.currentMapId = mapIdOrConfig;
+      const mapData = MapLoader.loadMapSync(mapIdOrConfig);
+      if (!mapData) {
+        throw new Error(`Failed to load map: ${mapIdOrConfig}`);
+      }
+      this.currentMapData = mapData.data;
+    } else if (mapIdOrConfig) {
+      // Legacy: Generate map from config
+      const MapGenerator = require("@/systems/MapGenerator").MapGenerator;
+      const mapGenerator = new MapGenerator();
+      this.currentMapData = mapGenerator.generate(mapIdOrConfig);
+    } else {
+      // Cycle to next map
+      const maps = ['classic', 'crossroads', 'spiral', 'tutorial'];
+      const currentIndex = this.currentMapId ? maps.indexOf(this.currentMapId) : -1;
+      const nextIndex = (currentIndex + 1) % maps.length;
+      this.currentMapId = maps[nextIndex];
+      const mapData = MapLoader.loadMapSync(this.currentMapId);
+      if (!mapData) {
+        throw new Error(`Failed to load map: ${this.currentMapId}`);
+      }
+      this.currentMapData = mapData.data;
+    }
 
     // Clear existing entities
     this.towers = [];
@@ -1876,7 +1919,9 @@ export class Game {
     this.collectibles = [];
 
     // Reset grid
-    this.grid = new Grid(newConfig.width, newConfig.height, newConfig.cellSize);
+    const { width, height } = this.currentMapData.metadata;
+    const cellSize = 32;
+    this.grid = new Grid(width, height, cellSize);
     this.applyMapToGrid();
 
     // Update systems
@@ -1889,7 +1934,7 @@ export class Game {
 
     // Fallback to default position if no spawn zones
     if (spawnWorldPositions.length === 0) {
-      const defaultZone = { x: 2, y: Math.floor(newConfig.height / 2) };
+      const defaultZone = { x: 2, y: Math.floor(this.grid.height / 2) };
       spawnWorldPositions.push(
         this.grid.gridToWorld(defaultZone.x, defaultZone.y)
       );
@@ -1898,7 +1943,7 @@ export class Game {
     this.waveManager = new WaveManager(spawnWorldPositions);
 
     // Set grid dimensions for proper spawn offset calculation
-    this.waveManager.setGridDimensions(newConfig.width, newConfig.height, newConfig.cellSize);
+    this.waveManager.setGridDimensions(this.grid.width, this.grid.height, this.grid.cellSize);
     this.waveManager.setGrid(this.grid);
 
     this.loadWaveConfigurations();
@@ -1925,141 +1970,39 @@ export class Game {
     this.audioHandler.resetAllAudioFlags();
   }
 
-  generateMapVariants(count: number): MapData[] {
-    const baseConfig = this.generateEnhancedDefaultConfig();
-    return this.mapGenerator.generateVariants(baseConfig, count);
-  }
 
-  // Enhanced default configuration with more interesting parameters
-  private generateEnhancedDefaultConfig(): MapGenerationConfig {
-    const mapSize = MapSize.MEDIUM; // Default to medium size for better gameplay pacing
-    const preset = MAP_SIZE_PRESETS[mapSize];
-
-    if (!preset) {
-      throw new Error(`Map size preset not found: ${mapSize}`);
-    }
-
-    // Random biome selection with weighted distribution
-    const biomes = [
-      BiomeType.FOREST, // 25%
-      BiomeType.DESERT, // 25%
-      BiomeType.ARCTIC, // 20%
-      BiomeType.VOLCANIC, // 20%
-      BiomeType.GRASSLAND, // 10%
-    ];
-    const biomeWeights = [0.25, 0.5, 0.7, 0.9, 1.0];
-    const randomValue = Math.random();
-    let selectedBiome: BiomeType = BiomeType.FOREST;
-
-    for (let i = 0; i < biomeWeights.length; i++) {
-      if (randomValue < biomeWeights[i]!) {
-        selectedBiome = biomes[i] ?? BiomeType.FOREST;
-        break;
-      }
-    }
-
-    const difficulty = MapDifficulty.MEDIUM;
-    const difficultyMultiplier = this.getDifficultyMultiplier(difficulty);
-
+  // Legacy method stub - no longer used
+  private generateEnhancedDefaultConfig(): any {
+    // Return a dummy config that won't cause errors
     return {
-      width: preset.width,
-      height: preset.height,
+      width: 30,
+      height: 20,
       cellSize: 32,
-      biome: selectedBiome,
-      difficulty,
-      seed: Date.now(),
-      pathComplexity: 0.85, // More winding paths for strategy (increased from 0.75)
-      obstacleCount: Math.floor(
-        preset.baseObstacles * difficultyMultiplier * 1.2
-      ), // 20% more obstacles
-      decorationLevel: DecorationLevel.DENSE, // Rich visual environment
-      enableWater: true,
-      enableAnimations: true,
-      chokePointCount: Math.floor(
-        preset.baseChokePoints * difficultyMultiplier * 1.3
-      ), // 30% more choke points
-      openAreaCount: Math.floor(preset.baseOpenAreas * 1.2), // 20% more open areas
-      playerAdvantageSpots: Math.floor(preset.baseAdvantageSpots * 1.5), // 50% more advantage spots
+      biome: BiomeType.GRASSLAND,
+      difficulty: 'MEDIUM',
+      seed: Date.now()
     };
   }
 
-  private getDifficultyMultiplier(difficulty: MapDifficulty): number {
-    switch (difficulty) {
-      case MapDifficulty.EASY:
-        return 0.7;
-      case MapDifficulty.MEDIUM:
-        return 1.0;
-      case MapDifficulty.HARD:
-        return 1.3;
-      case MapDifficulty.EXTREME:
-        return 1.6;
-      default:
-        return 1.0;
-    }
+  // Legacy method - no longer used
+  private getDifficultyMultiplier(difficulty: any): number {
+    return 1.0;
   }
 
-  // Create map with specific size preset
-  createMapWithSize(
-    mapSize: MapSize,
-    biome?: BiomeType,
-    difficulty?: MapDifficulty
-  ): void {
-    const preset = MAP_SIZE_PRESETS[mapSize];
-    if (!preset) {
-      throw new Error(`Map size preset not found: ${mapSize}`);
-    }
-
-    const selectedBiome: BiomeType = biome || this.getRandomBiome();
-    const selectedDifficulty = difficulty || MapDifficulty.MEDIUM;
-    const difficultyMultiplier =
-      this.getDifficultyMultiplier(selectedDifficulty);
-
-    const config: MapGenerationConfig = {
-      width: preset.width,
-      height: preset.height,
-      cellSize: 32,
-      biome: selectedBiome,
-      difficulty: selectedDifficulty,
-      seed: Date.now(),
-      pathComplexity: 0.7 + (difficultyMultiplier - 1) * 0.2, // Scale complexity with difficulty
-      obstacleCount: Math.floor(preset.baseObstacles * difficultyMultiplier),
-      decorationLevel: DecorationLevel.DENSE,
-      enableWater: true,
-      enableAnimations: true,
-      chokePointCount: Math.floor(
-        preset.baseChokePoints * difficultyMultiplier
-      ),
-      openAreaCount: preset.baseOpenAreas,
-      playerAdvantageSpots: preset.baseAdvantageSpots,
-    };
-
-    this.regenerateMap(config);
+  // Legacy method - no longer used
+  createMapWithSize(mapSize: any, biome?: any, difficulty?: any): void {
+    // Do nothing - maps are now preset
   }
 
-  private getRandomBiome(): BiomeType {
-    const biomes = [
-      BiomeType.FOREST,
-      BiomeType.DESERT,
-      BiomeType.ARCTIC,
-      BiomeType.VOLCANIC,
-      BiomeType.GRASSLAND,
-    ];
-    return (
-      biomes[Math.floor(Math.random() * biomes.length)] ?? BiomeType.FOREST
-    );
+  // Legacy method - no longer used
+  private getRandomBiome(): any {
+    return BiomeType.GRASSLAND;
   }
 
   // Get current map size
-  getCurrentMapSize(): MapSize {
-    const width = this.currentMapData.metadata.width;
-    const height = this.currentMapData.metadata.height;
-
-    for (const [size, preset] of Object.entries(MAP_SIZE_PRESETS)) {
-      if (preset.width === width && preset.height === height) {
-        return size as MapSize;
-      }
-    }
-    return MapSize.MEDIUM; // fallback
+  getCurrentMapSize(): string {
+    // Return current map id instead
+    return this.currentMapId || 'classic';
   }
 
   // Zoom controls

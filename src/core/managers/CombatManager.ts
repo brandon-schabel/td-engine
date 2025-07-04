@@ -126,7 +126,7 @@ export class CombatManager {
     }
 
     // Extra currency drop chance
-    if (Math.random() < COLLECTIBLE_DROP_CHANCES.extraCurrencyDrop) {
+    if (Math.random() < COLLECTIBLE_DROP_CHANCES.currency) {
       this.gameLifeManager.addCurrency(enemy.reward * CURRENCY_CONFIG.extraDropMultiplier);
     }
   }

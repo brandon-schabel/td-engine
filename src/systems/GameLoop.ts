@@ -14,7 +14,7 @@ import type { Grid } from '@/systems/Grid';
 import { AudioManager, SoundType } from '@/audio/AudioManager';
 import { Collectible } from '@/entities/Collectible';
 import { DestructionEffect } from '@/effects/DestructionEffect';
-import { COLLECTIBLE_DROP_CHANCES } from '@/config/ItemConfig';
+import { COLLECTIBLE_DROP_CHANCES, POWER_UP_TYPES } from '@/config/ItemConfig';
 import { CollectibleType } from '@/entities/items/ItemTypes';
 import type { WaveManager } from '@/systems/WaveManager';
 import type { SpawnZoneManager } from '@/systems/SpawnZoneManager';
@@ -438,8 +438,29 @@ export class GameLoop {
     // Roll for collectible drops
     Object.entries(COLLECTIBLE_DROP_CHANCES).forEach(([type, chance]) => {
       if (Math.random() < chance) {
-        const collectible = new Collectible(enemy.position, type as CollectibleType);
+        let collectibleType: CollectibleType;
+        
+        // Handle different drop types
+        switch (type) {
+          case 'health':
+            collectibleType = CollectibleType.HEALTH;
+            break;
+          case 'currency':
+            collectibleType = CollectibleType.EXTRA_CURRENCY;
+            break;
+          case 'powerUp':
+            // Randomly select a power-up type
+            const randomPowerUp = POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)];
+            collectibleType = CollectibleType[randomPowerUp as keyof typeof CollectibleType];
+            break;
+          default:
+            console.warn(`Unknown collectible drop type: ${type}`);
+            return;
+        }
+        
+        const collectible = new Collectible(enemy.position, collectibleType);
         entityStore.addCollectible(collectible);
+        console.log(`[GameLoop] Spawned collectible: ${collectibleType} at position:`, enemy.position);
       }
     });
   }

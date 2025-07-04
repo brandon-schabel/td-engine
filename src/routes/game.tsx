@@ -6,13 +6,7 @@ import { GameUI, GameOverlayUI } from "@/ui/react/components/game/GameUI";
 import { GameNotificationsProvider } from "@/ui/react/components/game/GameNotifications";
 import { cn } from "@/lib/utils";
 import { gameStore } from "@/stores/gameStore";
-import type { MapGenerationConfig } from "@/types/MapData";
-import {
-  BiomeType,
-  MapDifficulty,
-  MapSize,
-  DecorationLevel,
-} from "@/types/MapData";
+import { MapDifficulty } from "@/types/MapData";
 
 export const Route = createFileRoute("/game")({
   component: GameScene,
@@ -39,32 +33,14 @@ function GameScene() {
 
         // Get pre-game config
         const preGameConfig = (window as any).__preGameConfig || {
-          mapSize: MapSize.MEDIUM,
+          mapId: "classic",
           difficulty: MapDifficulty.MEDIUM,
-          biome: BiomeType.FOREST,
         };
 
         console.log("[GameScene] Pre-game config:", preGameConfig);
 
-        // Create map config
-        const mapConfig: MapGenerationConfig = {
-          width: getMapDimensions(preGameConfig.mapSize),
-          height: getMapDimensions(preGameConfig.mapSize),
-          cellSize: 32,
-          seed: Date.now(),
-          biome: preGameConfig.biome,
-          difficulty: preGameConfig.difficulty,
-          decorationLevel: DecorationLevel.MODERATE,
-          pathComplexity: 0.5,
-          obstacleCount: 20,
-          enableWater: false,
-          enableAnimations: true,
-          chokePointCount: 3,
-          openAreaCount: 2,
-          playerAdvantageSpots: 2,
-        };
-
-        console.log("[GameScene] Map config:", mapConfig);
+        // Map ID will be passed directly to the game
+        const mapId = preGameConfig.mapId;
 
         // Set up canvas dimensions BEFORE creating game
         const rect = containerRef.current!.getBoundingClientRect();
@@ -103,8 +79,8 @@ function GameScene() {
           gameStore.getState().resetGame();
         }
 
-        // Create game instance
-        const game = new GameWithEvents(canvasRef.current!, mapConfig);
+        // Create game instance with map ID
+        const game = new GameWithEvents(canvasRef.current!, mapId);
         gameRef.current = game;
 
         // Store game instance globally for debugging
@@ -349,18 +325,3 @@ function GameScene() {
   );
 }
 
-// Helper function to get map dimensions based on size
-function getMapDimensions(size: MapSize): number {
-  switch (size) {
-    case MapSize.SMALL:
-      return 20;
-    case MapSize.MEDIUM:
-      return 30;
-    case MapSize.LARGE:
-      return 40;
-    case MapSize.HUGE:
-      return 50;
-    default:
-      return 30;
-  }
-}

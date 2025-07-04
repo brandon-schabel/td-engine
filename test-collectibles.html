@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collectible Spawn Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+        }
+        .collectible-type {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #3a3a3a;
+            border-radius: 3px;
+        }
+        .collectible-count {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>Collectible Spawn Test</h1>
+    <p>This test simulates enemy deaths and shows which collectibles are spawned.</p>
+    
+    <button onclick="runTest(100)">Simulate 100 Enemy Deaths</button>
+    <button onclick="runTest(1000)">Simulate 1000 Enemy Deaths</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script type="module">
+        // Import the necessary modules
+        import { COLLECTIBLE_DROP_CHANCES, POWER_UP_TYPES } from './src/config/ItemConfig.ts';
+        import { CollectibleType } from './src/entities/items/ItemTypes.ts';
+        
+        window.runTest = function(enemyCount) {
+            const results = {
+                HEALTH: 0,
+                EXTRA_CURRENCY: 0,
+                EXTRA_DAMAGE: 0,
+                FASTER_SHOOTING: 0,
+                SHIELD: 0,
+                SPEED_BOOST: 0,
+                none: 0
+            };
+            
+            // Simulate enemy deaths
+            for (let i = 0; i < enemyCount; i++) {
+                let spawnedSomething = false;
+                
+                // Roll for collectible drops
+                Object.entries(COLLECTIBLE_DROP_CHANCES).forEach(([type, chance]) => {
+                    if (Math.random() < chance) {
+                        let collectibleType;
+                        
+                        switch (type) {
+                            case 'health':
+                                collectibleType = 'HEALTH';
+                                break;
+                            case 'currency':
+                                collectibleType = 'EXTRA_CURRENCY';
+                                break;
+                            case 'powerUp':
+                                // Randomly select a power-up type
+                                const randomPowerUp = POWER_UP_TYPES[Math.floor(Math.random() * POWER_UP_TYPES.length)];
+                                collectibleType = randomPowerUp;
+                                break;
+                        }
+                        
+                        if (collectibleType) {
+                            results[collectibleType]++;
+                            spawnedSomething = true;
+                        }
+                    }
+                });
+                
+                if (!spawnedSomething) {
+                    results.none++;
+                }
+            }
+            
+            // Display results
+            displayResults(results, enemyCount);
+        };
+        
+        window.displayResults = function(results, enemyCount) {
+            const resultsDiv = document.getElementById('results');
+            let html = `<h2>Results from ${enemyCount} Enemy Deaths:</h2>`;
+            
+            const collectibleColors = {
+                HEALTH: '#4CAF50',
+                EXTRA_DAMAGE: '#FF4444',
+                FASTER_SHOOTING: '#FFC107',
+                EXTRA_CURRENCY: '#FFD700',
+                SHIELD: '#2196F3',
+                SPEED_BOOST: '#9C27B0',
+                none: '#666'
+            };
+            
+            for (const [type, count] of Object.entries(results)) {
+                if (type !== 'none') {
+                    const percentage = ((count / enemyCount) * 100).toFixed(1);
+                    const color = collectibleColors[type] || '#fff';
+                    html += `
+                        <div class="collectible-type">
+                            <span style="color: ${color}">●</span> 
+                            ${type}: <span class="collectible-count">${count}</span> 
+                            (${percentage}%)
+                        </div>
+                    `;
+                }
+            }
+            
+            const nothingPercentage = ((results.none / enemyCount) * 100).toFixed(1);
+            html += `
+                <div class="collectible-type">
+                    <span style="color: #666">●</span> 
+                    No drops: <span class="collectible-count">${results.none}</span> 
+                    (${nothingPercentage}%)
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        };
+        
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = '';
+        };
+    </script>
+</body>
+</html>

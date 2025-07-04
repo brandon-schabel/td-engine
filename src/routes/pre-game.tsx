@@ -5,7 +5,9 @@ import { GlassOptionCard } from "@/ui/react/components/shared/GlassOptionCard";
 import { Icon } from "@/ui/react/components/shared/Icon";
 import { IconType } from "@/ui/icons/SvgIcons";
 import { SoundType } from "@/audio/AudioManager";
-import { BiomeType, MapDifficulty, MapSize } from "@/types/MapData";
+import { BiomeType, MapDifficulty } from "@/types/MapData";
+import { MapRegistry } from "@/maps";
+import { MapPreview } from "@/ui/react/components/MapPreview";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pre-game")({
@@ -13,9 +15,8 @@ export const Route = createFileRoute("/pre-game")({
 });
 
 export interface PreGameConfigData {
-  mapSize: MapSize;
+  mapId: string;
   difficulty: MapDifficulty;
-  biome: BiomeType;
 }
 
 interface OptionItem {
@@ -94,15 +95,19 @@ function PreGameConfig() {
   const navigate = useNavigate();
   const { audioManager } = Route.useRouteContext();
 
+  // Initialize map registry
+  useEffect(() => {
+    MapRegistry.initializeSync();
+  }, []);
+
   const [config, setConfig] = useState<PreGameConfigData>(() => {
     // Load saved preferences
     const savedConfig = localStorage.getItem("preGameConfig");
     if (savedConfig) {
       try {
         return {
-          mapSize: MapSize.MEDIUM,
+          mapId: "classic",
           difficulty: MapDifficulty.MEDIUM,
-          biome: BiomeType.FOREST,
           ...JSON.parse(savedConfig),
         };
       } catch (e) {
@@ -111,9 +116,8 @@ function PreGameConfig() {
     }
 
     return {
-      mapSize: MapSize.MEDIUM,
+      mapId: "classic",
       difficulty: MapDifficulty.MEDIUM,
-      biome: BiomeType.FOREST,
     };
   });
 
@@ -140,15 +144,27 @@ function PreGameConfig() {
     });
   };
 
-  const mapSizeOptions: OptionItem[] = [
+  const mapOptions: OptionItem[] = [
     {
-      value: MapSize.SMALL,
-      label: "Small",
-      description: "20x20 - Quick games",
+      value: "classic",
+      label: "Classic Path",
+      description: "Winding path - Easy",
     },
-    { value: MapSize.MEDIUM, label: "Medium", description: "30x30 - Balanced" },
-    { value: MapSize.LARGE, label: "Large", description: "40x40 - Long games" },
-    { value: MapSize.HUGE, label: "Huge", description: "50x50 - Epic battles" },
+    { 
+      value: "crossroads", 
+      label: "Crossroads", 
+      description: "Multiple paths - Medium" 
+    },
+    { 
+      value: "spiral", 
+      label: "The Spiral", 
+      description: "Spiral inward - Hard" 
+    },
+    { 
+      value: "tutorial", 
+      label: "Training", 
+      description: "Learn the basics" 
+    },
   ];
 
   const difficultyOptions: OptionItem[] = [
@@ -166,16 +182,6 @@ function PreGameConfig() {
     },
   ];
 
-  const biomeOptions: OptionItem[] = [
-    { value: BiomeType.FOREST, label: "Forest", description: "Lush greenery" },
-    { value: BiomeType.DESERT, label: "Desert", description: "Sandy dunes" },
-    { value: BiomeType.ARCTIC, label: "Arctic", description: "Frozen tundra" },
-    {
-      value: BiomeType.VOLCANIC,
-      label: "Volcanic",
-      description: "Molten landscape",
-    },
-  ];
 
   return (
     <div className="relative w-full h-full overflow-y-auto">
@@ -215,17 +221,59 @@ function PreGameConfig() {
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
         {/* Configuration sections */}
         <div className="w-full space-y-6 stagger-children">
-          {/* Map Size */}
-          <OptionSection
-            title="Map Size"
-            description="Choose the battlefield size"
-            options={mapSizeOptions}
-            selectedValue={config.mapSize}
-            onChange={(value) =>
-              setConfig({ ...config, mapSize: value as MapSize })
-            }
-            icon={IconType.MAP}
-          />
+          {/* Map Selection with Preview */}
+          <GlassPanel
+            variant="dark"
+            blur="lg"
+            opacity={85}
+            glow
+            className="rounded-2xl animate-fade-in-scale"
+          >
+            <GlassPanel.Header>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                  <Icon type={IconType.MAP} size={24} className="text-white/80" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-white mb-1">Select Map</h3>
+                  <p className="text-sm text-white/70">Choose your battlefield</p>
+                </div>
+              </div>
+            </GlassPanel.Header>
+
+            <GlassPanel.Body>
+              <div className="flex gap-6">
+                {/* Map options */}
+                <div className="flex-1 grid grid-cols-2 gap-4">
+                  {mapOptions.map((option) => {
+                    const isSelected = config.mapId === option.value;
+
+                    return (
+                      <GlassOptionCard
+                        key={option.value}
+                        title={option.label}
+                        description={option.description}
+                        selected={isSelected}
+                        onSelect={() => {
+                          audioManager?.playUISound(SoundType.SELECT);
+                          setConfig({ ...config, mapId: option.value });
+                        }}
+                        variant="compact"
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Map preview */}
+                <div className="w-48">
+                  <div className="sticky top-4">
+                    <h4 className="text-sm font-medium text-white/70 mb-2">Preview</h4>
+                    <MapPreview mapId={config.mapId} className="w-full" />
+                  </div>
+                </div>
+              </div>
+            </GlassPanel.Body>
+          </GlassPanel>
 
           {/* Difficulty */}
           <OptionSection
@@ -237,18 +285,6 @@ function PreGameConfig() {
               setConfig({ ...config, difficulty: value as MapDifficulty })
             }
             icon={IconType.DIFFICULTY}
-          />
-
-          {/* Biome */}
-          <OptionSection
-            title="Biome"
-            description="Select the environment"
-            options={biomeOptions}
-            selectedValue={config.biome}
-            onChange={(value) =>
-              setConfig({ ...config, biome: value as BiomeType })
-            }
-            icon={IconType.MAP}
           />
         </div>
 
