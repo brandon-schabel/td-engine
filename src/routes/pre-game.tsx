@@ -95,12 +95,11 @@ function PreGameConfig() {
   const navigate = useNavigate();
   const { audioManager } = Route.useRouteContext();
 
-  // Initialize map registry
-  useEffect(() => {
-    MapRegistry.initializeSync();
-  }, []);
-
   const [config, setConfig] = useState<PreGameConfigData>(() => {
+    // Initialize map registry first
+    MapRegistry.initializeSync();
+
+    // Then load saved preferences
     // Load saved preferences
     const savedConfig = localStorage.getItem("preGameConfig");
     if (savedConfig) {
@@ -150,20 +149,20 @@ function PreGameConfig() {
       label: "Classic Path",
       description: "Winding path - Easy",
     },
-    { 
-      value: "crossroads", 
-      label: "Crossroads", 
-      description: "Multiple paths - Medium" 
+    {
+      value: "crossroads",
+      label: "Crossroads",
+      description: "Multiple paths - Medium",
     },
-    { 
-      value: "spiral", 
-      label: "The Spiral", 
-      description: "Spiral inward - Hard" 
+    {
+      value: "spiral",
+      label: "The Spiral",
+      description: "Spiral inward - Hard",
     },
-    { 
-      value: "tutorial", 
-      label: "Training", 
-      description: "Learn the basics" 
+    {
+      value: "tutorial",
+      label: "Training",
+      description: "Learn the basics",
     },
   ];
 
@@ -181,7 +180,6 @@ function PreGameConfig() {
       description: "Ultimate test",
     },
   ];
-
 
   return (
     <div className="relative w-full h-full overflow-y-auto">
@@ -232,11 +230,19 @@ function PreGameConfig() {
             <GlassPanel.Header>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                  <Icon type={IconType.MAP} size={24} className="text-white/80" />
+                  <Icon
+                    type={IconType.MAP}
+                    size={24}
+                    className="text-white/80"
+                  />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-1">Select Map</h3>
-                  <p className="text-sm text-white/70">Choose your battlefield</p>
+                  <h3 className="text-xl font-bold text-white mb-1">
+                    Select Map
+                  </h3>
+                  <p className="text-sm text-white/70">
+                    Choose your battlefield
+                  </p>
                 </div>
               </div>
             </GlassPanel.Header>
@@ -267,7 +273,9 @@ function PreGameConfig() {
                 {/* Map preview */}
                 <div className="w-48">
                   <div className="sticky top-4">
-                    <h4 className="text-sm font-medium text-white/70 mb-2">Preview</h4>
+                    <h4 className="text-sm font-medium text-white/70 mb-2">
+                      Preview
+                    </h4>
                     <MapPreview mapId={config.mapId} className="w-full" />
                   </div>
                 </div>
