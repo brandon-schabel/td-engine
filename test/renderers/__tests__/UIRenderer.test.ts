@@ -1,4 +1,4 @@
-import { UIRenderer } from '../UIRenderer';
+import { UIRenderer } from '../../../src/systems/renderers/UIRenderer';
 
 describe('UIRenderer', () => {
   let uiRenderer: UIRenderer;
@@ -85,10 +85,10 @@ describe('UIRenderer', () => {
   describe('updateViewport', () => {
     it('should update viewport dimensions', () => {
       uiRenderer.updateViewport(1024, 768);
-      
+
       // Render something that uses viewport dimensions
       uiRenderer.renderGameOver();
-      
+
       expect(mockContext.fillRect).toHaveBeenCalledWith(0, 0, 1024, 768);
       expect(mockContext.fillText).toHaveBeenCalledWith('GAME OVER', 512, 384);
     });
@@ -133,7 +133,7 @@ describe('UIRenderer', () => {
   describe('renderDebugInfo', () => {
     it('should render debug information', () => {
       const debugLines = ['FPS: 60', 'Entities: 42', 'Memory: 128MB'];
-      
+
       uiRenderer.renderDebugInfo(debugLines);
 
       expect(mockContext.fillRect).toHaveBeenCalled();

@@ -10,7 +10,7 @@ export * from './CombatLogic';
 export { updateEnemy, hasEnemyReachedEnd, getEnemyProgress } from './EnemyLogic';
 export { updateTower, calculateTowerEffectiveness, evaluateTowerPlacement } from './TowerLogic';
 export { updatePlayer, calculatePlayerStats, isPlayerInDanger } from './PlayerLogic';
-export { updateProjectile, calculateProjectileTrajectory, getProjectileSpecialEffects } from './ProjectileLogic';
+export { updateProjectile } from './ProjectileLogic';
 export { 
   calculateDamage, 
   calculateDamageOverTime, 

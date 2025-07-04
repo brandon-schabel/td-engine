@@ -114,7 +114,8 @@ export enum IconType {
   SAVE = "SAVE",
   FLAG = "FLAG",
   REFRESH = "REFRESH",
-  SPEAKER = "SPEAKER"
+  SPEAKER = "SPEAKER",
+  XP = "XP"
 }
 
 interface SvgIconOptions {
@@ -750,6 +751,9 @@ export const ICON_PATHS: Record<IconType, string> = {
   [IconType.SPEAKER]: `
     <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     <path d="M15.54 8.46C16.4774 9.39764 17.0039 10.6692 17.0039 11.995C17.0039 13.3208 16.4774 14.5924 15.54 15.53M19.07 4.93C20.9447 6.80528 21.9979 9.34836 21.9979 12C21.9979 14.6516 20.9447 17.1947 19.07 19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  `,
+  [IconType.XP]: `
+    <path d="M12 2L12 22M5 9L19 9M5 15L19 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   `,
 };
 

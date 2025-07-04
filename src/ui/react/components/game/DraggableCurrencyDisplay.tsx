@@ -24,7 +24,7 @@ export interface DraggableCurrencyDisplayProps {
 export const DraggableCurrencyDisplay: React.FC<
   DraggableCurrencyDisplayProps
 > = ({ draggable = true, defaultPosition, className }) => {
-  const { currency } = useGameStore();
+  const currency = useGameStore((state) => state.currency);
   const layoutInfo = useMobileLayout();
 
   // Calculate default position with mobile safe area

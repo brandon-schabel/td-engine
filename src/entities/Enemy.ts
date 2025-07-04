@@ -74,6 +74,10 @@ export class Enemy extends Entity {
   private speedMultiplier: number = 1.0;
   private isBoss: boolean = false;
 
+  public getIsBoss(): boolean {
+    return this.isBoss;
+  }
+
   constructor(
     enemyType: EnemyType,
     position: Vector2,

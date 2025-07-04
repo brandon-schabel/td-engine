@@ -27,7 +27,9 @@ export const DraggableWaveDisplay: React.FC<DraggableWaveDisplayProps> = ({
   defaultPosition,
   className,
 }) => {
-  const { currentWave, waveInProgress, enemiesRemaining } = useGameStore();
+  const currentWave = useGameStore((state) => state.currentWave);
+  const waveInProgress = useGameStore((state) => state.waveInProgress);
+  const enemiesRemaining = useGameStore((state) => state.enemiesRemaining);
   const layoutInfo = useMobileLayout();
 
   // Calculate default position with mobile safe area

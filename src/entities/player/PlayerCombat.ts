@@ -119,14 +119,19 @@ export class PlayerCombat {
     }
 
     this.currentCooldown = CooldownManager.startCooldown(this.cooldownTime);
-    // Create projectile directly since we can't match ShootingCapable interface
-    const projectile = new Projectile(
-      { ...playerPosition },
+
+    return ShootingUtils.performShoot(
+      { 
+        position: playerPosition, 
+        damage: this.damage, 
+        cooldownTime: this.cooldownTime, 
+        currentCooldown: this.currentCooldown,
+        canShoot: () => this.canShoot(),
+        shoot: (t: Enemy) => this.shoot(playerPosition, t)
+      },
       target,
-      this.damage,
       GAME_MECHANICS.projectileSpeed
     );
-    return projectile;
   }
 
   private findNearestEnemy(enemies: Enemy[], playerPosition: Vector2): Enemy | null {

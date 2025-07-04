@@ -1,12 +1,12 @@
 import React from 'react';
-import { useGameStore } from '../../hooks/useGameStore';
+import { useGameStore } from '@/stores/hooks/useGameStore';
 import { CurrencyDisplay as CurrencyDisplayComponent, IconType } from '../index';
 
 /**
  * Currency display HUD component
  */
 export const CurrencyDisplay: React.FC = () => {
-  const { currency } = useGameStore();
+  const currency = useGameStore((state) => state.currency);
   
   return (
     <CurrencyDisplayComponent

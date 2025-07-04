@@ -1,8 +1,8 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { GlassCard } from './Glass';
-import { Icon } from './Icon';
-import { IconType } from '@/ui/icons/SvgIcons';
+import React from "react";
+import { cn } from "@/lib/utils";
+import { GlassCard } from "./Glass";
+import { Icon } from "./Icon";
+import { IconType } from "@/ui/icons/SvgIcons";
 
 interface GlassOptionCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string;
@@ -11,7 +11,7 @@ interface GlassOptionCardProps extends React.HTMLAttributes<HTMLDivElement> {
   selected?: boolean;
   disabled?: boolean;
   onSelect?: () => void;
-  variant?: 'default' | 'compact' | 'detailed';
+  variant?: "default" | "compact" | "detailed";
 }
 
 export const GlassOptionCard: React.FC<GlassOptionCardProps> = ({
@@ -21,7 +21,7 @@ export const GlassOptionCard: React.FC<GlassOptionCardProps> = ({
   selected = false,
   disabled = false,
   onSelect,
-  variant = 'default',
+  variant = "default",
   className,
   ...props
 }) => {
@@ -32,110 +32,101 @@ export const GlassOptionCard: React.FC<GlassOptionCardProps> = ({
   };
 
   const variantStyles = {
-    default: 'min-h-[120px]',
-    compact: 'min-h-[80px]',
-    detailed: 'min-h-[160px]',
+    default: "min-h-[120px]",
+    compact: "min-h-[80px]",
+    detailed: "min-h-[160px]",
   };
 
   return (
     <div
       className={cn(
-        'relative group',
-        'transform transition-all duration-300',
-        !disabled && 'hover:scale-105',
-        selected && 'scale-105',
-        className
+        "relative group cursor-pointer",
+        "transform transition-all duration-300",
+        !disabled && "hover:scale-105 hover:z-10",
+        selected && "scale-105 z-10"
       )}
-      onClick={handleClick}
-      {...props}
+      onClick={onSelect}
     >
-      {/* Selection indicator */}
+      {/* Glow effect for selected state */}
       {selected && (
-        <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-blue-500/30 to-purple-500/30 blur-md animate-pulse" />
+        <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 blur-xl animate-pulse" />
       )}
-      
-      <GlassCard
-        variant={selected ? 'light' : 'dark'}
-        blur={selected ? 'lg' : 'md'}
-        padding="none"
-        hover={!disabled}
+
+      <div
         className={cn(
-          'relative h-full',
-          variantStyles[variant],
-          'border-2 transition-all duration-300',
-          selected 
-            ? 'border-white/40 bg-white/15' 
-            : 'border-white/10 hover:border-white/20',
-          disabled && 'opacity-50 cursor-not-allowed',
-          !disabled && 'cursor-pointer'
+          "relative h-full min-h-[80px] rounded-xl overflow-hidden",
+          "bg-gradient-to-br from-white/10 via-white/5 to-transparent",
+          "backdrop-blur-md backdrop-saturate-150",
+          "border-2 transition-all duration-300",
+          selected
+            ? "border-white/40 shadow-[0_0_30px_rgba(59,130,246,0.5),inset_0_0_20px_rgba(255,255,255,0.2)]"
+            : "border-white/20 hover:border-white/30",
+          disabled && "opacity-50 cursor-not-allowed",
+          "before:absolute before:inset-0 before:bg-gradient-to-br",
+          selected
+            ? "before:from-blue-500/10 before:to-purple-500/10"
+            : "before:from-white/5 before:to-transparent",
+          "before:opacity-50"
         )}
       >
-        <div className="p-4 h-full flex flex-col justify-between">
-          {/* Top section with icon and selected indicator */}
+        {/* Top reflection */}
+        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/20 to-transparent" />
+
+        {/* Content */}
+        <div className="relative z-10 p-4 h-full flex flex-col justify-between">
           <div className="flex items-start justify-between">
-            {icon && (
-              <div className={cn(
-                'w-10 h-10 rounded-lg flex items-center justify-center',
-                'bg-white/10 backdrop-blur-sm',
-                selected && 'bg-white/20'
-              )}>
-                <Icon type={icon} size={20} className="text-white" />
-              </div>
-            )}
-            
+            <div className="space-y-1">
+              <h4
+                className={cn(
+                  "font-semibold text-white",
+                  variant === "compact" ? "text-sm" : "text-base"
+                )}
+              >
+                {title}
+              </h4>
+
+              {description && (
+                <p
+                  className={cn(
+                    "text-white/70",
+                    variant === "compact" ? "text-xs" : "text-sm"
+                  )}
+                >
+                  {description}
+                </p>
+              )}
+            </div>
+
             {selected && (
-              <div className={cn(
-                'w-6 h-6 rounded-full',
-                'bg-gradient-to-br from-blue-400 to-purple-400',
-                'flex items-center justify-center',
-                'shadow-lg shadow-blue-500/30'
-              )}>
-                <svg 
-                  className="w-4 h-4 text-white" 
-                  fill="none" 
-                  strokeWidth="3" 
-                  stroke="currentColor" 
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="none"
+                  strokeWidth="3"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
             )}
           </div>
-
-          {/* Content section */}
-          <div className="space-y-1">
-            <h4 className={cn(
-              'font-semibold text-white',
-              variant === 'compact' ? 'text-sm' : 'text-base',
-              selected && 'text-white'
-            )}>
-              {title}
-            </h4>
-            
-            {description && (
-              <p className={cn(
-                'text-white/70',
-                variant === 'compact' ? 'text-xs' : 'text-sm',
-                selected && 'text-white/90'
-              )}>
-                {description}
-              </p>
-            )}
-          </div>
-
-          {/* Optional hover effect overlay */}
-          {!disabled && (
-            <div className={cn(
-              'absolute inset-0 rounded-xl',
-              'bg-gradient-to-t from-white/0 to-white/5',
-              'opacity-0 group-hover:opacity-100',
-              'transition-opacity duration-300',
-              'pointer-events-none'
-            )} />
-          )}
         </div>
-      </GlassCard>
+
+        {/* Hover overlay */}
+        <div
+          className={cn(
+            "absolute inset-0 rounded-xl",
+            "bg-gradient-to-t from-white/0 via-white/5 to-white/10",
+            "opacity-0 group-hover:opacity-100",
+            "transition-opacity duration-300"
+          )}
+        />
+      </div>
     </div>
   );
 };
@@ -153,14 +144,14 @@ export const GlassOptionButton: React.FC<{
       onClick={onSelect}
       disabled={disabled}
       className={cn(
-        'relative px-6 py-3 rounded-lg',
-        'backdrop-blur-md transition-all duration-300',
-        'border text-white font-medium',
+        "relative px-6 py-3 rounded-lg",
+        "backdrop-blur-md transition-all duration-300",
+        "border text-white font-medium",
         selected
-          ? 'bg-white/20 border-white/40 shadow-lg scale-105'
-          : 'bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30',
-        disabled && 'opacity-50 cursor-not-allowed',
-        !disabled && 'hover:scale-105 active:scale-100',
+          ? "bg-white/20 border-white/40 shadow-lg scale-105"
+          : "bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30",
+        disabled && "opacity-50 cursor-not-allowed",
+        !disabled && "hover:scale-105 active:scale-100",
         className
       )}
     >

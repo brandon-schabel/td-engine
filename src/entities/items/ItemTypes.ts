@@ -13,7 +13,9 @@ export enum CollectibleType {
   FASTER_SHOOTING = 'FASTER_SHOOTING',
   EXTRA_CURRENCY = 'EXTRA_CURRENCY',
   SHIELD = 'SHIELD',
-  SPEED_BOOST = 'SPEED_BOOST'
+  SPEED_BOOST = 'SPEED_BOOST',
+  POWER_UP = 'POWER_UP',
+  COIN = 'COIN'
 }
 
 // Item template for creating new items
@@ -357,6 +359,7 @@ export function createItem(templateId: string, quantity: number = 1): InventoryI
   return {
     id: template.id,
     type: template.type,
+    category: template.type, // Add category property
     rarity: template.rarity,
     name: template.name,
     description: template.description,
@@ -423,7 +426,9 @@ export const COLLECTIBLE_TO_ITEM_MAP: Record<CollectibleType, string> = {
   [CollectibleType.FASTER_SHOOTING]: 'rapid_fire_serum',
   [CollectibleType.EXTRA_CURRENCY]: 'gold_coin',
   [CollectibleType.SHIELD]: 'shield_scroll',
-  [CollectibleType.SPEED_BOOST]: 'speed_potion'
+  [CollectibleType.SPEED_BOOST]: 'speed_potion',
+  [CollectibleType.POWER_UP]: 'damage_elixir',
+  [CollectibleType.COIN]: 'gold_coin'
 };
 
 // Rarity-based drop weights for random generation

@@ -1850,6 +1850,16 @@ export class Game {
     return this.touchGestureManager;
   }
 
+  public spawnCollectible(position: Vector2, collectibleType: CollectibleType): void {
+    const collectible = new Collectible(position, collectibleType);
+    const entityStore = utilizeEntityStore.getState();
+    entityStore.addCollectible(collectible);
+  }
+
+  public playSound(soundType: SoundType, position?: Vector2): void {
+    this.audioHandler.playSound(soundType, position);
+  }
+
   // Map generation methods
   getCurrentMapData(): MapData {
     return this.currentMapData;

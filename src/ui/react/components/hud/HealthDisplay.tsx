@@ -1,12 +1,12 @@
 import React from 'react';
-import { useGameStore } from '../../hooks/useGameStore';
+import { useGameStore } from '@/stores/hooks/useGameStore';
 import { ResourceDisplay, IconType } from '../index';
 
 /**
  * Health display HUD component
  */
 export const HealthDisplay: React.FC = () => {
-  const { playerHealth, playerMaxHealth } = useGameStore();
+  const { playerHealth, playerMaxHealth } = useGameStore((state) => ({ playerHealth: state.playerHealth, playerMaxHealth: state.playerMaxHealth }));
   
   // Get player instance for accurate health
   const game = (window as any).currentGame;

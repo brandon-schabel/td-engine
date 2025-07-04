@@ -1,3 +1,5 @@
+import { CollectibleType } from '@/entities/items/ItemTypes';
+import { SoundType } from '@/audio/AudioManager';
 import type { Game } from '@/core/Game';
 import type { GameContext, GameAction, InputState } from './types';
 import { 
@@ -154,11 +156,11 @@ export class LogicSystemIntegration {
           break;
           
         case 'SPAWN_COLLECTIBLE':
-          game.spawnCollectible(action.position, action.collectibleType);
+          game.spawnCollectible(action.position, action.collectibleType as CollectibleType);
           break;
           
         case 'PLAY_SOUND':
-          game.playSound(action.soundType, action.position);
+          game.playSound(action.soundType as SoundType, action.position);
           break;
           
         case 'CREATE_EFFECT':
@@ -181,7 +183,7 @@ export class LogicSystemIntegration {
   private spawnProjectile(game: Game, data: any): void {
     const projectile = new Projectile(
       data.position,
-      data.targetId ? this.findEntity(game, data.targetId) as Enemy : null,
+      data.targetId, // Pass targetId directly as it's a string
       data.damage,
       data.speed,
       data.velocity,
@@ -198,8 +200,8 @@ export class LogicSystemIntegration {
     // Use combat logic for damage calculation
     const source = sourceId ? this.findEntity(game, sourceId) : null;
     const damageSource = {
-      type: source instanceof Tower ? 'tower' : 
-            source instanceof Player ? 'player' : 'projectile',
+      type: (source instanceof Tower ? 'tower' : 
+            source instanceof Player ? 'player' : 'projectile') as "tower" | "player" | "projectile",
       damage,
       damageType: 'physical' as const,
       sourceId: sourceId || 'unknown'

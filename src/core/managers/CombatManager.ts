@@ -153,7 +153,7 @@ export class CombatManager {
    */
   private getEnemyDropRate(enemy: Enemy): number {
     // Boss enemies have 3x drop rate
-    if (enemy.isBoss) {
+    if (enemy.getIsBoss()) {
       return 3.0;
     }
     // Elite enemies have 2x drop rate
@@ -171,7 +171,7 @@ export class CombatManager {
    */
   private getNumDropsForEnemy(enemy: Enemy): number {
     // Boss enemies can drop 2-3 items
-    if (enemy.isBoss) {
+    if (enemy.getIsBoss()) {
       return Math.floor(Math.random() * 2) + 2;
     }
     // Elite enemies can drop 1-2 items

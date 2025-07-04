@@ -12,7 +12,10 @@ import { SoundType } from "@/audio/AudioManager";
  * Maintains visual consistency with the existing UI while using React patterns
  */
 export const PauseMenu: React.FC = () => {
-  const { currentWave, score, lives, stats } = useGameStore();
+  const currentWave = useGameStore((state) => state.currentWave);
+  const score = useGameStore((state) => state.score);
+  const lives = useGameStore((state) => state.lives);
+  const stats = useGameStore((state) => state.stats);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   // Get the game instance from window (set in Game.ts)
@@ -36,11 +39,11 @@ export const PauseMenu: React.FC = () => {
     ) {
       // Use centralized reset function
       resetGame(getCurrentGame());
-      
+
       uiStore.getState().closePanel(UIPanelType.PAUSE_MENU);
-      
+
       // Set game state to playing after reset
-      gameStore.getState().setGameState('PLAYING');
+      gameStore.getState().setGameState("PLAYING");
     }
   };
 
@@ -65,7 +68,7 @@ export const PauseMenu: React.FC = () => {
     if (game) {
       game.saveGameState();
       // Navigate to main menu
-      window.location.href = '/';
+      window.location.href = "/";
     }
   };
 

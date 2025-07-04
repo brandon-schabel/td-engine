@@ -1,4 +1,4 @@
-import type { Tower, TowerType, UpgradeType } from "@/entities/Tower";
+import { Tower, TowerType, UpgradeType } from "@/entities/Tower";
 import type { Vector2 } from "@/utils/Vector2";
 import type { Grid } from "@/systems/Grid";
 import { CellType } from "@/systems/Grid";

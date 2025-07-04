@@ -25,7 +25,8 @@ export const DraggableHealthDisplay: React.FC<DraggableHealthDisplayProps> = ({
   defaultPosition,
   className,
 }) => {
-  const { playerHealth, playerMaxHealth } = useGameStore();
+  const playerHealth = useGameStore((state) => state.playerHealth);
+  const playerMaxHealth = useGameStore((state) => state.playerMaxHealth);
   const layoutInfo = useMobileLayout();
 
   // Calculate default position with mobile safe area

@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { useGameStore } from '../../hooks/useGameStore';
+import { useGameStore } from '@/stores/hooks/useGameStore';
 import { HealthDisplay } from './HealthDisplay';
 import { CurrencyDisplay } from './CurrencyDisplay';
 import { WaveDisplay } from './WaveDisplay';
@@ -10,7 +10,7 @@ import { ScoreDisplay } from './ScoreDisplay';
  * Main HUD component that displays game status information
  */
 export const GameHUD: React.FC = () => {
-  const { isPaused } = useGameStore();
+  const isPaused = useGameStore((state) => state.isPaused);
   
   // Hide HUD when game is paused
   if (isPaused) return null;

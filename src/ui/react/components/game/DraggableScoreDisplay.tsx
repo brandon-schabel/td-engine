@@ -25,7 +25,7 @@ export const DraggableScoreDisplay: React.FC<DraggableScoreDisplayProps> = ({
   defaultPosition,
   className,
 }) => {
-  const { score } = useGameStore();
+  const score = useGameStore((state) => state.score);
   const layoutInfo = useMobileLayout();
 
   // Calculate default position with mobile safe area

@@ -3,7 +3,7 @@
  * These hooks provide optimized subscriptions to game store slices
  */
 
-import { useGameStore, useResources, useWaveInfo, usePlayerStats } from '@/stores/hooks/useGameStore';
+import { useGameStore, useResources, useWaveInfo, usePlayerStats, useGameStoreShallow } from '@/stores/hooks/useGameStore';
 import { usePlayer, useSelectedTower, useTowers, useEnemies } from '@/stores/entityStore';
 import { shallow } from 'zustand/shallow';
 
@@ -62,9 +62,8 @@ export const useEnemyManagement = () => {
  */
 export const useWaveManagement = () => {
   const waveInfo = useWaveInfo();
-  const { startWave, endWave } = useGameStore(
-    state => ({ startWave: state.startWave, endWave: state.endWave }),
-    shallow
+  const { startWave, endWave } = useGameStoreShallow(
+    (state) => ({ startWave: state.startWave, endWave: state.endWave })
   );
   
   return {
@@ -81,13 +80,12 @@ export const useWaveManagement = () => {
 export const usePlayerUpgrades = () => {
   const player = usePlayer();
   const playerStats = usePlayerStats();
-  const { addExperience, levelUp, setPlayerHealth } = useGameStore(
-    state => ({
+  const { addExperience, levelUp, setPlayerHealth } = useGameStoreShallow(
+    (state) => ({
       addExperience: state.addExperience,
       levelUp: state.levelUp,
       setPlayerHealth: state.setPlayerHealth
-    }),
-    shallow
+    })
   );
   
   return {
@@ -104,14 +102,13 @@ export const usePlayerUpgrades = () => {
  * Hook for game over state
  */
 export const useGameOver = () => {
-  const { isGameOver, lives, gameOver, resetGame } = useGameStore(
-    state => ({
+  const { isGameOver, lives, gameOver, resetGame } = useGameStoreShallow(
+    (state) => ({
       isGameOver: state.isGameOver,
       lives: state.lives,
       gameOver: state.gameOver,
       resetGame: state.resetGame
-    }),
-    shallow
+    })
   );
   
   return {

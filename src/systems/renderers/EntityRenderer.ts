@@ -283,7 +283,7 @@ export class EntityRenderer {
       return;
     }
     
-    const screenPos = this.getScreenPosition(projectile);
+    const screenPos = this.getScreenPosition(projectile.position);
     const zoom = this.camera.getZoom();
 
     // Enhanced rendering with high visibility

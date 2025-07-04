@@ -1,12 +1,12 @@
 import React from 'react';
-import { useGameStore } from '../../hooks/useGameStore';
+import { useGameStore } from '@/stores/hooks/useGameStore';
 import { ResourceDisplay, IconType } from '../index';
 
 /**
  * Score display HUD component
  */
 export const ScoreDisplay: React.FC = () => {
-  const { score } = useGameStore();
+  const score = useGameStore((state) => state.score);
   
   return (
     <ResourceDisplay

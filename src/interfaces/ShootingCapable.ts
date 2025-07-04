@@ -56,7 +56,7 @@ export class ShootingUtils {
   static createProjectile(config: ProjectileConfig): Projectile {
     return new Projectile(
       { ...config.position }, // Copy position to avoid reference issues
-      config.target,
+      config.target.id,
       config.damage,
       config.speed,
       undefined, // velocity

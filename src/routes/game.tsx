@@ -299,7 +299,7 @@ function GameScene() {
           "bg-black" // Add background to see if container is visible
         )}
         style={{
-          bottom: `calc(60px + env(safe-area-inset-bottom, 0))`,
+          bottom: `calc(70px + env(safe-area-inset-bottom, 0))`,
         }}
       >
         <canvas

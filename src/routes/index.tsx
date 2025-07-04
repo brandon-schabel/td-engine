@@ -129,8 +129,8 @@ function MainMenu() {
                     onClick={handleResumeGame}
                     className="w-full h-14 text-lg font-semibold gap-3 text-white shadow-lg shadow-green-500/25 border-2 border-green-500/30 hover:border-green-500/50 transition-all duration-300"
                   >
-                    <Icon type={IconType.PLAY} size={20} className="text-white" />
-                    Resume Game
+                    <Icon type={IconType.PLAY} size={20} className="text-white shrink-0" />
+                    <span>Resume Game</span>
                   </GlassButton>
                   <div className="text-xs text-white/60 text-center space-y-1">
                     <div>Wave {saveMetadata?.gameTime ? Math.floor(saveMetadata.gameTime / 60000) : 0}</div>
@@ -148,8 +148,8 @@ function MainMenu() {
                   !hasSavedGame && "text-white shadow-lg shadow-blue-500/25 border-2 border-blue-500/30 hover:border-blue-500/50 transition-all duration-300"
                 )}
               >
-                <Icon type={IconType.PLAY} size={20} className={!hasSavedGame ? "text-white" : ""} />
-                {hasSavedGame ? "New Game" : "Start Game"}
+                <Icon type={IconType.PLAY} size={20} className={cn(!hasSavedGame ? "text-white" : "", "shrink-0")} />
+                <span>{hasSavedGame ? "New Game" : "Start Game"}</span>
               </GlassButton>
 
               <GlassButton
@@ -158,8 +158,8 @@ function MainMenu() {
                 onClick={handleSettings}
                 className="w-full h-12 font-medium gap-3"
               >
-                <Icon type={IconType.SETTINGS} size={18} />
-                Settings
+                <Icon type={IconType.SETTINGS} size={18} className="shrink-0" />
+                <span>Settings</span>
               </GlassButton>
 
               <GlassButton
@@ -168,8 +168,8 @@ function MainMenu() {
                 onClick={handleLeaderboard}
                 className="w-full h-12 font-medium gap-3"
               >
-                <Icon type={IconType.CROWN} size={18} />
-                Leaderboard
+                <Icon type={IconType.CROWN} size={18} className="shrink-0" />
+                <span>Leaderboard</span>
               </GlassButton>
             </div>
           </GlassPanel.Body>

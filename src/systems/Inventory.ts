@@ -48,6 +48,7 @@ export interface ItemMetadata {
 export interface InventoryItem {
   id: string;
   type: ItemType;
+  category: string; // Add category property
   rarity: ItemRarity;
   name: string;
   description: string;

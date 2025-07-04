@@ -1,5 +1,5 @@
-import { EffectsRenderer } from '../EffectsRenderer';
-import { Camera } from '../../Camera';
+import { EffectsRenderer } from '../../../src/systems/renderers/EffectsRenderer';
+import { Camera } from '../../../src/systems/Camera';
 import { DestructionEffect } from '@/effects/DestructionEffect';
 import { Tower, TowerType } from '@/entities/Tower';
 import type { Vector2 } from '@/utils/Vector2';

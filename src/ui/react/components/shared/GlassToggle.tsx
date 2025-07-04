@@ -1,5 +1,7 @@
-import React, { forwardRef } from "react";
-import { cn } from "@/lib/utils";
+import React, { forwardRef, useState } from "react";
+
+// Utility function to combine class names
+const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 export interface GlassToggleProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size" | "type"> {
@@ -11,34 +13,34 @@ export interface GlassToggleProps
 
 const glowColors = {
   blue: {
-    track:
-      "peer-checked:shadow-[0_0_20px_rgba(59,130,246,0.6),inset_0_0_10px_rgba(59,130,246,0.2)]",
-    thumb: "peer-checked:shadow-[0_0_15px_rgba(59,130,246,0.8)]",
-    checked: "peer-checked:from-blue-500/80 peer-checked:to-blue-400/80",
+    trackGlow:
+      "shadow-[0_0_20px_rgba(59,130,246,0.6),inset_0_0_10px_rgba(59,130,246,0.2)]",
+    thumbGlow: "shadow-[0_0_15px_rgba(59,130,246,0.8)]",
+    gradient: "from-blue-500/80 to-blue-400/80",
   },
   green: {
-    track:
-      "peer-checked:shadow-[0_0_20px_rgba(34,197,94,0.6),inset_0_0_10px_rgba(34,197,94,0.2)]",
-    thumb: "peer-checked:shadow-[0_0_15px_rgba(34,197,94,0.8)]",
-    checked: "peer-checked:from-green-500/80 peer-checked:to-green-400/80",
+    trackGlow:
+      "shadow-[0_0_20px_rgba(34,197,94,0.6),inset_0_0_10px_rgba(34,197,94,0.2)]",
+    thumbGlow: "shadow-[0_0_15px_rgba(34,197,94,0.8)]",
+    gradient: "from-green-500/80 to-green-400/80",
   },
   purple: {
-    track:
-      "peer-checked:shadow-[0_0_20px_rgba(168,85,247,0.6),inset_0_0_10px_rgba(168,85,247,0.2)]",
-    thumb: "peer-checked:shadow-[0_0_15px_rgba(168,85,247,0.8)]",
-    checked: "peer-checked:from-purple-500/80 peer-checked:to-purple-400/80",
+    trackGlow:
+      "shadow-[0_0_20px_rgba(168,85,247,0.6),inset_0_0_10px_rgba(168,85,247,0.2)]",
+    thumbGlow: "shadow-[0_0_15px_rgba(168,85,247,0.8)]",
+    gradient: "from-purple-500/80 to-purple-400/80",
   },
   pink: {
-    track:
-      "peer-checked:shadow-[0_0_20px_rgba(236,72,153,0.6),inset_0_0_10px_rgba(236,72,153,0.2)]",
-    thumb: "peer-checked:shadow-[0_0_15px_rgba(236,72,153,0.8)]",
-    checked: "peer-checked:from-pink-500/80 peer-checked:to-pink-400/80",
+    trackGlow:
+      "shadow-[0_0_20px_rgba(236,72,153,0.6),inset_0_0_10px_rgba(236,72,153,0.2)]",
+    thumbGlow: "shadow-[0_0_15px_rgba(236,72,153,0.8)]",
+    gradient: "from-pink-500/80 to-pink-400/80",
   },
   yellow: {
-    track:
-      "peer-checked:shadow-[0_0_20px_rgba(250,204,21,0.6),inset_0_0_10px_rgba(250,204,21,0.2)]",
-    thumb: "peer-checked:shadow-[0_0_15px_rgba(250,204,21,0.8)]",
-    checked: "peer-checked:from-yellow-500/80 peer-checked:to-yellow-400/80",
+    trackGlow:
+      "shadow-[0_0_20px_rgba(250,204,21,0.6),inset_0_0_10px_rgba(250,204,21,0.2)]",
+    thumbGlow: "shadow-[0_0_15px_rgba(250,204,21,0.8)]",
+    gradient: "from-yellow-500/80 to-yellow-400/80",
   },
 };
 
@@ -46,17 +48,20 @@ const sizes = {
   sm: {
     track: "w-9 h-5",
     thumb: "w-4 h-4",
-    translate: "peer-checked:translate-x-4",
+    thumbOffset: 0.125, // in rem (0.5 in Tailwind)
+    thumbTravel: 1, // in rem (4 in Tailwind = 1rem)
   },
   md: {
     track: "w-12 h-6",
     thumb: "w-5 h-5",
-    translate: "peer-checked:translate-x-6",
+    thumbOffset: 0.125,
+    thumbTravel: 1.5, // 6 in Tailwind = 1.5rem
   },
   lg: {
     track: "w-16 h-8",
     thumb: "w-7 h-7",
-    translate: "peer-checked:translate-x-8",
+    thumbOffset: 0.125,
+    thumbTravel: 2, // 8 in Tailwind = 2rem
   },
 };
 
@@ -68,28 +73,34 @@ export const GlassToggle = forwardRef<HTMLInputElement, GlassToggleProps>(
       size = "md",
       showReflection = true,
       onCheckedChange,
-      checked,
+      checked: controlledChecked,
       disabled,
       ...props
     },
     ref
   ) => {
+    const [internalChecked, setInternalChecked] = useState(false);
+    const isChecked =
+      controlledChecked !== undefined ? controlledChecked : internalChecked;
+
     const sizeConfig = sizes[size];
     const colorConfig = glowColors[glowColor];
 
-    console.log(
-      "GlassToggle render - checked:",
-      checked,
-      "size:",
-      size,
-      "glowColor:",
-      glowColor
-    );
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      console.log("GlassToggle handleChange:", e.target.checked);
-      onCheckedChange?.(e.target.checked);
+      const newChecked = e.target.checked;
+
+      if (controlledChecked === undefined) {
+        setInternalChecked(newChecked);
+      }
+
+      onCheckedChange?.(newChecked);
       props.onChange?.(e);
+    };
+
+    // Calculate thumb position based on checked state
+    const thumbStyle = {
+      transform: `translateX(${isChecked ? `${sizeConfig.thumbTravel}rem` : "0"}) translateY(-50%)`,
+      left: `${sizeConfig.thumbOffset}rem`,
     };
 
     return (
@@ -104,8 +115,8 @@ export const GlassToggle = forwardRef<HTMLInputElement, GlassToggleProps>(
         <input
           ref={ref}
           type="checkbox"
-          className="sr-only peer"
-          checked={checked}
+          className="sr-only"
+          checked={isChecked}
           disabled={disabled}
           onChange={handleChange}
           {...props}
@@ -116,14 +127,17 @@ export const GlassToggle = forwardRef<HTMLInputElement, GlassToggleProps>(
           className={cn(
             "relative rounded-full transition-all duration-300",
             sizeConfig.track,
-            "bg-gradient-to-r from-white/10 to-white/5",
+            isChecked
+              ? cn(
+                  "bg-gradient-to-r",
+                  colorConfig.gradient,
+                  colorConfig.trackGlow
+                )
+              : "bg-gradient-to-r from-white/10 to-white/5",
             "backdrop-blur-md",
             "border border-white/20",
             "shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]",
-            "peer-hover:border-white/30",
-            checked && "bg-gradient-to-r",
-            checked && colorConfig.checked.replace("peer-checked:", ""),
-            checked && colorConfig.track.replace("peer-checked:", ""),
+            "hover:border-white/30",
             "overflow-hidden"
           )}
         >
@@ -135,31 +149,26 @@ export const GlassToggle = forwardRef<HTMLInputElement, GlassToggleProps>(
           {/* Inner glow effect when checked */}
           <div
             className={cn(
-              "absolute inset-0 rounded-full opacity-0 transition-opacity duration-300",
-              "peer-checked:opacity-100",
+              "absolute inset-0 rounded-full transition-opacity duration-300",
+              isChecked ? "opacity-100" : "opacity-0",
               "bg-gradient-to-r from-transparent via-white/20 to-transparent"
             )}
           />
 
-          {/* Thumb */}
+          {/* Thumb with dynamic positioning */}
           <div
+            style={thumbStyle}
             className={cn(
-              "absolute top-1/2 left-0.5 -translate-y-1/2",
+              "absolute top-1/2",
               "block rounded-full",
-              "transition-transform duration-300 ease-out",
+              "transition-all duration-300 ease-out",
               sizeConfig.thumb,
-              checked
-                ? size === "sm"
-                  ? "translate-x-4"
-                  : size === "md"
-                    ? "translate-x-6"
-                    : "translate-x-8"
-                : "translate-x-0",
-              "bg-gradient-to-br from-white to-gray-100",
+              "bg-gradient-to-br",
+              isChecked
+                ? cn("from-white to-gray-50", colorConfig.thumbGlow)
+                : "from-white to-gray-100",
               "shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]",
-              "peer-hover:scale-110",
-              checked && colorConfig.thumb.replace("peer-checked:", ""),
-              "peer-checked:bg-gradient-to-br peer-checked:from-white peer-checked:to-gray-50",
+              "hover:scale-110",
               "before:absolute before:inset-0 before:rounded-full",
               "before:bg-gradient-to-br before:from-transparent before:via-white/30 before:to-transparent",
               "before:opacity-70"

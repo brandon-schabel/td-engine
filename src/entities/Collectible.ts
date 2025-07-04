@@ -56,6 +56,20 @@ const COLLECTIBLE_CONFIGS: Record<CollectibleType, CollectibleConfig> = {
     effect: (player: Player) => {
       player.addTemporarySpeedBoost(1.5, 12000); // 50% speed increase for 12 seconds
     }
+  },
+  [CollectibleType.POWER_UP]: {
+    name: 'Power Up',
+    color: '#FF00FF',
+    duration: 10000, // Example duration
+    effect: (player: Player) => {
+      player.addTemporaryDamageBoost(1.2, 5000); // Small damage boost
+      player.addTemporaryFireRateBoost(1.2, 5000); // Small fire rate boost
+    }
+  },
+  [CollectibleType.COIN]: {
+    name: 'Coin',
+    color: '#FFD700',
+    value: 1 // Default coin value
   }
 };
 

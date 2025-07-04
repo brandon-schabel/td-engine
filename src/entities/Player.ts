@@ -64,6 +64,9 @@ export class Player extends Entity implements ShootingCapable {
   // Upgrade manager
   private upgradeManager: PlayerUpgradeManager;
 
+  public armor: number = 0;
+  public level: number = 1;
+
   constructor(position: Vector2) {
     super(EntityType.PLAYER, position, BASE_PLAYER_STATS.health, BASE_PLAYER_STATS.radius);
     

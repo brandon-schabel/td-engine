@@ -20,6 +20,14 @@ export class GameAudioHandler {
     this.camera = camera;
   }
 
+  public playSound(soundType: SoundType, position?: Vector2): void {
+    if (position) {
+      this.playPositionedSound(soundType, position);
+    } else {
+      this.audioManager.playSound(soundType);
+    }
+  }
+
   /**
    * Calculate audio listener position based on camera
    */

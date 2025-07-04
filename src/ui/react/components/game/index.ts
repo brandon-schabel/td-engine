@@ -1,6 +1,6 @@
 // Game UI components
 export { GameUI } from './GameUI';
-export { ControlBar } from './ControlBar';
+export { BottomControlBar as ControlBar } from './BottomControlBar';
 export { TowerPlacementIndicator } from './TowerPlacementIndicator';
 export { DraggablePlayerLevelDisplay } from './DraggablePlayerLevelDisplay';
 

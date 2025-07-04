@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { useGameStore } from '../../hooks/useGameStore';
+import { useGameStore } from '@/stores/hooks/useGameStore';
 import { Card, CardHeader } from '../shared/Card';
 import { Header } from '../shared/Header';
 import { IconType } from '@/ui/icons/SvgIcons';
@@ -9,7 +9,7 @@ import { IconType } from '@/ui/icons/SvgIcons';
  * Wave display HUD component
  */
 export const WaveDisplay: React.FC = () => {
-  const { currentWave, waveInProgress, enemiesRemaining } = useGameStore();
+  const { currentWave, waveInProgress, enemiesRemaining } = useGameStore((state) => ({ currentWave: state.currentWave, waveInProgress: state.waveInProgress, enemiesRemaining: state.enemiesRemaining }));
   
   return (
     <Card 
