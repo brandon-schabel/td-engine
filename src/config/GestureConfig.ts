@@ -13,7 +13,7 @@ export interface GestureThresholds {
     maxDuration: number;      // Maximum duration in ms
     directionTolerance: number; // Angle tolerance in radians
   };
-  
+
   // Pinch gesture thresholds
   pinch: {
     minDistance: number;      // Minimum finger distance change
@@ -23,7 +23,7 @@ export interface GestureThresholds {
     velocityThreshold: number; // Minimum velocity for momentum
     momentumDecay: number;    // How fast momentum decays (0-1)
   };
-  
+
   // Pan gesture thresholds
   pan: {
     minDistance: number;      // Minimum movement to start pan
@@ -31,14 +31,14 @@ export interface GestureThresholds {
     deceleration: number;     // Friction for momentum (0-1)
     maxVelocity: number;      // Maximum pan velocity
   };
-  
+
   // Tap gesture thresholds
   tap: {
     maxDuration: number;      // Maximum tap duration in ms
     maxDistance: number;      // Maximum movement during tap
     doubleTapDelay: number;   // Maximum delay between double taps
   };
-  
+
   // Long press thresholds
   longPress: {
     minDuration: number;      // Minimum press duration in ms
@@ -49,7 +49,7 @@ export interface GestureThresholds {
 export interface GestureConfig {
   enabled: boolean;
   thresholds: GestureThresholds;
-  
+
   // Camera-specific settings
   camera: {
     swipePanMultiplier: number;    // How much to pan per swipe unit
@@ -64,7 +64,7 @@ export interface GestureConfig {
     autoFollowOnMovement: boolean; // Enable auto-follow when player moves
     smoothReturnDuration: number;  // Duration of smooth return animation (ms)
   };
-  
+
   // Gesture zones (areas where gestures are disabled)
   deadZones: {
     ui: boolean;              // Disable over UI elements
@@ -76,7 +76,7 @@ export interface GestureConfig {
       height: number;
     }[];
   };
-  
+
   // Visual feedback
   feedback: {
     visual: boolean;          // Show visual gesture indicators
@@ -89,7 +89,7 @@ export interface GestureConfig {
 // Default gesture configuration
 export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
   enabled: true,
-  
+
   thresholds: {
     swipe: {
       minVelocity: 0.5,       // 0.5 pixels per millisecond
@@ -97,7 +97,7 @@ export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
       maxDuration: 300,       // 300ms maximum
       directionTolerance: Math.PI / 4  // 45 degrees
     },
-    
+
     pinch: {
       minDistance: 10,        // 10 pixels minimum change
       sensitivity: 0.01,      // 1% zoom per pixel for zoom in
@@ -106,26 +106,26 @@ export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
       velocityThreshold: 0.005, // Minimum scale velocity for momentum
       momentumDecay: 0.95     // 5% decay per frame
     },
-    
+
     pan: {
       minDistance: 10,        // 10 pixels to start
       sensitivity: 1.5,       // 1.5x pan speed
       deceleration: 0.92,     // 8% friction per frame
       maxVelocity: 20         // 20 pixels per frame max
     },
-    
+
     tap: {
       maxDuration: 250,       // 250ms maximum
       maxDistance: 10,        // 10 pixels tolerance
       doubleTapDelay: 300     // 300ms between taps
     },
-    
+
     longPress: {
       minDuration: 500,       // 500ms minimum
       maxDistance: 10         // 10 pixels tolerance
     }
   },
-  
+
   camera: {
     swipePanMultiplier: 2.0,
     pinchZoomMultiplier: 1.0,
@@ -139,13 +139,13 @@ export const DEFAULT_GESTURE_CONFIG: GestureConfig = {
     autoFollowOnMovement: true,
     smoothReturnDuration: 800
   },
-  
+
   deadZones: {
     ui: true,
     joystick: true,
     customAreas: []
   },
-  
+
   feedback: {
     visual: true,
     haptic: true,
@@ -163,7 +163,7 @@ export const MOBILE_GESTURE_CONFIG: Partial<GestureConfig> = {
       maxDuration: 400,
       directionTolerance: Math.PI / 3  // More forgiving
     },
-    
+
     pinch: {
       minDistance: 5,
       sensitivity: 0.015,     // More sensitive on mobile
@@ -172,26 +172,26 @@ export const MOBILE_GESTURE_CONFIG: Partial<GestureConfig> = {
       velocityThreshold: 0.003,
       momentumDecay: 0.92
     },
-    
+
     pan: {
       minDistance: 5,
       sensitivity: 2.0,       // Faster panning on mobile
       deceleration: 0.88,
       maxVelocity: 25
     },
-    
+
     tap: {
       maxDuration: 300,
       maxDistance: 15,        // More forgiving for imprecise touches
       doubleTapDelay: 350
     },
-    
+
     longPress: {
       minDuration: 400,       // Shorter for mobile
       maxDistance: 15
     }
   },
-  
+
   camera: {
     swipePanMultiplier: 2.5,  // Faster camera movement on mobile
     pinchZoomMultiplier: 1.2,
@@ -232,40 +232,4 @@ export function mergeGestureConfig(
       ...(override.feedback || {})
     }
   };
-}
-
-// Helper to check if a point is in a dead zone
-export function isInDeadZone(
-  point: Vector2,
-  config: GestureConfig,
-  uiElements?: HTMLElement[]
-): boolean {
-  // Check custom dead zones
-  for (const zone of config.deadZones.customAreas) {
-    if (
-      point.x >= zone.x &&
-      point.x <= zone.x + zone.width &&
-      point.y >= zone.y &&
-      point.y <= zone.y + zone.height
-    ) {
-      return true;
-    }
-  }
-  
-  // Check UI elements if enabled
-  if (config.deadZones.ui && uiElements) {
-    for (const element of uiElements) {
-      const rect = element.getBoundingClientRect();
-      if (
-        point.x >= rect.left &&
-        point.x <= rect.right &&
-        point.y >= rect.top &&
-        point.y <= rect.bottom
-      ) {
-        return true;
-      }
-    }
-  }
-  
-  return false;
 }

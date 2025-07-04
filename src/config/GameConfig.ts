@@ -91,68 +91,12 @@ export const INFINITE_WAVE_CONFIG = {
   }
 } as const;
 
-// Default wave configurations - avoid circular dependency by using string types
-export const DEFAULT_WAVES: WaveConfig[] = [
-  {
-    waveNumber: 1,
-    enemies: [
-      { type: 'BASIC' as any, count: 5, spawnDelay: 1000 }
-    ],
-    startDelay: 2000
-  },
-  {
-    waveNumber: 2,
-    enemies: [
-      { type: 'BASIC' as any, count: 8, spawnDelay: 800 }
-    ],
-    startDelay: 3000
-  },
-  {
-    waveNumber: 3,
-    enemies: [
-      { type: 'BASIC' as any, count: 5, spawnDelay: 1000 },
-      { type: 'FAST' as any, count: 3, spawnDelay: 600 }
-    ],
-    startDelay: 2000
-  },
-  {
-    waveNumber: 4,
-    enemies: [
-      { type: 'BASIC' as any, count: 10, spawnDelay: 600 },
-      { type: 'FAST' as any, count: 5, spawnDelay: 800 }
-    ],
-    startDelay: 2000
-  },
-  {
-    waveNumber: 5,
-    enemies: [
-      { type: 'TANK' as any, count: 3, spawnDelay: 2000 },
-      { type: 'FAST' as any, count: 8, spawnDelay: 400 }
-    ],
-    startDelay: 3000
-  }
-] as const;
-
-// NOTE: Item and collectible drop chances have been moved to ItemConfig.ts
-
-// NOTE: Animation configuration has been moved to RenderingConfig.ts
 
 // Audio positioning and effects
 export const AUDIO_CONFIG = {
   listenerOffset: { x: 600, y: 400 },
   spatialFalloff: 1.0,
   defaultVolume: 0.7
-} as const;
-
-// Upgrade system constants
-export const UPGRADE_CONFIG = {
-  maxLevel: 5,
-  visualIntensityMultiplier: 1.8,
-  visualUpgradeMultiplier: 0.2,
-  levelCalculationDivisor: {
-    player: 4, // Every 4 upgrades = 1 level
-    tower: 3   // Every 3 upgrades = 1 level
-  }
 } as const;
 
 // Currency and rewards
@@ -182,8 +126,3 @@ export const COLOR_CONFIG = {
     wave: '#2196F3'
   }
 } as const;
-
-// NOTE: Rendering configuration has been moved to RenderingConfig.ts
-
-// NOTE: Inventory configuration has been moved to InventoryConfig.ts
-// NOTE: Item configuration has been moved to ItemConfig.ts

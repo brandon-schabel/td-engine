@@ -98,23 +98,3 @@ export const ENEMY_BEHAVIOR = {
   obstacleProximityPenalty: 0.98, // Cost penalty for paths near obstacles (0-1) (increased from 0.95)
   obstacleProximityRange: 8 // Range in grid cells to check for proximity (increased from 6)
 } as const;
-
-// Enemy visual configuration
-export const ENEMY_VISUALS = {
-  healthBarOffset: 15,
-  healthBarWidth: 28,
-  healthBarHeight: 5,
-  damageFlashDuration: 100, // milliseconds
-  damageFlashColor: '#FFFFFF',
-  deathAnimationDuration: 300, // milliseconds
-  bossGlowRadius: 10,
-  bossGlowColor: 'rgba(255, 0, 0, 0.5)'
-} as const;
-
-// Enemy spawn configuration
-export const ENEMY_SPAWN = {
-  spawnAnimationDuration: 500, // milliseconds
-  spawnOffset: 20, // pixels from spawn point
-  formationSpacing: 30, // pixels between enemies in formation
-  waveSpawnDelay: 1000 // milliseconds between enemy spawns in a wave
-} as const;

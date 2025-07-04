@@ -69,15 +69,6 @@ export const PLAYER_UPGRADE_DEFINITIONS: Record<UpgradeType, UpgradeDefinition> 
   }
 };
 
-// Helper function to get formatted description
-export function getUpgradeDescription(type: UpgradeType, level: number): string {
-  const def = PLAYER_UPGRADE_DEFINITIONS[type];
-  const value = def.type === UpgradeType.REGENERATION 
-    ? (def.bonusPerLevel * level).toFixed(0)
-    : (def.bonusPerLevel * level * 100).toFixed(0);
-  
-  return def.description.replace('{value}', value);
-}
 
 // Helper function to get next level description
 export function getNextLevelDescription(type: UpgradeType, currentLevel: number): string {
@@ -85,11 +76,11 @@ export function getNextLevelDescription(type: UpgradeType, currentLevel: number)
   if (currentLevel >= def.maxLevel) {
     return 'Max level reached';
   }
-  
+
   const nextLevel = currentLevel + 1;
-  const value = def.type === UpgradeType.REGENERATION 
+  const value = def.type === UpgradeType.REGENERATION
     ? (def.bonusPerLevel * nextLevel).toFixed(0)
     : (def.bonusPerLevel * nextLevel * 100).toFixed(0);
-  
+
   return def.description.replace('{value}', value);
 }

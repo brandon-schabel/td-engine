@@ -3,25 +3,6 @@
  * Centralizes all rendering-related settings, styles, and visual parameters
  */
 
-// Core rendering settings
-export const RENDER_SETTINGS = {
-  targetFPS: 60,
-  enableAntialiasing: true,
-  enableShadows: true,
-  enableParticles: true,
-  enablePostProcessing: false,
-  pixelPerfectRendering: false,
-  debugMode: false,
-  // Dynamic settings that can be adjusted based on quality
-  dynamicSettings: {
-    shadows: true,
-    antialiasing: true,
-    particles: true,
-    glowEffects: true,
-    detailedAnimations: true
-  }
-} as const;
-
 // Zoom-aware rendering configuration
 export const ZOOM_RENDER_CONFIG = {
   // Line width constraints
@@ -63,7 +44,7 @@ export const ENTITY_RENDER = {
       low: '#F44336'      // <30% health
     }
   },
-  
+
   // Upgrade indicators
   upgradeDots: {
     radius: 3,
@@ -74,7 +55,7 @@ export const ENTITY_RENDER = {
     distanceOffset: 8,
     angleSpacing: 120
   },
-  
+
   // Selection and hover effects
   selection: {
     strokeWidth: 3,
@@ -85,7 +66,7 @@ export const ENTITY_RENDER = {
     radiusOffset: 8,
     glowRadiusOffset: 12
   },
-  
+
   // Shadow configuration
   shadows: {
     blur: 10,
@@ -93,7 +74,7 @@ export const ENTITY_RENDER = {
     offsetY: 2,
     color: 'rgba(0, 0, 0, 0.3)'
   },
-  
+
   // Line styles
   lineWidths: {
     thin: 1,
@@ -101,7 +82,7 @@ export const ENTITY_RENDER = {
     thick: 3,
     extra: 4
   },
-  
+
   // Dash patterns
   dashPatterns: {
     none: [],
@@ -109,7 +90,7 @@ export const ENTITY_RENDER = {
     dotted: [2, 3],
     dashDot: [10, 5, 2, 5]
   },
-  
+
   // Debug visualization
   debug: {
     collisionBoxColor: 'rgba(255, 0, 255, 0.5)',
@@ -117,25 +98,25 @@ export const ENTITY_RENDER = {
     gridColor: 'rgba(255, 255, 255, 0.2)',
     vectorColor: 'rgba(255, 255, 0, 0.8)'
   },
-  
+
   // Visibility settings
   visibility: {
     minTargetDistance: 10
   },
-  
+
   // Glow effects
   glowEffects: {
     healthPickup: 10,
     powerUp: 15
   },
-  
+
   // Pickup rendering
   pickups: {
     health: {
       crossSize: 6
     }
   },
-  
+
   // Power-up icon dimensions
   powerUpIcons: {
     size: 8,
@@ -203,50 +184,7 @@ export const ENEMY_RENDER = {
   }
 } as const;
 
-// Player rendering configuration
-export const PLAYER_RENDER = {
-  aimer: {
-    length: 100,
-    width: 2,
-    color: 'rgba(255, 255, 255, 0.5)',
-    dotSize: 4
-  },
-  powerUpEffects: {
-    speed: { color: 'rgba(0, 255, 0, 0.3)', particleCount: 3 },
-    damage: { color: 'rgba(255, 0, 0, 0.3)', particleCount: 3 },
-    shield: { color: 'rgba(0, 100, 255, 0.3)', particleCount: 5 }
-  },
-  healthBarOffset: 20,
-  upgradeIndicatorSize: 8,
-  levelProgression: {
-    baseHue: 180,
-    huePerLevel: 20,
-    maxHue: 280,
-    saturation: 70,
-    lightness: 60
-  },
-  movementIndicatorOffset: 3,
-  levelTextOffset: 4
-} as const;
 
-// Projectile rendering
-export const PROJECTILE_RENDER = {
-  basic: {
-    radius: 3,
-    color: '#FFFF00',
-    glowRadius: 5
-  },
-  tower: {
-    radius: 4,
-    trailLength: 3,
-    trailOpacity: 0.5
-  },
-  special: {
-    radius: 5,
-    particleTrail: true,
-    particleCount: 2
-  }
-} as const;
 
 // Grid and terrain rendering
 export const GRID_RENDER_DETAILS = {
@@ -292,34 +230,6 @@ export const GRID_RENDER_DETAILS = {
   }
 } as const;
 
-// Particle system configuration
-export const PARTICLE_CONFIG = {
-  maxParticles: 50, // Reduced from 100 for better performance
-  defaultLifetime: 800, // ms - reduced from 1000
-  defaultSize: 3,
-  defaultSpeed: 50,
-  effects: {
-    explosion: {
-      count: 10, // Reduced from 20
-      speed: 100,
-      lifetime: 400, // Reduced from 500
-      colors: ['#FF4444', '#FF8844', '#FFAA44']
-    },
-    heal: {
-      count: 5, // Reduced from 10
-      speed: 30,
-      lifetime: 800, // Reduced from 1000
-      colors: ['#44FF44', '#88FF88']
-    },
-    powerUp: {
-      count: 8, // Reduced from 15
-      speed: 40,
-      lifetime: 600, // Reduced from 800
-      colors: ['#4444FF', '#8888FF', '#AAAAFF']
-    }
-  }
-} as const;
-
 // Animation configuration
 export const ANIMATION_CONFIG = {
   bobAmount: 5,
@@ -327,14 +237,14 @@ export const ANIMATION_CONFIG = {
   rotationSpeed: 0.001, // radians per millisecond
   pulseSpeed: 0.004,
   cameraSmoothing: 0.25,
-  
+
   // PowerUp-specific animations (more dramatic)
   powerUp: {
     bobAmount: 8,
     bobSpeed: 0.003,
     rotationSpeed: 0.002,
   },
-  
+
   // Collectible animations
   collectible: {
     floatHeight: 5,
@@ -366,27 +276,6 @@ export const RENDER_OPTIMIZATION = {
       MEDIUM: 1,    // Reduced detail (textures/SVGs, no target lines)
       LOW: 2,       // Minimal detail (simple colored circles only)
       CULLED: 3     // Not rendered
-    }
-  }
-} as const;
-
-// UI rendering configuration
-export const UI_RENDER = {
-  notification: {
-    width: 320,
-    height: 60,
-    x: 50,         // Distance from right edge
-    y: 50,         // Distance from top
-    padding: 15,
-    iconRadius: 8,
-    fadeInDuration: 300,
-    displayDuration: 3000,
-    fadeOutDuration: 300
-  },
-  fps: {
-    thresholds: {
-      good: 45,    // Green color threshold
-      warning: 30  // Yellow color threshold
     }
   }
 } as const;

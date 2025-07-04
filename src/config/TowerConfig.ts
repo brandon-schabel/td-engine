@@ -67,11 +67,3 @@ export const TOWER_VISUALS = {
   selectedStrokeWidth: 3,
   selectedGlowRadius: 20
 } as const;
-
-// Tower placement configuration
-export const TOWER_PLACEMENT = {
-  ghostOpacity: 0.6,
-  validPlacementColor: 'rgba(76, 175, 80, 0.6)',
-  invalidPlacementColor: 'rgba(244, 67, 54, 0.6)',
-  rangePreviewOpacity: 0.3
-} as const;
