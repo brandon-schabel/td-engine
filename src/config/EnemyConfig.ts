@@ -17,6 +17,7 @@ export const ENEMY_STATS = {
     speed: 30,  // Reduced from 50 (40% reduction)
     radius: 8,
     reward: 7,
+    experience: 10,  // Base experience for killing this enemy
     damage: 13,
     attackRange: 20,
     attackCooldown: 1000, // 1 attack per second
@@ -29,6 +30,7 @@ export const ENEMY_STATS = {
     speed: 60,  // Reduced from 100 (40% reduction)
     radius: 6,
     reward: 10,
+    experience: 15,  // Higher experience for faster enemies
     damage: 7,
     attackRange: 15,
     attackCooldown: 500, // 2 attacks per second
@@ -41,6 +43,7 @@ export const ENEMY_STATS = {
     speed: 15,  // Reduced from 25 (40% reduction)
     radius: 12,
     reward: 35,
+    experience: 25,  // Good experience for tough enemies
     damage: 26,
     attackRange: 25,
     attackCooldown: 2000, // 0.5 attacks per second
@@ -53,6 +56,7 @@ export const ENEMY_STATS = {
     speed: 45,  // Reduced from 75 (40% reduction)
     radius: 10,
     reward: 17,
+    experience: 20,  // Decent experience for flying enemies
     damage: 20,
     attackRange: 20,
     attackCooldown: 750,
@@ -65,6 +69,7 @@ export const ENEMY_STATS = {
     speed: 12,  // Reduced from 20 (40% reduction)
     radius: 20,
     reward: 70,
+    experience: 50,  // High experience for boss enemies
     damage: 65,
     attackRange: 30,
     attackCooldown: 1500,

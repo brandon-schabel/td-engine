@@ -5,6 +5,7 @@ import { cleanupGame } from "@/core/gameManagement";
 import { GameUI, GameOverlayUI } from "@/ui/react/components/game/GameUI";
 import { GameNotificationsProvider } from "@/ui/react/components/game/GameNotifications";
 import { cn } from "@/lib/utils";
+import { gameStore } from "@/stores/gameStore";
 import type { MapGenerationConfig } from "@/types/MapData";
 import {
   BiomeType,
@@ -95,6 +96,12 @@ function GameScene() {
           containerRect: rect,
           canvasElement: canvasRef.current,
         });
+
+        // Reset game store if starting a new game (not resuming)
+        if (!resume) {
+          console.log("[GameScene] Starting new game - resetting game store...");
+          gameStore.getState().resetGame();
+        }
 
         // Create game instance
         const game = new GameWithEvents(canvasRef.current!, mapConfig);

@@ -847,4 +847,9 @@ export class Player extends Entity implements ShootingCapable {
     this.isHolding = false;
     this.currentCooldown = 0;
   }
+  
+  // Getter for level system
+  getLevelSystem(): PlayerLevelSystem {
+    return this.levelSystem;
+  }
 }

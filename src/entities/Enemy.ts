@@ -27,6 +27,7 @@ export class Enemy extends Entity {
   public readonly enemyType: EnemyType;
   public readonly speed: number;
   public readonly reward: number;
+  public readonly experience: number;
   public readonly damage: number;
   public readonly behavior: EnemyBehavior;
   private readonly attackRange: number;
@@ -86,6 +87,7 @@ export class Enemy extends Entity {
     this.speedMultiplier = speedMultiplier;
     this.speed = stats.speed * speedMultiplier;
     this.reward = stats.reward;
+    this.experience = stats.experience;
     this.damage = stats.damage;
     this.attackRange = stats.attackRange;
     this.attackCooldownTime = stats.attackCooldown;

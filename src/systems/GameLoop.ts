@@ -404,11 +404,29 @@ export class GameLoop {
 
   private handleEnemyDeath(enemy: Enemy): void {
     const entityStore = utilizeEntityStore.getState();
+    const gameStateStore = gameStore.getState();
 
-    // Update game state
-    gameStore.getState().addScore(10); // TODO: Add scoreValue to Enemy class
-    gameStore.getState().addCurrency(5); // TODO: Add value to Enemy class
-    gameStore.getState().recordEnemyKill(enemy.enemyType.toString(), 5);
+    // Update game state with actual enemy values
+    gameStateStore.addScore(enemy.reward); // Use enemy's reward as score
+    gameStateStore.addCurrency(enemy.reward); // Use enemy's reward for currency
+    gameStateStore.recordEnemyKill(enemy.enemyType.toString(), enemy.reward);
+    
+    // Grant experience to the player
+    gameStateStore.addExperience(enemy.experience);
+    console.log(`[GameLoop] Enemy killed: ${enemy.enemyType}, granting ${enemy.experience} experience`);
+    
+    // Also update the player entity's level system if it exists
+    const player = entityStore.player;
+    if (player && typeof player.getLevelSystem === 'function') {
+      // Access the player's level system and add experience
+      const levelSystem = player.getLevelSystem();
+      const leveledUp = levelSystem.addExperience(enemy.experience);
+      if (leveledUp) {
+        console.log(`[GameLoop] Player leveled up to level ${levelSystem.getLevel()}`);
+        // Play level up sound
+        this.audioManager.playSound(SoundType.PLAYER_LEVEL_UP);
+      }
+    }
 
     // Play death sound
     this.audioManager.playSound(SoundType.ENEMY_DEATH);
