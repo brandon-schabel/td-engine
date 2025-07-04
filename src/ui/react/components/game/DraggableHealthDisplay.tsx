@@ -1,5 +1,5 @@
 import React from "react";
-import { useGameStore } from "../../hooks/useGameStore";
+import { useGameStore } from "@/stores/hooks/useGameStore";
 import { ResourceDisplay, IconType } from "../index";
 import { DraggablePanel } from "../floating";
 import {

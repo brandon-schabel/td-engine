@@ -1,4 +1,4 @@
-import type { Tower, TowerType } from '@/entities/Tower';
+import  { type Tower, TowerType } from '@/entities/Tower';
 import type { Enemy } from '@/entities/Enemy';
 import type { TowerUpdate, GameContext, GameAction, ProjectileCreateData } from './types';
 import { ProjectileType } from '@/entities/Projectile';
@@ -6,6 +6,12 @@ import { GAME_MECHANICS } from '@/config/GameConfig';
 
 // Helper function for distance calculation
 function distanceTo(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  // Safety check for undefined positions
+  if (!a || !b || typeof a.x !== 'number' || typeof a.y !== 'number' || 
+      typeof b.x !== 'number' || typeof b.y !== 'number') {
+    return Infinity; // Return infinity to indicate invalid distance
+  }
+  
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   return Math.sqrt(dx * dx + dy * dy);
@@ -13,9 +19,20 @@ function distanceTo(a: { x: number; y: number }, b: { x: number; y: number }): n
 
 // Find all enemies within tower's range
 function findEnemiesInRange(tower: Tower, enemies: Enemy[]): Enemy[] {
-  return enemies.filter(enemy => 
-    enemy.isAlive && distanceTo(tower.position, enemy.position) <= tower.range
-  );
+  // Check if tower has a valid position
+  if (!tower.position || typeof tower.position.x !== 'number' || typeof tower.position.y !== 'number') {
+    return [];
+  }
+  
+  return enemies.filter(enemy => {
+    // Check if enemy has valid position and is alive
+    if (!enemy || !enemy.isAlive || !enemy.position || 
+        typeof enemy.position.x !== 'number' || typeof enemy.position.y !== 'number') {
+      return false;
+    }
+    
+    return distanceTo(tower.position, enemy.position) <= tower.range;
+  });
 }
 
 // Find the best target for the tower
@@ -42,6 +59,7 @@ function findTarget(tower: Tower, enemies: Enemy[]): Enemy | null {
     case TowerType.RAPID:
       // Rapid targets closest enemy for quick hits
       return inRange.reduce((closest, enemy) => {
+        if (!closest.position || !enemy.position || !tower.position) return closest;
         const closestDist = distanceTo(tower.position, closest.position);
         const enemyDist = distanceTo(tower.position, enemy.position);
         return enemyDist < closestDist ? enemy : closest;
@@ -84,11 +102,26 @@ function canShoot(tower: Tower, currentCooldown: number): boolean {
 
 // Create projectile data
 function createProjectileData(tower: Tower, target: Enemy): ProjectileCreateData {
+  // Calculate initial velocity towards target
+  const dx = target.position.x - tower.position.x;
+  const dy = target.position.y - tower.position.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const speed = GAME_MECHANICS.towerProjectileSpeed;
+  
+  const velocity = distance > 0 ? {
+    x: (dx / distance) * speed,
+    y: (dy / distance) * speed
+  } : {
+    x: speed,
+    y: 0
+  };
+  
   return {
     position: { ...tower.position },
     targetId: target.id,
     damage: tower.damage,
-    speed: GAME_MECHANICS.towerProjectileSpeed,
+    speed: speed,
+    velocity: velocity, // Provide calculated velocity
     projectileType: getProjectileType(tower.towerType)
   };
 }
@@ -132,7 +165,10 @@ export function updateTower(
   const actions: GameAction[] = [];
   const update: TowerUpdate = { actions };
 
-  if (!tower.isAlive) {
+  // Validate tower has required properties
+  if (!tower || !tower.isAlive || !tower.position || 
+      typeof tower.position.x !== 'number' || 
+      typeof tower.position.y !== 'number') {
     return update;
   }
 

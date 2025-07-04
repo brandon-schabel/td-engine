@@ -128,7 +128,7 @@ function selectTarget(
   context: GameContext
 ): { targetId: string | null; targetType: 'player' | 'tower' | null } {
   const nearbyTowers = context.towers.filter(tower =>
-    tower.isAlive && distanceTo(enemy.position, tower.position) <= enemy.towerDetectionRange
+    tower.isAlive && distanceTo(enemy.position, tower.position) <= enemy.getTowerDetectionRange()
   );
 
   const nearestTower = nearbyTowers.length > 0 
@@ -148,7 +148,7 @@ function selectTarget(
       break;
 
     case 'PLAYER_FOCUSED':
-      if (nearestTower && distanceTo(enemy.position, nearestTower.position) <= enemy.attackRange * ENEMY_BEHAVIOR.towerAttackPriorityMultiplier) {
+      if (nearestTower && distanceTo(enemy.position, nearestTower.position) <= enemy.getAttackRange() * ENEMY_BEHAVIOR.towerAttackPriorityMultiplier) {
         return { targetId: nearestTower.id, targetType: 'tower' };
       }
       if (playerInRange) return { targetId: context.player!.id, targetType: 'player' };
@@ -232,6 +232,10 @@ function calculateRecoveryMovement(
 
 // Helper function for distance calculation
 function distanceTo(a: Vector2, b: Vector2): number {
+  if (!a || !b) {
+    console.error('distanceTo called with undefined position:', { a, b });
+    return Infinity;
+  }
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   return Math.sqrt(dx * dx + dy * dy);
@@ -254,7 +258,7 @@ export function updateEnemy(
 
   // Update timers
   const newPathRecalculationTimer = state.pathRecalculationTimer + context.deltaTime;
-  const newCooldown = Math.max(0, enemy.currentCooldown - context.deltaTime);
+  const newCooldown = Math.max(0, enemy.getCurrentCooldown() - context.deltaTime);
 
   // Stuck detection and recovery
   if (state.isRecovering) {
@@ -298,24 +302,26 @@ export function updateEnemy(
   let targetPosition: Vector2 | null = null;
   if (targetId) {
     if (targetType === 'player' && context.player?.id === targetId) {
-      targetPosition = context.player.position;
+      targetPosition = context.player.position || null;
     } else if (targetType === 'tower') {
       const tower = context.towers.find(t => t.id === targetId);
-      if (tower) targetPosition = tower.position;
+      if (tower && tower.position) targetPosition = tower.position;
     }
   }
 
   // Movement and attack logic
-  if (targetPosition) {
+  if (targetPosition && enemy.position) {
     const distance = distanceTo(enemy.position, targetPosition);
     
-    if (distance <= enemy.attackRange) {
+    if (distance <= enemy.getAttackRange()) {
       // In attack range - stop and attack
       update.velocity = { x: 0, y: 0 };
       update.state = 'ATTACKING';
       
       // Try to attack
       if (newCooldown <= 0) {
+        console.log(`[EnemyLogic] Enemy ${enemy.id} attacking ${targetType} ${targetId} for ${enemy.damage} damage`);
+        
         actions.push({
           type: 'DAMAGE_ENTITY',
           targetId: targetId!,
@@ -330,7 +336,7 @@ export function updateEnemy(
         });
         
         // Reset cooldown (would be stored in state)
-        update.cooldown = enemy.attackCooldownTime;
+        update.cooldown = enemy.getAttackCooldownTime();
       }
     } else {
       // Move towards target
@@ -344,7 +350,7 @@ export function updateEnemy(
       
       actions.push(...movement.actions);
     }
-  } else if (context.player && context.player.isAlive) {
+  } else if (context.player && context.player.isAlive && context.player.position) {
     // No specific target, move towards player
     update.state = 'MOVING';
     const movement = calculatePathfindingMovement(enemy, context.player.position, context, state);
@@ -355,10 +361,14 @@ export function updateEnemy(
     }
     
     actions.push(...movement.actions);
+  } else {
+    // No valid target - stop moving
+    update.velocity = { x: 0, y: 0 };
+    update.state = 'MOVING';
   }
 
   // Update cooldown
-  if (newCooldown !== enemy.currentCooldown) {
+  if (newCooldown !== enemy.getCurrentCooldown()) {
     update.cooldown = newCooldown;
   }
 

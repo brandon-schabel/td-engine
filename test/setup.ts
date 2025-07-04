@@ -20,9 +20,24 @@ const localStorageMock = (() => {
 Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 Object.defineProperty(global, 'sessionStorage', { value: localStorageMock }); // Also mock sessionStorage for consistency
 
+// Ensure document is defined first
+if (!global.document) {
+  global.document = {} as any;
+}
+
 // Mock window object and its properties
 Object.defineProperty(global, 'window', {
-  value: global,
+  value: {
+    ...global,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    navigator: { userAgent: '' },
+    document: global.document,
+    location: { href: '' },
+    history: { pushState: vi.fn(), replaceState: vi.fn() },
+    innerWidth: 1024,
+    innerHeight: 768,
+  },
   writable: true,
   configurable: true,
 });

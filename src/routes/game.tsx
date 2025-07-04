@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { GameWithEvents } from "@/core/GameWithEvents";
+import { cleanupGame } from "@/core/gameManagement";
 import { GameUI, GameOverlayUI } from "@/ui/react/components/game/GameUI";
 import { GameNotificationsProvider } from "@/ui/react/components/game/GameNotifications";
 import { cn } from "@/lib/utils";
@@ -212,7 +213,8 @@ function GameScene() {
     return () => {
       if (gameRef.current) {
         console.log("[GameScene] Cleaning up game...");
-        gameRef.current.stop();
+        // Use centralized cleanup
+        cleanupGame(gameRef.current);
         gameRef.current = null;
         setIsGameInitialized(false);
       }

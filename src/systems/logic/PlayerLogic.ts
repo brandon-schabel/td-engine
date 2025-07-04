@@ -220,6 +220,9 @@ export function updatePlayer(
   const newHealCooldown = Math.max(0, state.healAbilityCooldown - context.deltaTime);
   const newDamageCooldown = Math.max(0, state.damageCooldown - context.deltaTime);
 
+  // Always update the shooting cooldown
+  update.cooldown = newShootingCooldown;
+
   // Check shooting
   const canShoot = newShootingCooldown <= 0;
   const projectileData = calculateShooting(player, input, context, canShoot);
@@ -236,6 +239,7 @@ export function updatePlayer(
       position: player.position
     });
     
+    // Reset cooldown after shooting
     update.cooldown = player.cooldownTime;
   }
 

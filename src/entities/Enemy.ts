@@ -32,7 +32,7 @@ export class Enemy extends Entity {
   private readonly attackRange: number;
   private readonly attackCooldownTime: number;
   private readonly towerDetectionRange: number;
-  private currentAttackCooldown: number = 0;
+  public currentAttackCooldown: number = 0;
   private target: Player | Tower | null = null;
   private playerTarget: Player | null = null;
   private path: Vector2[] = [];
@@ -298,6 +298,22 @@ export class Enemy extends Entity {
 
   getAttackCooldown(): number {
     return this.attackCooldownTime;
+  }
+
+  getCurrentCooldown(): number {
+    return this.currentAttackCooldown;
+  }
+
+  getAttackRange(): number {
+    return this.attackRange;
+  }
+
+  getAttackCooldownTime(): number {
+    return this.attackCooldownTime;
+  }
+
+  getTowerDetectionRange(): number {
+    return this.towerDetectionRange;
   }
 
   // Create destruction effect when enemy dies
@@ -730,10 +746,17 @@ export class Enemy extends Entity {
 
   // Serialization methods for save/load
   serialize(): SerializedEnemy {
+    // Ensure position is valid before serialization
+    const validPosition = this.position && 
+                         typeof this.position.x === 'number' && 
+                         typeof this.position.y === 'number' 
+                         ? this.position 
+                         : { x: 0, y: 0 };
+
     return {
       id: this.id,
       type: this.enemyType,
-      position: serializeVector2(this.position),
+      position: serializeVector2(validPosition),
       health: this.health,
       maxHealth: this.maxHealth,
       pathIndex: this.currentPathIndex,

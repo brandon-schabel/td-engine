@@ -67,9 +67,19 @@ export class WaveManager {
   constructor(spawnPoints: Vector2[] | Vector2) {
     // Support both single spawn point (backward compatibility) and multiple
     if (Array.isArray(spawnPoints)) {
-      this.spawnPoints = spawnPoints.map(p => ({ ...p }));
-    } else {
+      this.spawnPoints = spawnPoints
+        .filter(p => p && typeof p.x === 'number' && typeof p.y === 'number')
+        .map(p => ({ ...p }));
+    } else if (spawnPoints && typeof spawnPoints.x === 'number' && typeof spawnPoints.y === 'number') {
       this.spawnPoints = [{ ...spawnPoints }];
+    } else {
+      console.warn('WaveManager: No valid spawn points provided, using default');
+      this.spawnPoints = [{ x: 100, y: 100 }]; // Default fallback position
+    }
+
+    if (this.spawnPoints.length === 0) {
+      console.warn('WaveManager: No valid spawn points after filtering, using default');
+      this.spawnPoints = [{ x: 100, y: 100 }]; // Default fallback position
     }
   }
 
@@ -283,35 +293,57 @@ export class WaveManager {
   }
 
   private selectSpawnPoint(predeterminedIndex?: number, pattern?: SpawnPattern): Vector2 {
-    if (predeterminedIndex !== undefined && predeterminedIndex < this.spawnPoints.length) {
-      return this.spawnPoints[predeterminedIndex];
+    // Ensure we have valid spawn points
+    if (!this.spawnPoints || this.spawnPoints.length === 0) {
+      console.warn('WaveManager: No spawn points available, using default');
+      return { x: 100, y: 100 };
+    }
+
+    if (predeterminedIndex !== undefined && predeterminedIndex >= 0 && predeterminedIndex < this.spawnPoints.length) {
+      const point = this.spawnPoints[predeterminedIndex];
+      if (point && typeof point.x === 'number' && typeof point.y === 'number') {
+        return { ...point };
+      }
     }
     
     // Use SpawnZoneManager for dynamic patterns if available
     if (this.useDynamicSpawning && this.spawnZoneManager) {
       const dynamicPos = this.spawnZoneManager.getNextSpawnPosition(pattern || this.defaultSpawnPattern);
-      if (dynamicPos) {
-        return dynamicPos;
+      if (dynamicPos && typeof dynamicPos.x === 'number' && typeof dynamicPos.y === 'number') {
+        return { ...dynamicPos };
       }
     }
     
     // Dynamic selection for patterns that weren't pre-calculated
     const activePattern = pattern || this.defaultSpawnPattern;
+    let selectedPoint: Vector2 | undefined;
+
     switch (activePattern) {
       case SpawnPattern.ROUND_ROBIN:
-        const point = this.spawnPoints[this.currentSpawnIndex];
+        selectedPoint = this.spawnPoints[this.currentSpawnIndex];
         this.currentSpawnIndex = (this.currentSpawnIndex + 1) % this.spawnPoints.length;
-        return point;
+        break;
         
       case SpawnPattern.ADAPTIVE_SPAWN:
       case SpawnPattern.CHAOS_MODE:
         // These patterns default to random when SpawnZoneManager is not available
-        return this.spawnPoints[Math.floor(Math.random() * this.spawnPoints.length)];
+        selectedPoint = this.spawnPoints[Math.floor(Math.random() * this.spawnPoints.length)];
+        break;
         
       case SpawnPattern.RANDOM:
       default:
-        return this.spawnPoints[Math.floor(Math.random() * this.spawnPoints.length)];
+        selectedPoint = this.spawnPoints[Math.floor(Math.random() * this.spawnPoints.length)];
+        break;
     }
+
+    // Validate the selected point
+    if (selectedPoint && typeof selectedPoint.x === 'number' && typeof selectedPoint.y === 'number') {
+      return { ...selectedPoint };
+    }
+
+    // Fallback if no valid point found
+    console.warn('WaveManager: Selected spawn point is invalid, using fallback');
+    return { x: 100, y: 100 };
   }
 
   update(deltaTime: number): Enemy[] {
@@ -345,7 +377,6 @@ export class WaveManager {
       const worldWidth = this.gridWidth * this.cellSize;
       const worldHeight = this.gridHeight * this.cellSize;
       
-      // Calculate grid position of spawn point (removed - not used)
       
       // Determine offset direction based on which edge the spawn point is near
       // Move enemies toward the center of the map
@@ -362,6 +393,11 @@ export class WaveManager {
         adjustedSpawnPoint.x += (dirX / length) * spawnOffset;
         adjustedSpawnPoint.y += (dirY / length) * spawnOffset;
       }
+      
+      // Clamp to world bounds
+      adjustedSpawnPoint.x = Math.max(this.cellSize, Math.min(worldWidth - this.cellSize, adjustedSpawnPoint.x));
+      adjustedSpawnPoint.y = Math.max(this.cellSize, Math.min(worldHeight - this.cellSize, adjustedSpawnPoint.y));
+      
       
       // Validate the adjusted spawn point is walkable
       if (this.grid) {
@@ -411,12 +447,17 @@ export class WaveManager {
         spawnHealth = Math.floor(spawnHealth * infiniteHealthMultiplier);
       }
       
+      // Ensure minimum health
+      spawnHealth = Math.max(1, spawnHealth);
+      const healthMultiplier = spawnHealth / ENEMY_STATS[spawnItem.type].health;
+      
       const enemy = new Enemy(
         spawnItem.type,             // enemyType (first parameter)
         adjustedSpawnPoint,         // position (second parameter)
         this.enemySpeedMultiplier,  // speedMultiplier (third parameter)
-        spawnHealth / ENEMY_STATS[spawnItem.type].health  // healthMultiplier (fourth parameter)
+        healthMultiplier            // healthMultiplier (fourth parameter)
       );
+      
       
       this.enemiesInWave.push(enemy);
       spawnedEnemies.push(enemy);
@@ -486,5 +527,23 @@ export class WaveManager {
 
   private getEnemyStats(type: EnemyType) {
     return ENEMY_STATS[type];
+  }
+
+  /**
+   * Reset the wave manager to initial state
+   */
+  reset(): void {
+    this.currentWave = 0;
+    this.waveActive = false;
+    this.spawning = false;
+    this.currentTime = 0;
+    this.currentSpawnIndex = 0;
+    this.enemiesInWave = [];
+    this.spawnQueue = [];
+    
+    // Reset infinite wave generator if enabled
+    if (this.infiniteWaveGenerator) {
+      this.infiniteWaveGenerator = new InfiniteWaveGenerator();
+    }
   }
 }

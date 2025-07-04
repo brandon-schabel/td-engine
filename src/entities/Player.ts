@@ -76,6 +76,7 @@ export class Player extends Entity implements ShootingCapable {
     this.playerBaseSpeed = BASE_PLAYER_STATS.speed;
     this.baseFireRate = BASE_PLAYER_STATS.fireRate;
     this.cooldownTime = 1000 / BASE_PLAYER_STATS.fireRate;
+    this.currentCooldown = 0; // Start with no cooldown
     
     // Set up terrain-aware movement
     this.baseSpeed = BASE_PLAYER_STATS.speed;
@@ -800,5 +801,50 @@ export class Player extends Entity implements ShootingCapable {
     (player as any).baseSpeed = data.movementSpeed;
     
     return player;
+  }
+
+  // Reset all upgrades to their initial state
+  resetUpgrades(): void {
+    // Reset upgrade levels
+    this.upgradeLevels.set(PlayerUpgradeType.DAMAGE, 0);
+    this.upgradeLevels.set(PlayerUpgradeType.SPEED, 0);
+    this.upgradeLevels.set(PlayerUpgradeType.FIRE_RATE, 0);
+    this.upgradeLevels.set(PlayerUpgradeType.HEALTH, 0);
+    this.upgradeLevels.set(PlayerUpgradeType.REGENERATION, 0);
+    
+    // Reset base stats
+    this.baseDamage = BASE_PLAYER_STATS.damage;
+    this.playerBaseSpeed = BASE_PLAYER_STATS.speed;
+    this.baseFireRate = BASE_PLAYER_STATS.fireRate;
+    this.cooldownTime = 1000 / BASE_PLAYER_STATS.fireRate;
+    this.currentCooldown = 0;
+    
+    // Reset health to base
+    this.maxHealth = BASE_PLAYER_STATS.health;
+    this.health = this.maxHealth;
+    
+    // Reset speeds
+    this.baseSpeed = BASE_PLAYER_STATS.speed;
+    this.currentSpeed = BASE_PLAYER_STATS.speed;
+    
+    // Reset power-ups
+    this.powerUps = new PlayerPowerUps();
+    
+    // Reset level system
+    this.levelSystem = new PlayerLevelSystem();
+    
+    // Reset upgrade manager
+    this.upgradeManager = new PlayerUpgradeManager(this.levelSystem);
+    
+    // Reset other state
+    this.regenerationTimer = 0;
+    this.damageCooldown = 0;
+    this.healAbilityCooldown = PLAYER_ABILITIES.heal.cooldown;
+    this.healthPickupsCollected = 0;
+    this.totalHealingReceived = 0;
+    
+    // Reset shooting state
+    this.isHolding = false;
+    this.currentCooldown = 0;
   }
 }

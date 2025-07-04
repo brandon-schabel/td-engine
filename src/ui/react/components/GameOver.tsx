@@ -3,9 +3,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { Modal, Button } from "./shared";
 import { GlassPanel } from "./shared/Glass";
 import { cn } from "@/lib/utils";
-import { useGameStore } from "../hooks/useGameStore";
+import {
+  useScore,
+  useCurrentWave,
+  useGameStats,
+} from "@/stores/hooks/useGameStore";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
-import { gameStore } from "@/stores/gameStore";
+import { resetGame, getCurrentGame } from "@/core/gameManagement";
 import { IconType } from "@/ui/icons/SvgIcons";
 import { SoundType } from "@/audio/AudioManager";
 
@@ -13,7 +17,9 @@ import { SoundType } from "@/audio/AudioManager";
  * GameOver React component - Shows game over screen with stats
  */
 export const GameOver: React.FC = () => {
-  const { score, currentWave, stats } = useGameStore();
+  const score = useScore();
+  const currentWave = useCurrentWave();
+  const stats = useGameStats();
   const navigate = useNavigate();
 
   // Get game instance
@@ -21,8 +27,10 @@ export const GameOver: React.FC = () => {
 
   const handleRestart = () => {
     game?.getAudioManager()?.playUISound(SoundType.BUTTON_CLICK);
-    // Reset game state
-    gameStore.getState().resetGame();
+    
+    // Use centralized reset function
+    resetGame(getCurrentGame());
+    
     uiStore.getState().closePanel(UIPanelType.GAME_OVER);
     // Navigate back to pre-game config
     navigate({ to: "/pre-game" });

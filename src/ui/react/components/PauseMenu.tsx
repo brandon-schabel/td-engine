@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { useGameStore } from "../hooks/useGameStore";
+import { useGameStore } from "@/stores/hooks/useGameStore";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
 import { gameStore } from "@/stores/gameStore";
+import { resetGame, getCurrentGame } from "@/core/gameManagement";
 import { Button, IconType } from "./index";
 import { GlassPanel } from "./shared/Glass";
 import { SoundType } from "@/audio/AudioManager";
@@ -33,9 +34,13 @@ export const PauseMenu: React.FC = () => {
     if (
       confirm("Are you sure you want to restart? All progress will be lost.")
     ) {
-      // TODO: Implement restart logic when Game.ts is updated
-      gameStore.getState().resetGame();
+      // Use centralized reset function
+      resetGame(getCurrentGame());
+      
       uiStore.getState().closePanel(UIPanelType.PAUSE_MENU);
+      
+      // Set game state to playing after reset
+      gameStore.getState().setGameState('PLAYING');
     }
   };
 

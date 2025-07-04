@@ -102,12 +102,13 @@ export class CollisionManager {
    * Check projectile collision with enemies
    */
   checkProjectileCollisions(projectile: Projectile, enemies: Enemy[]): Enemy | null {
-    const collisions = this.collisionSystem.checkCollisionsForEntity(
-      projectile,
-      (other) => enemies.includes(other as Enemy)
-    );
-    
-    return collisions.length > 0 ? collisions[0] as Enemy : null;
+    // Use direct collision check since Projectile is simplified
+    for (const enemy of enemies) {
+      if (enemy.isAlive && projectile.collidesWith(enemy)) {
+        return enemy;
+      }
+    }
+    return null;
   }
   
   /**

@@ -4,7 +4,7 @@ import { Grid } from '../Grid';
 import { Camera } from '../Camera';
 import { Tower, TowerType } from '@/entities/Tower';
 import { Enemy, EnemyType } from '@/entities/Enemy';
-import { useEntityStore } from '@/stores/entityStore';
+import { utilizeEntityStore } from '@/stores/entityStore';
 import type { Vector2 } from '@/utils/Vector2';
 
 // Mock canvas context
@@ -69,18 +69,18 @@ describe('Renderer with Entity Store', () => {
     global.window = {
       devicePixelRatio: 1
     } as any;
-    
+
     // Clear entity store
-    useEntityStore.getState().clearAllEntities();
+    utilizeEntityStore.getState().clearAllEntities();
 
     // Create mocks
     mockContext = createMockContext();
     mockCanvas = createMockCanvas(mockContext);
-    
+
     // Create real instances
     grid = new Grid(20, 15, 32);
-    camera = new Camera(800, 600, { x: 400, y: 300 });
-    
+    camera = new Camera(800, 600, 640, 480);
+
     // Create renderer
     renderer = new Renderer(mockCanvas as any, grid, camera);
   });
@@ -89,8 +89,8 @@ describe('Renderer with Entity Store', () => {
     if (renderer) {
       renderer.destroy();
     }
-    useEntityStore.getState().clearAllEntities();
-    
+    utilizeEntityStore.getState().clearAllEntities();
+
     // Clean up window mock
     delete (global as any).window;
   });
@@ -98,21 +98,21 @@ describe('Renderer with Entity Store', () => {
   it('should render entities from the store', () => {
     const tower = new Tower(TowerType.BASIC, { x: 100, y: 100 });
     const enemy = new Enemy(EnemyType.BASIC, { x: 200, y: 200 });
-    
+
     // Add entities to store
-    const store = useEntityStore.getState();
+    const store = utilizeEntityStore.getState();
     store.addTower(tower);
     store.addEnemy(enemy);
-    
+
     // Render scene
     renderer.renderScene();
-    
+
     // Verify context methods were called
     expect(mockContext.save).toHaveBeenCalled();
     expect(mockContext.restore).toHaveBeenCalled();
     // Either clearRect or fillRect should be called for clearing
     expect(mockContext.clearRect.mock.calls.length + mockContext.fillRect.mock.calls.length).toBeGreaterThan(0);
-    
+
     // Verify entities were rendered (arc is called for circular entities)
     expect(mockContext.arc).toHaveBeenCalled();
   });
@@ -121,25 +121,25 @@ describe('Renderer with Entity Store', () => {
     // Create entities at different positions
     const visibleTower = new Tower(TowerType.BASIC, { x: 400, y: 300 }); // In view
     const hiddenTower = new Tower(TowerType.BASIC, { x: 2000, y: 2000 }); // Out of view
-    
+
     // Add to store
-    const store = useEntityStore.getState();
+    const store = utilizeEntityStore.getState();
     store.addTower(visibleTower);
     store.addTower(hiddenTower);
-    
+
     // Mock camera visible bounds
     vi.spyOn(camera, 'getVisibleBounds').mockReturnValue({
       min: { x: 0, y: 0 },
       max: { x: 800, y: 600 }
     });
-    
+
     vi.spyOn(camera, 'isVisible').mockImplementation((pos: Vector2) => {
       return pos.x >= 0 && pos.x <= 800 && pos.y >= 0 && pos.y <= 600;
     });
-    
+
     // Render
     renderer.renderScene();
-    
+
     // Verify only visible entity was rendered
     // Arc is called for each visible tower (plus potentially for other UI elements)
     const arcCalls = mockContext.arc.mock.calls;
@@ -148,20 +148,20 @@ describe('Renderer with Entity Store', () => {
 
   it('should render selected tower differently', () => {
     const tower = new Tower(TowerType.BASIC, { x: 400, y: 300 });
-    
+
     // Add and select tower
-    const store = useEntityStore.getState();
+    const store = utilizeEntityStore.getState();
     store.addTower(tower);
     store.selectTower(tower);
-    
+
     // Mock camera methods
     vi.spyOn(camera, 'isVisible').mockReturnValue(true);
     vi.spyOn(camera, 'worldToScreen').mockImplementation((pos) => pos);
     vi.spyOn(camera, 'getZoom').mockReturnValue(1);
-    
+
     // Render
     renderer.renderScene();
-    
+
     // Selected towers should have selection rings drawn
     // This involves additional arc calls for the selection effect
     const arcCalls = mockContext.arc.mock.calls;
@@ -170,31 +170,31 @@ describe('Renderer with Entity Store', () => {
 
   it('should support reactive rendering with store subscriptions', () => {
     const callback = vi.fn();
-    
+
     // Subscribe to changes
     renderer.subscribeToStore(callback);
-    
+
     // Add entity to store
     const tower = new Tower(TowerType.BASIC, { x: 100, y: 100 });
-    useEntityStore.getState().addTower(tower);
-    
+    utilizeEntityStore.getState().addTower(tower);
+
     // Callback should be triggered
     expect(callback).toHaveBeenCalled();
   });
 
   it('should clean up subscriptions on destroy', () => {
     const callback = vi.fn();
-    
+
     // Subscribe
     renderer.subscribeToStore(callback);
-    
+
     // Destroy renderer
     renderer.destroy();
-    
+
     // Add entity after destroy
     const tower = new Tower(TowerType.BASIC, { x: 100, y: 100 });
-    useEntityStore.getState().addTower(tower);
-    
+    utilizeEntityStore.getState().addTower(tower);
+
     // Callback should not be called after destroy
     expect(callback).toHaveBeenCalledTimes(0);
   });

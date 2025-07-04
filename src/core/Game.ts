@@ -48,7 +48,7 @@ import { EquipmentManager } from "@/entities/items/Equipment";
 // Removed unused UIManager and PopupManager imports
 import { UIController } from "@/ui/UIController";
 import { ProblematicPositionCache } from "@/systems/ProblematicPositionCache";
-import { useEntityStore } from "@/stores/entityStore";
+import { utilizeEntityStore } from "@/stores/entityStore";
 import { gameStore } from "@/stores/gameStore";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
 import { setupGameStoreEventBridge } from "@/stores/gameStoreEvents";
@@ -57,13 +57,17 @@ import type { SerializedGameState } from "@/types/SaveGame";
 import { SAVE_VERSION, isValidSaveGame, serializeVector2, deserializeVector2 } from "@/types/SaveGame";
 import { GameLoop } from "@/systems/GameLoop";
 import { InputManager } from "@/input/InputManager";
+import { InputHandler } from "@/core/managers/InputHandler";
+import { CameraController } from "@/core/managers/CameraController";
+import { SaveGameManager } from "@/core/managers/SaveGameManager";
+import { CurrencyManager } from "@/core/managers/CurrencyManager";
 // import { TerrainDebug } from "@/debug/TerrainDebug"; // Commented out - unused
 
 
 export class Game {
   private engine: GameEngine;
   private grid: Grid;
-  
+
   // private pathfinder: Pathfinder; // Unused - commented out to fix TypeScript error
   private waveManager: WaveManager;
   private spawnZoneManager: SpawnZoneManager;
@@ -72,6 +76,10 @@ export class Game {
   private mobileControls: any | null = null; // Reference to MobileControls instance
   private gameLoop: GameLoop;
   private inputManager: InputManager;
+  private inputHandler: InputHandler;
+  private cameraController: CameraController;
+  private saveGameManager: SaveGameManager;
+  private currencyManager: CurrencyManager;
 
   // Difficulty settings
   private enemyHealthMultiplier: number = 1.0;
@@ -109,19 +117,16 @@ export class Game {
   private selectedTowerType: TowerType | null = null;
   private hoverTower: Tower | null = null;
   private selectedTower: Tower | null = null;
-  private mousePosition: Vector2 = { x: 0, y: 0 };
+  // Mouse position is now managed by InputHandler
   // private isMouseDown: boolean = false; // Unused - commented out to fix TypeScript error
   private waveCompleteProcessed: boolean = false;
-  private debugMode: boolean = false; // Debug mode for coordinate logging
+  // Debug mode is now managed by InputHandler
   private justSelectedTower: boolean = false; // Flag to prevent immediate deselection
   private justSelectedTowerType: boolean = false; // Flag to prevent immediate placement after menu selection
   private firstRenderLogged: boolean = false;
   private lastPlayerPosition: Vector2 | null = null; // Track player position for movement detection
-  
-  // Auto-save system
-  private autoSaveTimer: number = 0;
-  private readonly AUTO_SAVE_INTERVAL: number = 60000; // Auto-save every 60 seconds
-  private lastSaveTime: number = 0;
+
+  // Auto-save system is now handled by SaveGameManager
 
 
   constructor(
@@ -154,12 +159,12 @@ export class Game {
 
     // Apply generated map to grid
     this.applyMapToGrid();
-    
+
     // Validate spawn point connectivity
     this.validateSpawnConnectivity();
-    
+
     // Initialize navigation grid
-    
+
 
     // Calculate world size
     const worldWidth = this.grid.width * this.grid.cellSize;
@@ -213,11 +218,11 @@ export class Game {
     }
 
     this.waveManager = new WaveManager(spawnWorldPositions);
-    
+
     // Set grid dimensions for proper spawn offset calculation
     this.waveManager.setGridDimensions(this.grid.width, this.grid.height, this.grid.cellSize);
     this.waveManager.setGrid(this.grid);
-    
+
     // Apply difficulty multipliers
     this.waveManager.setDifficultyMultipliers(this.enemyHealthMultiplier, this.enemySpeedMultiplier);
 
@@ -247,7 +252,7 @@ export class Game {
       this.textureManager
     );
     this.renderer.setEnvironmentalEffects(this.currentMapData.effects);
-    
+
     // Apply render settings from game settings
     const settings = loadSettings();
     const qualityConfig = VISUAL_QUALITY_CONFIGS[settings.visualQuality] || VISUAL_QUALITY_CONFIGS.MEDIUM;
@@ -299,10 +304,37 @@ export class Game {
 
     // Initialize UI controller
     this.uiController = new UIController(this);
-    
+
     // Initialize input manager
     this.inputManager = new InputManager(canvas, this.camera);
-    
+
+    // Initialize input handler
+    this.inputHandler = new InputHandler(canvas, this.camera, this, {
+      onPlayerClicked: () => {
+        const event = new CustomEvent("playerClicked");
+        document.dispatchEvent(event);
+      },
+      onTowerPlaced: () => {
+        const event = new CustomEvent('towerPlaced');
+        document.dispatchEvent(event);
+      },
+      onProjectileFired: (projectile) => {
+        this.addProjectile(projectile);
+      }
+    });
+
+    // Initialize camera controller
+    this.cameraController = new CameraController(
+      this.camera,
+      this.cameraDiagnostics,
+      this.renderer,
+      canvas
+    );
+
+    // Initialize save and currency managers
+    this.saveGameManager = new SaveGameManager(this);
+    this.currencyManager = new CurrencyManager();
+
     // Initialize game loop with dependencies
     this.gameLoop = new GameLoop({
       grid: this.grid,
@@ -310,34 +342,34 @@ export class Game {
       waveManager: this.waveManager,
       spawnZoneManager: this.spawnZoneManager
     });
-    
+
     // Initialize entity store with player
-    const entityStore = useEntityStore.getState();
+    const entityStore = utilizeEntityStore.getState();
     entityStore.setPlayer(this.player);
-    
+
     // Set up event bridge to dispatch DOM events when store changes
     this.cleanupStoreEvents = setupGameStoreEventBridge();
-    
+
     // Set up store subscriptions for game state
     this.setupStoreSubscriptions();
-    
+
     // Initialize touch gesture manager for mobile/touch devices
     if ('ontouchstart' in window) {
       this.touchGestureManager = new HammerGestureManager(this, canvas);
-      
+
       // Listen for gesture events
       this.touchGestureManager.on('swipe', (data) => {
         console.log('Swipe detected:', data.direction);
       });
-      
+
       this.touchGestureManager.on('doubleTap', () => {
         console.log('Double tap - centering on player');
       });
-      
+
       // Initialize last player position
       this.lastPlayerPosition = { ...this.player.position };
     }
-    
+
     // Set up input handling for player
     this.setupInputHandling();
 
@@ -367,7 +399,7 @@ export class Game {
         console.log("Camera follow mode:", cameraInfo.followTarget ? "ENABLED" : "DISABLED");
         console.log("Press 'B' to check camera, 'N' to fix camera, 'Shift+V' to toggle visual debug");
         console.log("Press 'M' to toggle mouse/coordinate debug logging");
-        
+
         // Enable pathfinding debug based on settings
         const PathfindingDebug = (window as any).PathfindingDebug;
         if (PathfindingDebug) {
@@ -417,7 +449,7 @@ export class Game {
         }
       }
     }
-    
+
     // Apply terrain cells (water, rough terrain, bridges)
     if (this.currentMapData.terrainCells && this.currentMapData.terrainCells.length > 0) {
       this.currentMapData.terrainCells.forEach(terrainCell => {
@@ -425,7 +457,7 @@ export class Game {
       });
     }
   }
-  
+
   private setupStoreSubscriptions(): void {
     // Subscribe to pause state changes
     gameStore.subscribe(
@@ -438,7 +470,7 @@ export class Game {
         }
       }
     );
-    
+
     // Subscribe to game over state
     gameStore.subscribe(
       (state) => state.isGameOver,
@@ -449,7 +481,7 @@ export class Game {
         }
       }
     );
-    
+
     // Subscribe to game speed changes
     gameStore.subscribe(
       (state) => state.gameSpeed,
@@ -459,17 +491,17 @@ export class Game {
       }
     );
   }
-  
+
   private setupInputHandling(): void {
     // Connect keyboard input to player
     window.addEventListener('keydown', (e) => {
       this.player.handleKeyDown(e.key);
     });
-    
+
     window.addEventListener('keyup', (e) => {
       this.player.handleKeyUp(e.key);
     });
-    
+
     // Connect mouse input to player
     this.canvas.addEventListener('mousemove', (e) => {
       const rect = this.canvas.getBoundingClientRect();
@@ -480,47 +512,47 @@ export class Game {
       const worldPos = this.camera.screenToWorld(screenPos);
       this.player.handleMouseMove(worldPos);
     });
-    
+
     this.canvas.addEventListener('mousedown', (e) => {
       if (e.button === 0) { // Left click
         this.player.startHoldingToShoot();
       }
     });
-    
+
     this.canvas.addEventListener('mouseup', (e) => {
       if (e.button === 0) { // Left click
         this.player.stopHoldingToShoot();
       }
     });
-    
+
     this.canvas.addEventListener('mouseleave', () => {
       this.player.stopHoldingToShoot();
     });
-    
+
     // Connect mobile input if available
     if (this.mobileControls && this.inputManager) {
       // Mobile controls will update the InputManager directly
       (this.mobileControls as any).setInputManager(this.inputManager);
     }
   }
-  
+
   private validateSpawnConnectivity(): void {
     if (!this.currentMapData.playerStart || this.currentMapData.spawnZones.length === 0) {
       console.warn('[Game] Cannot validate spawn connectivity: missing player start or spawn zones');
       return;
     }
-    
+
     // Convert player start grid position to world position
     const playerWorldPos = this.grid.gridToWorld(
-      this.currentMapData.playerStart.x, 
+      this.currentMapData.playerStart.x,
       this.currentMapData.playerStart.y
     );
-    
+
     // Convert spawn zones to world positions
-    const spawnWorldPositions = this.currentMapData.spawnZones.map(spawnZone => 
+    const spawnWorldPositions = this.currentMapData.spawnZones.map(spawnZone =>
       this.grid.gridToWorld(spawnZone.x, spawnZone.y)
     );
-    
+
     // Validate all spawn points
     const validation = Pathfinding.validateAllSpawnPoints(
       spawnWorldPositions,
@@ -528,7 +560,7 @@ export class Game {
       this.grid,
       MovementType.WALKING
     );
-    
+
     // Log validation results
     if (!validation.allSpawnPointsValid) {
       console.error('[Game] Spawn point validation failed:', {
@@ -537,17 +569,17 @@ export class Game {
         invalidSpawnPoints: validation.invalidSpawnPoints.length,
         errors: validation.errors
       });
-      
+
       // Show warning to player
       if (validation.invalidSpawnPoints.length > 0) {
         console.warn(`[Game] ${validation.invalidSpawnPoints.length} spawn points are inaccessible to the player!`);
-        
+
         // Optionally show a notification to the player
         const warningMessage = `Warning: ${validation.invalidSpawnPoints.length} of ${spawnWorldPositions.length} spawn points may be inaccessible. Game may not function properly.`;
-        
+
         // Dispatch a custom event that UI can listen to
         const warningEvent = new CustomEvent('mapValidationWarning', {
-          detail: { 
+          detail: {
             message: warningMessage,
             validation: validation
           }
@@ -557,7 +589,7 @@ export class Game {
     } else {
       console.log('[Game] All spawn points validated successfully');
     }
-    
+
     // Log any warnings
     if (validation.warnings.length > 0) {
       validation.warnings.forEach(warning => {
@@ -717,7 +749,7 @@ export class Game {
     }
   }
 
-  update = (deltaTime: number): void => {
+  update(deltaTime: number): void {
     if (this.engine.getState() !== GameState.PLAYING) {
       return;
     }
@@ -729,27 +761,26 @@ export class Game {
     }
 
     // Auto-save system
-    this.autoSaveTimer += deltaTime;
-    if (this.autoSaveTimer >= this.AUTO_SAVE_INTERVAL && !gameStore.getState().isGameOver) {
-      this.autoSaveTimer = 0;
-      this.autoSave();
+    if (!gameStore.getState().isGameOver) {
+      this.saveGameManager.updateAutoSaveTimer(deltaTime);
     }
 
     // Get input state from InputManager
     const inputState = this.inputManager.getInputState();
-    
+
     // Delegate entity updates to GameLoop
     this.gameLoop.update(deltaTime, inputState);
-    
+
     // Update camera and handle touch gesture auto-follow
     this.updateCameraAndGestures(deltaTime);
-    
+
     // Sync local arrays with entity store for backward compatibility
     this.syncEntityArrays();
-    
+
     // Check for wave completion and victory
     if (this.waveManager.isWaveComplete() && !this.waveCompleteProcessed) {
       this.waveCompleteProcessed = true;
+      console.log('[Game] Wave complete detected. Processing wave completion...');
       if (!this.waveManager.hasNextWave()) {
         this.audioHandler.playVictory();
         this.handleVictory();
@@ -761,19 +792,19 @@ export class Game {
   };
 
   private updateCameraAndGestures(deltaTime: number): void {
-    const entityStore = useEntityStore.getState();
+    const entityStore = utilizeEntityStore.getState();
     const player = entityStore.player;
     if (!player) return;
 
     // Update camera to follow player
     this.camera.update(player.position);
-    
+
     // Check for player movement and auto-follow
     if (this.touchGestureManager) {
-      const playerMoved = this.lastPlayerPosition && 
+      const playerMoved = this.lastPlayerPosition &&
         (Math.abs(player.position.x - this.lastPlayerPosition.x) > 0.1 ||
-         Math.abs(player.position.y - this.lastPlayerPosition.y) > 0.1);
-      
+          Math.abs(player.position.y - this.lastPlayerPosition.y) > 0.1);
+
       if (playerMoved && player.isMoving() && this.touchGestureManager.shouldAutoFollow()) {
         // Player is moving and enough time has passed since last gesture
         if (!this.camera.isFollowingTarget()) {
@@ -785,20 +816,20 @@ export class Game {
         }
       }
     }
-    
+
     // Update last player position
     this.lastPlayerPosition = player ? { ...player.position } : null;
   }
 
   private syncEntityArrays(): void {
     // Sync entity arrays with store for backward compatibility
-    const entityStore = useEntityStore.getState();
+    const entityStore = utilizeEntityStore.getState();
     this.towers = entityStore.getAllTowers();
     this.enemies = entityStore.getAllEnemies();
     this.projectiles = entityStore.getAllProjectiles();
     this.collectibles = entityStore.getAllCollectibles();
     this.destructionEffects = entityStore.getAllDestructionEffects();
-    
+
     if (entityStore.player && this.player !== entityStore.player) {
       this.player = entityStore.player;
     }
@@ -831,9 +862,12 @@ export class Game {
     this.addCurrency(waveReward);
     this.addScore(GAMEPLAY_CONSTANTS.scoring.enemyKillBase * 10 * waveNumber); // Score bonus for completing wave based on base enemy score
 
+    // Mark wave as complete in game store
+    gameStore.getState().endWave();
+
     // Show wave complete notification if UI is available
     console.log(`Wave ${waveNumber} Complete! Reward: ${waveReward} currency`);
-    
+
     // Save game after wave completion
     this.saveAfterWave();
   }
@@ -880,13 +914,13 @@ export class Game {
     return Math.max(1, totalUpgrades);
   }
 
-  render = (_deltaTime: number): void => {
+  render(_deltaTime: number): void {
     // Log first render to debug
     if (!this.firstRenderLogged) {
       console.log('[Game] First render - Player:', this.player, 'Towers:', this.towers.length, 'Enemies:', this.enemies.length);
       this.firstRenderLogged = true;
     }
-    
+
     // Render main scene - renderer now pulls from store
     this.renderer.renderScene(this.getPlayerAimerLine());
 
@@ -905,13 +939,14 @@ export class Game {
       this.selectedTowerType &&
       this.engine.getState() === GameState.PLAYING
     ) {
-      const gridPos = this.grid.worldToGrid(this.mousePosition);
+      const mousePosition = this.inputHandler.getMousePosition();
+      const gridPos = this.grid.worldToGrid(mousePosition);
       const canPlace = this.grid.canPlaceTower(gridPos.x, gridPos.y);
       const canAfford = this.canAffordTower(this.selectedTowerType);
 
       this.renderer.renderTowerGhost(
         this.selectedTowerType,
-        this.mousePosition,
+        mousePosition,
         canPlace && canAfford
       );
     }
@@ -944,7 +979,7 @@ export class Game {
         ctx.restore();
       }
     }
-  };
+  }
 
   // Tower placement
   placeTower(towerType: TowerType, worldPosition: Vector2): boolean {
@@ -970,12 +1005,12 @@ export class Game {
     };
 
     // Add to entity store instead of local array
-    const entityStore = useEntityStore.getState();
+    const entityStore = utilizeEntityStore.getState();
     entityStore.addTower(tower);
 
     // Track towers built
     this.towersBuilt++;
-    gameStore.getState().incrementTowersBuilt();
+    gameStore.getState().recordTowerBuilt(towerType);
 
     // Update grid - walls are obstacles, other towers are towers
     if (towerType === TowerType.WALL) {
@@ -983,9 +1018,9 @@ export class Game {
     } else {
       this.grid.setCellType(gridPos.x, gridPos.y, CellType.TOWER);
     }
-    
+
     // Update navigation grid for pathfinding
-    
+
 
     // Spend currency
     this.spendCurrency(cost);
@@ -1006,6 +1041,8 @@ export class Game {
     const started = this.waveManager.startWave(nextWave);
     if (started) {
       this.waveCompleteProcessed = false; // Reset the flag for the new wave
+      gameStore.getState().startWave(nextWave); // Update game store wave state
+      console.log(`[Game] Starting wave ${nextWave}`);
       this.audioHandler.playWaveStart();
       this.audioHandler.resetWaveAudioFlags();
     }
@@ -1035,284 +1072,61 @@ export class Game {
 
   // Mouse interaction
   handleMouseDown(event: MouseEvent): void {
-    // Get mouse position accounting for pixel ratio
-    const rect = this.canvas.getBoundingClientRect();
-    const pixelRatio = window.devicePixelRatio || 1;
-
-    // Calculate position relative to canvas
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    // Convert to actual canvas coordinates (accounting for CSS scaling)
-    const screenPos = {
-      x: x * (this.canvas.width / pixelRatio) / rect.width,
-      y: y * (this.canvas.height / pixelRatio) / rect.height
-    };
-
-    const worldPos = this.camera.screenToWorld(screenPos);
-    // this.isMouseDown = true; // Unused variable commented out
-
-    if (this.engine.getState() !== GameState.PLAYING) {
-      return;
-    }
-
-    // Check if clicking on player
-    if (this.player.distanceTo(worldPos) <= this.player.radius) {
-      // Trigger player upgrade panel (handled by UI)
-      const playerClickEvent = new CustomEvent("playerClicked");
-      document.dispatchEvent(playerClickEvent);
-      return;
-    }
-
-    // Check if clicking on existing tower - use larger click radius for easier selection
-    const CLICK_RADIUS_MULTIPLIER = 1.5; // Make towers easier to click
-    const clickedTower = this.towers.find(
-      (tower) => tower.distanceTo(worldPos) <= tower.radius * CLICK_RADIUS_MULTIPLIER
-    );
-
-    if (clickedTower) {
-      // Use the selectTower/deselectTower methods for consistency
-      if (this.selectedTower === clickedTower) {
-        this.deselectTower();
-      } else {
-        this.selectTower(clickedTower);
-        this.justSelectedTower = true;
-        // Clear the flag after a short delay
-        setTimeout(() => {
-          this.justSelectedTower = false;
-        }, 500);
-      }
-      this.setSelectedTowerType(null); // Clear tower placement mode
-      return; // Important: return early to prevent deselection logic
-    } else if (this.selectedTowerType && !this.justSelectedTowerType) {
-      // Place new tower (only if we didn't just select from menu)
-      if (this.placeTower(this.selectedTowerType, worldPos)) {
-        // Clear selection after successful placement
-        this.setSelectedTowerType(null);
-        // Dispatch event to update UI
-        const towerPlacedEvent = new CustomEvent('towerPlaced');
-        document.dispatchEvent(towerPlacedEvent);
-      } else {
-        // Provide feedback for failed placement
-        if ('vibrate' in navigator) {
-          navigator.vibrate([50, 50, 50]); // Error vibration pattern
-        }
-      }
-    } else {
-      // Manual shooting - start click and hold
-      const projectile = this.player.handleMouseDown(worldPos);
-      if (projectile) {
-        this.projectiles.push(projectile);
-      }
-
-      // Only deselect tower if we didn't just select one
-      if (this.selectedTower && !this.justSelectedTower) {
-        this.deselectTower();
-      }
-    }
+    this.inputHandler.handleMouseDown(event);
   }
 
-  handleMouseUp(_event: MouseEvent): void {
-    // this.isMouseDown = false; // Unused variable commented out
-    this.player.handleMouseUp();
+  handleMouseUp(event: MouseEvent): void {
+    this.inputHandler.handleMouseUp(event);
   }
 
   handleMouseMove(event: MouseEvent): void {
-    // Get mouse position relative to canvas
-    const rect = this.canvas.getBoundingClientRect();
-    
-    // Calculate position relative to canvas in CSS pixels
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    // The camera expects logical coordinates (CSS pixels), not physical pixels
-    // This matches how touch coordinates are handled in TouchInputManager
-    const screenPos = { x, y };
-
-    const worldPos = this.camera.screenToWorld(screenPos);
-
-    // Debug logging
-    if (this.debugMode) {
-      console.log('[Mouse] Screen pos:', screenPos, 'World pos:', worldPos);
-    }
-
-    // Update mouse position for ghost tower rendering
-    this.mousePosition = worldPos;
-
-    // Update player aim position
-    this.player.handleMouseMove(worldPos);
-
-    // Find tower under mouse for range display
-    this.hoverTower =
-      this.towers.find((tower) => tower.distanceTo(worldPos) <= tower.radius) ||
-      null;
+    this.inputHandler.handleMouseMove(event);
   }
 
   // Alias for backward compatibility with tests
   handleMouseClick(event: MouseEvent): void {
-    this.handleMouseDown(event);
+    this.inputHandler.handleMouseClick(event);
   }
 
   handleKeyDown(key: string): void {
-    // Forward movement keys to player
-    if (
-      [
-        "w",
-        "a",
-        "s",
-        "d",
-        "ArrowUp",
-        "ArrowDown",
-        "ArrowLeft",
-        "ArrowRight",
-      ].includes(key)
-    ) {
-      this.player.handleKeyDown(key);
-    }
-
-    // Handle zoom controls
-    switch (key) {
-      case "=":
-      case "+":
-        this.zoomIn();
-        break;
-      case "-":
-      case "_":
-        this.zoomOut();
-        break;
-      case "0":
-        this.setZoom(1.0); // Reset to default zoom
-        break;
-      case "f":
-      case "F":
-        this.zoomToFit();
-        break;
-      case "c":
-      case "C":
-        this.toggleCameraFollow();
-        break;
-      case "b":
-      case "B":
-        // Check camera
-        this.checkCamera();
-        break;
-
-      case "n":
-      case "N":
-        // Fix camera
-        this.fixCamera();
-        break;
-      case "d":
-      case "D":
-        // Debug camera (only when combined with Shift)
-        if (key === "D") {
-          this.debugCamera();
-        }
-        break;
-      case "v":
-      case "V":
-        // Toggle visual debug mode
-        this.renderer.setDebugMode(key === "V");
-        console.log(`Visual debug mode: ${key === "V" ? "ON" : "OFF"}`);
-        break;
-      
-      case "m":
-      case "M":
-        // Toggle mouse/coordinate debug mode
-        this.debugMode = !this.debugMode;
-        console.log(`Coordinate debug mode: ${this.debugMode ? "ON" : "OFF"}`);
-        if (this.debugMode) {
-          console.log("Mouse coordinates will be logged to console");
-        }
-        break;
-        
-      // Tower selection hotkeys
-      case "1":
-        this.setSelectedTowerType(TowerType.BASIC);
-        console.log('[Game] Selected tower: BASIC');
-        break;
-      case "2":
-        this.setSelectedTowerType(TowerType.SNIPER);
-        console.log('[Game] Selected tower: SNIPER');
-        break;
-      case "3":
-        this.setSelectedTowerType(TowerType.RAPID);
-        console.log('[Game] Selected tower: RAPID');
-        break;
-      case "4":
-        this.setSelectedTowerType(TowerType.WALL);
-        console.log('[Game] Selected tower: WALL');
-        break;
-      // Pathfinding debug controls
-      case "p":
-        const PathfindingDebugP = (window as any).PathfindingDebug;
-        if (PathfindingDebugP) {
-          PathfindingDebugP.togglePaths();
-        }
-        break;
-      case "g":
-        const PathfindingDebugG = (window as any).PathfindingDebug;
-        if (PathfindingDebugG) {
-          PathfindingDebugG.toggleNavGrid();
-        }
-        break;
-      case "escape":
-        // Clear tower selection
-        if (this.selectedTowerType) {
-          this.setSelectedTowerType(null);
-          console.log('[Game] Cleared tower selection');
-        }
-        break;
-    }
+    this.inputHandler.handleKeyDown(key);
   }
 
   handleKeyUp(key: string): void {
-    // Forward movement keys to player
-    if (
-      [
-        "w",
-        "a",
-        "s",
-        "d",
-        "ArrowUp",
-        "ArrowDown",
-        "ArrowLeft",
-        "ArrowRight",
-      ].includes(key)
-    ) {
-      this.player.handleKeyUp(key);
-    }
+    this.inputHandler.handleKeyUp(key);
   }
 
-  // Getters for game state (inlined for performance)
+  // Getters for game state
   getCurrency(): number {
-    return gameStore.getState().currency;
+    return this.currencyManager.getCurrency();
   }
 
   getLives(): number {
-    return gameStore.getState().lives;
+    const state = gameStore.getState();
+    return state?.lives ?? 0;
   }
 
   getScore(): number {
-    return gameStore.getState().score;
+    const state = gameStore.getState();
+    return state?.score ?? 0;
   }
 
-  // Inlined resource management methods
+  // Currency management delegated to CurrencyManager
   private canAffordCurrency(cost: number): boolean {
-    return gameStore.getState().canAfford(cost);
+    return this.currencyManager.canAffordCurrency(cost);
   }
 
   private spendCurrency(amount: number): void {
-    gameStore.getState().spendCurrency(amount);
+    this.currencyManager.spendCurrency(amount);
   }
 
   public addCurrency(amount: number): void {
-    gameStore.getState().addCurrency(amount);
+    this.currencyManager.addCurrency(amount);
   }
 
   // Public method for testing
   public setCurrency(amount: number): void {
-    gameStore.setState({ currency: amount });
+    this.currencyManager.setCurrency(amount);
   }
 
   private loseLife(): void {
@@ -1353,6 +1167,10 @@ export class Game {
 
   getProjectiles(): Projectile[] {
     return [...this.projectiles];
+  }
+
+  addProjectile(projectile: Projectile): void {
+    this.projectiles.push(projectile);
   }
 
   getCollectibles(): Collectible[] {
@@ -1512,7 +1330,7 @@ export class Game {
       // Enemies give 2x their reward value as XP
       const experienceGain = enemy.reward * 2;
       const leveledUp = (this.player as any).addExperience(experienceGain);
-      
+
       // Show level up notification if player leveled up
       if (leveledUp && this.playerLevelDisplay && this.playerLevelDisplay.showLevelUpNotification) {
         const levelSystem = this.player.getPlayerLevelSystem();
@@ -1541,7 +1359,7 @@ export class Game {
             position,
             this.getCollectibleTypeForItem(randomItem)
           );
-          const entityStore = useEntityStore.getState();
+          const entityStore = utilizeEntityStore.getState();
           entityStore.addCollectible(collectible);
         } else {
           // Traditional collectible system
@@ -1551,7 +1369,7 @@ export class Game {
             y: enemy.position.y + (Math.random() - 0.5) * 40,
           };
           const collectible = new Collectible(position, collectibleType);
-          const entityStore = useEntityStore.getState();
+          const entityStore = utilizeEntityStore.getState();
           entityStore.addCollectible(collectible);
         }
       }
@@ -1565,7 +1383,7 @@ export class Game {
 
   setSelectedTowerType(towerType: TowerType | null): void {
     this.selectedTowerType = towerType;
-    
+
     // Enter or exit build mode based on tower selection
     if (towerType) {
       this.uiController.enterBuildMode(towerType);
@@ -1574,14 +1392,14 @@ export class Game {
       setTimeout(() => {
         this.justSelectedTowerType = false;
       }, 100);
-      
+
       // Disable gestures during tower placement
       if (this.touchGestureManager) {
         this.touchGestureManager.setEnabled(false);
       }
     } else {
       this.uiController.exitBuildMode();
-      
+
       // Re-enable gestures after tower placement
       if (this.touchGestureManager) {
         this.touchGestureManager.setEnabled(true);
@@ -1617,7 +1435,7 @@ export class Game {
     // Update store state which will trigger React UI
     gameStore.getState().pauseGame();
     uiStore.getState().openPanel(UIPanelType.PAUSE_MENU);
-    
+
     // Auto-save when pausing the game
     this.autoSave();
   }
@@ -1636,26 +1454,128 @@ export class Game {
   stop(): void {
     this.engine.stop();
     this.uiController.destroy();
-    
+
     // Clean up store event bridge
     if (this.cleanupStoreEvents) {
       this.cleanupStoreEvents();
       this.cleanupStoreEvents = null;
     }
-    
+
     // Clean up touch gesture manager
     if (this.touchGestureManager) {
       this.touchGestureManager.destroy();
       this.touchGestureManager = null;
     }
-    
+
     // Clean up renderer subscriptions
     if (this.renderer) {
       this.renderer.destroy();
     }
-    
+
     // Clear entity store
-    useEntityStore.getState().clearAllEntities();
+    utilizeEntityStore.getState().clearAllEntities();
+  }
+
+  /**
+   * Reset the game to initial state
+   * Used when restarting the game
+   */
+  reset(): void {
+    console.log('[Game] Resetting game...');
+    
+    // Stop all ongoing audio
+    this.audioManager.stopAllSounds();
+    this.audioHandler.resetAllAudioFlags();
+    
+    // Clear all entities from arrays
+    this.towers = [];
+    this.enemies = [];
+    this.projectiles = [];
+    this.collectibles = [];
+    this.destructionEffects = [];
+    
+    // Reset game statistics
+    this.gameStartTime = Date.now();
+    this.enemiesKilled = 0;
+    this.towersBuilt = 0;
+    this.inventoryUpgradesPurchased = 0;
+    
+    // Reset wave manager
+    this.waveManager.reset();
+    this.waveCompleteProcessed = false;
+    
+    // Reset spawn zones
+    this.spawnZoneManager.reset();
+    
+    // Reset grid - Clear all tower and obstacle cells
+    console.log('[Game] Clearing grid cells...');
+    for (let x = 0; x < this.grid.width; x++) {
+      for (let y = 0; y < this.grid.height; y++) {
+        const cellType = this.grid.getCellType(x, y);
+        if (cellType === CellType.TOWER || cellType === CellType.OBSTACLE) {
+          this.grid.setCellType(x, y, CellType.EMPTY);
+        }
+      }
+    }
+    
+    // Re-apply the base map to the grid to restore original obstacles
+    this.applyMapToGrid();
+    
+    // Reset player to original state
+    if (this.player) {
+      // Reset player position to starting position
+      const playerWorldPos = this.grid.gridToWorld(
+        this.currentMapData.playerStart.x,
+        this.currentMapData.playerStart.y
+      );
+      this.player.position = playerWorldPos;
+      this.player.health = this.player.maxHealth;
+      this.player.velocity = { x: 0, y: 0 };
+      this.player.isAlive = true;
+      
+      // Reset player upgrades
+      this.player.resetUpgrades();
+    }
+    
+    // Reset camera to player
+    if (this.camera && this.player) {
+      this.camera.centerOnTarget(this.player.position);
+    }
+    
+    // Reset selected tower states
+    this.selectedTowerType = null;
+    this.hoverTower = null;
+    this.selectedTower = null;
+    
+    // Reset UI controller state
+    this.uiController.closeAllDialogs();
+    
+    // Reset stores - this will also clear entity store and UI panels
+    gameStore.getState().resetGame();
+    
+    // Ensure all entities are removed from entity store
+    // The arrays were cleared above, but we need to sync with the store
+    utilizeEntityStore.getState().setTowers([]);
+    utilizeEntityStore.getState().setEnemies([]);
+    utilizeEntityStore.getState().setProjectiles([]);
+    utilizeEntityStore.getState().setCollectibles([]);
+    utilizeEntityStore.getState().setDestructionEffects([]);
+    utilizeEntityStore.getState().setPlayer(null);
+    
+    // Re-add the player to the entity store
+    if (this.player) {
+      utilizeEntityStore.getState().setPlayer(this.player);
+    }
+    
+    console.log('[Game] Reset complete');
+    
+    // Reset inventory
+    this.inventory.clear();
+    
+    // Clear any scheduled autosaves
+    // Auto-save timer is now managed by SaveGameManager
+    
+    console.log('[Game] Game reset complete');
   }
 
   isPaused(): boolean {
@@ -1686,9 +1606,9 @@ export class Game {
   }
 
   selectTower(tower: Tower): void {
-    const entityStore = useEntityStore.getState();
+    const entityStore = utilizeEntityStore.getState();
     const towers = entityStore.getAllTowers();
-    
+
     if (!towers.find(t => t.id === tower.id)) {
       console.warn('[Game] Attempted to select a tower that is not in the game');
       return;
@@ -1716,10 +1636,10 @@ export class Game {
     // Calculate screen position for tower
     const camera = this.getCamera();
     const screenPos = camera.worldToScreen(tower.position);
-    
+
     // Check if mobile
     const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
-    
+
     if (isMobile) {
       // On mobile, center the upgrade menu
       this.uiController.showTowerUpgrade(tower, {
@@ -1745,8 +1665,8 @@ export class Game {
     if (this.selectedTower) {
       const tower = this.selectedTower;
       this.selectedTower = null;
-      
-      const entityStore = useEntityStore.getState();
+
+      const entityStore = utilizeEntityStore.getState();
       entityStore.selectTower(null);
 
       // Close upgrade UI through UIController
@@ -1802,7 +1722,7 @@ export class Game {
   getPlayer(): Player {
     return this.player;
   }
-  
+
   getMobileControls(): any {
     return (this as any).mobileControls || null;
   }
@@ -1862,6 +1782,31 @@ export class Game {
     return this.renderer;
   }
 
+  getEngine(): GameEngine {
+    return this.engine;
+  }
+
+  // Methods for InputHandler state management
+  setHoverTower(tower: Tower | null): void {
+    this.hoverTower = tower;
+  }
+
+  isJustSelectedTower(): boolean {
+    return this.justSelectedTower;
+  }
+
+  setJustSelectedTower(value: boolean): void {
+    this.justSelectedTower = value;
+  }
+
+  isJustSelectedTowerType(): boolean {
+    return this.justSelectedTowerType;
+  }
+
+  setJustSelectedTowerType(value: boolean): void {
+    this.justSelectedTowerType = value;
+  }
+
   // Removed getPopupManager, getUIManager, and getFloatingUIManager - use UIController directly
 
   // Set PowerUpDisplay reference for notifications
@@ -1878,7 +1823,7 @@ export class Game {
     this.mobileControls = mobileControls;
   }
 
-  
+
   getTouchGestureManager(): HammerGestureManager | null {
     return this.touchGestureManager;
   }
@@ -1886,6 +1831,27 @@ export class Game {
   // Map generation methods
   getCurrentMapData(): MapData {
     return this.currentMapData;
+  }
+
+  // Additional getters needed by SaveGameManager
+  getWaveManager(): WaveManager {
+    return this.waveManager;
+  }
+
+  getEnemyHealthMultiplier(): number {
+    return this.enemyHealthMultiplier;
+  }
+
+  getEnemySpeedMultiplier(): number {
+    return this.enemySpeedMultiplier;
+  }
+
+  getGameStartTime(): number {
+    return this.gameStartTime;
+  }
+
+  getCurrencyManager(): CurrencyManager {
+    return this.currencyManager;
   }
 
   getMapGenerator(): MapGenerator {
@@ -1930,11 +1896,11 @@ export class Game {
     }
 
     this.waveManager = new WaveManager(spawnWorldPositions);
-    
+
     // Set grid dimensions for proper spawn offset calculation
     this.waveManager.setGridDimensions(newConfig.width, newConfig.height, newConfig.cellSize);
     this.waveManager.setGrid(this.grid);
-    
+
     this.loadWaveConfigurations();
 
     // Reset player position
@@ -2098,42 +2064,40 @@ export class Game {
 
   // Zoom controls
   zoomIn(): void {
-    this.camera.zoomIn();
+    this.cameraController.zoomIn();
   }
 
   zoomOut(): void {
-    this.camera.zoomOut();
+    this.cameraController.zoomOut();
   }
 
   setZoom(zoom: number): void {
-    this.camera.setZoom(zoom);
+    this.cameraController.setZoom(zoom);
   }
 
   getZoom(): number {
-    return this.camera.getZoom();
+    return this.cameraController.getZoom();
   }
 
   zoomToFit(): void {
-    this.camera.zoomToFit();
+    this.cameraController.zoomToFit();
   }
 
   resetCameraToPlayer(): void {
-    this.camera.setFollowTarget(true);
+    this.cameraController.resetCameraToPlayer();
   }
 
   // Camera diagnostics methods
   runCameraDiagnostics(): void {
-    this.cameraDiagnostics.diagnose(this.player, this.canvas);
+    this.cameraController.runCameraDiagnostics(this.player);
   }
 
   testCameraCentering(): void {
-    this.cameraDiagnostics.testCentering(this.player);
+    this.cameraController.testCameraCentering(this.player);
   }
 
   toggleCameraFollow(): boolean {
-    const newFollowState = !this.camera.isFollowingTarget();
-    this.camera.setFollowTarget(newFollowState);
-    return newFollowState;
+    return this.cameraController.toggleCameraFollow();
   }
 
   // Game statistics getters
@@ -2300,23 +2264,12 @@ export class Game {
 
   // Handle mouse wheel for zooming
   handleMouseWheel(event: WheelEvent): void {
-    event.preventDefault();
-
-    // Determine zoom direction and factor from configuration
-    const zoomIn = event.deltaY < 0;
-    const zoomFactor = CAMERA_CONFIG.zoomSpeed;
-
-    // Simple zoom without center point for now (can be enhanced later)
-    if (zoomIn) {
-      this.camera.zoomIn(zoomFactor);
-    } else {
-      this.camera.zoomOut(zoomFactor);
-    }
+    this.inputHandler.handleMouseWheel(event);
   }
 
   // Handle camera panning (when not following player)
   panCamera(deltaX: number, deltaY: number): void {
-    this.camera.pan(deltaX, deltaY);
+    this.cameraController.panCamera(deltaX, deltaY);
   }
 
   // Show item pickup notification
@@ -2390,136 +2343,22 @@ export class Game {
 
   // Add this simple diagnostic method
   public checkCamera(): void {
-    const cameraInfo = this.camera.getCameraInfo();
-    const cameraPos = cameraInfo.position;
-    const playerPos = this.player.position;
-    const zoom = cameraInfo.zoom;
-    const isFollowing = cameraInfo.followTarget;
-
-    // Get canvas dimensions from renderer's viewport
-    const canvasWidth = this.renderer.getViewportWidth();
-    const canvasHeight = this.renderer.getViewportHeight();
-
-    // Calculate where player appears on screen
-    const playerScreenX = (playerPos.x - cameraPos.x) * zoom;
-    const playerScreenY = (playerPos.y - cameraPos.y) * zoom;
-    const centerX = canvasWidth / 2;
-    const centerY = canvasHeight / 2;
-
-    // Distance from center
-    const distance = Math.sqrt(
-      Math.pow(playerScreenX - centerX, 2) +
-      Math.pow(playerScreenY - centerY, 2)
-    );
-
-    console.log("=== CAMERA DIAGNOSTIC ===");
-    console.log("Canvas Info:", {
-      actualSize: { width: this.canvas.width, height: this.canvas.height },
-      cssSize: { width: this.canvas.offsetWidth, height: this.canvas.offsetHeight },
-      pixelRatio: window.devicePixelRatio || 1
-    });
-    console.log("Camera Info:", {
-      following: isFollowing,
-      position: cameraPos,
-      center: cameraInfo.center,
-      zoom: zoom.toFixed(2),
-      viewport: cameraInfo.viewportSize
-    });
-    console.log("Player Info:", {
-      worldPos: playerPos,
-      screenPos: { x: playerScreenX.toFixed(0), y: playerScreenY.toFixed(0) },
-      velocity: this.player.getVelocity(),
-      isMoving: this.player.isMoving()
-    });
-    console.log(`Expected center: (${centerX}, ${centerY})`);
-    console.log(`Distance from center: ${distance.toFixed(1)}px`);
-    console.log(`Status: ${distance < 10 ? "✅ CENTERED" : "❌ OFF-CENTER"}`);
-
-    if (distance > 10) {
-      console.log("\nTo fix, camera should be at:");
-      console.log({
-        x: playerPos.x - centerX / zoom,
-        y: playerPos.y - centerY / zoom,
-      });
-    }
+    this.cameraController.checkCamera(this.player);
   }
 
   // Quick fix method
   public fixCamera(): void {
-    console.log("Fixing camera...");
-
-    // Log current state before fix
-    const beforeInfo = this.camera.getCameraInfo();
-    console.log("Before fix:", {
-      following: beforeInfo.followTarget,
-      cameraPos: beforeInfo.position,
-      playerPos: this.player.position
-    });
-
-    // Force enable following and center
-    this.camera.enableFollowingAndCenter(this.player.position);
-
-    // Log state after fix
-    const afterInfo = this.camera.getCameraInfo();
-    console.log("After fix:", {
-      following: afterInfo.followTarget,
-      cameraPos: afterInfo.position,
-      playerPos: this.player.position
-    });
-
-    console.log("Camera fixed! Following enabled and centered on player.");
-    this.checkCamera(); // Run check to verify
+    this.cameraController.fixCamera(this.player);
   }
 
   // Debug camera following
   public debugCamera(): void {
-    console.log("=== CAMERA DEBUG MODE ===");
-
-    // Log current state
-    const cameraInfo = this.camera.getCameraInfo();
-    console.log("Current camera state:", cameraInfo);
-
-    // Test player movement
-    const startPos = { ...this.player.position };
-    console.log("Testing player movement...");
-
-    // Move player a bit
-    this.player.position.x += 100;
-    this.player.position.y += 100;
-
-    // Update camera
-    this.camera.update(this.player.position);
-
-    const newCameraInfo = this.camera.getCameraInfo();
-    console.log("After moving player +100,+100:");
-    console.log("  Player moved from", startPos, "to", this.player.position);
-    console.log("  Camera moved from", cameraInfo.position, "to", newCameraInfo.position);
-
-    // Restore player position
-    this.player.position = startPos;
-
-    // Test instant centering
-    console.log("\nTesting instant centering...");
-    this.camera.centerOnTarget(this.player.position);
-    const centeredInfo = this.camera.getCameraInfo();
-    console.log("  Camera after centerOnTarget:", centeredInfo.position);
-
-    this.checkCamera();
+    this.cameraController.debugCamera(this.player);
   }
 
   // Toggle visual debug mode
   public toggleVisualDebug(): void {
-    this.cameraDiagnostics.toggleVisualDebug();
-    const enabled = this.cameraDiagnostics.isVisualDebugEnabled();
-
-    // Also toggle renderer debug mode
-    this.renderer.setDebugMode(enabled);
-
-    console.log(`Camera visual debug: ${enabled ? 'ENABLED' : 'DISABLED'}`);
-    if (enabled) {
-      console.log("Green crosshair = screen center, Yellow circle = player position");
-      console.log("Red dashed line = distance from center to player");
-    }
+    this.cameraController.toggleVisualDebug();
   }
 
   getEnemiesRemaining(): number {
@@ -2540,19 +2379,19 @@ export class Game {
   private dispatchDamageNumber(entity: any, value: number, type: 'normal' | 'critical' | 'heal' = 'normal'): void {
     const worldPosition = { x: entity.x, y: entity.y };
     const damageType = type === 'heal' ? 'heal' : type === 'critical' ? 'critical' : 'physical';
-    
+
     document.dispatchEvent(new CustomEvent('damageNumber', {
       detail: { worldPosition, value, type: damageType }
     }));
   }
 
-  
+
   // Get problematic position cache statistics
   public getProblematicPositionStats(): { count: number, positions: string[] } {
     const cache = ProblematicPositionCache.getInstance();
     return cache.getStats();
   }
-  
+
   // Clear problematic position cache (useful for debugging or level transitions)
   public clearProblematicPositionCache(): void {
     const cache = ProblematicPositionCache.getInstance();
@@ -2560,123 +2399,27 @@ export class Game {
     console.log('Problematic position cache cleared');
   }
 
-  // Save/Load System
+  // Save/Load System delegated to SaveGameManager
   public saveGameState(): void {
-    try {
-      const snapshot = this.createSnapshot();
-      localStorage.setItem('gameSave', JSON.stringify(snapshot));
-      localStorage.setItem('hasSavedGame', 'true');
-      
-      // Validation logging
-      console.log('Game saved successfully:', {
-        player: {
-          level: snapshot.player.level,
-          experience: snapshot.player.experience,
-          health: `${snapshot.player.health}/${snapshot.player.maxHealth}`
-        },
-        towers: {
-          count: snapshot.towers.length,
-          types: snapshot.towers.map(t => t.type)
-        },
-        wave: snapshot.waveState.currentWave,
-        currency: snapshot.gameStore.currency,
-        score: snapshot.gameStore.score
-      });
-    } catch (error) {
-      console.error('Failed to save game:', error);
-    }
+    this.saveGameManager.save();
   }
 
   public loadGameState(): boolean {
-    try {
-      const saved = localStorage.getItem('gameSave');
-      if (!saved) return false;
-
-      const snapshot = JSON.parse(saved) as SerializedGameState;
-      return this.restoreFromSnapshot(snapshot);
-    } catch (error) {
-      console.error('Failed to load game:', error);
-      return false;
-    }
+    return this.saveGameManager.load();
   }
 
-  private createSnapshot(): SerializedGameState {
-    const gameState = gameStore.getState();
-    
-    return {
-      version: SAVE_VERSION,
-      
-      // Core game state
-      gameStore: {
-        currency: gameState.currency,
-        lives: gameState.lives,
-        score: gameState.score,
-        playerHealth: gameState.playerHealth,
-        playerMaxHealth: gameState.playerMaxHealth,
-        currentWave: gameState.currentWave,
-        isWaveActive: gameState.isWaveActive,
-        waveInProgress: gameState.waveInProgress,
-        enemiesRemaining: gameState.enemiesRemaining,
-        nextWaveTime: gameState.nextWaveTime,
-        gameSpeed: gameState.gameSpeed,
-        stats: gameState.stats
-      },
-      
-      // Entity states
-      towers: this.towers.map(tower => tower.serialize()),
-      enemies: this.enemies.map(enemy => enemy.serialize()),
-      player: this.player.serialize(),
-      
-      // Systems state
-      inventory: {
-        items: this.inventory.getState().slots
-          .filter(slot => slot.item !== null)
-          .map(slot => slot.item!),
-        maxSlots: this.inventory.getState().config.maxSlots,
-        itemsCollected: this.inventory.getState().statistics.itemsCollected,
-        itemsUsed: this.inventory.getState().statistics.itemsUsed
-      },
-      
-      waveState: {
-        currentWave: this.waveManager.currentWave,
-        isWaveActive: this.waveManager.isWaveActive(),
-        waveInProgress: gameState.waveInProgress,
-        enemiesRemaining: this.enemies.length,
-        nextWaveTime: gameState.nextWaveTime,
-        infiniteWavesEnabled: this.waveManager.isInfiniteWavesEnabled(),
-        enemyHealthMultiplier: this.enemyHealthMultiplier,
-        enemySpeedMultiplier: this.enemySpeedMultiplier
-      },
-      
-      // Map configuration
-      mapConfig: {
-        seed: this.currentMapData.metadata.seed,
-        width: this.currentMapData.metadata.width,
-        height: this.currentMapData.metadata.height,
-        cellSize: this.grid.cellSize,
-        biome: this.currentMapData.metadata.biome,
-        difficulty: this.currentMapData.metadata.difficulty,
-        decorationLevel: DecorationLevel.MODERATE // Default since it's not in MapData
-      },
-      
-      // Camera state
-      camera: {
-        position: serializeVector2(this.camera.getPosition()),
-        zoom: this.camera.getZoom()
-      },
-      
-      // Game metadata
-      metadata: {
-        saveVersion: SAVE_VERSION,
-        timestamp: Date.now(),
-        gameTime: gameState.stats.gameTime,
-        realTimePlayed: Date.now() - this.gameStartTime,
-        gameVersion: '1.0.0'
-      }
-    };
+  // Wrapper methods for backward compatibility
+  public save(): void {
+    this.saveGameState();
   }
 
-  private restoreFromSnapshot(snapshot: SerializedGameState): boolean {
+  public load(): boolean {
+    return this.loadGameState();
+  }
+
+  // Snapshot creation is now handled by SaveGameManager
+
+  public restoreFromSnapshot(snapshot: SerializedGameState): boolean {
     try {
       // Validate save version
       if (!isValidSaveGame(snapshot)) {
@@ -2690,7 +2433,7 @@ export class Game {
       // Restore game store state
       const store = gameStore.getState();
       store.resetGame(); // Reset first
-      
+
       // Then restore saved values
       if (snapshot.gameStore.currency !== undefined) store.addCurrency(snapshot.gameStore.currency);
       if (snapshot.gameStore.lives !== undefined) {
@@ -2715,7 +2458,7 @@ export class Game {
 
       // Restore towers
       this.towers = snapshot.towers.map(towerData => Tower.deserialize(towerData));
-      
+
       // Place towers back on the grid
       this.towers.forEach(tower => {
         const gridPos = this.grid.worldToGrid(tower.position);
@@ -2756,12 +2499,12 @@ export class Game {
       this.enemyHealthMultiplier = snapshot.waveState.enemyHealthMultiplier;
       this.enemySpeedMultiplier = snapshot.waveState.enemySpeedMultiplier;
       this.waveManager.setDifficultyMultipliers(this.enemyHealthMultiplier, this.enemySpeedMultiplier);
-      
+
       // Ensure wave state is fully synchronized
       if (snapshot.waveState.infiniteWavesEnabled) {
         this.waveManager.enableInfiniteWaves(true);
       }
-      
+
       // Force update the game store to ensure UI reflects the correct wave
       const currentStore = gameStore.getState();
       if (currentStore.currentWave !== snapshot.waveState.currentWave) {
@@ -2800,7 +2543,7 @@ export class Game {
           obstacleCells: this.countGridCells(CellType.OBSTACLE)
         }
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error restoring game state:', error);
@@ -2830,64 +2573,49 @@ export class Game {
   }
 
   public clearSaveData(): void {
-    localStorage.removeItem('gameSave');
-    localStorage.removeItem('hasSavedGame');
-    console.log('Save data cleared');
+    this.saveGameManager.clearSaveData();
   }
 
   public hasSavedGame(): boolean {
-    return localStorage.getItem('hasSavedGame') === 'true';
+    return this.saveGameManager.hasSavedGame();
   }
 
-  // Auto-save functionality
+  // Auto-save functionality delegated to SaveGameManager
   private autoSave(): void {
-    try {
-      this.saveGameState();
-      this.lastSaveTime = Date.now();
-      console.log('[Game] Auto-save completed');
-      
-      // Dispatch auto-save event for UI notification
-      document.dispatchEvent(new CustomEvent('gameAutoSaved', {
-        detail: { timestamp: this.lastSaveTime }
-      }));
-    } catch (error) {
-      console.error('[Game] Auto-save failed:', error);
-    }
+    this.saveGameManager.autoSave();
   }
 
   // Save after wave completion
   public saveAfterWave(): void {
-    // Reset auto-save timer to prevent immediate auto-save
-    this.autoSaveTimer = 0;
-    this.saveGameState();
+    this.saveGameManager.saveAfterWave();
     console.log('[Game] Game saved after wave completion');
   }
 
   // Sync entities to the centralized store
   private syncEntitiesToStore(): void {
-    const entityStore = useEntityStore.getState();
-    
+    const entityStore = utilizeEntityStore.getState();
+
     // Sync towers
     entityStore.setTowers(this.towers);
-    
+
     // Sync enemies
     entityStore.setEnemies(this.enemies);
-    
+
     // Sync projectiles
     entityStore.setProjectiles(this.projectiles);
-    
+
     // Sync collectibles
     entityStore.setCollectibles(this.collectibles);
-    
+
     // Sync destruction effects
     entityStore.setDestructionEffects(this.destructionEffects);
-    
+
     // Sync player
     entityStore.setPlayer(this.player);
-    
+
     // Sync selected tower
     entityStore.selectTower(this.selectedTower);
-    
+
     // Sync hovered tower
     entityStore.hoverTower(this.hoverTower);
   }

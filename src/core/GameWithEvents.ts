@@ -47,12 +47,13 @@ export class GameWithEvents extends Game {
     
     this.eventEmitter = new EventEmitter<GameEvents>();
     
-    // Initialize previous state tracking
+    // Initialize previous state tracking with safe defaults
+    // The actual values will be set on first update
     this.previousState = {
-      currency: this.getCurrency(),
-      lives: this.getLives(),
-      score: this.getScore(),
-      gameState: this.getGameState()
+      currency: 0,
+      lives: 0,
+      score: 0,
+      gameState: GameState.MENU
     };
     
     console.log('[GameWithEvents] Created with canvas:', canvas, 'autoStart:', autoStart);
@@ -82,79 +83,93 @@ export class GameWithEvents extends Game {
   /**
    * Override update to check for state changes
    */
-  update = (deltaTime: number): void => {
+  override update(deltaTime: number): void {
     if (this.firstUpdate) {
       console.log('[GameWithEvents] First update called, deltaTime:', deltaTime);
       this.firstUpdate = false;
+      
+      // Initialize previous state with actual values on first update
+      try {
+        this.previousState = {
+          currency: this.getCurrency() || 0,
+          lives: this.getLives() || 0,
+          score: this.getScore() || 0,
+          gameState: this.getGameState() || GameState.MENU
+        };
+      } catch (error) {
+        console.warn('[GameWithEvents] Error initializing previous state:', error);
+        // Keep default values if there's an error
+      }
     }
     
-    // Call parent update method directly
-    // Since update is an arrow function property, we need to call it as a property
-    const parentUpdate = Object.getPrototypeOf(Object.getPrototypeOf(this)).update;
-    if (parentUpdate) {
-      parentUpdate.call(this, deltaTime);
-    }
+    // Call parent update method
+    super.update(deltaTime);
     
     // Check for state changes and emit events
     this.checkStateChanges();
-  };
+  }
 
   /**
    * Check for state changes and emit appropriate events
    */
   private checkStateChanges(): void {
-    // Currency changes
-    const currentCurrency = this.getCurrency();
-    if (currentCurrency !== this.previousState.currency) {
-      this.emit('currencyChanged', {
-        amount: currentCurrency,
-        previous: this.previousState.currency
-      });
-      this.previousState.currency = currentCurrency;
-    }
-    
-    // Lives changes
-    const currentLives = this.getLives();
-    if (currentLives !== this.previousState.lives) {
-      this.emit('livesChanged', {
-        amount: currentLives,
-        previous: this.previousState.lives
-      });
-      this.previousState.lives = currentLives;
-    }
-    
-    // Score changes
-    const currentScore = this.getScore();
-    if (currentScore !== this.previousState.score) {
-      this.emit('scoreChanged', {
-        amount: currentScore,
-        previous: this.previousState.score
-      });
-      this.previousState.score = currentScore;
-    }
-    
-    // Game state changes
-    const currentGameState = this.getGameState();
-    if (currentGameState !== this.previousState.gameState) {
-      this.emit('gameStateChanged', {
-        state: currentGameState,
-        previous: this.previousState.gameState
-      });
-      
-      // Emit specific state events
-      if (currentGameState === GameState.GAME_OVER) {
-        this.emit('gameOver', {
-          won: false,
-          score: currentScore
+    try {
+      // Currency changes
+      const currentCurrency = this.getCurrency();
+      if (currentCurrency !== undefined && currentCurrency !== this.previousState.currency) {
+        this.emit('currencyChanged', {
+          amount: currentCurrency,
+          previous: this.previousState.currency
         });
+        this.previousState.currency = currentCurrency;
+      }
+      
+      // Lives changes
+      const currentLives = this.getLives();
+      if (currentLives !== undefined && currentLives !== this.previousState.lives) {
+        this.emit('livesChanged', {
+          amount: currentLives,
+          previous: this.previousState.lives
+        });
+        this.previousState.lives = currentLives;
+      }
+      
+      // Score changes
+      const currentScore = this.getScore();
+      if (currentScore !== undefined && currentScore !== this.previousState.score) {
+        this.emit('scoreChanged', {
+          amount: currentScore,
+          previous: this.previousState.score
+        });
+        this.previousState.score = currentScore;
+      }
+      
+      // Game state changes
+      const currentGameState = this.getGameState();
+      if (currentGameState !== undefined && currentGameState !== this.previousState.gameState) {
+        this.emit('gameStateChanged', {
+          state: currentGameState,
+          previous: this.previousState.gameState
+        });
+        
+        // Emit specific state events
+        if (currentGameState === GameState.GAME_OVER) {
+          this.emit('gameOver', {
+            won: false,
+            score: currentScore || 0
+          });
       } else if (currentGameState === GameState.VICTORY) {
         this.emit('gameOver', {
           won: true,
-          score: currentScore
+          score: currentScore || 0
         });
       }
       
       this.previousState.gameState = currentGameState;
+    }
+    } catch (error) {
+      // Handle any errors during state checking gracefully
+      console.warn('[GameWithEvents] Error checking state changes:', error);
     }
   }
 
@@ -241,6 +256,33 @@ export class GameWithEvents extends Game {
     if (previousSelected !== currentSelected) {
       this.emit('towerSelected', { tower: currentSelected });
     }
+  }
+
+  /**
+   * Override reset to emit proper events
+   */
+  override reset(): void {
+    console.log('[GameWithEvents] Resetting game with events...');
+    
+    // Call parent reset
+    super.reset();
+    
+    // Reset previous state tracking
+    this.previousState = {
+      currency: this.getCurrency(),
+      lives: this.getLives(),
+      score: this.getScore(),
+      gameState: this.getGameState()
+    };
+    
+    // Reset other tracking
+    this.previousHoverTower = null;
+    this.firstUpdate = true;
+    
+    // Emit reset events
+    this.emit('gameStateChanged', { state: GameState.MENU, previous: GameState.GAME_OVER });
+    
+    console.log('[GameWithEvents] Game reset complete with events');
   }
 
   /**

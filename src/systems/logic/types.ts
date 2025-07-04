@@ -24,6 +24,7 @@ export interface EnemyUpdate {
   state?: 'MOVING' | 'ATTACKING' | 'STUCK' | 'RECOVERING';
   targetId?: string | null;
   currentPath?: Vector2[];
+  cooldown?: number;
   actions: GameAction[];
 }
 

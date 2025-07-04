@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { ControlBar } from './ControlBar';
 import { TowerPlacementIndicator } from './TowerPlacementIndicator';
-// Draggable display components removed - replaced by new draggable system
+// Draggable display components
 import { DraggablePlayerLevelDisplay } from './DraggablePlayerLevelDisplay';
+import { DraggableCurrencyDisplay } from './DraggableCurrencyDisplay';
+import { DraggableHealthDisplay } from './DraggableHealthDisplay';
+import { DraggableScoreDisplay } from './DraggableScoreDisplay';
+import { DraggableWaveDisplay } from './DraggableWaveDisplay';
 import { MobileControls } from './MobileControls';
 import { useFloatingDamageNumbers } from '../floating/FloatingDamageNumber';
 import { BuildModeOverlay } from '../floating/BuildModeOverlay';
@@ -49,7 +53,7 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
   const isInBuildMode = useIsPanelOpen(UIPanelType.BUILD_MODE);
   const player = usePlayer();
   const isGameOver = useIsGameOver();
-  const { isPaused, canStartWave, pauseGame, resumeGame, startNextWave } = useGameUI();
+  const { isPaused, canStartWave, currentWave, pauseGame, resumeGame } = useGameUI();
 
   // Event listener for tower selection (still using game until fully migrated)
   useEffect(() => {
@@ -169,7 +173,7 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
   };
 
   const handleStartWave = () => {
-    startNextWave();
+    game.startNextWave();
   };
 
   const handlePause = () => {
@@ -209,8 +213,12 @@ export const GameUI: React.FC<GameUIProps> = ({ game }) => {
 
   return (
     <>
-      {/* Draggable displays - using new draggable system in GameUI */}
+      {/* Draggable displays */}
       <DraggablePlayerLevelDisplay game={game} />
+      <DraggableCurrencyDisplay />
+      <DraggableHealthDisplay />
+      <DraggableScoreDisplay />
+      <DraggableWaveDisplay />
       
       <ControlBar
         game={game}

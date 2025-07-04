@@ -69,6 +69,18 @@ export class Pathfinding {
   ): PathfindingResult {
     const opts = { ...this.DEFAULT_OPTIONS, ...options };
 
+    // Validate inputs
+    if (!start || !goal || start.x === undefined || start.y === undefined || 
+        goal.x === undefined || goal.y === undefined) {
+      console.warn('Pathfinding: Invalid start or goal position', { start, goal });
+      return {
+        path: [],
+        success: false,
+        iterations: 0,
+        cost: 0
+      };
+    }
+
     // Handle special case where start equals goal
     if (start.x === goal.x && start.y === goal.y) {
       return {

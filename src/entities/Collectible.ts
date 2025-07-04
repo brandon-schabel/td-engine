@@ -69,6 +69,13 @@ export class Collectible extends Entity {
     super(EntityType.COLLECTIBLE, position, 1, 10); // 1 health, 10 radius
     this.collectibleType = collectibleType;
     this.config = COLLECTIBLE_CONFIGS[collectibleType];
+    
+    // Safety check for undefined config
+    if (!this.config) {
+      console.error(`[Collectible] Invalid collectible type: ${collectibleType}`);
+      // Fallback to health config
+      this.config = COLLECTIBLE_CONFIGS[CollectibleType.HEALTH];
+    }
   }
 
   override update(deltaTime: number): void {

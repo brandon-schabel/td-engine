@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { useGameStore } from "../../hooks/useGameStore";
+import { useGameStore } from "@/stores/hooks/useGameStore";
 import { Card } from "../shared/Card";
 import { Header } from "../shared/Header";
 import { IconType } from "@/ui/icons/SvgIcons";

@@ -10,6 +10,8 @@ import {
   useMobileLayout,
   adjustForMobileSafeArea,
 } from "../../hooks/useMobileLayout";
+import { usePlayerStats } from '@/stores/hooks/useGameStore';
+import { usePlayer } from '@/stores/entityStore';
 
 interface DraggablePlayerLevelDisplayProps {
   game: Game;
@@ -25,16 +27,20 @@ interface DraggablePlayerLevelDisplayProps {
 export const DraggablePlayerLevelDisplay: React.FC<
   DraggablePlayerLevelDisplayProps
 > = ({ game, visible = true, draggable = true, defaultPosition }) => {
-  const [level, setLevel] = useState(0);
-  const [experience, setExperience] = useState(0);
-  const [experienceToNext, setExperienceToNext] = useState(0);
   const [availablePoints, setAvailablePoints] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [isMaxLevel, setIsMaxLevel] = useState(false);
   const [showGlow, setShowGlow] = useState(false);
 
   const { success: showNotification } = useGameNotifications();
   const layoutInfo = useMobileLayout();
+  const playerStats = usePlayerStats();
+  const player = usePlayer();
+  
+  // Calculate values from store
+  const level = playerStats.level;
+  const experience = playerStats.experience;
+  const experienceToNext = playerStats.nextLevelExp;
+  const progress = experienceToNext > 0 ? (experience / experienceToNext) * 100 : 0;
+  const isMaxLevel = level >= 50;
 
   // Calculate default position if not provided
   const calculatedDefaultPosition = defaultPosition || {
@@ -81,22 +87,17 @@ export const DraggablePlayerLevelDisplay: React.FC<
     });
   }, [game, showLevelUpNotification]);
 
-  // Update level data
+  // Update available points from player level system
   useEffect(() => {
     const updateInterval = setInterval(() => {
-      const player = game.getPlayer();
-      const levelSystem = player.getPlayerLevelSystem();
-
-      setLevel(levelSystem.getLevel());
-      setExperience(levelSystem.getExperience());
-      setExperienceToNext(levelSystem.getExperienceToNextLevel());
-      setAvailablePoints(levelSystem.getAvailableUpgradePoints());
-      setProgress(levelSystem.getLevelProgress());
-      setIsMaxLevel(levelSystem.getLevel() >= 50);
+      if (player) {
+        const levelSystem = player.getPlayerLevelSystem();
+        setAvailablePoints(levelSystem.getAvailableUpgradePoints());
+      }
     }, 100);
 
     return () => clearInterval(updateInterval);
-  }, [game]);
+  }, [player]);
 
   if (!visible) return null;
 

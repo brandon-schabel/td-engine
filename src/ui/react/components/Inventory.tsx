@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { IconType } from "@/ui/icons/SvgIcons";
 import { ItemType, type InventoryItem } from "@/systems/Inventory";
 import { uiStore, UIPanelType } from "@/stores/uiStore";
-import { useGameStoreSelector } from "../hooks/useGameStore";
+import { useGameStore } from "@/stores/hooks/useGameStore";
 import { useIsPanelOpen } from "../hooks/useUIStore";
 import { SoundType } from "@/audio/AudioManager";
 
@@ -22,7 +22,7 @@ export const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("ALL");
 
   // Subscribe to game state
-  const currency = useGameStoreSelector((state) => state.currency);
+  const currency = useGameStore((state) => state.currency);
   const isOpen = useIsPanelOpen(UIPanelType.INVENTORY);
 
   // Get game instance

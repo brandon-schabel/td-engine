@@ -1,25 +1,23 @@
 import { Tower, TowerType } from '@/entities/Tower';
-import { Enemy } from '@/entities/Enemy';
-import { Projectile } from '@/entities/Projectile';
-import { Player } from '@/entities/Player';
-import { Collectible } from '@/entities/Collectible';
-import { HealthPickup } from '@/entities/HealthPickup';
-import { Entity, EntityType } from '@/entities/Entity';
+import { Entity } from '@/entities/Entity';
 import { Grid } from './Grid';
 import { Camera } from './Camera';
-import { UpgradeType } from '@/entities/Tower';
-import { TextureManager, type Texture } from './TextureManager';
+import { TextureManager } from './TextureManager';
 import type { Vector2 } from '@/utils/Vector2';
 import { COLOR_CONFIG } from '../config/GameConfig';
-import { GRID_RENDER_DETAILS, ENTITY_RENDER, TOWER_RENDER, RENDER_OPTIMIZATION } from '../config/RenderingConfig';
+import { GRID_RENDER_DETAILS, TOWER_RENDER, ENTITY_RENDER } from '../config/RenderingConfig';
 import { COLOR_THEME } from '../config/ColorTheme';
 import { BIOME_PRESETS, BiomeType } from '@/types/MapData';
 import type { BiomeColors, EnvironmentalEffect } from '@/types/MapData';
 import { adjustColorBrightness } from '@/utils/MathUtils';
 import { DestructionEffect } from '@/effects/DestructionEffect';
-import { PathfindingDebug } from '@/debug/PathfindingDebug';
 import { TerrainRenderer } from './TerrainRenderer';
-import { useEntityStore, type Rectangle } from '@/stores/entityStore';
+import { EntityRenderer } from './renderers/EntityRenderer';
+import { EffectsRenderer } from './renderers/EffectsRenderer';
+import { UIRenderer } from './renderers/UIRenderer';
+import { DecorationRenderer } from './renderers/DecorationRenderer';
+import { DebugRenderer } from './renderers/DebugRenderer';
+import { utilizeEntityStore, type Rectangle } from '@/stores/entityStore';
 import type { StoreApi } from 'zustand';
 
 // Legacy render config for backward compatibility
@@ -41,8 +39,12 @@ export class Renderer {
   private viewportHeight: number;
   private textureManager: TextureManager;
   private terrainRenderer: TerrainRenderer;
+  private entityRenderer: EntityRenderer;
+  private effectsRenderer: EffectsRenderer;
+  private uiRenderer: UIRenderer;
+  private decorationRenderer: DecorationRenderer;
+  private debugRenderer: DebugRenderer;
   private environmentalEffects: EnvironmentalEffect[] = [];
-  private debugMode: boolean = false;
   private biomeLogged: boolean = false;
   private pixelRatio: number;
   private renderSettings: {
@@ -70,7 +72,7 @@ export class Renderer {
 
     // Store pixel ratio for later use
     this.pixelRatio = window.devicePixelRatio || 1;
-    
+
     // Use CSS dimensions for viewport since context is scaled
     this.viewportWidth = canvas.width / this.pixelRatio;
     this.viewportHeight = canvas.height / this.pixelRatio;
@@ -89,8 +91,36 @@ export class Renderer {
     // Initialize terrain renderer
     this.terrainRenderer = new TerrainRenderer(ctx, grid, camera);
 
+    // Initialize entity renderer
+    this.entityRenderer = new EntityRenderer({
+      ctx: this.ctx,
+      camera: this.camera,
+      textureManager: this.textureManager,
+      renderSettings: this.renderSettings
+    });
+
+    // Initialize effects renderer
+    this.effectsRenderer = new EffectsRenderer({
+      ctx: this.ctx,
+      camera: this.camera,
+      renderSettings: this.renderSettings
+    });
+
+    // Initialize UI renderer
+    this.uiRenderer = new UIRenderer({
+      ctx: this.ctx,
+      viewportWidth: this.viewportWidth,
+      viewportHeight: this.viewportHeight
+    });
+
+    // Initialize decoration renderer
+    this.decorationRenderer = new DecorationRenderer(ctx, grid, camera);
+
+    // Initialize debug renderer
+    this.debugRenderer = new DebugRenderer(ctx, camera, this.viewportWidth, this.viewportHeight);
+
     // Store reference to entity store API
-    this.entityStoreApi = useEntityStore;
+    this.entityStoreApi = utilizeEntityStore;
 
     console.log('[Renderer] Created with canvas:', {
       canvas: canvas,
@@ -142,40 +172,22 @@ export class Renderer {
         this.renderSettings.lodBias = settings.lodBias;
       }
     }
+
+    // Update renderers with new settings
+    if (this.entityRenderer) {
+      // Re-create entity renderer with new settings
+      this.entityRenderer = new EntityRenderer({
+        ctx: this.ctx,
+        camera: this.camera,
+        textureManager: this.textureManager,
+        renderSettings: this.renderSettings
+      });
+    }
+    
+    // Effects renderer uses the same render settings object, so it updates automatically
+    // UI renderer doesn't use render settings
   }
 
-  // Calculate LOD level for an entity based on camera zoom level
-  private calculateLOD(_entity: Entity): number {
-    if (!this.renderSettings.lodEnabled || !RENDER_OPTIMIZATION.LOD.enabled) {
-      return RENDER_OPTIMIZATION.LOD.levels.FULL;
-    }
-
-    const zoom = this.camera.getZoom();
-
-    // Define zoom thresholds for LOD levels
-    // Higher zoom = more detail, lower zoom = less detail
-    const zoomThresholds = {
-      high: 0.8,    // Above this zoom, use FULL detail (textures/SVGs with all effects)
-      medium: 0.5,  // Between medium and high, use MEDIUM detail (textures/SVGs, no extras)
-      low: 0.35     // Between low and medium, use LOW detail (simple circles)
-      // Below low (0.35), entities are CULLED
-    };
-
-    // Apply LOD bias to thresholds
-    const adjustedHigh = zoomThresholds.high / this.renderSettings.lodBias;
-    const adjustedMedium = zoomThresholds.medium / this.renderSettings.lodBias;
-    const adjustedLow = zoomThresholds.low / this.renderSettings.lodBias;
-
-    if (zoom >= adjustedHigh) {
-      return RENDER_OPTIMIZATION.LOD.levels.FULL;
-    } else if (zoom >= adjustedMedium) {
-      return RENDER_OPTIMIZATION.LOD.levels.MEDIUM;
-    } else if (zoom >= adjustedLow) {
-      return RENDER_OPTIMIZATION.LOD.levels.LOW;
-    } else {
-      return RENDER_OPTIMIZATION.LOD.levels.CULLED;
-    }
-  }
 
   private async preloadTextures(): Promise<void> {
     // Preload basic game textures
@@ -224,512 +236,9 @@ export class Renderer {
   }
 
   renderDecorations(): void {
-    const cellSize = this.grid.cellSize;
-    const visibleBounds = this.camera.getVisibleBounds();
-
-    // Calculate visible grid bounds
-    const startX = Math.max(0, Math.floor(visibleBounds.min.x / cellSize));
-    const endX = Math.min(this.grid.width, Math.ceil(visibleBounds.max.x / cellSize));
-    const startY = Math.max(0, Math.floor(visibleBounds.min.y / cellSize));
-    const endY = Math.min(this.grid.height, Math.ceil(visibleBounds.max.y / cellSize));
-
-    // Render decorations in visible cells
-    for (let x = startX; x < endX; x++) {
-      for (let y = startY; y < endY; y++) {
-        const cellData = this.grid.getCellData(x, y);
-        if (!cellData || !cellData.decoration) continue;
-
-        const decoration = cellData.decoration;
-        const screenPos = this.camera.worldToScreen(decoration.position);
-
-        // Skip if not visible
-        if (!this.camera.isVisible(decoration.position, cellSize)) continue;
-
-        if (typeof this.ctx.save === 'function') {
-          this.ctx.save();
-        }
-        if (typeof this.ctx.translate === 'function') {
-          this.ctx.translate(screenPos.x, screenPos.y);
-        }
-        // Safety check for test environments
-        if (typeof this.ctx.rotate === 'function') {
-          this.ctx.rotate((decoration.rotation * Math.PI) / 180);
-        }
-        if (typeof this.ctx.scale === 'function') {
-          this.ctx.scale(decoration.scale, decoration.scale);
-        }
-
-        // Render based on decoration type
-        this.renderDecorationType(decoration.type, decoration.variant || 0, decoration.animated || false);
-
-        if (typeof this.ctx.restore === 'function') {
-          this.ctx.restore();
-        }
-      }
-    }
+    this.decorationRenderer.renderDecorations();
   }
 
-  private renderDecorationType(type: string, variant: number, animated: boolean): void {
-    // Animation offset
-    const animOffset = animated ? Math.sin(Date.now() * 0.001) * 2 : 0;
-
-    // Safety check for canvas context methods
-    if (!this.ctx || typeof this.ctx.beginPath !== 'function') {
-      return;
-    }
-
-    switch (type) {
-      // Forest decorations
-      case 'tree_oak':
-      case 'tree_pine':
-        this.renderTree(type === 'tree_pine', variant, animOffset);
-        break;
-      case 'bush':
-        this.renderBush(variant, animOffset);
-        break;
-      case 'boulder':
-      case 'rock':
-        this.renderRock(variant, type === 'boulder');
-        break;
-
-      // Desert decorations
-      case 'cactus':
-        this.renderCactus(variant);
-        break;
-      case 'rock_formation':
-        this.renderRockFormation(variant);
-        break;
-      case 'dead_tree':
-        this.renderDeadTree(variant);
-        break;
-      case 'sand_dune':
-        this.renderSandDune(variant);
-        break;
-
-      // Arctic decorations
-      case 'ice_formation':
-        this.renderIceFormation(variant);
-        break;
-      case 'snow_pile':
-        this.renderSnowPile(variant);
-        break;
-      case 'frozen_tree':
-        this.renderFrozenTree(variant, animOffset);
-        break;
-
-      // Volcanic decorations
-      case 'lava_rock':
-        this.renderLavaRock(variant);
-        break;
-      case 'volcanic_boulder':
-        this.renderVolcanicBoulder(variant);
-        break;
-      case 'ash_pile':
-        this.renderAshPile(variant);
-        break;
-
-      // Grassland decorations
-      case 'small_tree':
-        this.renderSmallTree(variant, animOffset);
-        break;
-      case 'flower_patch':
-        this.renderFlowerPatch(variant, animOffset);
-        break;
-      case 'tall_grass':
-        this.renderTallGrass(variant, animOffset);
-        break;
-
-      default:
-        // Generic decoration
-        this.renderGenericDecoration();
-    }
-  }
-
-  // Tree rendering
-  private renderTree(isPine: boolean, variant: number, animOffset: number): void {
-    if (isPine) {
-      // Pine tree - triangular shape
-      this.ctx.fillStyle = '#1B4F1B';
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.moveTo === 'function') {
-        this.ctx.moveTo(0 + animOffset * 0.5, -20);
-      }
-      if (typeof this.ctx.lineTo === 'function') {
-        this.ctx.lineTo(-10, 5);
-        this.ctx.lineTo(10, 5);
-      }
-      if (typeof this.ctx.closePath === 'function') {
-        this.ctx.closePath();
-      }
-      if (typeof this.ctx.fill === 'function') {
-        this.ctx.fill();
-      }
-
-      // Trunk
-      this.ctx.fillStyle = '#4A2C17';
-      if (typeof this.ctx.fillRect === 'function') {
-        this.ctx.fillRect(-2, 5, 4, 8);
-      }
-    } else {
-      // Oak tree - circular canopy
-      this.ctx.fillStyle = variant === 0 ? '#2D5016' : '#3D6B1C';
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.arc === 'function') {
-        this.ctx.arc(0 + animOffset, -10, 12, 0, Math.PI * 2);
-      }
-      if (typeof this.ctx.fill === 'function') {
-        this.ctx.fill();
-      }
-
-      // Trunk
-      this.ctx.fillStyle = '#4A2C17';
-      if (typeof this.ctx.fillRect === 'function') {
-        this.ctx.fillRect(-3, -2, 6, 12);
-      }
-    }
-  }
-
-  private renderBush(variant: number, animOffset: number): void {
-    this.ctx.fillStyle = variant === 0 ? '#3A5F3A' : '#4B7C4B';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(-4 + animOffset * 0.3, 0, 6, 0, Math.PI * 2);
-      this.ctx.arc(4 + animOffset * 0.3, 0, 6, 0, Math.PI * 2);
-      this.ctx.arc(0, -3, 5, 0, Math.PI * 2);
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-  }
-
-  private renderRock(variant: number, isLarge: boolean): void {
-    const size = isLarge ? 12 : 8;
-    this.ctx.fillStyle = variant === 0 ? '#5A5A5A' : '#6B6B6B';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.moveTo === 'function') {
-      this.ctx.moveTo(-size, size * 0.5);
-    }
-    if (typeof this.ctx.lineTo === 'function') {
-      this.ctx.lineTo(-size * 0.6, -size * 0.8);
-      this.ctx.lineTo(size * 0.7, -size * 0.6);
-      this.ctx.lineTo(size, size * 0.4);
-    }
-    if (typeof this.ctx.closePath === 'function') {
-      this.ctx.closePath();
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-
-    // Add shading
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.moveTo === 'function') {
-      this.ctx.moveTo(0, -size * 0.7);
-    }
-    if (typeof this.ctx.lineTo === 'function') {
-      this.ctx.lineTo(size * 0.7, -size * 0.6);
-      this.ctx.lineTo(size, size * 0.4);
-      this.ctx.lineTo(0, size * 0.5);
-    }
-    if (typeof this.ctx.closePath === 'function') {
-      this.ctx.closePath();
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-  }
-
-  private renderCactus(variant: number): void {
-    this.ctx.fillStyle = '#4A7C59';
-    // Main body
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(-4, -15, 8, 25);
-    }
-
-    // Arms
-    if (variant === 0 || variant === 2) {
-      if (typeof this.ctx.fillRect === 'function') {
-        this.ctx.fillRect(-12, -5, 8, 4);
-        this.ctx.fillRect(-12, -5, 4, 10);
-      }
-    }
-    if (variant === 1 || variant === 2) {
-      if (typeof this.ctx.fillRect === 'function') {
-        this.ctx.fillRect(4, -8, 8, 4);
-        this.ctx.fillRect(8, -8, 4, 12);
-      }
-    }
-  }
-
-  private renderRockFormation(variant: number): void {
-    this.ctx.fillStyle = '#8B7355';
-    // Multiple rock shapes
-    const positions = [
-      { x: -8, y: 5, w: 10, h: 15 },
-      { x: 2, y: 8, w: 8, h: 12 },
-      { x: -2, y: 0, w: 12, h: 20 }
-    ];
-
-    positions.forEach((pos, i) => {
-      if (i <= variant) {
-        if (typeof this.ctx.fillRect === 'function') {
-          this.ctx.fillRect(pos.x - pos.w / 2, -pos.h / 2, pos.w, pos.h);
-        }
-      }
-    });
-  }
-
-  private renderDeadTree(variant: number): void {
-    this.ctx.strokeStyle = '#4A3C28';
-    this.ctx.lineWidth = 3;
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.moveTo === 'function') {
-      this.ctx.moveTo(0, 10);
-    }
-    if (typeof this.ctx.lineTo === 'function') {
-      this.ctx.lineTo(0, -10);
-    }
-
-    // Branches
-    if (variant === 0 || variant === 2) {
-      if (typeof this.ctx.moveTo === 'function') {
-        this.ctx.moveTo(0, -5);
-      }
-      if (typeof this.ctx.lineTo === 'function') {
-        this.ctx.lineTo(-8, -12);
-      }
-    }
-    if (variant === 1 || variant === 2) {
-      if (typeof this.ctx.moveTo === 'function') {
-        this.ctx.moveTo(0, -8);
-      }
-      if (typeof this.ctx.lineTo === 'function') {
-        this.ctx.lineTo(6, -15);
-      }
-    }
-    if (typeof this.ctx.stroke === 'function') {
-      this.ctx.stroke();
-    }
-  }
-
-  private renderSandDune(variant: number): void {
-    this.ctx.fillStyle = '#E3C88F';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(0, 5, 15 + variant * 2, 0, Math.PI, true);
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-  }
-
-  private renderIceFormation(_variant: number): void {
-    this.ctx.fillStyle = '#B3E5FC';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    // Crystalline shape
-    if (typeof this.ctx.moveTo === 'function') {
-      this.ctx.moveTo(0, -15);
-    }
-    if (typeof this.ctx.lineTo === 'function') {
-      this.ctx.lineTo(-8, 5);
-      this.ctx.lineTo(-4, 8);
-      this.ctx.lineTo(4, 8);
-      this.ctx.lineTo(8, 5);
-    }
-    if (typeof this.ctx.closePath === 'function') {
-      this.ctx.closePath();
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-
-    // Add shine
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.moveTo === 'function') {
-      this.ctx.moveTo(0, -15);
-    }
-    if (typeof this.ctx.lineTo === 'function') {
-      this.ctx.lineTo(-4, -5);
-      this.ctx.lineTo(0, -8);
-    }
-    if (typeof this.ctx.closePath === 'function') {
-      this.ctx.closePath();
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-  }
-
-  private renderSnowPile(variant: number): void {
-    this.ctx.fillStyle = '#F0F8FF';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(0, 3, 10 + variant * 2, 0, Math.PI * 2);
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-  }
-
-  private renderFrozenTree(_variant: number, animOffset: number): void {
-    // Ice-covered tree
-    this.ctx.fillStyle = '#A8D8EA';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(0 + animOffset * 0.5, -10, 10, 0, Math.PI * 2);
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-
-    // Icy trunk
-    this.ctx.fillStyle = '#7FCDCD';
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(-2, -2, 4, 12);
-    }
-  }
-
-  private renderLavaRock(variant: number): void {
-    this.ctx.fillStyle = '#2F1B14';
-    this.renderRock(variant, false);
-
-    // Add glowing cracks
-    this.ctx.strokeStyle = '#FF4500';
-    this.ctx.lineWidth = 1;
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.moveTo === 'function') {
-      this.ctx.moveTo(-4, 0);
-    }
-    if (typeof this.ctx.lineTo === 'function') {
-      this.ctx.lineTo(2, -3);
-      this.ctx.lineTo(4, 2);
-    }
-    if (typeof this.ctx.stroke === 'function') {
-      this.ctx.stroke();
-    }
-  }
-
-  private renderVolcanicBoulder(variant: number): void {
-    this.ctx.fillStyle = '#1A0E0A';
-    this.renderRock(variant, true);
-  }
-
-  private renderAshPile(variant: number): void {
-    this.ctx.fillStyle = '#4A4A4A';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(0, 4, 8 + variant, 0, Math.PI * 2);
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-  }
-
-  private renderSmallTree(_variant: number, animOffset: number): void {
-    this.ctx.fillStyle = '#7CFC00';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(0 + animOffset * 0.7, -6, 8, 0, Math.PI * 2);
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-
-    // Small trunk
-    this.ctx.fillStyle = '#654321';
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(-2, -1, 4, 8);
-    }
-  }
-
-  private renderFlowerPatch(variant: number, animOffset: number): void {
-    const colors = ['#FFB6C1', '#FFA07A', '#FFD700'];
-    const flowerPositions = [
-      { x: -4, y: 0 },
-      { x: 4, y: -2 },
-      { x: 0, y: 3 }
-    ];
-
-    flowerPositions.forEach((pos, i) => {
-      if (i <= variant) {
-        this.ctx.fillStyle = colors[i % colors.length]!;
-        if (typeof this.ctx.beginPath === 'function') {
-          this.ctx.beginPath();
-        }
-        if (typeof this.ctx.arc === 'function') {
-          this.ctx.arc(pos.x + animOffset * 0.3, pos.y, 3, 0, Math.PI * 2);
-        }
-        if (typeof this.ctx.fill === 'function') {
-          this.ctx.fill();
-        }
-      }
-    });
-  }
-
-  private renderTallGrass(variant: number, animOffset: number): void {
-    this.ctx.strokeStyle = '#7CFC00';
-    this.ctx.lineWidth = 2;
-
-    for (let i = 0; i <= variant; i++) {
-      const x = (i - 1) * 4;
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.moveTo === 'function') {
-        this.ctx.moveTo(x, 5);
-      }
-      if (typeof this.ctx.quadraticCurveTo === 'function') {
-        this.ctx.quadraticCurveTo(x + animOffset, -2, x + animOffset * 2, -8);
-      }
-      if (typeof this.ctx.stroke === 'function') {
-        this.ctx.stroke();
-      }
-    }
-  }
-
-  private renderGenericDecoration(): void {
-    // Fallback for unknown decoration types
-    this.ctx.fillStyle = '#888888';
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(0, 0, 5, 0, Math.PI * 2);
-    }
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-  }
 
   setEnvironmentalEffects(effects: EnvironmentalEffect[]): void {
     this.environmentalEffects = effects;
@@ -878,732 +387,28 @@ export class Renderer {
     // For now, we'll skip implementation as decorations handle their own animation
   }
 
-  // Helper method to convert entity position for rendering
-  private getScreenPosition(entity: Entity | Vector2): Vector2 {
-    const worldPos = 'position' in entity ? entity.position : entity;
-    return this.camera.worldToScreen(worldPos);
-  }
 
-  renderTower(tower: Tower, isSelected: boolean = false): void {
-    // Skip if not visible
-    if (!this.camera.isVisible(tower.position, tower.radius)) return;
-
-    // Calculate LOD level
-    const lodLevel = this.calculateLOD(tower);
-
-    // Skip rendering if culled by LOD
-    if (lodLevel === RENDER_OPTIMIZATION.LOD.levels.CULLED) {
-      return;
-    }
-
-    const screenPos = this.getScreenPosition(tower);
-    const zoom = this.camera.getZoom();
-
-    // Draw selection ring if selected (only for FULL and MEDIUM LOD)
-    if (isSelected && lodLevel <= RENDER_OPTIMIZATION.LOD.levels.MEDIUM) {
-      this.ctx.save();
-
-      // Pulsing effect
-      const pulseScale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
-
-      // Outer selection ring
-      this.ctx.beginPath();
-      this.ctx.arc(screenPos.x, screenPos.y, (tower.radius + 10) * zoom * pulseScale, 0, Math.PI * 2);
-      this.ctx.strokeStyle = '#FFD700'; // Gold color
-      this.ctx.lineWidth = Math.max(1, 3);
-      this.ctx.stroke();
-
-      // Inner selection ring
-      this.ctx.beginPath();
-      this.ctx.arc(screenPos.x, screenPos.y, (tower.radius + 5) * zoom * pulseScale, 0, Math.PI * 2);
-      this.ctx.strokeStyle = '#FFA500'; // Orange color
-      this.ctx.lineWidth = Math.max(1, 2);
-      this.ctx.stroke();
-
-      this.ctx.restore();
-    }
-
-    // Render tower based on LOD level
-    if (lodLevel === RENDER_OPTIMIZATION.LOD.levels.LOW) {
-      // Simple rendering for LOW LOD - just a colored circle
-      this.ctx.save();
-      this.ctx.beginPath();
-      this.ctx.arc(screenPos.x, screenPos.y, tower.radius * zoom, 0, Math.PI * 2);
-
-      // Simple color based on tower type
-      const colors: Record<string, string> = {
-        'BASIC': '#FFEB3B',
-        'SNIPER': '#64B5F6',
-        'RAPID': '#FF6B35',
-        'WALL': '#9E9E9E'
-      };
-      this.ctx.fillStyle = colors[tower.type] || '#808080';
-      this.ctx.fill();
-      this.ctx.restore();
-    } else {
-      // Full rendering for FULL and MEDIUM LOD
-      tower.render(this.ctx, screenPos, this.textureManager, isSelected, zoom);
-
-      // Only render upgrade dots for FULL LOD
-      if (lodLevel === RENDER_OPTIMIZATION.LOD.levels.FULL) {
-        this.renderTowerUpgradeDots(tower);
-      }
-    }
-    
-    // Render health bar (skip for walls)
-    if (tower.towerType !== TowerType.WALL && tower.health < tower.maxHealth) {
-      this.renderHealthBar(tower, isSelected);
-    }
-  }
-
-  renderTowerUpgradeDots(tower: Tower): void {
-    if (!this.camera.isVisible(tower.position, tower.radius)) return;
-
-    const screenPos = this.getScreenPosition(tower);
-    const zoom = this.camera.getZoom();
-    const upgradeTypes = [UpgradeType.DAMAGE, UpgradeType.RANGE, UpgradeType.FIRE_RATE];
-    const colors = ['#FF4444', '#44FF44', '#4444FF']; // Red, Green, Blue
-    const dotRadius = 3 * zoom; // Scale dot radius with zoom
-
-    upgradeTypes.forEach((upgradeType, index) => {
-      const level = tower.getUpgradeLevel(upgradeType);
-
-      if (level > 0) {
-        // Position dots around the tower
-        const angle = (index * 120) * (Math.PI / 180); // 120 degrees apart
-        const distance = (tower.radius + 8) * zoom; // Scale distance with zoom
-
-        for (let i = 0; i < level; i++) {
-          const dotDistance = distance + (i * 4 * zoom); // Scale spacing with zoom
-          const x = screenPos.x + Math.cos(angle) * dotDistance;
-          const y = screenPos.y + Math.sin(angle) * dotDistance;
-
-          this.ctx.beginPath();
-          this.ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-          this.ctx.fillStyle = colors[index];
-          this.ctx.fill();
-
-          // Dot outline
-          this.ctx.strokeStyle = '#000000';
-          this.ctx.lineWidth = Math.max(0.5, 1); // Fixed line width
-          this.ctx.stroke();
-        }
-      }
-    });
-  }
-
-
-  renderEnemy(enemy: Enemy): void {
-    if (!this.camera.isVisible(enemy.position, enemy.radius)) return;
-
-    // Calculate LOD level
-    const lodLevel = this.calculateLOD(enemy);
-
-    // Skip rendering if culled by LOD
-    if (lodLevel === RENDER_OPTIMIZATION.LOD.levels.CULLED) {
-      return;
-    }
-
-    const screenPos = this.getScreenPosition(enemy);
-    const zoom = this.camera.getZoom();
-
-    if (lodLevel === RENDER_OPTIMIZATION.LOD.levels.LOW) {
-      // Simple rendering for LOW LOD - just a colored circle
-      this.ctx.save();
-      this.ctx.beginPath();
-      this.ctx.arc(screenPos.x, screenPos.y, enemy.radius * zoom, 0, Math.PI * 2);
-
-      // Simple color based on enemy health percentage
-      const healthPercent = enemy.health / enemy.maxHealth;
-      if (healthPercent > 0.6) {
-        this.ctx.fillStyle = '#FF4444'; // Red for healthy enemies
-      } else if (healthPercent > 0.3) {
-        this.ctx.fillStyle = '#FF8844'; // Orange for damaged
-      } else {
-        this.ctx.fillStyle = '#FFAA44'; // Yellow for nearly dead
-      }
-      this.ctx.fill();
-      this.ctx.restore();
-    } else {
-      // Full rendering for FULL and MEDIUM LOD
-      enemy.render(this.ctx, screenPos, this.textureManager, zoom);
-
-      // Only render target line for FULL LOD
-      if (lodLevel === RENDER_OPTIMIZATION.LOD.levels.FULL) {
-        enemy.renderTargetLine(this.ctx, screenPos, this.getScreenPosition.bind(this), this.camera);
-      }
-    }
-    
-    // Always render health bar for enemies
-    this.renderHealthBar(enemy, true);
-  }
-
-  renderProjectile(projectile: Projectile): void {
-    if (!this.camera.isVisible(projectile.position, projectile.radius)) return;
-    const screenPos = this.getScreenPosition(projectile);
-    const zoom = this.camera.getZoom();
-
-    // Try to render with texture first
-    const texture = this.textureManager.getTexture('projectile');
-
-    if (texture && texture.loaded) {
-      const scaledSize = projectile.radius * 2 * zoom;
-      this.renderTextureAt(texture, screenPos, scaledSize, scaledSize);
-    } else {
-      // Enhanced primitive rendering based on projectile type
-      this.ctx.save();
-      this.ctx.translate(screenPos.x, screenPos.y);
-      this.ctx.scale(zoom, zoom);
-
-      const rotation = projectile.getRotation();
-
-      switch (projectile.projectileType) {
-        case 'SNIPER_ROUND':
-          // Long, thin bullet
-          this.ctx.rotate(rotation);
-
-          // Bullet trail
-          const gradient = this.ctx.createLinearGradient(-projectile.radius * 3, 0, projectile.radius, 0);
-          gradient.addColorStop(0, 'rgba(100, 200, 255, 0)');
-          gradient.addColorStop(0.7, 'rgba(100, 200, 255, 0.5)');
-          gradient.addColorStop(1, 'rgba(200, 220, 255, 1)');
-          this.ctx.fillStyle = gradient;
-          this.ctx.fillRect(-projectile.radius * 3, -projectile.radius * 0.3, projectile.radius * 4, projectile.radius * 0.6);
-
-          // Main bullet
-          this.ctx.fillStyle = '#E0F0FF';
-          this.ctx.fillRect(-projectile.radius, -projectile.radius * 0.4, projectile.radius * 2, projectile.radius * 0.8);
-
-          // Tip
-          this.ctx.beginPath();
-          this.ctx.moveTo(projectile.radius, 0);
-          this.ctx.lineTo(projectile.radius * 1.5, -projectile.radius * 0.3);
-          this.ctx.lineTo(projectile.radius * 1.5, projectile.radius * 0.3);
-          this.ctx.closePath();
-          this.ctx.fill();
-          break;
-
-        case 'RAPID_PELLET':
-          // Small orange pellet
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, projectile.radius, 0, Math.PI * 2);
-          this.ctx.fillStyle = '#FF6B35';
-          this.ctx.fill();
-
-          // Glow effect (only if enabled)
-          if (this.renderSettings.enableGlowEffects) {
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, projectile.radius * 1.5, 0, Math.PI * 2);
-            this.ctx.fillStyle = 'rgba(255, 107, 53, 0.3)';
-            this.ctx.fill();
-          }
-          break;
-
-        case 'PLAYER_SHOT':
-          // Green energy shot
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, projectile.radius, 0, Math.PI * 2);
-          this.ctx.fillStyle = '#00FF00';
-          this.ctx.fill();
-          this.ctx.strokeStyle = '#00AA00';
-          this.ctx.lineWidth = 1;
-          this.ctx.stroke();
-          break;
-
-        case 'BASIC_BULLET':
-        default:
-          // Yellow circular bullet with glow
-          if (this.renderSettings.enableGlowEffects) {
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, projectile.radius * 1.5, 0, Math.PI * 2);
-            this.ctx.fillStyle = 'rgba(255, 235, 59, 0.3)';
-            this.ctx.fill();
-          }
-
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, projectile.radius, 0, Math.PI * 2);
-          this.ctx.fillStyle = '#FFEB3B';
-          this.ctx.fill();
-
-          this.ctx.strokeStyle = '#FFC107';
-          this.ctx.lineWidth = 1;
-          this.ctx.stroke();
-          break;
-      }
-
-      this.ctx.restore();
-    }
-  }
-
-  renderPlayer(player: Player): void {
-    if (!this.camera.isVisible(player.position, player.radius)) return;
-    const screenPos = this.getScreenPosition(player);
-    const zoom = this.camera.getZoom();
-
-    // Try to render with texture first
-    const texture = this.textureManager.getTexture('player');
-
-    if (texture && texture.loaded) {
-      const scaledSize = player.radius * 2 * zoom;
-      this.renderTextureAt(texture, screenPos, scaledSize, scaledSize);
-    } else {
-      // Enhanced primitive rendering for player
-      this.ctx.save();
-      this.ctx.translate(screenPos.x, screenPos.y);
-      this.ctx.scale(zoom, zoom);
-
-      // Player color based on level
-      const level = player.getLevel();
-      const hue = Math.min(180 + level * 20, 280); // Blue to purple progression
-      const mainColor = `hsl(${hue}, 70%, 60%)`;
-      const darkColor = `hsl(${hue}, 70%, 40%)`;
-      const lightColor = `hsl(${hue}, 70%, 80%)`;
-
-      // Body (torso)
-      this.ctx.fillStyle = mainColor;
-      this.ctx.fillRect(-player.radius * 0.6, -player.radius * 0.4, player.radius * 1.2, player.radius * 0.8);
-
-      // Head with helmet
-      this.ctx.beginPath();
-      this.ctx.arc(0, -player.radius * 0.7, player.radius * 0.4, 0, Math.PI * 2);
-      this.ctx.fillStyle = lightColor;
-      this.ctx.fill();
-
-      // Helmet top
-      this.ctx.beginPath();
-      this.ctx.arc(0, -player.radius * 0.7, player.radius * 0.4, Math.PI, 0);
-      this.ctx.fillStyle = mainColor;
-      this.ctx.fill();
-
-      // Visor
-      this.ctx.fillStyle = darkColor;
-      this.ctx.fillRect(-player.radius * 0.3, -player.radius * 0.75, player.radius * 0.6, player.radius * 0.15);
-
-      // Arms
-      this.ctx.fillStyle = darkColor;
-      this.ctx.fillRect(-player.radius * 0.9, -player.radius * 0.3, player.radius * 0.3, player.radius * 0.6);
-      this.ctx.fillRect(player.radius * 0.6, -player.radius * 0.3, player.radius * 0.3, player.radius * 0.6);
-
-      // Legs
-      this.ctx.fillRect(-player.radius * 0.4, player.radius * 0.3, player.radius * 0.3, player.radius * 0.5);
-      this.ctx.fillRect(player.radius * 0.1, player.radius * 0.3, player.radius * 0.3, player.radius * 0.5);
-
-      // Armor details
-      this.ctx.fillStyle = lightColor;
-      this.ctx.fillRect(-player.radius * 0.2, -player.radius * 0.2, player.radius * 0.4, player.radius * 0.3);
-
-      // Level badge on chest
-      if (level > 1) {
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, player.radius * 0.25, 0, Math.PI * 2);
-        this.ctx.fillStyle = '#FFD700';
-        this.ctx.fill();
-        this.ctx.strokeStyle = darkColor;
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
-      }
-
-      // Player outline
-      this.ctx.strokeStyle = '#FFFFFF';
-      this.ctx.lineWidth = 2;
-      this.ctx.beginPath();
-      this.ctx.arc(0, 0, player.radius + 2, 0, Math.PI * 2);
-      this.ctx.stroke();
-
-      this.ctx.restore();
-    }
-
-    // Movement indicator (if moving)
-    if (player.isMoving()) {
-      const velocity = player.getVelocity();
-      const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-
-      if (speed > 0) {
-        // Draw movement trail with zoom scaling
-        if (typeof this.ctx.beginPath === 'function') {
-          this.ctx.beginPath();
-        }
-        if (typeof this.ctx.arc === 'function') {
-          this.ctx.arc(screenPos.x, screenPos.y, (player.radius + 3) * zoom, 0, Math.PI * 2);
-        }
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.lineWidth = zoom;
-        if (typeof this.ctx.stroke === 'function') {
-          this.ctx.stroke();
-        }
-      }
-    }
-
-    // Level indicator with zoom scaling
-    const level = player.getLevel();
-    if (level > 1) {
-      const fontSize = Math.max(8, 10 * zoom); // Minimum readable size
-      this.renderText(
-        level.toString(),
-        screenPos.x,
-        screenPos.y + 4 * zoom,
-        '#FFFFFF',
-        `bold ${fontSize}px Arial`,
-        'center'
-      );
-    }
-    
-    // Always render health bar for player
-    this.renderHealthBar(player, true);
-  }
-
-  renderHealthPickup(pickup: HealthPickup): void {
-    if (!pickup.isActive || !this.camera.isVisible(pickup.position, pickup.radius)) return;
-
-    const screenPos = this.getScreenPosition(pickup);
-    const visualY = pickup.getVisualY() - pickup.position.y + screenPos.y;
-    const rotation = pickup.getRotation();
-
-    // Try to render with texture first
-    const texture = this.textureManager.getTexture('health_pickup');
-
-    if (typeof this.ctx.save === 'function') {
-      this.ctx.save();
-    }
-    if (typeof this.ctx.translate === 'function') {
-      this.ctx.translate(screenPos.x, visualY);
-    }
-    // Safety check for test environments
-    if (typeof this.ctx.rotate === 'function') {
-      this.ctx.rotate(rotation);
-    }
-
-    if (texture && texture.loaded) {
-      if (typeof this.ctx.drawImage === 'function') {
-        this.ctx.drawImage(
-          texture.image,
-          -pickup.radius,
-          -pickup.radius,
-          pickup.radius * 2,
-          pickup.radius * 2
-        );
-      }
-    } else {
-      // Fallback to primitive rendering
-      this.ctx.strokeStyle = '#00FF00';
-      this.ctx.lineWidth = 3;
-      this.ctx.lineCap = 'round';
-
-      // Vertical line
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.moveTo === 'function') {
-        this.ctx.moveTo(0, -6);
-      }
-      if (typeof this.ctx.lineTo === 'function') {
-        this.ctx.lineTo(0, 6);
-      }
-      if (typeof this.ctx.stroke === 'function') {
-        this.ctx.stroke();
-      }
-
-      // Horizontal line  
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.moveTo === 'function') {
-        this.ctx.moveTo(-6, 0);
-      }
-      if (typeof this.ctx.lineTo === 'function') {
-        this.ctx.lineTo(6, 0);
-      }
-      if (typeof this.ctx.stroke === 'function') {
-        this.ctx.stroke();
-      }
-    }
-
-    // Glow effect (only if enabled)
-    if (this.renderSettings.enableGlowEffects) {
-      this.ctx.shadowColor = '#00FF00';
-      this.ctx.shadowBlur = 10;
-      if (typeof this.ctx.beginPath === 'function') {
-        this.ctx.beginPath();
-      }
-      if (typeof this.ctx.arc === 'function') {
-        this.ctx.arc(0, 0, pickup.radius, 0, Math.PI * 2);
-      }
-      this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
-      this.ctx.lineWidth = 1;
-      if (typeof this.ctx.stroke === 'function') {
-        this.ctx.stroke();
-      }
-    }
-
-    if (typeof this.ctx.restore === 'function') {
-      this.ctx.restore();
-    }
-  }
-
-  renderCollectible(collectible: Collectible): void {
-    if (!this.camera.isVisible(collectible.position, collectible.radius)) return;
-
-    const screenPos = this.getScreenPosition(collectible);
-    collectible.render(this.ctx, screenPos);
-  }
 
   renderDestructionEffect(effect: DestructionEffect): void {
-    if (!effect || effect.isComplete) return;
-    // Only render particles if enabled
-    if (this.renderSettings.enableParticles) {
-      // Convert effect's world position to screen position
-      const screenPos = this.camera.worldToScreen(effect.position);
-      const zoom = this.camera.getZoom();
-      
-      // Save context state
-      this.ctx.save();
-      
-      // Translate to screen position of the effect
-      this.ctx.translate(screenPos.x, screenPos.y);
-      
-      // Apply zoom scaling
-      this.ctx.scale(zoom, zoom);
-      
-      // Translate back by the world position so particles render relative to origin
-      this.ctx.translate(-effect.position.x, -effect.position.y);
-      
-      // Render the effect (particles will be in world coordinates relative to effect position)
-      effect.render(this.ctx);
-      
-      // Restore context state
-      this.ctx.restore();
-    }
+    this.effectsRenderer.renderDestructionEffect(effect);
   }
 
   // PowerUp rendering removed - type not defined
 
 
   renderAimerLine(aimerLine: { start: Vector2; end: Vector2 }): void {
-    // Safety check for undefined properties
-    if (!aimerLine || !aimerLine.start || !aimerLine.end) {
-      return;
-    }
-
-    const screenStart = this.camera.worldToScreen(aimerLine.start);
-    const screenEnd = this.camera.worldToScreen(aimerLine.end);
-
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.moveTo === 'function') {
-      this.ctx.moveTo(screenStart.x, screenStart.y);
-    }
-    if (typeof this.ctx.lineTo === 'function') {
-      this.ctx.lineTo(screenEnd.x, screenEnd.y);
-    }
-
-    // Dashed line
-    if (typeof this.ctx.setLineDash === 'function') {
-      this.ctx.setLineDash(RENDER_CONFIG.dashPattern);
-    }
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-    this.ctx.lineWidth = 2;
-    if (typeof this.ctx.stroke === 'function') {
-      this.ctx.stroke();
-    }
-
-    // Reset line dash
-    if (typeof this.ctx.setLineDash === 'function') {
-      this.ctx.setLineDash([]);
-    }
-
-    // Aim point
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(screenEnd.x, screenEnd.y, 3, 0, Math.PI * 2);
-    }
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
+    this.effectsRenderer.renderAimerLine(aimerLine);
   }
 
-  // Canvas-based health bar rendering
-  renderHealthBar(entity: Entity & { health: number; maxHealth?: number; getMaxHealth?: () => number }, alwaysShow: boolean = false): void {
-    // Skip if entity is dead or has no health
-    if (!entity || entity.health <= 0) return;
-    
-    // Get max health
-    const maxHealth = entity.maxHealth || (entity.getMaxHealth ? entity.getMaxHealth() : 100);
-    
-    // Skip rendering if entity has full health (unless forced to show)
-    const healthPercent = entity.health / maxHealth;
-    if (!alwaysShow && healthPercent >= 1) return;
-    
-    // Check if entity is visible
-    if (!this.camera.isVisible(entity.position, entity.radius + 30)) return;
-    
-    // Get screen position
-    const screenPos = this.getScreenPosition(entity);
-    const zoom = this.camera.getZoom();
-    
-    // Health bar dimensions
-    const barWidth = ENTITY_RENDER.healthBar.width * zoom;
-    const barHeight = ENTITY_RENDER.healthBar.height * zoom;
-    const yOffset = (entity.radius + ENTITY_RENDER.healthBar.offset) * zoom;
-    
-    // Position above entity
-    const barX = screenPos.x - barWidth / 2;
-    const barY = screenPos.y - yOffset;
-    
-    // Background (dark outline)
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    this.ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
-    
-    // Background (dark fill)
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    this.ctx.fillRect(barX, barY, barWidth, barHeight);
-    
-    // Health bar color based on entity type and health percentage
-    let barColor = '#4CAF50'; // Default green
-    
-    if ('entityType' in entity) {
-      if (entity.entityType === EntityType.PLAYER) {
-        barColor = '#4CAF50'; // Player is always green
-      } else if (entity.entityType === EntityType.TOWER) {
-        barColor = '#2196F3'; // Towers are blue
-      } else if (entity.entityType === EntityType.ENEMY) {
-        // Enemies use gradient based on health
-        if (healthPercent > 0.5) {
-          barColor = '#4CAF50'; // Green
-        } else if (healthPercent > 0.25) {
-          barColor = '#FF9800'; // Orange
-        } else {
-          barColor = '#F44336'; // Red
-        }
-      }
-    }
-    
-    // Health fill
-    this.ctx.fillStyle = barColor;
-    this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-  }
 
   renderTowerRange(tower: Tower): void {
-    if (!this.camera.isVisible(tower.position, tower.range)) return;
-
-    const screenPos = this.getScreenPosition(tower);
-    const zoom = this.camera.getZoom();
-
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(screenPos.x, screenPos.y, tower.range * zoom, 0, Math.PI * 2);
-    }
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    this.ctx.lineWidth = 2 * zoom;
-    if (typeof this.ctx.setLineDash === 'function') {
-      const scaledPattern = RENDER_CONFIG.dashPattern.map(dash => dash * zoom);
-      this.ctx.setLineDash(scaledPattern);
-    }
-    if (typeof this.ctx.stroke === 'function') {
-      this.ctx.stroke();
-    }
-    if (typeof this.ctx.setLineDash === 'function') {
-      this.ctx.setLineDash([]); // Reset line dash
-    }
+    this.effectsRenderer.renderTowerRange(tower);
   }
 
   renderTowerGhost(towerType: TowerType, position: Vector2, canPlace: boolean): void {
-    // Create a temporary tower to get its stats
-    const tempTower = new Tower(towerType, position);
-
-    const screenPos = this.camera.worldToScreen(position);
-
-    // Save current context state
-    if (typeof this.ctx.save === 'function') {
-      this.ctx.save();
-    }
-
-    // Set transparency for ghost effect
-    this.ctx.globalAlpha = RENDER_CONFIG.ghostOpacity;
-
-    // Render tower body
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(screenPos.x, screenPos.y, tempTower.radius, 0, Math.PI * 2);
-    }
-
-    // Color based on placement validity
-    if (canPlace) {
-      // Green tint for valid placement
-      switch (towerType) {
-        case TowerType.BASIC:
-          this.ctx.fillStyle = '#81C784'; // Light green
-          break;
-        case TowerType.SNIPER:
-          this.ctx.fillStyle = '#64B5F6'; // Light blue
-          break;
-        case TowerType.RAPID:
-          this.ctx.fillStyle = '#FFB74D'; // Light orange
-          break;
-        case TowerType.WALL:
-          this.ctx.fillStyle = '#9E9E9E'; // Light gray
-          break;
-      }
-    } else {
-      // Red tint for invalid placement
-      this.ctx.fillStyle = '#E57373'; // Light red
-    }
-
-    if (typeof this.ctx.fill === 'function') {
-      this.ctx.fill();
-    }
-
-    // Tower outline
-    this.ctx.strokeStyle = canPlace ? '#4CAF50' : '#F44336';
-    this.ctx.lineWidth = 2;
-    if (typeof this.ctx.stroke === 'function') {
-      this.ctx.stroke();
-    }
-
-    // Show range preview
-    if (typeof this.ctx.beginPath === 'function') {
-      this.ctx.beginPath();
-    }
-    if (typeof this.ctx.arc === 'function') {
-      this.ctx.arc(screenPos.x, screenPos.y, tempTower.range, 0, Math.PI * 2);
-    }
-    this.ctx.strokeStyle = canPlace ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)';
-    this.ctx.lineWidth = 1;
-    if (typeof this.ctx.setLineDash === 'function') {
-      this.ctx.setLineDash([3, 3]);
-    }
-    if (typeof this.ctx.stroke === 'function') {
-      this.ctx.stroke();
-    }
-    if (typeof this.ctx.setLineDash === 'function') {
-      this.ctx.setLineDash([]); // Reset line dash
-    }
-
-    // Restore context state
-    if (typeof this.ctx.restore === 'function') {
-      this.ctx.restore();
-    }
+    this.effectsRenderer.renderTowerGhost(towerType, position, canPlace);
   }
 
-  // Helper method to render texture at specific position and size
-  private renderTextureAt(texture: Texture, position: Vector2, width: number, height: number): void {
-    if (typeof this.ctx.drawImage === 'function') {
-      this.ctx.drawImage(
-        texture.image,
-        position.x - width / 2,
-        position.y - height / 2,
-        width,
-        height
-      );
-    }
-  }
 
   renderText(
     text: string,
@@ -1613,12 +418,7 @@ export class Renderer {
     font: string = '16px Arial',
     align: CanvasTextAlign = 'left'
   ): void {
-    this.ctx.fillStyle = color;
-    this.ctx.font = font;
-    this.ctx.textAlign = align;
-    if (typeof this.ctx.fillText === 'function') {
-      this.ctx.fillText(text, x, y);
-    }
+    this.uiRenderer.renderText(text, x, y, color, font, align);
   }
 
   renderEntities(aimerLine?: { start: Vector2; end: Vector2 } | null): void {
@@ -1637,44 +437,49 @@ export class Renderer {
 
     // Render towers
     visible.towers.forEach(tower => {
-      this.renderTower(tower, tower === selectedTower);
+      this.entityRenderer.renderTower(tower, tower === selectedTower);
     });
 
     // Render enemies
     visible.enemies.forEach(enemy => {
-      this.renderEnemy(enemy);
+      this.entityRenderer.renderEnemy(enemy);
     });
 
     // Render collectibles
     visible.collectibles.forEach(collectible => {
-      this.renderCollectible(collectible);
+      this.entityRenderer.renderCollectible(collectible);
     });
 
     // Render projectiles
     visible.projectiles.forEach(projectile => {
-      this.renderProjectile(projectile);
+      this.entityRenderer.renderProjectile(projectile);
     });
+    
+    // Debug: Log projectile rendering
+    if (visible.projectiles.length > 0) {
+      console.log(`[Renderer] Rendering ${visible.projectiles.length} projectiles`);
+    }
 
     // Render player
     if (visible.player) {
-      this.renderPlayer(visible.player);
+      this.entityRenderer.renderPlayer(visible.player);
     }
 
     // Render aimer line
     if (aimerLine) {
-      this.renderAimerLine(aimerLine);
+      this.effectsRenderer.renderAimerLine(aimerLine);
     }
 
     // Render destruction effects
     visible.destructionEffects.forEach(effect => {
-      this.renderDestructionEffect(effect);
+      this.effectsRenderer.renderDestructionEffect(effect);
     });
   }
 
   renderScene(aimerLine?: { start: Vector2; end: Vector2 } | null): void {
     // Save the current context state
     this.ctx.save();
-    
+
     // Ensure our pixel ratio scaling is maintained
     // This is a safeguard in case something else modified the transform
     if (this.ctx.getTransform) {
@@ -1685,7 +490,7 @@ export class Renderer {
         this.restoreContextState();
       }
     }
-    
+
     // Clear canvas with biome-appropriate background
     const biome = this.grid.getBiome();
     const biomeColors = this.getBiomeColors(biome);
@@ -1711,98 +516,36 @@ export class Renderer {
     this.renderEntities(aimerLine);
 
     // Render pathfinding debug if enabled
-    const { getAllEnemies } = this.entityStoreApi.getState();
-    PathfindingDebug.render(this.ctx, getAllEnemies(), this.camera);
+    const { getAllEnemies, getAllTowers, getAllProjectiles, getAllCollectibles } = this.entityStoreApi.getState();
+    this.debugRenderer.renderPathfindingDebug(getAllEnemies());
 
     // Render debug overlay if enabled
-    if (this.debugMode) {
-      const { player } = this.entityStoreApi.getState();
-      this.renderDebugOverlay(player);
-    }
-    
+    const { player } = this.entityStoreApi.getState();
+    this.debugRenderer.renderDebugOverlay(player, {
+      enemies: getAllEnemies().length,
+      towers: getAllTowers().length,
+      projectiles: getAllProjectiles().length,
+      collectibles: getAllCollectibles().length
+    });
+
     // Restore the context state
     this.ctx.restore();
   }
 
-  renderUI(_currency: number, _lives: number, _score: number, _wave: number): void {
-
-    // this.renderText(`Currency: $${currency}`, padding, padding + fontSize, COLOR_CONFIG.ui.currency, `${fontSize}px Arial`);
-    // this.renderText(`Lives: ${lives}`, padding, padding + fontSize + lineHeight, COLOR_CONFIG.ui.lives, `${fontSize}px Arial`);
-    // this.renderText(`Score: ${score}`, padding, padding + fontSize + lineHeight * 2, COLOR_CONFIG.ui.score, `${fontSize}px Arial`);
-    // this.renderText(`Wave: ${wave}`, padding, padding + fontSize + lineHeight * 3, COLOR_CONFIG.ui.wave, `${fontSize}px Arial`);
+  renderUI(currency: number, lives: number, score: number, wave: number): void {
+    this.uiRenderer.renderUI(currency, lives, score, wave);
   }
 
   renderGameOver(): void {
-    // Semi-transparent overlay
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(0, 0, this.viewportWidth, this.viewportHeight);
-    }
-
-    // Game Over text
-    this.renderText(
-      'GAME OVER',
-      this.viewportWidth / 2,
-      this.viewportHeight / 2,
-      COLOR_CONFIG.ui.lives,
-      '48px Arial',
-      'center'
-    );
+    this.uiRenderer.renderGameOver();
   }
 
   renderVictory(): void {
-    // Semi-transparent overlay
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-
-    // Victory text
-    this.renderText(
-      'VICTORY!',
-      this.canvas.width / 2,
-      this.canvas.height / 2,
-      COLOR_CONFIG.ui.score,
-      '48px Arial',
-      'center'
-    );
+    this.uiRenderer.renderVictory();
   }
 
   renderPaused(): void {
-    // Semi-transparent overlay
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    if (typeof this.ctx.fillRect === 'function') {
-      this.ctx.fillRect(0, 0, this.viewportWidth, this.viewportHeight);
-    }
-
-    // Paused text
-    this.renderText(
-      'PAUSED',
-      this.viewportWidth / 2,
-      this.viewportHeight / 2,
-      COLOR_CONFIG.ui.currency,
-      '48px Arial',
-      'center'
-    );
-
-    // Instructions
-    this.renderText(
-      'Press SPACE to resume',
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 60,
-      '#FFFFFF',
-      '20px Arial',
-      'center'
-    );
-
-    this.renderText(
-      'Press M for Main Menu',
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 90,
-      '#CCCCCC',
-      '16px Arial',
-      'center'
-    );
+    this.uiRenderer.renderPaused();
   }
 
   // DEPRECATED: Tower upgrade panel is now handled by the dialog system
@@ -1829,7 +572,7 @@ export class Renderer {
 
   // Toggle debug mode
   setDebugMode(enabled: boolean): void {
-    this.debugMode = enabled;
+    this.debugRenderer.setDebugMode(enabled);
   }
 
   // Subscribe to entity store changes for reactive rendering
@@ -1860,13 +603,13 @@ export class Renderer {
       // Fallback for older browsers
       this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-    
+
     // Apply pixel ratio scaling
     if (this.pixelRatio !== 1) {
       this.ctx.scale(this.pixelRatio, this.pixelRatio);
       console.log('[Renderer] Restored pixel ratio scaling:', this.pixelRatio);
     }
-    
+
     // Restore other context defaults if needed
     this.ctx.imageSmoothingEnabled = this.renderSettings.enableAntialiasing;
   }
@@ -1876,88 +619,24 @@ export class Renderer {
     // Setting canvas dimensions resets the context, so we need to restore state
     this.canvas.width = width;
     this.canvas.height = height;
-    
+
     // Update viewport dimensions
     this.viewportWidth = width / this.pixelRatio;
     this.viewportHeight = height / this.pixelRatio;
-    
+
+    // Update UI renderer viewport
+    this.uiRenderer.updateViewport(this.viewportWidth, this.viewportHeight);
+
+    // Update debug renderer viewport
+    this.debugRenderer.updateViewport(this.viewportWidth, this.viewportHeight);
+
     // Restore context state after reset
     this.restoreContextState();
-    
-    console.log('[Renderer] Canvas resized:', { 
+
+    console.log('[Renderer] Canvas resized:', {
       pixelDimensions: { width, height },
       logicalDimensions: { width: this.viewportWidth, height: this.viewportHeight }
     });
   }
 
-  // Render debug overlay
-  private renderDebugOverlay(player: Player | null): void {
-    if (!player) return;
-
-    // Get camera info
-    const cameraInfo = this.camera.getCameraInfo();
-    const playerScreenPos = this.camera.worldToScreen(player.position);
-
-    // Draw crosshair at screen center
-    const centerX = this.viewportWidth / 2;
-    const centerY = this.viewportHeight / 2;
-
-    this.ctx.strokeStyle = '#00FF00';
-    this.ctx.lineWidth = 2;
-
-    // Horizontal line
-    this.ctx.beginPath();
-    this.ctx.moveTo(centerX - 20, centerY);
-    this.ctx.lineTo(centerX + 20, centerY);
-    this.ctx.stroke();
-
-    // Vertical line
-    this.ctx.beginPath();
-    this.ctx.moveTo(centerX, centerY - 20);
-    this.ctx.lineTo(centerX, centerY + 20);
-    this.ctx.stroke();
-
-    // Draw circle at center
-    this.ctx.beginPath();
-    this.ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
-    this.ctx.stroke();
-
-    // Draw line from center to player
-    this.ctx.strokeStyle = '#FF0000';
-    this.ctx.setLineDash([5, 5]);
-    this.ctx.beginPath();
-    this.ctx.moveTo(centerX, centerY);
-    this.ctx.lineTo(playerScreenPos.x, playerScreenPos.y);
-    this.ctx.stroke();
-    this.ctx.setLineDash([]);
-
-    // Draw player marker
-    this.ctx.strokeStyle = '#FFFF00';
-    this.ctx.lineWidth = 3;
-    this.ctx.beginPath();
-    this.ctx.arc(playerScreenPos.x, playerScreenPos.y, 15, 0, Math.PI * 2);
-    this.ctx.stroke();
-
-    // Debug text
-    const debugText = [
-      `Camera Following: ${cameraInfo.followTarget ? 'YES' : 'NO'}`,
-      `Camera Pos: (${cameraInfo.position.x.toFixed(0)}, ${cameraInfo.position.y.toFixed(0)})`,
-      `Player World: (${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)})`,
-      `Player Screen: (${playerScreenPos.x.toFixed(0)}, ${playerScreenPos.y.toFixed(0)})`,
-      `Distance from Center: ${Math.sqrt(Math.pow(playerScreenPos.x - centerX, 2) + Math.pow(playerScreenPos.y - centerY, 2)).toFixed(1)}px`,
-      `Zoom: ${cameraInfo.zoom.toFixed(2)}`,
-      `Player Moving: ${player.isMoving() ? 'YES' : 'NO'}`
-    ];
-
-    // Background for text
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    this.ctx.fillRect(10, 100, 300, debugText.length * 20 + 20);
-
-    // Debug text
-    this.ctx.fillStyle = '#00FF00';
-    this.ctx.font = '14px monospace';
-    debugText.forEach((text, i) => {
-      this.ctx.fillText(text, 20, 120 + i * 20);
-    });
-  }
 }
